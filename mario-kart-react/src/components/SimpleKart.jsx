@@ -49,7 +49,7 @@ export function SimpleKart() {
   // --- FISICA (Importante: Definiamo chassisRef qui!) ---
   const [chassisRef, api] = useSphere(() => ({
     mass: 500, 
-    position: [0, 5, 0], 
+    position: [0, 100, 0], 
     args: [1], 
     fixedRotation: true, 
     linearDamping: 0.1, 
