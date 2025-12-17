@@ -10,7 +10,6 @@ import { SkeletonUtils, mergeVertices } from 'three-stdlib'
 import { useTrimesh } from '@react-three/cannon'
 
 // --- 🔧 REGOLA LA GRANDEZZA QUI ---
-// Ora puoi cambiare questo numero e le hitbox si adatteranno automaticamente
 const trackScale = 0.011 
 
 export function LuigiCircuit(props) {
@@ -20,13 +19,15 @@ export function LuigiCircuit(props) {
 
   const groupRef = useRef()
 
-  // FIX GRAFICA
+  // FIX GRAFICA: Frustum Culling e Ombre
   useLayoutEffect(() => {
     if (groupRef.current) {
       groupRef.current.traverse((object) => {
         object.frustumCulled = false
         object.castShadow = true
         object.receiveShadow = true
+        
+        // Reset bounding box per evitare flicker
         if (object.isSkinnedMesh || object.isMesh) {
            if (object.geometry) {
              object.geometry.boundingSphere = null
@@ -42,16 +43,17 @@ export function LuigiCircuit(props) {
   // --- CONFIGURAZIONE FISICA ---
   const colliderProps = {
     type: 'Static',
-    // 1. ROTAZIONE: Deve essere ATTIVA e uguale a quella visiva (Math.PI / 2)
+    // ⚠️ FONDAMENTALE: La rotazione DEVE essere attiva per combaciare con la grafica!
     //rotation: [Math.PI / 2, 0, 0], 
     
-    // 2. SCALA: Usa la variabile trackScale per tutti e 3 gli assi
+    // Scala sincronizzata
     scale: [trackScale, trackScale, trackScale],
     
     position: trackPosition,
   }
 
   // --- FUNZIONE PER LISCIARE LE HITBOX ---
+  // Unisce i vertici per evitare che la sfera passi attraverso le fessure dei triangoli
   const createSmootherGeometry = (geometry) => {
     const tempGeo = geometry.clone()
     const mergedGeo = mergeVertices(tempGeo) 
@@ -73,12 +75,15 @@ export function LuigiCircuit(props) {
   const [grass2Geo, grass2Index] = useMemo(() => createSmootherGeometry(nodes.polygon2.geometry), [nodes.polygon2])
   useTrimesh(() => ({ args: [grass2Geo, grass2Index], ...colliderProps, friction: 0.5 }))
 
-  // 4. MURI
+  // 4. MURI (Polygon 20)
+  // ORA APPLICHIAMO IL MERGE ANCHE AI MURI
+  // Questo impedisce alla sfera di passare attraverso le giunture dei muri
+  const [wallGeo, wallIndex] = useMemo(() => createSmootherGeometry(nodes.polygon20.geometry), [nodes.polygon20])
   useTrimesh(() => ({
-    args: [nodes.polygon20.geometry.attributes.position.array, nodes.polygon20.geometry.index.array],
+    args: [wallGeo, wallIndex],
     ...colliderProps,
-    friction: 0.0,
-    restitution: 0.5,
+    friction: 0.0, // Scivola sui muri
+    restitution: 0.5, // Rimbalza un po'
   }))
 
   // 5. CORDOLI
@@ -87,7 +92,7 @@ export function LuigiCircuit(props) {
 
   return (
     <group ref={groupRef} {...props} dispose={null}>
-      {/* GRUPPO VISIVO: Stessa scala e rotazione della fisica */}
+      {/* GRUPPO VISIVO: Ruotato come la fisica */}
       <group rotation={[Math.PI / 2, 0, 0]} scale={trackScale}>
         <primitive object={nodes.beginner_course} />
         

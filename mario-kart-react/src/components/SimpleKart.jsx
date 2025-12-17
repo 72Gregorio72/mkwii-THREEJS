@@ -1,11 +1,13 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useSphere } from '@react-three/cannon'
-import { Vector3, MathUtils, Raycaster } from 'three'
-import { useControls } from '../hooks/useControls' // Assicurati che il percorso sia giusto
+import { RigidBody, BallCollider } from '@react-three/rapier' 
+import { Vector3, MathUtils, Raycaster, Quaternion, Euler } from 'three' 
+import { useControls } from '../hooks/useControls' 
 import gsap from 'gsap'
-import { FunkyKong } from '../models/Funky_kong' // Importiamo il tuo nuovo modello
-import { KartModel } from '../models/Flame_flyer' // Importiamo il modello del kart
+import { FunkyKong } from '../models/Funky_kong' 
+import { KartModel } from '../models/Flame_flyer' 
+
+const KART_SIZE = 1.0 
 
 const SETTINGS = {
   maxSpeed: 30,
@@ -17,64 +19,45 @@ const SETTINGS = {
   boostDuration: 60, 
 }
 
-const START_POS = [-203.00, 15, 291.58]
+const START_POS = [0, 10, 0] // Abbassato start pos per test
 
 export function SimpleKart() {
   const { scene } = useThree()
   const controls = useControls()
   
+  const rigidBody = useRef()
+
   // STATO
   const driftDirection = useRef(0) 
   const speed = useRef(0)
   const rotation = useRef(0) 
   const driftVector = useRef(new Vector3(0, 0, 0))
-  const velocity = useRef([0, 0, 0])
-  const position = useRef([0, 0, 0])
+  
+  const currentVelocity = useRef(new Vector3())
+  const currentPosition = useRef(new Vector3())
 
-  // REFS VARI
+  // NUOVO: Ref per stabilizzare la camera
+  const cameraTarget = useRef(new Vector3(0, 0, 0))
+
   const isGrounded = useRef(false)
   const raycaster = useRef(new Raycaster())
   const wasDrifting = useRef(false)
   const pendingBoost = useRef(false)
   const boostTime = useRef(0)
-
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
 
-  // REFS VISIVI
   const visualGroupRef = useRef() 
   const frontLeft = useRef()
   const frontRight = useRef()
   const backLeft = useRef()
   const backRight = useRef()
 
-  // --- FISICA (Importante: Definiamo chassisRef qui!) ---
-  const [chassisRef, api] = useSphere(() => ({
-    mass: 500, 
-    position: START_POS, 
-    args: [1], 
-    fixedRotation: true, 
-    linearDamping: 0.1, 
-    material: { friction: 0.0, restitution: 0 } 
-  }))
-
-  useEffect(() => {
-    // 2. IMPOSTA LA ROTAZIONE INIZIALE
-    // 0.07 è l'angolo che hai trovato.
-    // L'ordine è (X, Y, Z), noi ruotiamo su Y (l'asse verticale).
-    api.velocity.set(0, 0, 0)
-    api.angularVelocity.set(0, 0, 0)
-    api.rotation.set(0, 0.07, 0) 
-}, [])
-
-  useEffect(() => api.position.subscribe((p) => (position.current = p)), [api.position])
-  useEffect(() => api.velocity.subscribe((v) => (velocity.current = v)), [api.velocity])
-
   const performHop = () => {
     if (isJumping.current) return
     isJumping.current = true
     gsap.to(jumpOffset.current, {
-      y: 0.6,
+      y: 0.6, 
       duration: 0.1,
       yoyo: true,
       repeat: 1,
@@ -90,14 +73,21 @@ export function SimpleKart() {
   }
 
   useFrame((state, delta) => {
+    if (!rigidBody.current) return;
+
+    // 1. LEGGI DATI
+    const rbPos = rigidBody.current.translation();
+    const rbVel = rigidBody.current.linvel();
+    currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
+    currentVelocity.current.set(rbVel.x, rbVel.y, rbVel.z);
+
     const { forward, backward, left, right, drift } = controls.current
     
-    // 1. GROUND CHECK
-    const origin = new Vector3(position.current[0], position.current[1], position.current[2])
+    // 2. GROUND CHECK
+    const origin = currentPosition.current.clone()
     const direction = new Vector3(0, -1, 0)
     raycaster.current.set(origin, direction)
 
-    // Nota: Filtriamo per evitare errori se la scena non è ancora pronta
     if (scene) {
         const hits = raycaster.current.intersectObjects(scene.children, true)
         const groundHit = hits.find(hit => {
@@ -108,10 +98,10 @@ export function SimpleKart() {
             }
             return true
         })
-        isGrounded.current = groundHit && groundHit.distance < 1.3
+        isGrounded.current = groundHit && groundHit.distance < (1.3 * KART_SIZE)
     }
 
-    // 2. LOGICA BOOST
+    // 3. LOGICA BOOST
     if (wasDrifting.current && !drift) {
         if (isGrounded.current) activateBoost()
         else pendingBoost.current = true
@@ -119,15 +109,15 @@ export function SimpleKart() {
     wasDrifting.current = drift 
     if (pendingBoost.current && isGrounded.current) activateBoost()
 
-    // 3. DRIFT HOP
+    // 4. DRIFT HOP
     if (drift && !isJumping.current && driftDirection.current === 0 && (left || right) && isGrounded.current) {
         performHop()
         driftDirection.current = left ? 1 : -1
-        api.velocity.set(velocity.current[0], 5, velocity.current[2])
+        rigidBody.current.setLinvel({ x: rbVel.x, y: 5, z: rbVel.z }, true)
     }
     if (!drift || Math.abs(speed.current) < 1) driftDirection.current = 0
 
-    // 4. MOTORE
+    // 5. MOTORE
     let currentMaxSpeed = SETTINGS.maxSpeed
     let acceleration = SETTINGS.acceleration
     if (boostTime.current > 0) {
@@ -143,7 +133,7 @@ export function SimpleKart() {
     
     speed.current = MathUtils.damp(speed.current, targetSpeed, acceleration, delta)
 
-    // 5. STERZO
+    // 6. STERZO
     let turnFactor = 0
     if (driftDirection.current !== 0) {
       const isLeft = driftDirection.current === 1
@@ -158,7 +148,7 @@ export function SimpleKart() {
     }
     rotation.current += turnFactor * delta
 
-    // 6. FISICA MOVIMENTO
+    // 7. CALCOLO VELOCITÀ
     const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const finalVelocity = new Vector3()
 
@@ -171,14 +161,22 @@ export function SimpleKart() {
         finalVelocity.copy(forwardVector).multiplyScalar(speed.current)
     }
 
-    api.velocity.set(finalVelocity.x, velocity.current[1], finalVelocity.z)
-    api.rotation.set(0, rotation.current, 0)
-    api.angularVelocity.set(0, 0, 0) 
+    // 8. APPLICA FISICA
+    rigidBody.current.setLinvel({ 
+        x: finalVelocity.x, 
+        y: rbVel.y, 
+        z: finalVelocity.z 
+    }, true)
+
+    const q = new Quaternion()
+    q.setFromEuler(new Euler(0, rotation.current, 0))
+    rigidBody.current.setRotation(q, true)
+    rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
     // VISUAL UPDATE
     if (visualGroupRef.current) {
         const boostShake = boostTime.current > 0 ? (Math.random() - 0.5) * 0.1 : 0
-        visualGroupRef.current.position.y = -1 + jumpOffset.current.y + boostShake
+        visualGroupRef.current.position.y = (-1 * KART_SIZE) + jumpOffset.current.y + boostShake
         
         let targetTilt = 0
         if (driftDirection.current !== 0) targetTilt = driftDirection.current === 1 ? -0.6 : 0.6
@@ -189,49 +187,76 @@ export function SimpleKart() {
         visualGroupRef.current.rotation.x = MathUtils.damp(visualGroupRef.current.rotation.x, wheelie, 3, delta)
     }
 
-    // CAMERA
-    const camDist = 9
+    // --- CAMERA FIX: SMOOTH FOLLOW ---
+    const camDist = 9 
     const camHeight = 4.5
+    
+    // Posizione DESIDERATA della camera (dietro al kart)
     const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-    const camX = position.current[0] + backVector.x * camDist
-    const camZ = position.current[2] + backVector.z * camDist
-    state.camera.position.lerp(new Vector3(camX, position.current[1] + camHeight, camZ), 0.15)
-    state.camera.lookAt(position.current[0], position.current[1] + 1.5, position.current[2])
-	state.camera.far = 10000
-	state.camera.near = 0.1
-	state.camera.updateProjectionMatrix()
+    const desiredCamPos = new Vector3(
+        currentPosition.current.x + backVector.x * camDist,
+        currentPosition.current.y + camHeight,
+        currentPosition.current.z + backVector.z * camDist
+    )
 
-    // ANIMAZIONE RUOTE (Semplice rotazione)
+    // Lerp Posizione Camera (0.1 = più liscio/lento, 0.2 = più reattivo)
+    state.camera.position.lerp(desiredCamPos, 0.12)
+
+    // TARGET SMOOTH: Invece di guardare il kart (che vibra), guardiamo un punto che lo segue
+    const targetPoint = new Vector3(
+        currentPosition.current.x, 
+        currentPosition.current.y + 1.5, 
+        currentPosition.current.z
+    )
+    // Lerp del punto guardato (questo rimuove l'effetto terremoto rotazionale)
+    cameraTarget.current.lerp(targetPoint, 0.2)
+
+    state.camera.lookAt(cameraTarget.current)
+    state.camera.far = 10000
+    state.camera.near = 0.1
+    state.camera.updateProjectionMatrix()
+
+    // RUOTE
     const wheelRot = speed.current * delta * 0.5
     ;[frontLeft, frontRight, backLeft, backRight].forEach(ref => { if(ref.current) ref.current.rotation.x -= wheelRot })
   })
 
   return (
-    <group ref={chassisRef}>
-      <group ref={visualGroupRef} position={[0, -1, 0]}>
+    <RigidBody 
+        ref={rigidBody} 
+        position={START_POS} 
+        mass={500}
+        linearDamping={0.5} // Aumentato damping per ridurre vibrazioni fisiche
+        angularDamping={0.5}
+        colliders={false} 
+        type="dynamic"
+        ccd={true} // FIX: Continuous Collision Detection (evita che attraversi il pavimento)
+    >
+      <BallCollider args={[1 * KART_SIZE]} material={{ friction: 0.0, restitution: 0 }} />
+      
+      <group 
+        ref={visualGroupRef} 
+        position={[0, -1 * KART_SIZE, 0]} 
+        scale={[KART_SIZE, KART_SIZE, KART_SIZE]}
+      >
           <KartModel 
-			// Non serve più passare 'steer' perché il manubrio è fisso
-			scale={1} // <--- SE È TROPPO GRANDE O PICCOLA, CAMBIA QUESTO NUMERO (es. 0.01 o 10)
-			rotation={[0, Math.PI, 0]} // Ruota di 180° se guarda indietro
-			position={[0, 0.5, 0]} 
-		/>
-          {/* IL TUO NUOVO MODELLO FUNKY KONG */}
+            scale={1} 
+            rotation={[0, Math.PI, 0]} 
+            position={[0, 0.5, 0]} 
+        />
           <FunkyKong 
             position={[0, 0, 0]} 
-            rotation={[0, Math.PI, 0]} // Ruota 180° se guarda indietro
+            rotation={[0, Math.PI, 0]} 
             steer={(controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)}
             drift={driftDirection.current}
             speed={speed.current}
           />
-
-          {/* RUOTE PROVVISORIE (Per capire dove tocca terra) */}
           <WheelPosition position={[-0.6, 0, -0.8]} ref={frontLeft} />
           <WheelPosition position={[0.6, 0, -0.8]} ref={frontRight} />
           <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft} />
           <WheelPosition position={[0.6, 0, 0.8]} ref={backRight} />
-
       </group>
-    </group>
+    </RigidBody>
   )
 }
 
