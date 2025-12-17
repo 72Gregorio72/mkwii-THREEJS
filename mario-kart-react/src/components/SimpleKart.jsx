@@ -1,25 +1,31 @@
 import React, { useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider } from '@react-three/rapier' 
-import { Vector3, MathUtils, Raycaster, Quaternion, Euler } from 'three' 
+import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
 import { useControls } from '../hooks/useControls' 
+import { Sparkles } from '@react-three/drei' 
 import gsap from 'gsap'
 import { FunkyKong } from '../models/Funky_kong' 
 import { KartModel } from '../models/Flame_flyer' 
 
-const KART_SIZE = 1.0 
+const KART_SIZE = 0.8 
 
 const SETTINGS = {
-  maxSpeed: 30,
+  maxSpeed: 40,
   acceleration: 0.8,
-  turnSpeed: 2.2,
-  driftTurnSpeed: 2.8, 
+  turnSpeed: 1,
+  driftTurnSpeed: 1.1, 
   driftGrip: 0.02, 
   boostStrength: 20, 
-  boostDuration: 60, 
+  boostDuration: 60,
+  jumpForce: 2,       
+  gravityMultiplier: 0.1, 
+  downforce: 1,       
+  // Tempi per caricare il mini-turbo
+  driftLevel1Time: 1.5, // Scintille BLU
 }
 
-const START_POS = [0, 10, 0] // Abbassato start pos per test
+const START_POS = [-200, 10, 270] 
 
 export function SimpleKart() {
   const { scene } = useThree()
@@ -27,7 +33,7 @@ export function SimpleKart() {
   
   const rigidBody = useRef()
 
-  // STATO
+  // STATO FISICA
   const driftDirection = useRef(0) 
   const speed = useRef(0)
   const rotation = useRef(0) 
@@ -35,30 +41,36 @@ export function SimpleKart() {
   
   const currentVelocity = useRef(new Vector3())
   const currentPosition = useRef(new Vector3())
-
-  // NUOVO: Ref per stabilizzare la camera
   const cameraTarget = useRef(new Vector3(0, 0, 0))
 
   const isGrounded = useRef(false)
   const raycaster = useRef(new Raycaster())
+  
+  // STATO DRIFT & BOOST
   const wasDrifting = useRef(false)
+  const driftTime = useRef(0)      // Timer accumulo drift
+  const driftLevel = useRef(0)     // 0 = Null, 1 = Blu, 2 = Rosso
   const pendingBoost = useRef(false)
   const boostTime = useRef(0)
+  
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
 
+  // REFS VISUALI
   const visualGroupRef = useRef() 
-  const frontLeft = useRef()
-  const frontRight = useRef()
+  // Anchor points per le particelle (fissi, non ruotano)
   const backLeft = useRef()
   const backRight = useRef()
+  // Refs diretti ai componenti Sparkles per cambiare colore
+  const leftSparksRef = useRef()
+  const rightSparksRef = useRef()
 
   const performHop = () => {
     if (isJumping.current) return
     isJumping.current = true
     gsap.to(jumpOffset.current, {
-      y: 0.6, 
-      duration: 0.1,
+      y: 0.3,             // <--- RIDOTTO: Si alza meno visivamente
+      duration: 0.1,      // <--- PIÙ VELOCE: Scatto rapido
       yoyo: true,
       repeat: 1,
       ease: "power1.out",
@@ -66,10 +78,12 @@ export function SimpleKart() {
     })
   }
 
-  const activateBoost = () => {
-    boostTime.current = SETTINGS.boostDuration
+  const activateBoost = (level) => {
+    // Se level è 2 (rosso) il boost dura di più (1.5x)
+    const durationMult = level === 2 ? 1.5 : 1.0
+    boostTime.current = SETTINGS.boostDuration * durationMult
     pendingBoost.current = false
-    console.log("BOOST ATTIVATO!")
+    console.log(`BOOST ATTIVATO! Livello: ${level}`)
   }
 
   useFrame((state, delta) => {
@@ -85,9 +99,11 @@ export function SimpleKart() {
     
     // 2. GROUND CHECK
     const origin = currentPosition.current.clone()
+    origin.y += 1.0 // <--- ALZATO a 1.0 (era 0.5) per sicurezza
     const direction = new Vector3(0, -1, 0)
     raycaster.current.set(origin, direction)
 
+    let groundDistance = Infinity
     if (scene) {
         const hits = raycaster.current.intersectObjects(scene.children, true)
         const groundHit = hits.find(hit => {
@@ -98,22 +114,57 @@ export function SimpleKart() {
             }
             return true
         })
-        isGrounded.current = groundHit && groundHit.distance < (1.3 * KART_SIZE)
+        if (groundHit) {
+			// Ricordati di sottrarre l'offset che hai aggiunto sopra (1.0)
+			groundDistance = groundHit.distance - 1.0 
+		}
     }
 
-    // 3. LOGICA BOOST
-    if (wasDrifting.current && !drift) {
-        if (isGrounded.current) activateBoost()
-        else pendingBoost.current = true
+    const sphereRadius = 1.0 * KART_SIZE
+    isGrounded.current = groundDistance < (sphereRadius + 0.5)
+
+    // 3. LOGICA DRIFT & MINI-TURBO
+    const isDrifting = drift && isGrounded.current && Math.abs(speed.current) > 8; // Min speed to drift
+
+    if (isDrifting && driftDirection.current !== 0) {
+        // Stiamo driftando: accumula tempo
+        driftTime.current += delta;
+        
+        // Determina il livello delle scintille
+        if (driftTime.current > SETTINGS.driftLevel1Time) {
+            driftLevel.current = 1; // Blu
+        } else {
+            driftLevel.current = 0; // In caricamento (nessuna scintilla)
+        }
+    } else {
+        // Non stiamo driftando. Controlliamo se abbiamo appena rilasciato un drift carico.
+        if (wasDrifting.current && !drift) {
+            if (driftLevel.current > 0) {
+                if (isGrounded.current) activateBoost(driftLevel.current);
+                else pendingBoost.current = true; // Salva il boost se sei in aria
+            }
+        }
+        
+        // Reset stato drift
+        driftTime.current = 0;
+        driftLevel.current = 0;
     }
-    wasDrifting.current = drift 
-    if (pendingBoost.current && isGrounded.current) activateBoost()
+    
+    wasDrifting.current = drift;
+    
+    // Aggiorna visivamente le scintille (Colore e Visibilità)
+    updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
+    
+    if (pendingBoost.current && isGrounded.current) {
+        // Attiva un boost pendente (livello base se non salvato, qui semplificato)
+        activateBoost(1); 
+    }
 
     // 4. DRIFT HOP
     if (drift && !isJumping.current && driftDirection.current === 0 && (left || right) && isGrounded.current) {
         performHop()
         driftDirection.current = left ? 1 : -1
-        rigidBody.current.setLinvel({ x: rbVel.x, y: 5, z: rbVel.z }, true)
+        rigidBody.current.setLinvel({ x: rbVel.x, y: SETTINGS.jumpForce, z: rbVel.z }, true)
     }
     if (!drift || Math.abs(speed.current) < 1) driftDirection.current = 0
 
@@ -122,7 +173,7 @@ export function SimpleKart() {
     let acceleration = SETTINGS.acceleration
     if (boostTime.current > 0) {
         currentMaxSpeed += SETTINGS.boostStrength
-        acceleration *= 2
+        acceleration *= 3 // Scatto più rapido col boost
         boostTime.current -= 1
     }
 
@@ -148,12 +199,12 @@ export function SimpleKart() {
     }
     rotation.current += turnFactor * delta
 
-    // 7. CALCOLO VELOCITÀ
+    // 7. CALCOLO VELOCITÀ X/Z
     const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const finalVelocity = new Vector3()
 
     if (driftDirection.current !== 0) {
-        const airControl = isGrounded.current ? 1 : 0.1
+        const airControl = isGrounded.current ? 1 : 0.2
         driftVector.current.lerp(forwardVector, SETTINGS.driftGrip * 60 * delta * airControl)
         finalVelocity.copy(driftVector.current).multiplyScalar(speed.current)
     } else {
@@ -161,19 +212,61 @@ export function SimpleKart() {
         finalVelocity.copy(forwardVector).multiplyScalar(speed.current)
     }
 
-    // 8. APPLICA FISICA
+    // 8. FIX RIMBALZI E GRAVITÀ MIGLIORATO
+    let newY = rbVel.y
+    
+    // -- A. GESTIONE SALITA (Anti-Climb) --
+    // Se stiamo salendo (newY > 0) e NON stiamo saltando:
+    if (newY > 0 && !isJumping.current) {
+        // Se la salita è piccola (micro-rimbalzo o asperità), la annulliamo per restare incollati.
+        if (newY < 2) {
+             newY = 0 
+        } else {
+             // Se è una rampa vera (salita forte), la freniamo solo un po'
+             newY *= 0.5 
+        }
+    }
+
+	// -- B. GRAVITÀ (Caduta) --
+    if (!isGrounded.current && !isJumping.current) {
+        // Caduta normale pesante
+        newY -= 9.81 * 4.0 * delta 
+    } else if (isJumping.current) {
+        // Gravità durante il salto (per renderlo secco)
+        newY -= 9.81 * 5.0 * delta 
+    }
+
+    // -- C. SNAP TO GROUND (Calamita Intelligente) --
+    // Applichiamo la forza verso il basso SOLO se siamo sospesi un po' (floating),
+    // MA NON se siamo già piantati a terra (groundDistance < 0.05).
+    // Questo evita il conflitto con Rapier che ti spinge in su.
+    const isFloating = groundDistance > 0.05 && groundDistance < 1.5
+    
+    if (isFloating && !isJumping.current) {
+        // Spinta extra verso il basso per riattaccarsi, ma senza settare velocità fisse
+        newY -= 20 * delta; 
+    }
+
+    // Snap to ground
+    const isSnapZone = groundDistance < (sphereRadius + 1.5)
+    if (isSnapZone && !isJumping.current) {
+        if (newY > 0) newY = -1; 
+        newY -= 10 * delta; 
+    }
+
     rigidBody.current.setLinvel({ 
         x: finalVelocity.x, 
-        y: rbVel.y, 
+        y: newY, 
         z: finalVelocity.z 
     }, true)
 
+    // Rotazione e Pulizia
     const q = new Quaternion()
     q.setFromEuler(new Euler(0, rotation.current, 0))
     rigidBody.current.setRotation(q, true)
     rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
-    // VISUAL UPDATE
+    // --- VISUAL & CAMERA ---
     if (visualGroupRef.current) {
         const boostShake = boostTime.current > 0 ? (Math.random() - 0.5) * 0.1 : 0
         visualGroupRef.current.position.y = (-1 * KART_SIZE) + jumpOffset.current.y + boostShake
@@ -187,63 +280,53 @@ export function SimpleKart() {
         visualGroupRef.current.rotation.x = MathUtils.damp(visualGroupRef.current.rotation.x, wheelie, 3, delta)
     }
 
-    // --- CAMERA FIX: SMOOTH FOLLOW ---
+    // Camera
     const camDist = 9 
     const camHeight = 4.5
-    
-    // Posizione DESIDERATA della camera (dietro al kart)
     const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const desiredCamPos = new Vector3(
         currentPosition.current.x + backVector.x * camDist,
         currentPosition.current.y + camHeight,
         currentPosition.current.z + backVector.z * camDist
     )
-
-    // Lerp Posizione Camera (0.1 = più liscio/lento, 0.2 = più reattivo)
     state.camera.position.lerp(desiredCamPos, 0.12)
-
-    // TARGET SMOOTH: Invece di guardare il kart (che vibra), guardiamo un punto che lo segue
     const targetPoint = new Vector3(
         currentPosition.current.x, 
         currentPosition.current.y + 1.5, 
         currentPosition.current.z
     )
-    // Lerp del punto guardato (questo rimuove l'effetto terremoto rotazionale)
     cameraTarget.current.lerp(targetPoint, 0.2)
-
     state.camera.lookAt(cameraTarget.current)
     state.camera.far = 10000
     state.camera.near = 0.1
     state.camera.updateProjectionMatrix()
-
-    // RUOTE
-    const wheelRot = speed.current * delta * 0.5
-    ;[frontLeft, frontRight, backLeft, backRight].forEach(ref => { if(ref.current) ref.current.rotation.x -= wheelRot })
+    
+    // *** NOTA: Animazione rotazione ruote rimossa come richiesto ***
   })
 
   return (
     <RigidBody 
         ref={rigidBody} 
         position={START_POS} 
-        mass={500}
-        linearDamping={0.5} // Aumentato damping per ridurre vibrazioni fisiche
+        mass={100} 
+        linearDamping={0.5} 
         angularDamping={0.5}
         colliders={false} 
         type="dynamic"
-        ccd={true} // FIX: Continuous Collision Detection (evita che attraversi il pavimento)
+        ccd={true} 
+        restitution={0}
     >
-      <BallCollider args={[1 * KART_SIZE]} material={{ friction: 0.0, restitution: 0 }} />
+      <BallCollider 
+          args={[1 * KART_SIZE]} 
+          material={{ friction: 0.0, restitution: 0 }} 
+      />
       
       <group 
         ref={visualGroupRef} 
         position={[0, -1 * KART_SIZE, 0]} 
         scale={[KART_SIZE, KART_SIZE, KART_SIZE]}
       >
-          <KartModel 
-            scale={1} 
-            rotation={[0, Math.PI, 0]} 
-            position={[0, 0.5, 0]} 
-        />
+          <KartModel scale={1} rotation={[0, Math.PI, 0]} position={[0, 0.5, 0]} />
           <FunkyKong 
             position={[0, 0, 0]} 
             rotation={[0, Math.PI, 0]} 
@@ -251,24 +334,81 @@ export function SimpleKart() {
             drift={driftDirection.current}
             speed={speed.current}
           />
-          <WheelPosition position={[-0.6, 0, -0.8]} ref={frontLeft} />
-          <WheelPosition position={[0.6, 0, -0.8]} ref={frontRight} />
-          <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft} />
-          <WheelPosition position={[0.6, 0, 0.8]} ref={backRight} />
+          
+          {/* WheelPosition ora è invisibile, serve solo per ancorare le particelle */}
+          <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}>
+              <DriftSparks ref={leftSparksRef} />
+          </WheelPosition>
+          
+          <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}>
+              <DriftSparks ref={rightSparksRef} />
+          </WheelPosition>
       </group>
     </RigidBody>
   )
 }
 
-const WheelPosition = React.forwardRef(({ position }, ref) => {
+// *** COMPONENTE ANCORA (Invisibile) ***
+const WheelPosition = React.forwardRef(({ position, children }, ref) => {
   return (
     <group position={position} ref={ref}>
-      <group rotation={[0, 0, Math.PI / 2]}>
-        <mesh castShadow>
-          <cylinderGeometry args={[0.35, 0.35, 0.25, 32]} />
-          <meshStandardMaterial color="#222" />
-        </mesh>
-      </group>
+      {children}
     </group>
   )
 })
+
+// *** PARTICELLE DRIFT (Grandi, Dense, Blu Elettrico) ***
+const DriftSparks = React.forwardRef((props, ref) => {
+	return (
+		<group position={[0, 0.2, 1]} ref={ref} visible={false}>
+			<Sparkles 
+				count={10}
+				scale={[0.6, 0.3, 1.5]}
+				size={30}
+				speed={1.2}
+				opacity={1} 
+				color={"#0066FF"}
+				noise={0.1}
+			/>
+		</group>
+	)
+})
+
+// *** LOGICA GESTIONE COLORI ***
+const cBlue = new Color("#00aeffff") // Blu Elettrico
+const cRed = new Color("#FF2200")  // Rosso Fuoco
+
+function updateSparksColor(level, leftRef, rightRef) {
+    if (!leftRef || !rightRef) return
+    
+    // Mostra solo se il drift è caricato almeno al livello 1
+    const show = level > 0 
+    
+    leftRef.visible = show
+    rightRef.visible = show
+
+    if (show) {
+        let targetColor = level === 2 ? cRed : cBlue
+        
+        // Applica il colore alle mesh interne create da Drei Sparkles
+        leftRef.traverse((child) => {
+            if (child.isMesh && child.material) {
+                child.material.color.lerp(targetColor, 0.5)
+                // Aumenta l'emissive per renderle brillanti al buio
+                if (child.material.emissive) {
+                    child.material.emissive = targetColor
+                    child.material.emissiveIntensity = 2
+                }
+            }
+        })
+        rightRef.traverse((child) => {
+            if (child.isMesh && child.material) {
+                child.material.color.lerp(targetColor, 0.5)
+                if (child.material.emissive) {
+                    child.material.emissive = targetColor
+                    child.material.emissiveIntensity = 2
+                }
+            }
+        })
+    }
+}

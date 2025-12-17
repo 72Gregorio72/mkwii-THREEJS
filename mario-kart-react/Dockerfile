@@ -8,6 +8,8 @@ COPY package.json package-lock.json ./
 # Installiamo le dipendenze NEL container
 RUN npm install
 
+RUN npm install -g vite
+
 # Copiamo il resto del codice
 COPY . .
 
