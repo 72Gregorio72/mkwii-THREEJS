@@ -17,6 +17,8 @@ const SETTINGS = {
   boostDuration: 60, 
 }
 
+const START_POS = [-203.00, 15, 291.58]
+
 export function SimpleKart() {
   const { scene } = useThree()
   const controls = useControls()
@@ -49,12 +51,21 @@ export function SimpleKart() {
   // --- FISICA (Importante: Definiamo chassisRef qui!) ---
   const [chassisRef, api] = useSphere(() => ({
     mass: 500, 
-    position: [0, 100, 0], 
+    position: START_POS, 
     args: [1], 
     fixedRotation: true, 
     linearDamping: 0.1, 
     material: { friction: 0.0, restitution: 0 } 
   }))
+
+  useEffect(() => {
+    // 2. IMPOSTA LA ROTAZIONE INIZIALE
+    // 0.07 è l'angolo che hai trovato.
+    // L'ordine è (X, Y, Z), noi ruotiamo su Y (l'asse verticale).
+    api.velocity.set(0, 0, 0)
+    api.angularVelocity.set(0, 0, 0)
+    api.rotation.set(0, 0.07, 0) 
+}, [])
 
   useEffect(() => api.position.subscribe((p) => (position.current = p)), [api.position])
   useEffect(() => api.velocity.subscribe((v) => (velocity.current = v)), [api.velocity])
@@ -186,6 +197,9 @@ export function SimpleKart() {
     const camZ = position.current[2] + backVector.z * camDist
     state.camera.position.lerp(new Vector3(camX, position.current[1] + camHeight, camZ), 0.15)
     state.camera.lookAt(position.current[0], position.current[1] + 1.5, position.current[2])
+	state.camera.far = 10000
+	state.camera.near = 0.1
+	state.camera.updateProjectionMatrix()
 
     // ANIMAZIONE RUOTE (Semplice rotazione)
     const wheelRot = speed.current * delta * 0.5
