@@ -6,6 +6,7 @@ import { useGLTF, OrbitControls } from '@react-three/drei'
 import { VisualMap } from './Tracks/VisualMap'
 import { SmartMap } from './Tracks/StartMap'
 import { CameraLogger } from './CameraLogger'
+import { OutsideDriftKart } from './components/OutsideDriftKart'
 
 export default function App() {
   return (
@@ -13,8 +14,9 @@ export default function App() {
       <ambientLight intensity={3} />
       {/* <OrbitControls />
 	  <CameraLogger /> */}
-      <Physics > 
+      <Physics> 
         	<SimpleKart START_POS = {[-200, 100, 270]} />
+			{/* <OutsideDriftKart START_POS = {[-200, 100, 270]} /> */}
       <SmartMap 
 			modelPath="/LuigiCircuit_colliders.glb" 
 			scale={1} 
