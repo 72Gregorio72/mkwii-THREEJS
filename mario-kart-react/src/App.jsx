@@ -7,6 +7,7 @@ import { VisualMap } from './Tracks/VisualMap'
 import { SmartMap } from './Tracks/StartMap'
 import { CameraLogger } from './CameraLogger'
 import { OutsideDriftKart } from './components/OutsideDriftKart'
+import { InsideDriftBike } from './components/InsideDriftBike'
 
 export default function App() {
   return (
@@ -15,8 +16,9 @@ export default function App() {
       {/* <OrbitControls />
 	  <CameraLogger /> */}
       <Physics> 
-        	<SimpleKart START_POS = {[-200, 100, 270]} />
+        	{/* <SimpleKart START_POS = {[-200, 100, 270]} /> */}
 			{/* <OutsideDriftKart START_POS = {[-200, 100, 270]} /> */}
+			<InsideDriftBike START_POS = {[-200, 100, 270]} />
       <SmartMap 
 			modelPath="/LuigiCircuit_colliders.glb" 
 			scale={1} 
