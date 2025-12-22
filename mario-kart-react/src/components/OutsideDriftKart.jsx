@@ -5,39 +5,34 @@ import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three'
 import { useControls } from '../hooks/useControls' 
 import { Sparkles, Html } from '@react-three/drei' 
 import gsap from 'gsap'
-import { FunkyKong } from '../models/Funky_kong' 
-import { KartModel } from '../models/Flame_flyer' 
 
-const KART_SIZE = 1       
-const PHYSICS_RADIUS = 1.2   
+// NOTA: Non importiamo più Mario o StandardKartM qui!
 
-// CONFIGURAZIONE OUTSIDE DRIFT
+const KART_SIZE = 1 
+const PHYSICS_RADIUS = 1.2 
+
 const SETTINGS = {
-  maxSpeed: 40,
-  maxTurboLimit: 80,       
-  acceleration: 0.2,       
-  deceleration: 1.0,       
-  turnSpeed: 0.8,
-  
-  // --- OUTSIDE DRIFT MODIFICATO ---
-  // Meno rotazione su se stesso (era 1.8, ora 1.0)
-  driftTurnSpeed: 1.0, 
-  // Più grip per chiudere l'angolo (era 0.006, ora 0.015)
-  // Più alto è questo numero, meno il kart scivola laterale ("saponetta")
-  driftGrip: 0.015, 
-  
+  maxSpeed: 50,
+  maxTurboLimit: 90,       
+  acceleration: 0.25,       
+  deceleration: 2.0,       
+  turnSpeed: 0.9,
+  driftTurnSpeed: 0.9, 
+  driftGrip: 0.02, 
   boostStrength: 0,        
   boostDuration: 60,       
   jumpForce: 1.5,          
   driftLevel1Time: 1.5,    
   driftMinSpeed: 10,       
+  slideOutForce: 0.3,
 }
 
 const START_POS = [-200, 10, 270] 
 const cBlue = new Color("#00aeff") 
 const cRed = new Color("#ff3300")  
 
-export function OutsideDriftKart() {
+// 1. Aggiungiamo le props qui: charModel e kartModel
+export function OutsideDriftKart({ charModel: Character, kartModel: Kart }) {
   const { scene } = useThree()
   const controls = useControls()
   
@@ -79,9 +74,8 @@ export function OutsideDriftKart() {
     if (isJumping.current) return
     isJumping.current = true
     
-    // Un salto leggermente più alto per enfatizzare l'ingresso in derapata
     gsap.to(jumpOffset.current, {
-      y: 0.4, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.out",
+      y: 0.3, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.out",
       onComplete: () => { isJumping.current = false }
     })
   }
@@ -135,7 +129,6 @@ export function OutsideDriftKart() {
     if (!drift) {
         driftHopLocked.current = false
         driftEngageWindow.current = false 
-        
         if (driftDirection.current !== 0) {
             if (driftLevel.current > 0) {
                 if (isGrounded.current) activateBoost(driftLevel.current);
@@ -160,10 +153,16 @@ export function OutsideDriftKart() {
 
     if (drift) {
         if (driftDirection.current === 0 && driftEngageWindow.current) {
-            if (left) driftDirection.current = 1;
-            else if (right) driftDirection.current = -1;
+            const rightVector = new Vector3(1, 0, 0).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+            if (left) {
+                driftDirection.current = 1;
+                driftVector.current.add(rightVector.multiplyScalar(SETTINGS.slideOutForce))
+            } 
+            else if (right) {
+                driftDirection.current = -1;
+                driftVector.current.add(rightVector.multiplyScalar(-SETTINGS.slideOutForce))
+            }
         }
-
         if (driftDirection.current !== 0 && isGrounded.current) {
              driftTime.current += delta;
              driftLevel.current = driftTime.current > SETTINGS.driftLevel1Time ? 1 : 0;
@@ -181,60 +180,30 @@ export function OutsideDriftKart() {
     const isDrifting = driftDirection.current !== 0
     let currentSpeedLimit = SETTINGS.maxSpeed
     if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
-    else if (isDrifting) currentSpeedLimit += 2 // Outside drift guadagna meno velocità in curva rispetto all'inside
+    else if (isDrifting) currentSpeedLimit += 5 
 
     let targetSpeed = 0
     if (forward) targetSpeed = currentSpeedLimit
     if (backward) targetSpeed = -currentSpeedLimit * 0.5
     
-    // Smorzamento inerziale
-    speed.current = MathUtils.damp(speed.current, targetSpeed, isBoosting ? SETTINGS.acceleration * 2 : SETTINGS.acceleration, delta)
+    const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
+    if (forward && !isBoosting && isOverspeeding) {
+        speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
+    } else {
+        let currentAccel = SETTINGS.acceleration
+        if (isBoosting) currentAccel *= 2.5
+        else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
+        
+        speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
+    }
 
-    // 5. STERZO (OUTSIDE DRIFT LOGIC)
+    // 5. STERZO
     let turnFactor = 0
     if (isDrifting) {
         const isLeftDrift = driftDirection.current === 1
-        
-        // Logica OUTSIDE:
-        // Se drifti a sinistra e premi sinistra -> Stringi la curva (ma scivoli comunque)
-        // Se drifti a sinistra e premi destra -> Allarghi la curva (drift wide)
-        // Se non premi nulla -> Curva standard larga
-        
-        let steerInput = 0
-        if (left) steerInput = 1
-        if (right) steerInput = -1
-
-        // Base turn speed durante il drift
-        const baseDriftTurn = SETTINGS.driftTurnSpeed * driftDirection.current
-
-        // Modificatore basato sull'input:
-        // Se l'input è nella stessa direzione del drift (es. Left Drift + Left Key), aumentiamo la rotazione (stringe)
-        // Se l'input è opposto, rallentiamo la rotazione o andiamo leggermente contro (allarga)
-        if (isLeftDrift) {
-             if (steerInput === 1) turnFactor = baseDriftTurn * 1.2 // Stringe
-			 else if (steerInput === -1) {
-				 turnFactor = baseDriftTurn * 0.1 // Allarga (controsterzo)
-				 // Sposta leggermente a sinistra durante il controsterzo
-				 const leftShift = new Vector3(-0.05, 0, 0)
-				 const currentPos = rigidBody.current.translation()
-				 rigidBody.current.setTranslation({ x: currentPos.x + leftShift.x, y: currentPos.y, z: currentPos.z }, true)
-			 }
-             else turnFactor = baseDriftTurn * 0.8 // Neutro
-        } else {
-             // Right Drift
-             if (steerInput === -1) turnFactor = baseDriftTurn * 1.2 // Stringe
-             else if (steerInput === 1){
-				 turnFactor = baseDriftTurn * 0.1 // Allarga (controsterzo)
-				 // Sposta leggermente a destra durante il controsterzo
-				 const rightShift = new Vector3(0.05, 0, 0)
-				 const currentPos = rigidBody.current.translation()
-				 rigidBody.current.setTranslation({ x: currentPos.x + rightShift.x, y: currentPos.y, z: currentPos.z }, true)
-			 }
-             else turnFactor = baseDriftTurn * 0.8
-        }
-
+        if (isLeftDrift) turnFactor = left ? SETTINGS.driftTurnSpeed * 1.5 : (right ? SETTINGS.driftTurnSpeed * 0.1 : SETTINGS.driftTurnSpeed)
+        else turnFactor = right ? -SETTINGS.driftTurnSpeed * 1.5 : (left ? -SETTINGS.driftTurnSpeed * 0.1 : -SETTINGS.driftTurnSpeed)
     } else {
-        // Sterzo normale (Grip solido)
         if (Math.abs(speed.current) > 1.0) {
             const reverseFactor = speed.current < 0 ? -1 : 1
             if (left) turnFactor = SETTINGS.turnSpeed * reverseFactor
@@ -243,34 +212,24 @@ export function OutsideDriftKart() {
     }
     rotation.current += turnFactor * delta
 
-    // 6. FISICA VETTORIALE (IL CUORE DELL'OUTSIDE DRIFT)
-    // Calcoliamo dove il muso sta puntando
+    // 6. FISICA
     const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-    
-    // In Outside Drift, il grip è molto basso.
-    // Questo significa che driftVector (dove stiamo andando davvero) ci mette molto tempo 
-    // a raggiungere forwardVector (dove stiamo guardando).
-    // Risultato: Il kart ruota, ma continua ad andare dritto/largo per un po' = SCIVOLAMENTO ESTERNO.
-    const driftGrip = isDrifting ? SETTINGS.driftGrip : 0.15 
-    const airControl = isGrounded.current ? 1 : 0.2 // Meno controllo in aria
+    const driftGrip = isDrifting ? SETTINGS.driftGrip : 0.15
+    const airControl = isGrounded.current ? 1 : 0.5 
 
     driftVector.current.lerp(forwardVector, driftGrip * 60 * delta * airControl)
-    
     const finalVelocity = driftVector.current.clone().multiplyScalar(speed.current)
 
-    // Gravità custom
     let newY = rbVel.y
     if (!isGrounded.current && !isJumping.current) newY -= 20 * delta 
     else if (isJumping.current) newY -= 15 * delta
     
-    // Stick to ground
     if (groundDistance > 0.05 && groundDistance < 0.8 && !isJumping.current && newY > 0) {
         newY = -5 
     }
 
     rigidBody.current.setLinvel({ x: finalVelocity.x, y: newY, z: finalVelocity.z }, true)
 
-    // Applichiamo la rotazione
     const q = new Quaternion()
     q.setFromEuler(new Euler(0, rotation.current, 0))
     rigidBody.current.setRotation(q, true)
@@ -280,42 +239,28 @@ export function OutsideDriftKart() {
     if (visualGroupRef.current) {
         const speedShake = speed.current > SETTINGS.maxSpeed + 5 ? (Math.random() - 0.5) * 0.05 : 0
         visualGroupRef.current.position.y = (-PHYSICS_RADIUS) + jumpOffset.current.y + speedShake
-        
-        // Tilt Visuale:
-        // In outside drift, il kart non piega tanto "dentro" la curva come le moto inside.
-        // Spesso si inclina leggermente o rimane abbastanza piatto, con un po' di rollio opposto se si controsterza.
-        let targetTilt = 0
-        if (isDrifting) {
-            // Un tilt leggero nella direzione del drift, ma meno aggressivo dell'inside
-            targetTilt = driftDirection.current === 1 ? -0.25 : 0.25 
-        } else {
-            targetTilt = (left ? -0.15 : 0) + (right ? 0.15 : 0)
-        }
-        
-        visualGroupRef.current.rotation.z = MathUtils.damp(visualGroupRef.current.rotation.z, targetTilt, 8, delta)
+        visualGroupRef.current.rotation.z = 0 
     }
 
     // CAMERA
-    // La camera nell'outside drift spesso deve "inseguire" un po' di più perché il kart ruota molto rispetto alla traiettoria
     const baseFov = 75
-    const extraFov = Math.min((Math.abs(speed.current) / SETTINGS.maxTurboLimit) * 20, 30)
-		state.camera.fov = MathUtils.lerp(state.camera.fov, baseFov + (extraFov / 10), 0.1)
+    const extraFov = (Math.min((Math.abs(speed.current) / SETTINGS.maxTurboLimit) * 20, 30)) / 500
+    state.camera.fov = baseFov + extraFov
 
-    // Calcoliamo la posizione della camera basandoci sul VETTORE DI MOVIMENTO (driftVector) invece che sulla ROTAZIONE pura
-    // Questo aiuta a non far venire il mal di mare quando il kart ruota bruscamente ma sta ancora scivolando
-    const camDir = isDrifting ? driftVector.current.clone().negate() : new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-    
+    const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const desiredCamPos = new Vector3(
-        currentPosition.current.x + camDir.x * 7, // Camera un po' più lontana
-        currentPosition.current.y + 3.0,
-        currentPosition.current.z + camDir.z * 7
+        currentPosition.current.x + backVector.x * 6,
+        currentPosition.current.y + 2.5,
+        currentPosition.current.z + backVector.z * 6
     )
-    
-    state.camera.position.lerp(desiredCamPos, 0.15) // Lerp leggermente più morbido
+    state.camera.position.lerp(desiredCamPos, 0.2)
     cameraTarget.current.lerp(new Vector3(currentPosition.current.x, currentPosition.current.y + 2.0, currentPosition.current.z), 0.2)
     state.camera.lookAt(cameraTarget.current)
     state.camera.updateProjectionMatrix()
   })
+
+  // Calcolo dati sterzo per passare al componente Character
+  const steerVal = (controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)
 
   return (
     <RigidBody ref={rigidBody} position={START_POS} mass={100} linearDamping={0.5} angularDamping={0.5} colliders={false} type="dynamic" ccd={true} restitution={0}>
@@ -324,16 +269,24 @@ export function OutsideDriftKart() {
       <Html fullscreen style={{ pointerEvents: 'none' }}>
         <div style={{ position: 'absolute', top: '40px', right: '40px', color: 'white', fontFamily:'sans-serif', fontWeight:'bold', fontSize: '40px', display: 'flex', flexDirection:'column', alignItems:'flex-end' }}>
             <span ref={speedUiRef}>0 km/h</span>
-            <div style={{fontSize:'14px', opacity:0.7, marginTop:5, textAlign:'right'}}>
-                OUTSIDE DRIFT<br/>
-                SPACE TO HOP
-            </div>
+            <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>SPACE TO HOP/DRIFT</div>
         </div>
       </Html>
 
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-          <KartModel scale={1} rotation={[0, Math.PI, 0]} position={[0, 0.5, 0]} />
-          <FunkyKong position={[0, 0, 0]} rotation={[0, Math.PI, 0]} steer={(controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)} drift={driftDirection.current} speed={speed.current}/>
+          
+          {/* 2. Renderizziamo i componenti passati come props */}
+          {Kart && <Kart scale={1} rotation={[0, Math.PI, 0]} position={[0, 0.5, 0]} />}
+          
+          {/* 3. Passiamo al personaggio tutte le props necessarie per le animazioni */}
+          {Character && <Character 
+                position={[0, 0.3, 0]} 
+                rotation={[0, Math.PI, 0]} 
+                steer={steerVal} 
+                drift={driftDirection.current} 
+                speed={speed.current}
+          />}
+
           <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
           <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>
       </group>
