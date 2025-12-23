@@ -1,19 +1,27 @@
-import React, { useState } from 'react' // Rimosso useRef
-import { Canvas } from '@react-three/fiber' // Rimosso useFrame
+import React, { useState } from 'react'
+import { Canvas } from '@react-three/fiber'
 import { Environment, Center } from '@react-three/drei'
 
-// --- MODIFICA 1: Componente rinominato e logica di rotazione (useFrame, useRef) rimossa ---
-function StaticPreview({ children }) {
-  // Non serve più il ref o useFrame perché non ruota
-  return (
-    <group position={[0, -0.5, 0]}>
+// --- NUOVO IMPORT ---
+import { RacerModel } from './models/RacerModel'
+import { Suspense } from 'react'
+import { OrbitControls } from '@react-three/drei'
+// Componente wrapper per la preview
+function PreviewScene({ config }) {
+    return (
         <Center top>
-            <group scale={150}> 
-                {children}
+            {/* Moltiplichiamo la scala: 
+               Il modello è 0.008. Qui lo ingrandiamo x150 per vederlo bene nel menu.
+            */}
+            <group scale={150} position={[0, -1, 0]}> 
+                 <RacerModel 
+                    characterConfig={config} 
+                    steer={0} 
+                    drift={0} 
+                 />
             </group>
         </Center>
-    </group>
-  )
+    )
 }
 
 export function CharacterSelection({ 
@@ -38,7 +46,6 @@ export function CharacterSelection({
       width: '100vw', 
       height: '100vh', 
       position: 'absolute', top: 0, left: 0,
-      // --- MODIFICA 2: Linee più spesse (4px invece di 2px) ---
       background: `repeating-linear-gradient(0deg, #000, #000 4px, #111 4px, #111 8px)`,
       display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'sans-serif'
     },
@@ -58,7 +65,6 @@ export function CharacterSelection({
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
       position: 'relative', height: '100%'
     },
-    
     rightPanel: {
       flex: 1.2, 
       display: 'flex',          
@@ -68,7 +74,6 @@ export function CharacterSelection({
       width: '100%',
       padding: '2vmin'            
     },
-
     gridContainer: {
       display: 'grid', 
       gridTemplateColumns: 'repeat(4, 1fr)', 
@@ -79,7 +84,6 @@ export function CharacterSelection({
       maxHeight: '100%', 
       maxWidth: '100%'
     },
-
     charNameBox: {
         width: '90%',
         textAlign: 'center',
@@ -100,7 +104,6 @@ export function CharacterSelection({
     gridItem: (isActive, isEmpty) => ({
       width: '100%',  
       height: '100%', 
-      
       border: isActive ? '0.5vh solid #ffe600' : '0.2vh solid #444', 
       background: isEmpty ? '#ccc' : 'rgba(0,0,0,0.6)',
       borderRadius: '1vh',
@@ -133,14 +136,18 @@ export function CharacterSelection({
         <div style={styles.leftPanel}>
             <div style={styles.circleBg}></div>
             <div style={{width: '100%', height: '55%', zIndex: 1}}>
-                <Canvas camera={{ position: [0, 0, 4.5], fov: 40 }}>
-                    <ambientLight intensity={1.5} />
-                    <Environment preset="city" />
-                    {/* Usiamo il nuovo componente statico */}
-                    <StaticPreview>
-                        {localSelection.model}
-                    </StaticPreview>
-                </Canvas>
+                <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
+					<ambientLight intensity={1} />
+					<Environment preset="sunset" />
+					<OrbitControls />
+
+					<RacerModel 
+						characterConfig={localSelection.modelConfig} 
+						steer={0}
+						drift={0}
+						position={[0, -0.5, 0]}
+					/>
+				</Canvas>
             </div>
             <div style={styles.charNameBox}>
                 {localSelection.name}
