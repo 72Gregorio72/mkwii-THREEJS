@@ -10,21 +10,25 @@ export function RacerModel({ characterConfig, steer, drift, debug, ...props }) {
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
   const { nodes, materials } = useGraph(clone)
 
-  // --- DEBUG LOGGER AGGIORNATO ---
+  // --- DEBUG LOGGER SCHELETRO ---
   useEffect(() => {
     if (debug) {
-       console.group(`🔍 ANALISI MODELLO: ${characterConfig.file}`)
-       const skinnedMeshesNames = Object.values(nodes).filter(n => n.isSkinnedMesh).map(n => n.name)
-       console.log(`✅ Trovate ${skinnedMeshesNames.length} mesh da renderizzare:`, skinnedMeshesNames)
+       console.group(`💀 ANALISI SCHELETRO: ${characterConfig.file}`)
        
-       if (characterConfig.bodyNode && nodes[characterConfig.bodyNode]) {
-         console.log(`✅ Body Node confermato: ${characterConfig.bodyNode}`)
-       } else {
-         console.warn(`⚠️ Body Node '${characterConfig.bodyNode}' non trovato o non specificato. Verrà usato un fallback.`)
-       }
+       // 1. Trova tutte le ossa
+       const allBones = Object.values(nodes).filter(n => n.type === 'Bone')
+       const boneNames = allBones.map(b => b.name)
+       
+       console.log(`Numero ossa trovate: ${allBones.length}`)
+       console.log("Lista Nomi Ossa:", boneNames)
+
+       // 2. Controllo rapido per Mixamo
+       const hasMixamo = boneNames.some(name => name.includes('Mixamo') || name === 'Hips');
+       console.log("È compatibile Mixamo diretto?", hasMixamo ? "✅ SI" : "❌ NO (Serve Retargeting)");
+
        console.groupEnd()
     }
-  }, [characterConfig.file, nodes, debug, characterConfig.bodyNode])
+  }, [characterConfig.file, nodes, debug])
   // --------------------
 
   // 1. Setup Materiali Universale

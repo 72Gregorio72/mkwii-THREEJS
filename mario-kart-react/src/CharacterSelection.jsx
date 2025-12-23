@@ -18,6 +18,7 @@ function PreviewScene({ config }) {
                     characterConfig={config} 
                     steer={0} 
                     drift={0} 
+					debug={true}
                  />
             </group>
         </Center>
@@ -146,6 +147,7 @@ export function CharacterSelection({
 						steer={0}
 						drift={0}
 						position={[0, -0.5, 0]}
+						debug={true}
 					/>
 				</Canvas>
             </div>
