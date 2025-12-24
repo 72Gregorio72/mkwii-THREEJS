@@ -1,112 +1,100 @@
-// components/RacerModel.jsx
-import React, { useMemo, useEffect } from 'react'
-import { useGraph, useFrame } from '@react-three/fiber'
-import { useGLTF } from '@react-three/drei'
+import React, { useEffect, useRef, useMemo } from 'react'
+import { useGLTF, useAnimations } from '@react-three/drei'
 import { SkeletonUtils } from 'three-stdlib'
-import { MathUtils, DoubleSide } from 'three'
+import { DoubleSide, LoopRepeat } from 'three'
+import { useFrame } from '@react-three/fiber'
 
 export function RacerModel({ characterConfig, steer, drift, debug, ...props }) {
-  const { scene } = useGLTF(characterConfig.file)
-  const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
-  const { nodes, materials } = useGraph(clone)
+  // --- CONFIGURAZIONE ---
+  const ENABLE_ANIMATIONS = true; // <--- Setta a TRUE per riattivare il ballo
+  // ----------------------
 
-  // --- DEBUG LOGGER SCHELETRO ---
+  const group = useRef()
+
+  // 1. CARICHIAMO IL PERSONAGGIO
+  const { scene: charScene } = useGLTF(characterConfig.file)
+  const clone = useMemo(() => SkeletonUtils.clone(charScene), [charScene])
+  
+  // 2. CARICHIAMO L'ANIMAZIONE GREZZA
+  const { animations: rawAnimations } = useGLTF('/Animations/break_dance.glb')
+
+  // 3. FIX CRUCIALE: CLEANUP E RETARGETING
+  const sharedAnimations = useMemo(() => {
+    // Se le animazioni sono disattivate, evitiamo calcoli inutili (opzionale, ma ottimizza)
+    if (!ENABLE_ANIMATIONS) return [];
+
+    const cleanClips = rawAnimations.map(clip => clip.clone());
+
+    cleanClips.forEach((clip) => {
+      // Filtro posizioni
+      clip.tracks = clip.tracks.filter(track => !track.name.endsWith('.position'));
+
+      // Pulizia nomi
+      clip.tracks.forEach((track) => {
+        const trackName = track.name;
+        const parts = trackName.split('.');
+        const property = parts.pop(); 
+        const boneName = parts.pop();
+        track.name = `${boneName}.${property}`;
+      });
+    });
+
+    return cleanClips;
+  }, [rawAnimations, ENABLE_ANIMATIONS]);
+
+  // 4. COLLEGAMENTO ANIMAZIONI
+  const { actions, names } = useAnimations(sharedAnimations, group)
+
+  // --- PLAY ANIMAZIONE (LOGICA CONDIZIONALE) ---
   useEffect(() => {
-    if (debug) {
-       console.group(`💀 ANALISI SCHELETRO: ${characterConfig.file}`)
-       
-       // 1. Trova tutte le ossa
-       const allBones = Object.values(nodes).filter(n => n.type === 'Bone')
-       const boneNames = allBones.map(b => b.name)
-       
-       console.log(`Numero ossa trovate: ${allBones.length}`)
-       console.log("Lista Nomi Ossa:", boneNames)
+    // 1. Ferma sempre qualsiasi animazione precedente (pulizia)
+    Object.values(actions).forEach(action => action?.stop());
 
-       // 2. Controllo rapido per Mixamo
-       const hasMixamo = boneNames.some(name => name.includes('Mixamo') || name === 'Hips');
-       console.log("È compatibile Mixamo diretto?", hasMixamo ? "✅ SI" : "❌ NO (Serve Retargeting)");
+    // 2. CONTROLLO INTERRUTTORE: Se è false, non fa partire nulla ed esce
+    if (!ENABLE_ANIMATIONS) return;
 
-       console.groupEnd()
+    if (debug) console.log(`🎬 Animazioni pronte (Solo rotazioni):`, names)
+
+    if (names.length > 0) {
+      const action = actions[names[0]]
+      if (action) {
+          action.reset().fadeIn(0.2).play();
+          action.setLoop(LoopRepeat);
+          action.timeScale = 0.8; 
+      }
     }
-  }, [characterConfig.file, nodes, debug])
-  // --------------------
+    
+    return () => { Object.values(actions).forEach(action => action?.stop()); }
+  }, [actions, names, characterConfig.id, debug, ENABLE_ANIMATIONS]) // Aggiunto ENABLE_ANIMATIONS alle dipendenze
 
-  // 1. Setup Materiali Universale
-  // Applica le impostazioni (ombre, doppio lato) a TUTTE le mesh del modello
+  // --- MATERIALI ---
   useEffect(() => {
     clone.traverse((object) => {
       if (object.isMesh) {
-        object.material.side = DoubleSide
-        object.castShadow = true
-        object.receiveShadow = true
-        object.material.transparent = false 
-        object.material.depthWrite = true
+        object.castShadow = true; object.receiveShadow = true;
+        object.material.side = DoubleSide;
+        object.material.transparent = false; 
+        object.material.alphaTest = 0.5;
+        object.material.depthWrite = true;
+        if(object.material.map) {
+             object.material.roughness = 1; object.material.metalness = 0;
+             object.material.color.setHex(0xffffff);
+        }
+        object.material.needsUpdate = true;
       }
     })
   }, [clone])
 
-  // 2. Logica per trovare il nodo "Body" (quello che ruota per sterzare)
-  const bodyNode = useMemo(() => {
-    // Priorità 1: Configurazione manuale
-    if (characterConfig.bodyNode && nodes[characterConfig.bodyNode]) {
-      return nodes[characterConfig.bodyNode];
-    }
-    // Priorità 2: Auto- discovery
-    const autoBody = Object.values(nodes).find(n => n.name.endsWith('_body') || n.name.includes('spine'));
-    if (autoBody) return autoBody;
-
-    // Fallback: il primo osso disponibile
-    return Object.values(nodes).find(n => n.type === 'Bone'); 
-  }, [nodes, characterConfig.bodyNode]);
-
-
-  // 3. NUOVA LOGICA: Trova TUTTE le mesh del personaggio
-  // Invece di cercarne una sola, filtriamo tutte quelle che sono SkinnedMesh
-  const allCharacterMeshes = useMemo(() => {
-    return Object.values(nodes).filter(node => node.isSkinnedMesh);
-  }, [nodes]);
-
-
-  // 4. Animazione Sterzata
-  useFrame((state, delta) => {
-    let targetLean = -steer * 0.5
-    if (drift !== 0) targetLean = drift === 1 ? -0.8 : 0.8
-    
-    // Ruotiamo solo il nodo principale dello scheletro (bodyNode)
-    // Tutte le mesh collegate allo scheletro lo seguiranno automaticamente.
-    if (bodyNode) {
-       bodyNode.rotation.y = MathUtils.damp(bodyNode.rotation.y, targetLean, 4, delta)
-    }
+  // --- STERZATA ---
+  useFrame(() => {
+      if(group.current && steer) {
+          group.current.rotation.y = steer * 0.5;
+      }
   })
 
-  // Safety check
-  if (allCharacterMeshes.length === 0 || !bodyNode) {
-      if (debug) console.warn("❌ Impossibile renderizzare: nodi mancanti.");
-      return null; 
-  }
-
   return (
-    <group {...props} dispose={null}>
-      <group rotation={[Math.PI / 2, 0, 0]} scale={characterConfig.scale || 0.01}>
-        
-        {/* Inseriamo lo scheletro (l'armatura) */}
-        <primitive object={bodyNode} />
-
-        {/* LOOP DI RENDERIZZAZIONE
-            Per ogni mesh trovata (polygon0, polygon1, etc.), creiamo una skinnedMesh.
-            Nota: usiamo meshNode.material, così ogni pezzo usa il suo materiale originale.
-        */}
-        {allCharacterMeshes.map((meshNode) => (
-          <skinnedMesh 
-              key={meshNode.name} // Importante: chiave univoca per React
-              geometry={meshNode.geometry} 
-              material={meshNode.material} 
-              skeleton={meshNode.skeleton} 
-              castShadow
-              receiveShadow
-          />
-        ))}
-      </group>
+    <group ref={group} {...props} dispose={null}>
+      <primitive object={clone} scale={characterConfig.scale || 1} />
     </group>
   )
 }

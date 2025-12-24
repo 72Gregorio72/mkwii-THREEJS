@@ -140,7 +140,7 @@ export function CharacterSelection({
                 <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
 					<ambientLight intensity={1} />
 					<Environment preset="sunset" />
-					<OrbitControls />
+					{/* <OrbitControls /> */}
 
 					<RacerModel 
 						characterConfig={localSelection.modelConfig} 
@@ -148,6 +148,7 @@ export function CharacterSelection({
 						drift={0}
 						position={[0, -0.5, 0]}
 						debug={true}
+						key={localSelection.id}
 					/>
 				</Canvas>
             </div>
