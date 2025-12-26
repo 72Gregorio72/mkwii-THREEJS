@@ -1,6 +1,6 @@
 import React, { useState, useRef, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Environment, Center, Html } from '@react-three/drei'
+import { Environment, Center, Html, OrbitControls } from '@react-three/drei'
 import { RacerModel } from './models/RacerModel'
 import { VehicleModel } from './models/VehicleModel'
 import { VEHICLE_DATABASE } from './components/Data'
@@ -24,8 +24,10 @@ const StatBar = ({ label, value }) => (
     </div>
 );
 
+// --- SHOWCASE ROTANTE AGGIORNATO ---
 function RotatingShowcase({ characterConfig, vehicleData }) {
     const groupRef = useRef()
+    
     useFrame((_, delta) => {
         if (groupRef.current) groupRef.current.rotation.y += delta * 0.5
     })
@@ -33,24 +35,31 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
     if (!vehicleData?.modelConfig?.file) return null;
 
     return (
-		<group ref={groupRef}>
-			<VehicleModel 
-				vehicleConfig={vehicleData.modelConfig}
-				steer={0} drift={0} speed={5}
-				isBike={vehicleData.isBike}
-			/>
-			<RacerModel 
-				characterConfig={characterConfig}
-				steer={0} drift={0}
-				position={vehicleData.riderOffset || [0, 0, 0]}
-			/>
-		</group>
+        <group ref={groupRef}>
+			<OrbitControls/>
+            {/* IL VEICOLO */}
+            <VehicleModel 
+                vehicleConfig={vehicleData.modelConfig}
+                steer={0} drift={0} speed={5}
+                isBike={vehicleData.isBike}
+            />
+            
+            {/* IL PILOTA */}
+            <RacerModel 
+                characterConfig={characterConfig}
+                vehicleConfig={vehicleData} // <--- IMPORTANTE: Passiamo l'intero oggetto veicolo per leggere 'driverPose'
+                isKart={true}               // <--- IMPORTANTE: Forza lo stato "seduto"
+                steer={0} 
+                drift={0}
+				key={vehicleData.name + "_racer"}
+            />
+        </group>
     )
 }
 
 export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedVehicle }) {
     // Recuperiamo la lista veicoli dal personaggio selezionato
-    const availableIDs = selectedCharacter.veichles || []; // Nota: hai scritto 'veichles' nel tuo JSON
+    const availableIDs = selectedCharacter.veichles || []; 
     
     // Mappiamo le stringhe agli oggetti veri (fallback su DEFAULT se manca)
     const availableVehicles = availableIDs.map(id => ({
@@ -62,7 +71,7 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
 
     const handleConfirm = () => {
         setSelectedVehicle(localSelection);
-        setMenuState(2); // Vai allo stato successivo (es. selezione mappa)
+        setMenuState(2); // Vai allo stato successivo
     };
 
     // Creiamo una griglia 2 colonne x 6 righe (12 slot)
@@ -104,7 +113,7 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
         },
         gridContainer: {
             display: 'grid', 
-            gridTemplateColumns: 'repeat(2, 1fr)', // 2 Colonne come MKWii
+            gridTemplateColumns: 'repeat(2, 1fr)', 
             gridTemplateRows: 'repeat(6, 1fr)', 
             gap: '1.5vmin', aspectRatio: '2 / 6', height: '85%', maxHeight: '100%'
         },
@@ -174,7 +183,6 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
                                 <RotatingShowcase 
                                     characterConfig={selectedCharacter.modelConfig} 
                                     vehicleData={localSelection}
-									selectedCharacter={selectedCharacter}
                                 />
                             </Suspense>
                         </Canvas>
@@ -199,13 +207,9 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
                                     onClick={() => !isEmpty && setLocalSelection(veh)}
                                 >
                                     {!isEmpty && (
-                                        // Qui useresti le icone dei veicoli se le hai
-                                        // Per ora metto il nome piccolo o un placeholder
                                         <div style={{color: 'white', textAlign:'center', fontWeight:'bold', fontSize:'1.5vh'}}>
                                             {veh.name}
                                         </div>
-                                        /* <img src={`./sprites/${veh.id}.png`} ... /> 
-                                        */
                                     )}
                                 </div>
                             )

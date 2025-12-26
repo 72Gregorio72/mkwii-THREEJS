@@ -6,7 +6,9 @@ import { useControls } from '../hooks/useControls'
 import { Sparkles, Html } from '@react-three/drei' 
 import gsap from 'gsap'
 
-// NOTA: Non importiamo più Mario o StandardKartM qui!
+// --- 1. IMPORTA I MODELLI REALI ---
+import { RacerModel } from '../models/RacerModel'
+import { VehicleModel } from '../models/VehicleModel'
 
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1.2 
@@ -31,8 +33,8 @@ const START_POS = [-200, 10, 270]
 const cBlue = new Color("#00aeff") 
 const cRed = new Color("#ff3300")  
 
-// 1. Aggiungiamo le props qui: charModel e kartModel
-export function OutsideDriftKart({ charModel: Character, kartModel: Kart }) {
+// --- 2. AGGIORNA LE PROPS (Config Objects invece di Componenti) ---
+export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
   const { scene } = useThree()
   const controls = useControls()
   
@@ -245,7 +247,7 @@ export function OutsideDriftKart({ charModel: Character, kartModel: Kart }) {
     // CAMERA
     const baseFov = 75
     const extraFov = (Math.min((Math.abs(speed.current) / SETTINGS.maxTurboLimit) * 20, 30)) / 500
-    state.camera.fov = baseFov + extraFov
+    state.camera.fov = baseFov
 
     const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const desiredCamPos = new Vector3(
@@ -275,17 +277,32 @@ export function OutsideDriftKart({ charModel: Character, kartModel: Kart }) {
 
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
           
-          {/* 2. Renderizziamo i componenti passati come props */}
-          {Kart && <Kart scale={1} rotation={[0, Math.PI, 0]} position={[0, 0.5, 0]} />}
-          
-          {/* 3. Passiamo al personaggio tutte le props necessarie per le animazioni */}
-          {Character && <Character 
-                position={[0, 0.3, 0]} 
+          {/* --- 3. USA I COMPONENTI REALI AL POSTO DI {Kart} e {Character} --- */}
+          {vehicleConfig && (
+              <VehicleModel 
+                vehicleConfig={vehicleConfig}
+                scale={1}
                 rotation={[0, Math.PI, 0]} 
-                steer={steerVal} 
-                drift={driftDirection.current} 
+                position={[0, 0.5, 0]}
+                steer={steerVal}
+                drift={driftDirection.current}
                 speed={speed.current}
-          />}
+                isBike={false} // IMPORTANTE: Questo è un Kart
+              />
+          )}
+          
+          {characterConfig && (
+			<RacerModel 
+				characterConfig={characterConfig}
+				vehicleConfig={vehicleConfig} // <--- FONDAMENTALE: Passa la config del veicolo!
+				position={vehicleConfig?.riderOffset || [0, 0.3, 0]} 
+				rotation={[0, 0, 0]} 
+				steer={steerVal} 
+				drift={driftDirection.current} 
+				speed={speed.current}
+				isKart={true}
+			/>
+		)}
 
           <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
           <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>

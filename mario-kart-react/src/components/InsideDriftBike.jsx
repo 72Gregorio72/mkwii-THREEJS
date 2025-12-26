@@ -6,48 +6,47 @@ import { useControls } from '../hooks/useControls'
 import { Sparkles, Html } from '@react-three/drei' 
 import gsap from 'gsap'
 
-// NOTA: Rimossi gli import di FunkyKong e FlameRunner
+import { RacerModel } from '../models/RacerModel'
+import { VehicleModel } from '../models/VehicleModel'
 
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1.2 
-
-const SETTINGS = {
-  maxSpeed: 50,
-  maxTurboLimit: 90,       
-  acceleration: 0.25,       
-  deceleration: 2.0,       
-  turnSpeed: 0.9,
-  driftTurnSpeed: 0.6, 
-  driftGrip: 0.02, 
-  boostStrength: 0,        
-  boostDuration: 60,       
-  jumpForce: 1.5,          
-  driftLevel1Time: 1.5,    
-  driftMinSpeed: 10,       
-}
-
 const START_POS = [-200, 10, 270] 
+const SETTINGS = {
+  maxSpeed: 50, maxTurboLimit: 90, acceleration: 0.25, deceleration: 2.0,       
+  turnSpeed: 0.9, driftTurnSpeed: 0.6, driftGrip: 0.02, boostStrength: 0,        
+  boostDuration: 60, jumpForce: 1.5, driftLevel1Time: 1.5, driftMinSpeed: 10,       
+}
 const cBlue = new Color("#00aeff") 
 const cRed = new Color("#ff3300")  
 
-// 1. Accettiamo charModel e bikeModel come props
-export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
+export function InsideDriftBike({ characterConfig, vehicleConfig }) {
   const { scene } = useThree()
   const controls = useControls()
   
   const rigidBody = useRef()
   const speedUiRef = useRef() 
 
+  // --- CONTROLLO DI SICUREZZA (DEBUG) ---
+  // Se i dati non sono arrivati, non renderizzare nulla per evitare il crash
+  if (!vehicleConfig || !vehicleConfig.modelConfig) {
+      console.warn("InsideDriftBike: Manca vehicleConfig o modelConfig!", vehicleConfig);
+      return null; 
+  }
+  if (!characterConfig) {
+      console.warn("InsideDriftBike: Manca characterConfig!", characterConfig);
+      return null;
+  }
+  // --------------------------------------
+
   // STATO FISICA
   const driftDirection = useRef(0) 
   const speed = useRef(0)
   const rotation = useRef(0) 
   const driftVector = useRef(new Vector3(0, 0, 0))
-  
   const currentVelocity = useRef(new Vector3())
   const currentPosition = useRef(new Vector3())
   const cameraTarget = useRef(new Vector3(0, 0, 0))
-
   const isGrounded = useRef(false)
   const raycaster = useRef(new Raycaster())
   
@@ -58,7 +57,6 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
   const boostTime = useRef(0)
   const driftHopLocked = useRef(false)
   const driftEngageWindow = useRef(false) 
-  
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
 
@@ -72,7 +70,6 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
   const performHop = () => {
     if (isJumping.current) return
     isJumping.current = true
-    
     gsap.to(jumpOffset.current, {
       y: 0.3, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.out",
       onComplete: () => { isJumping.current = false }
@@ -88,7 +85,7 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
   useFrame((state, delta) => {
     if (!rigidBody.current) return;
 
-    // --- UI ---
+    // UI UPDATE
     if (speedUiRef.current) {
         const kmh = Math.abs(Math.round(speed.current * 1.5)) 
         speedUiRef.current.innerText = `${kmh} km/h`
@@ -97,7 +94,7 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
         speedUiRef.current.style.transform = isOver ? `scale(1.1)` : `scale(1)`
     }
 
-    // 1. LEGGI DATI
+    // LEGGI DATI
     const rbPos = rigidBody.current.translation();
     const rbVel = rigidBody.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
@@ -105,7 +102,7 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
 
     const { forward, backward, left, right, drift } = controls.current
     
-    // 2. GROUND CHECK
+    // GROUND CHECK
     const origin = currentPosition.current.clone()
     origin.y += 0.1 
     raycaster.current.set(origin, new Vector3(0, -1, 0))
@@ -124,13 +121,10 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
     }
     isGrounded.current = groundDistance < 0.6
 
-    // --- 3. LOGICA DRIFT & HOP ---
-
-    // A. RESET
+    // LOGICA DRIFT & HOP
     if (!drift) {
         driftHopLocked.current = false
         driftEngageWindow.current = false 
-        
         if (driftDirection.current !== 0) {
             if (driftLevel.current > 0) {
                 if (isGrounded.current) activateBoost(driftLevel.current);
@@ -146,7 +140,6 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
         }
     }
 
-    // B. HOP
     if (drift && !driftHopLocked.current && isGrounded.current && !isJumping.current) {
         driftHopLocked.current = true; 
         driftEngageWindow.current = true; 
@@ -154,13 +147,11 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
         rigidBody.current.setLinvel({ x: rbVel.x, y: SETTINGS.jumpForce, z: rbVel.z }, true);
     }
 
-    // C. ATTIVAZIONE DRIFT
     if (drift) {
         if (driftDirection.current === 0 && driftEngageWindow.current) {
             if (left) driftDirection.current = 1;
             else if (right) driftDirection.current = -1;
         }
-
         if (driftDirection.current !== 0 && isGrounded.current) {
              driftTime.current += delta;
              driftLevel.current = driftTime.current > SETTINGS.driftLevel1Time ? 1 : 0;
@@ -171,7 +162,7 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
 
     updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
 
-    // 4. MOTORE
+    // MOTORE
     const isBoosting = boostTime.current > 0
     if (isBoosting) boostTime.current -= 1
 
@@ -191,11 +182,10 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
         let currentAccel = SETTINGS.acceleration
         if (isBoosting) currentAccel *= 2.5
         else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
-        
         speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
     }
 
-    // 5. STERZO
+    // STERZO
     let turnFactor = 0
     if (isDrifting) {
         const isLeftDrift = driftDirection.current === 1
@@ -210,11 +200,10 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
     }
     rotation.current += turnFactor * delta
 
-    // 6. FISICA
+    // FISICA
     const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const driftGrip = isDrifting ? SETTINGS.driftGrip : 0.15
     const airControl = isGrounded.current ? 1 : 0.5 
-
     driftVector.current.lerp(forwardVector, driftGrip * 60 * delta * airControl)
     const finalVelocity = driftVector.current.clone().multiplyScalar(speed.current)
 
@@ -237,19 +226,15 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
     if (visualGroupRef.current) {
         const speedShake = speed.current > SETTINGS.maxSpeed + 5 ? (Math.random() - 0.5) * 0.05 : 0
         visualGroupRef.current.position.y = (-PHYSICS_RADIUS) + jumpOffset.current.y + speedShake
-        
         let targetTilt = 0
         if (isDrifting) targetTilt = driftDirection.current === 1 ? -0.5 : 0.5
         else targetTilt = (left ? -0.15 : 0) + (right ? 0.15 : 0)
-        
         visualGroupRef.current.rotation.z = MathUtils.damp(visualGroupRef.current.rotation.z, targetTilt, 8, delta)
     }
 
     // CAMERA
     const baseFov = 75
-    const extraFov = (Math.min((Math.abs(speed.current) / SETTINGS.maxTurboLimit) * 20, 30)) / 500
-    state.camera.fov = baseFov + extraFov
-
+    state.camera.fov = baseFov
     const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const desiredCamPos = new Vector3(
         currentPosition.current.x + backVector.x * 6,
@@ -277,16 +262,30 @@ export function InsideDriftBike({ charModel: Character, bikeModel: Bike }) {
 
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
           
-          {/* 2. Renderizziamo i modelli passati come props */}
-          {Bike && <Bike scale={1} rotation={[0, Math.PI, 0]} position={[0, 0.5, 0]} />}
+          {/* VEHICLE MODEL - Passiamo modelConfig */}
+          <VehicleModel 
+            vehicleConfig={vehicleConfig.modelConfig} 
+            scale={1}
+            rotation={[0, Math.PI, 0]} 
+            position={[0, 0, 0]}
+            steer={steerVal}
+            drift={driftDirection.current}
+            speed={speed.current}
+            isBike={true}
+          />
           
-          {Character && <Character 
-                position={[0, 0.3, 0]} 
-                rotation={[0, Math.PI, 0]} 
+          {/* RACER MODEL - Passiamo TUTTO vehicleConfig */}
+          <group rotation={[0, Math.PI, 0]}>
+            <RacerModel 
+                characterConfig={characterConfig}
+                vehicleConfig={vehicleConfig} 
                 steer={steerVal} 
                 drift={driftDirection.current} 
                 speed={speed.current}
-          />}
+                isKart={true}
+				key={vehicleConfig.name + "_racer"}
+            />
+          </group>
 
           <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
           <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>

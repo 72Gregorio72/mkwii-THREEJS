@@ -9,7 +9,7 @@ import { useGLTF } from '@react-three/drei'
 import { SkeletonUtils } from 'three-stdlib'
 
 export function StandardKartM(props) {
-  const { scene } = useGLTF('/StandardKartM.glb')
+  const { scene } = useGLTF('/Vehicles/StandardKartM.glb')
   const clone = React.useMemo(() => SkeletonUtils.clone(scene), [scene])
   const { nodes, materials } = useGraph(clone)
   return (
@@ -24,4 +24,4 @@ export function StandardKartM(props) {
   )
 }
 
-useGLTF.preload('/StandardKartM.glb')
+useGLTF.preload('/Vehicles/StandardKartM.glb')
