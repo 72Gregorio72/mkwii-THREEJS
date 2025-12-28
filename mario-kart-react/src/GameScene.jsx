@@ -5,6 +5,7 @@ import { Environment, PerspectiveCamera } from '@react-three/drei'
 import { SmartMap } from './Tracks/SmartMap'
 import { OutsideDriftKart } from './components/OutsideDriftKart'
 import { InsideDriftBike } from './components/InsideDriftBike'
+import { KartController } from './components/KartController'
 
 export function GameScene({ character, vehicle, mapPath, onBack }) {
     

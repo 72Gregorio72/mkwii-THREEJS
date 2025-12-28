@@ -2,7 +2,9 @@ import React, { useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider } from '@react-three/rapier' 
 import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
-import { useControls } from '../hooks/useControls' 
+// Alias per evitare conflitti con i tuoi controlli di gioco
+import { useControls as useGameControls } from '../hooks/useControls' 
+import { useControls as useLeva, Leva } from 'leva'
 import { Sparkles, Html } from '@react-three/drei' 
 import gsap from 'gsap'
 
@@ -33,10 +35,22 @@ const START_POS = [-200, 10, 270]
 const cBlue = new Color("#00aeff") 
 const cRed = new Color("#ff3300")  
 
-// --- 2. AGGIORNA LE PROPS (Config Objects invece di Componenti) ---
 export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
   const { scene } = useThree()
-  const controls = useControls()
+  const controls = useGameControls() // I tuoi controlli (WASD/Gamepad)
+  
+  // --- CONFIGURAZIONE DEBUG & CAMERA ---
+  const DEBUG_MODE = true; // <--- IMPOSTA SU FALSE PER NASCONDERE IL PANNELLO
+
+  // Configuriamo i parametri della camera con Leva
+  const camConfig = useLeva('Camera Settings', {
+    distance: { value: 7.0, min: 2, max: 20, step: 0.1 },
+    height: { value: 3.5, min: 1, max: 10, step: 0.1 },
+    lookAtHeight: { value: 1.0, min: -2, max: 5, step: 0.1 },
+    stiffness: { value: 0.15, min: 0.01, max: 1, step: 0.01 }, // 0.01 = lento, 1.0 = istantaneo
+    fovBase: { value: 75, min: 40, max: 120 },
+    fovMax: { value: 90, min: 40, max: 140 },
+  })
   
   const rigidBody = useRef()
   const speedUiRef = useRef() 
@@ -244,20 +258,34 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
         visualGroupRef.current.rotation.z = 0 
     }
 
-    // CAMERA
-    const baseFov = 75
-    const extraFov = (Math.min((Math.abs(speed.current) / SETTINGS.maxTurboLimit) * 20, 30)) / 500
-    state.camera.fov = baseFov
+    // --- NUOVA LOGICA CAMERA (Corretta e controllata da Leva) ---
+    
+    // 1. Definiamo l'offset ideale (relativo al retro del kart)
+    const idealOffset = new Vector3(0, camConfig.height, camConfig.distance)
+    
+    // 2. Ruotiamo l'offset in base alla rotazione attuale del kart
+    idealOffset.applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+    
+    // 3. Posizione Target = Posizione Kart + Offset Ruotato
+    const desiredCamPos = new Vector3().copy(currentPosition.current).add(idealOffset)
 
-    const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-    const desiredCamPos = new Vector3(
-        currentPosition.current.x + backVector.x * 6,
-        currentPosition.current.y + 2.5,
-        currentPosition.current.z + backVector.z * 6
+    // 4. Interpolazione fluida verso la posizione target
+    state.camera.position.lerp(desiredCamPos, camConfig.stiffness)
+
+    // 5. LookAt logic: Guardiamo il kart (più un offset in altezza per non guardare il pavimento)
+    const targetLookAt = new Vector3(
+        currentPosition.current.x,
+        currentPosition.current.y + camConfig.lookAtHeight,
+        currentPosition.current.z
     )
-    state.camera.position.lerp(desiredCamPos, 0.2)
-    cameraTarget.current.lerp(new Vector3(currentPosition.current.x, currentPosition.current.y + 2.0, currentPosition.current.z), 0.2)
+    
+    cameraTarget.current.lerp(targetLookAt, camConfig.stiffness * 1.5) // Un po' più veloce del movimento
     state.camera.lookAt(cameraTarget.current)
+    
+    // 6. FOV dinamico
+    const speedRatio = Math.min(Math.abs(speed.current) / SETTINGS.maxTurboLimit, 1)
+    const targetFov = MathUtils.lerp(camConfig.fovBase, camConfig.fovMax, speedRatio)
+    state.camera.fov = MathUtils.damp(state.camera.fov, targetFov, 2.0, delta)
     state.camera.updateProjectionMatrix()
   })
 
@@ -266,6 +294,12 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
 
   return (
     <RigidBody ref={rigidBody} position={START_POS} mass={100} linearDamping={0.5} angularDamping={0.5} colliders={false} type="dynamic" ccd={true} restitution={0}>
+      
+      {/* !!! RIMOSSO <Leva /> DA QUI !!! 
+         Il pannello apparirà comunque grazie all'hook useLeva.
+         Non mettere mai componenti HTML/UI nudi dentro il Canvas 3D.
+      */}
+
       <BallCollider args={[PHYSICS_RADIUS]} material={{ friction: 0.0, restitution: 0 }} />
       
       <Html fullscreen style={{ pointerEvents: 'none' }}>
@@ -276,36 +310,32 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
       </Html>
 
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-          
-          {/* --- 3. USA I COMPONENTI REALI AL POSTO DI {Kart} e {Character} --- */}
-          {vehicleConfig && (
-              <VehicleModel 
-                vehicleConfig={vehicleConfig}
-                scale={1}
-                rotation={[0, Math.PI, 0]} 
-                position={[0, 0.5, 0]}
-                steer={steerVal}
-                drift={driftDirection.current}
-                speed={speed.current}
-                isBike={false} // IMPORTANTE: Questo è un Kart
+            {/* ... tutto il resto dei modelli rimane identico ... */}
+            <VehicleModel 
+              vehicleConfig={vehicleConfig.modelConfig} 
+              scale={1}
+              rotation={[0, Math.PI, 0]} 
+              position={[0, 0, 0]}
+              steer={steerVal}
+              drift={driftDirection.current}
+              speed={speed.current}
+              isBike={true}
+            />
+            
+            <group rotation={[0, Math.PI, 0]}>
+              <RacerModel 
+                  characterConfig={characterConfig}
+                  vehicleConfig={vehicleConfig} 
+                  steer={steerVal} 
+                  drift={driftDirection.current} 
+                  speed={speed.current}
+                  isKart={true}
+                key={vehicleConfig.name + "_racer"}
               />
-          )}
-          
-          {characterConfig && (
-			<RacerModel 
-				characterConfig={characterConfig}
-				vehicleConfig={vehicleConfig} // <--- FONDAMENTALE: Passa la config del veicolo!
-				position={vehicleConfig?.riderOffset || [0, 0.3, 0]} 
-				rotation={[0, 0, 0]} 
-				steer={steerVal} 
-				drift={driftDirection.current} 
-				speed={speed.current}
-				isKart={true}
-			/>
-		)}
-
-          <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
-          <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>
+            </group>
+  
+            <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
+            <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>
       </group>
     </RigidBody>
   )
