@@ -43,14 +43,21 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
   const DEBUG_MODE = true; // <--- IMPOSTA SU FALSE PER NASCONDERE IL PANNELLO
 
   // Configuriamo i parametri della camera con Leva
-  const camConfig = useLeva('Camera Settings', {
-    distance: { value: 7.0, min: 2, max: 20, step: 0.1 },
-    height: { value: 3.5, min: 1, max: 10, step: 0.1 },
-    lookAtHeight: { value: 1.0, min: -2, max: 5, step: 0.1 },
-    stiffness: { value: 0.15, min: 0.01, max: 1, step: 0.01 }, // 0.01 = lento, 1.0 = istantaneo
-    fovBase: { value: 75, min: 40, max: 120 },
-    fovMax: { value: 90, min: 40, max: 140 },
-  })
+  const camConfig = {//useLeva('Camera Settings', {
+    // distance: { value: 7.0, min: 2, max: 20, step: 0.1 },
+    // height: { value: 3.5, min: 1, max: 10, step: 0.1 },
+    // lookAtHeight: { value: 1.0, min: -2, max: 5, step: 0.1 },
+    // stiffness: { value: 0.15, min: 0.01, max: 1, step: 0.01 }, // 0.01 = lento, 1.0 = istantaneo
+    // fovBase: { value: 75, min: 40, max: 120 },
+    // fovMax: { value: 90, min: 40, max: 140 },
+	distance: 7.2,
+	height: 2.3,
+	lookAtHeight: 1.0,
+	stiffness: 0.15,
+	fovBase: 53,
+	fovMax: 55
+  //)}, [DEBUG_MODE]
+  }
   
   const rigidBody = useRef()
   const speedUiRef = useRef() 
@@ -261,32 +268,36 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
     // --- NUOVA LOGICA CAMERA (Corretta e controllata da Leva) ---
     
     // 1. Definiamo l'offset ideale (relativo al retro del kart)
-    const idealOffset = new Vector3(0, camConfig.height, camConfig.distance)
-    
-    // 2. Ruotiamo l'offset in base alla rotazione attuale del kart
-    idealOffset.applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+    const overSpeed = Math.max(0, speed.current - SETTINGS.maxSpeed)
+	const boostRange = SETTINGS.maxTurboLimit - SETTINGS.maxSpeed
+	// boostRatio andrà da 0 (guida normale) a 1 (turbo massimo)
+	const boostRatio = Math.min(overSpeed / boostRange, 1)
+
+	// 2. Definiamo l'offset ideale
+	// Aggiungiamo un "kick" alla distanza basato sul boostRatio.
+	// Esempio: +3 unità indietro quando sei al massimo del turbo.
+	const dynamicDistance = camConfig.distance + (boostRatio) 
+
+	const idealOffset = new Vector3(0, camConfig.height, dynamicDistance)
+	idealOffset.applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     
     // 3. Posizione Target = Posizione Kart + Offset Ruotato
     const desiredCamPos = new Vector3().copy(currentPosition.current).add(idealOffset)
+	state.camera.position.lerp(desiredCamPos, camConfig.stiffness)
 
-    // 4. Interpolazione fluida verso la posizione target
-    state.camera.position.lerp(desiredCamPos, camConfig.stiffness)
-
-    // 5. LookAt logic: Guardiamo il kart (più un offset in altezza per non guardare il pavimento)
     const targetLookAt = new Vector3(
-        currentPosition.current.x,
-        currentPosition.current.y + camConfig.lookAtHeight,
-        currentPosition.current.z
-    )
-    
-    cameraTarget.current.lerp(targetLookAt, camConfig.stiffness * 1.5) // Un po' più veloce del movimento
-    state.camera.lookAt(cameraTarget.current)
-    
-    // 6. FOV dinamico
-    const speedRatio = Math.min(Math.abs(speed.current) / SETTINGS.maxTurboLimit, 1)
-    const targetFov = MathUtils.lerp(camConfig.fovBase, camConfig.fovMax, speedRatio)
-    state.camera.fov = MathUtils.damp(state.camera.fov, targetFov, 2.0, delta)
-    state.camera.updateProjectionMatrix()
+		currentPosition.current.x,
+		currentPosition.current.y + camConfig.lookAtHeight,
+		currentPosition.current.z
+	)
+	cameraTarget.current.lerp(targetLookAt, camConfig.stiffness * 1.5)
+	state.camera.lookAt(cameraTarget.current)
+
+	// 3. FOV dinamico basato SOLO sul boost
+	// Ora il FOV cambierà solo se superi i 50 km/h
+	// const targetFov = MathUtils.lerp(camConfig.fovBase, camConfig.fovMax, boostRatio)
+	// state.camera.fov = MathUtils.damp(state.camera.fov, targetFov, 2.0, delta)
+	state.camera.updateProjectionMatrix()
   })
 
   // Calcolo dati sterzo per passare al componente Character
@@ -313,7 +324,7 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
             {/* ... tutto il resto dei modelli rimane identico ... */}
             <VehicleModel 
               vehicleConfig={vehicleConfig.modelConfig} 
-              scale={1}
+              scale={1.4}
               rotation={[0, Math.PI, 0]} 
               position={[0, 0, 0]}
               steer={steerVal}
@@ -324,6 +335,7 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
             
             <group rotation={[0, Math.PI, 0]}>
               <RacerModel 
+				  scale={1.5}
                   characterConfig={characterConfig}
                   vehicleConfig={vehicleConfig} 
                   steer={steerVal} 

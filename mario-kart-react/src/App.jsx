@@ -5,6 +5,7 @@ import { VehicleSelection } from './VehicleSelection'
 import { GameScene } from './GameScene' // Import the new component
 
 export default function App() {
+
     const [MenuState, setMenuState] = useState(0)
     
     // State for selections
@@ -15,7 +16,7 @@ export default function App() {
     const [availableCharacters, ] = useState(Characters)
 
     return (
-        <>
+        <div style={{ backgroundImage: "url(/sprites/skybox.jpg)", minHeight: '100vh' }}>
             {/* STATE 0: Character Selection */}
             {MenuState === 0 && (
                 <CharacterSelection 
@@ -45,7 +46,7 @@ export default function App() {
                     onBack={() => setMenuState(0)}
                 />
             )}
-        </>
+		</div>
     )
 }
 

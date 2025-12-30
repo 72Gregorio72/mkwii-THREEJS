@@ -150,6 +150,7 @@ export function RacerModel({ characterConfig, vehicleConfig, steer, drift, isKar
       const armStraighten = (hy > 0.6 || hz > 0.5) ? -0.4 : 0;
       const steerInfluence = isBike ? steer * 0.3 : 0;
 
+
       if (leftArmRef.current && leftForeArmRef.current) {
           leftArmRef.current.rotation.z += poseZ; 
           leftArmRef.current.rotation.y -= (poseY + steerInfluence); 
