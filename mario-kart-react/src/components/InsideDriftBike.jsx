@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider } from '@react-three/rapier' 
 import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
 import { useControls } from '../hooks/useControls' 
 import { Sparkles, Html } from '@react-three/drei' 
+import { useControls as useLeva } from 'leva'
 import gsap from 'gsap'
 
 import { RacerModel } from '../models/RacerModel'
@@ -12,6 +13,12 @@ import { VehicleModel } from '../models/VehicleModel'
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1.2 
 const START_POS = [-200, 10, 270] 
+
+// MODIFICA: Se vuoi alzare VISIVAMENTE i modelli rispetto alla pallina fisica (es. sospensioni alte),
+// cambia questo valore. Se lasci a 0, si basano solo sulla posizione del RigidBody.
+// Dato che hai alzato il gruppo in GameScene, questo può rimanere a 0 o essere usato per fine-tuning.
+const VISUAL_OFFSET = 0; 
+
 const SETTINGS = {
   maxSpeed: 50, maxTurboLimit: 90, acceleration: 0.25, deceleration: 2.0,       
   turnSpeed: 0.9, driftTurnSpeed: 0.6, driftGrip: 0.02, boostStrength: 0,        
@@ -27,8 +34,6 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
   const rigidBody = useRef()
   const speedUiRef = useRef() 
 
-  // --- CONTROLLO DI SICUREZZA (DEBUG) ---
-  // Se i dati non sono arrivati, non renderizzare nulla per evitare il crash
   if (!vehicleConfig || !vehicleConfig.modelConfig) {
       console.warn("InsideDriftBike: Manca vehicleConfig o modelConfig!", vehicleConfig);
       return null; 
@@ -37,7 +42,12 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
       console.warn("InsideDriftBike: Manca characterConfig!", characterConfig);
       return null;
   }
-  // --------------------------------------
+
+//   const { offX, offY, offZ } = useLeva("Vehicle Visual Offset", {
+//       offX: { value: vehicleConfig?.vehicleOffset?.[0] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset X' },
+//       offY: { value: vehicleConfig?.vehicleOffset?.[1] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Y' },
+//       offZ: { value: vehicleConfig?.vehicleOffset?.[2] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Z' },
+//   })
 
   // STATO FISICA
   const driftDirection = useRef(0) 
@@ -222,10 +232,18 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
     rigidBody.current.setRotation(q, true)
     rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
-    // VISUAL UPDATE
+    // VISUAL UPDATE - MODIFICA IMPORTANTE
+    // Qui leghiamo insieme la posizione visuale. Abbiamo aggiunto VISUAL_OFFSET.
     if (visualGroupRef.current) {
         const speedShake = speed.current > SETTINGS.maxSpeed + 5 ? (Math.random() - 0.5) * 0.05 : 0
-        visualGroupRef.current.position.y = (-PHYSICS_RADIUS) + jumpOffset.current.y + speedShake
+        
+        // Calcolo della Y: 
+        // 1. Base del collider (-PHYSICS_RADIUS)
+        // 2. Eventuale offset visuale (+ VISUAL_OFFSET)
+        // 3. Animazione salto (+ jumpOffset)
+        // 4. Vibrazione velocità (+ speedShake)
+        visualGroupRef.current.position.y = (-PHYSICS_RADIUS + VISUAL_OFFSET) + jumpOffset.current.y + speedShake;
+
         let targetTilt = 0
         if (isDrifting) targetTilt = driftDirection.current === 1 ? -0.5 : 0.5
         else targetTilt = (left ? -0.15 : 0) + (right ? 0.15 : 0)
@@ -260,32 +278,36 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
         </div>
       </Html>
 
-      <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
+      {/* visualGroupRef contiene sia VehicleModel che RacerModel, si muoveranno insieme */}
+      <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS + VISUAL_OFFSET, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
           
-          {/* VEHICLE MODEL - Passiamo modelConfig */}
-          <VehicleModel 
-            vehicleConfig={vehicleConfig.modelConfig} 
-            scale={1}
-            rotation={[0, Math.PI, 0]} 
-            position={[0, 0, 0]}
-            steer={steerVal}
-            drift={driftDirection.current}
-            speed={speed.current}
-            isBike={true}
-          />
-          
-          {/* RACER MODEL - Passiamo TUTTO vehicleConfig */}
-          <group rotation={[0, Math.PI, 0]}>
-            <RacerModel 
-                characterConfig={characterConfig}
-                vehicleConfig={vehicleConfig} 
-                steer={steerVal} 
-                drift={driftDirection.current} 
-                speed={speed.current}
-                isKart={true}
-				key={vehicleConfig.name + "_racer"}
-            />
-          </group>
+          <group position={vehicleConfig.vehicleOffset}>
+					<VehicleModel 
+					vehicleConfig={vehicleConfig.modelConfig} 
+					scale={1.4}
+					rotation={[0, Math.PI, 0]} 
+					position={[0, 0, 0]}
+					steer={steerVal}
+					drift={driftDirection.current}
+					speed={speed.current}
+					isBike={true}
+					/>
+					
+					{/* Modello Pilota */}
+					<group rotation={[0, Math.PI, 0]}>
+					<RacerModel 
+						isInMenu={false}
+						scale={1.5}
+						characterConfig={characterConfig}
+						vehicleConfig={vehicleConfig} 
+						steer={steerVal} 
+						drift={driftDirection.current} 
+						speed={speed.current}
+						isKart={true}
+						key={vehicleConfig.name + "_racer"}
+					/>
+					</group>
+			</group>
 
           <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
           <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>

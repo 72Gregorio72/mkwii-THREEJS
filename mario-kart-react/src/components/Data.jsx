@@ -237,7 +237,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.01, -0.02, 0.11],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.18, 0.46, 0.35],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.1, 0]
     },
     'StandardBikeS': { 
         name: 'Standard Bike S', isBike: true, driftType: 'outside',
@@ -246,7 +247,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.04, 0.04, -0.17],
 		riderRotation: [0.80, 0.00, 0.00],
 		handPos: [0.22, 0.65, 0.40],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.3, 0]
     },
     'BoosterSeat': { 
         name: 'Booster Seat', isBike: false, driftType: 'outside',
@@ -255,7 +257,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.02, 0.09, 0.01],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.18, 0.29, 0.30],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.3, 0]
     },
     'BulletBike': { 
         name: 'Bullet Bike', isBike: true, driftType: 'inside',
@@ -264,7 +267,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.01, 0.00, -0.10],
 		riderRotation: [0.80, 0.00, 0.00],
 		handPos: [0.15, 0.50, 2.00],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.5, 0]
     },
     'MiniBeast': { 
         name: 'Mini Beast', isBike: false, driftType: 'outside',
@@ -273,7 +277,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.03, -0.10, 0.03],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.20, 0.25, -0.86],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.6, 0]
     },
     'BitBike': { 
         name: 'Bit Bike', isBike: true, driftType: 'outside',
@@ -282,16 +287,18 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.04, 0.11, -0.21],
 		riderRotation: [0.90, 0.00, 0.00],
 		handPos: [0.25, 0.66, 0.35],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.3, 0]
     },
     'CheepCharger': { 
         name: 'Cheep Charger', isBike: false, driftType: 'outside',
         stats: { speed: 30, weight: 20, accel: 60, handling: 60, drift: 50, offroad: 50 }, 
         modelConfig: { file: '/Vehicles/CheepCharger.glb', scale: 0.008 },
-        riderOffset: [-0.03, -0.03, 0.13],
+        riderOffset: [-0.03, 0, 0.13],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.20, 0.25, 0.30],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.3, 0]
     },
     'Quacker': { 
         name: 'Quacker', isBike: true, driftType: 'inside',
@@ -300,7 +307,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.03, 0.07, 0.00],
 		riderRotation: [0.10, 0.00, 0.00],
 		handPos: [0.20, 0.48, 2.00],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.4, 0]
     },
     'TinyTitan': { 
         name: 'Tiny Titan', isBike: false, driftType: 'outside',
@@ -309,7 +317,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [0.00, 0.08, 0.05],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.22, 0.09, 1.96],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.7, 0]
     },
     'Magikruiser': { 
         name: 'Magikruiser', isBike: true, driftType: 'inside',
@@ -318,7 +327,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.03, 0.00, -0.24],
 		riderRotation: [0.85, 0.00, 0.00],
 		handPos: [0.25, 0.90, 0.40],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.5, 0]
     },
     'BlueFalcon': { 
         name: 'Blue Falcon', isBike: false, driftType: 'outside',
@@ -327,7 +337,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.03, -0.15, 0.37],
 		riderRotation: [-0.10, 0.00, 0.00],
 		handPos: [0.15, 0.28, 0.40],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.3, 0]
     },
     'JetBubble': { 
         name: 'Jet Bubble', isBike: true, driftType: 'inside',
@@ -336,7 +347,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.02, 0.03, -0.10],
 		riderRotation: [0.75, 0.00, 0.00],
 		handPos: [0.20, 0.69, 0.40],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.5, 0]
     },
 
     // ==========================================
@@ -349,7 +361,8 @@ export const VEHICLE_DATABASE = {
         animationType: 'kart',
 		riderOffset: [-0.06, -0.21, 0.12],
 		riderRotation: [0.00, 0.00, 0.00],
-		handPos: [0.00, 0.16, -0.50]
+		handPos: [0.00, 0.16, -0.50],
+		vehicleOffset: [0, 0.1, 0]
     },
     'StandardBikeM': { 
         name: 'Standard Bike M', isBike: true, driftType: 'outside',
@@ -358,7 +371,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.06, -0.06, -0.41],
 		riderRotation: [0.85, 0.05, 0.00],
 		handPos: [0.20, 0.67, 1.00],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.40, 0]
     },
     'ClassicDragster': { 
         name: 'Classic Dragster', isBike: false, driftType: 'outside',
@@ -367,7 +381,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.06, -0.40, -0.20],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.00, 0.22, -0.50],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.60, 0]
     },
     'MachBike': { 
         name: 'Mach Bike', isBike: true, driftType: 'inside',
@@ -376,7 +391,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.06, -0.22, -0.23],
 		riderRotation: [0.75, 0.00, 0.00],
 		handPos: [0.20, 0.28, 2.00],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.45, 0]
     },
     'WildWing': { 
         name: 'Wild Wing', isBike: false, driftType: 'outside',
@@ -385,7 +401,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.06, -0.20, -0.10],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.20, 0.39, 0.40],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.30, 0]
     },
     'Sugarscoot': { 
         name: 'Sugarscoot', isBike: true, driftType: 'outside',
@@ -394,7 +411,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.06, -0.17, -0.08],
 		riderRotation: [0.20, 0.00, 0.00],
 		handPos: [0.25, 0.30, -1.71],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.45, 0]
     },
     'SuperBlooper': { 
         name: 'Super Blooper', isBike: false, driftType: 'outside',
@@ -403,7 +421,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.06, -0.30, 0.00],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.22, 0.20, 0.40],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.30, 0]
     },
     'ZipZip': { 
         name: 'Zip Zip', isBike: true, driftType: 'inside',
@@ -412,7 +431,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.03, -0.16, -0.31],
 		riderRotation: [0.70, 0.00, 0.00],
 		handPos: [0.22, 0.74, 0.40],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.35, 0]
     },
     'DayTripper': { 
         name: 'Day Tripper', isBike: false, driftType: 'outside',
@@ -421,7 +441,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.05, -0.20, -0.20],
 		riderRotation: [0.35, 0.00, 0.00],
 		handPos: [0.20, 0.21, -2.00],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.45, 0]
     },
     'Sneakster': { 
         name: 'Sneakster', isBike: true, driftType: 'inside',
@@ -430,7 +451,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.04, -0.06, -0.50],
 		riderRotation: [1.20, 0.00, 0.00],
 		handPos: [0.30, 0.70, 0.50],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.35, 0]
     },
     'Sprinter': { 
         name: 'Sprinter', isBike: false, driftType: 'outside',
@@ -439,7 +461,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [0.00, -0.25, -0.04],
 		riderRotation: [0.30, 0.00, 0.00],
 		handPos: [0.18, 0.19, 0.50],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.20, 0]
     },
     'DolphinDasher': { 
         name: 'Dolphin Dasher', isBike: true, driftType: 'inside',
@@ -448,7 +471,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.04, -0.13, -0.36],
 		riderRotation: [1.00, 0.00, 0.00],
 		handPos: [0.25, 0.60, 0.40],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.55, 0]
     },
 
     // ==========================================
@@ -461,7 +485,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.06, -0.47, 0.20],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.25, 0.28, 0.45],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.20, 0]
     },
     'StandardBikeL': { 
         name: 'Standard Bike L', isBike: true, driftType: 'outside',
@@ -470,7 +495,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.04, -0.10, -0.60],
 		riderRotation: [0.80, 0.00, 0.00],
 		handPos: [0.30, 0.60, 0.50],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.55, 0]
     },
     'Offroader': { 
         name: 'Offroader', isBike: false, driftType: 'outside',
@@ -479,7 +505,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.06, -0.50, 0.34],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.25, 0.19, -2.00],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.35, 0]
     },
     'FlameRunner': { 
         name: 'Flame Runner', isBike: true, driftType: 'inside',
@@ -488,7 +515,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.06, -0.27, -0.46],
 		riderRotation: [0.60, 0.00, 0.00],
 		handPos: [0.25, 0.36, 0.50],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.55, 0]
     },
     'FlameFlyer': { 
         name: 'Flame Flyer', isBike: false, driftType: 'outside',
@@ -497,7 +525,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.07, -0.50, -0.39],
 		riderRotation: [0.35, 0.00, 0.00],
 		handPos: [0.22, 0.29, -2.00],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.55, 0]
     },
     'WarioBike': { 
         name: 'Wario Bike', isBike: true, driftType: 'outside',
@@ -506,7 +535,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.09, -0.43, 0.34],
 		riderRotation: [-0.20, 0.00, 0.00],
 		handPos: [0.40, 0.43, 0.30],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.45, 0]
     },
     'PiranhaProwler': { 
         name: 'Piranha Prowler', isBike: false, driftType: 'outside',
@@ -515,7 +545,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.05, -0.50, -0.10],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.25, 0.19, 0.40],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.75, 0]
     },
     'ShootingStar': { 
         name: 'Shooting Star', isBike: true, driftType: 'inside',
@@ -524,7 +555,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.02, -0.50, -0.17],
 		riderRotation: [0.30, 0.00, 0.00],
 		handPos: [0.22, 0.58, 0.50],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.55, 0]
     },
     'Jetsetter': { 
         name: 'Jetsetter', isBike: false, driftType: 'outside',
@@ -533,7 +565,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.07, -0.50, -0.06],
 		riderRotation: [0.20, 0.00, 0.00],
 		handPos: [0.20, 0.21, 0.40],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.20, 0]
     },
     'Spear': { 
         name: 'Spear', isBike: true, driftType: 'inside',
@@ -542,7 +575,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [-0.07, -0.37, -0.74],
 		riderRotation: [0.80, 0.00, 0.00],
 		handPos: [0.20, 0.45, 0.60],
-		animationType: 'bike'
+		animationType: 'bike',
+		vehicleOffset: [0, 0.55, 0]
     },
     'HoneyCoupe': { 
         name: 'Honey Coupe', isBike: false, driftType: 'outside',
@@ -551,7 +585,8 @@ export const VEHICLE_DATABASE = {
 		riderOffset: [-0.04, -0.50, -0.38],
 		riderRotation: [0.40, 0.00, 0.00],
 		handPos: [0.22, 0.22, 0.40],
-		animationType: 'kart'
+		animationType: 'kart',
+		vehicleOffset: [0, 0.30, 0]
     },
     'Phantom': { 
         name: 'Phantom', isBike: true, driftType: 'outside',
@@ -560,7 +595,8 @@ export const VEHICLE_DATABASE = {
         riderOffset: [0.00, -0.50, -0.07],
 		riderRotation: [0.25, 0.00, 0.00],
 		handPos: [0.35, 0.49, 0.30],
-		animationType: 'bike' 
+		animationType: 'bike' ,
+		vehicleOffset: [0, 0.55, 0]
     },
 
     // ==========================================
@@ -573,6 +609,7 @@ export const VEHICLE_DATABASE = {
         riderOffset: [0, -0.15, 0],
         riderRotation: [0, 0, 0],
         animationType: 'kart',
-        handPos: [0.2, 0.5, 0.3]
+        handPos: [0.2, 0.5, 0.3],
+		vehicleOffset: [0, 0, 0]
     }
 };

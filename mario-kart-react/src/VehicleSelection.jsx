@@ -46,6 +46,7 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
             
             {/* IL PILOTA */}
             <RacerModel 
+				isInMenu={true}
                 characterConfig={characterConfig}
                 vehicleConfig={vehicleData} // <--- IMPORTANTE: Passiamo l'intero oggetto veicolo per leggere 'driverPose'
                 isKart={true}               // <--- IMPORTANTE: Forza lo stato "seduto"

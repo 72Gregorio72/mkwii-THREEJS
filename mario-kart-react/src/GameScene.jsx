@@ -29,7 +29,7 @@ export function GameScene({ character, vehicle, mapPath, onBack }) {
                 <Physics>
                     <SmartMap modelPath={mapPath} scale={1} />
 
-                    <group position={[0, 2, 0]}>
+                    <group position={[0, 10, 0]}>
                         {isBike ? (
                             <InsideDriftBike 
                                 // character.modelConfig contiene { file: "...", scale: ... }

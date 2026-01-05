@@ -30,7 +30,7 @@ function retargetClip(originalClip) {
     return clip;
 }
 
-export function RacerModel({ characterConfig, vehicleConfig, steer, drift, isKart = true, ...props }) {
+export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, drift, isKart = true, ...props }) {
   const group = useRef()
   
   // Refs Ossa
@@ -72,10 +72,11 @@ export function RacerModel({ characterConfig, vehicleConfig, steer, drift, isKar
   // --- FINE COMMENTO LEVA ---
 
   // Sostituzione statica per mantenere il funzionamento del codice
+
   const values = {
-      offX: vehicleConfig?.riderOffset?.[0] ?? 0,
-      offY: vehicleConfig?.riderOffset?.[1] ?? 0,
-      offZ: vehicleConfig?.riderOffset?.[2] ?? 0,
+      offX: (vehicleConfig?.riderOffset?.[0] ?? 0),
+      offY: (vehicleConfig?.riderOffset?.[1] ?? 0),
+      offZ: (vehicleConfig?.riderOffset?.[2] ?? 0),
       rotX: vehicleConfig?.riderRotation?.[0] ?? 0,
       rotY: vehicleConfig?.riderRotation?.[1] ?? 0,
       rotZ: vehicleConfig?.riderRotation?.[2] ?? 0,

@@ -58,6 +58,12 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
 	fovMax: 55
   //)}, [DEBUG_MODE]
   }
+
+//   const { offX, offY, offZ } = useLeva("Vehicle Visual Offset", {
+// 		offX: { value: vehicleConfig?.vehicleOffset?.[0] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset X' },
+// 		offY: { value: vehicleConfig?.vehicleOffset?.[1] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Y' },
+// 		offZ: { value: vehicleConfig?.vehicleOffset?.[2] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Z' },
+// 	})
   
   const rigidBody = useRef()
   const speedUiRef = useRef() 
@@ -322,29 +328,35 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
 
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
             {/* ... tutto il resto dei modelli rimane identico ... */}
-            <VehicleModel 
-              vehicleConfig={vehicleConfig.modelConfig} 
-              scale={1.4}
-              rotation={[0, Math.PI, 0]} 
-              position={[0, 0, 0]}
-              steer={steerVal}
-              drift={driftDirection.current}
-              speed={speed.current}
-              isBike={true}
-            />
-            
-            <group rotation={[0, Math.PI, 0]}>
-              <RacerModel 
-				  scale={1.5}
-                  characterConfig={characterConfig}
-                  vehicleConfig={vehicleConfig} 
-                  steer={steerVal} 
-                  drift={driftDirection.current} 
+            <group position={vehicleConfig.vehicleOffset}>
+
+                {/* Modello Veicolo */}
+                <VehicleModel 
+                  vehicleConfig={vehicleConfig.modelConfig} 
+                  scale={1.4}
+                  rotation={[0, Math.PI, 0]} 
+                  position={[0, 0, 0]}
+                  steer={steerVal}
+                  drift={driftDirection.current}
                   speed={speed.current}
-                  isKart={true}
-                key={vehicleConfig.name + "_racer"}
-              />
-            </group>
+                  isBike={true}
+                />
+                
+                {/* Modello Pilota */}
+                <group rotation={[0, Math.PI, 0]}>
+                  <RacerModel 
+                      isInMenu={false}
+                      scale={1.5}
+                      characterConfig={characterConfig}
+                      vehicleConfig={vehicleConfig} 
+                      steer={steerVal} 
+                      drift={driftDirection.current} 
+                      speed={speed.current}
+                      isKart={true}
+                    key={vehicleConfig.name + "_racer"}
+                  />
+                </group>
+			</group>	
   
             <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
             <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>
