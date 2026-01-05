@@ -36,7 +36,7 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
 
     return (
         <group ref={groupRef}>
-			<OrbitControls/>
+            <OrbitControls/>
             {/* IL VEICOLO */}
             <VehicleModel 
                 vehicleConfig={vehicleData.modelConfig}
@@ -46,23 +46,21 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
             
             {/* IL PILOTA */}
             <RacerModel 
-				isInMenu={true}
+                isInMenu={false}
                 characterConfig={characterConfig}
-                vehicleConfig={vehicleData} // <--- IMPORTANTE: Passiamo l'intero oggetto veicolo per leggere 'driverPose'
-                isKart={true}               // <--- IMPORTANTE: Forza lo stato "seduto"
+                vehicleConfig={vehicleData}
+                isKart={true}
                 steer={0} 
                 drift={0}
-				key={vehicleData.name + "_racer"}
+                key={vehicleData.name + "_racer"}
             />
         </group>
     )
 }
 
 export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedVehicle }) {
-    // Recuperiamo la lista veicoli dal personaggio selezionato
     const availableIDs = selectedCharacter.veichles || []; 
     
-    // Mappiamo le stringhe agli oggetti veri (fallback su DEFAULT se manca)
     const availableVehicles = availableIDs.map(id => ({
         id: id,
         ...((VEHICLE_DATABASE[id]) || VEHICLE_DATABASE['DEFAULT'])
@@ -72,10 +70,9 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
 
     const handleConfirm = () => {
         setSelectedVehicle(localSelection);
-        setMenuState(2); // Vai allo stato successivo
+        setMenuState(2);
     };
 
-    // Creiamo una griglia 2 colonne x 6 righe (12 slot)
     const totalSlots = 12;
     const gridSlots = Array.from({ length: totalSlots }).map((_, index) => {
         return index < availableVehicles.length ? availableVehicles[index] : null
@@ -84,7 +81,8 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
     const styles = {
         container: {
             width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0,
-            background: `repeating-linear-gradient(0deg, #000, #000 4px, #111 4px, #111 8px)`,
+            // Sfondo stile "Scanlines" scure
+            background: `repeating-linear-gradient(0deg, #050505, #050505 2px, #111 2px, #111 4px)`,
             display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'sans-serif'
         },
         header: {
@@ -95,38 +93,52 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
         },
         mainContent: { display: 'flex', flex: 1, padding: '0', overflow: 'hidden', alignItems: 'center' },
         
-        // Pannello Sinistro: Statistiche + Preview 3D
+        // Pannello Sinistro
         leftPanel: {
-            flex: 1.2, display: 'flex', flexDirection: 'row', position: 'relative', height: '100%',
+            flex: 1, display: 'flex', flexDirection: 'row', position: 'relative', height: '100%',
             alignItems: 'center'
         },
         statsContainer: {
-            width: '30%', height: '80%', display: 'flex', flexDirection: 'column', justifyContent: 'center',
+            width: '35%', height: '80%', display: 'flex', flexDirection: 'column', justifyContent: 'center',
             paddingLeft: '4vw', zIndex: 5
         },
         canvasContainer: {
-            width: '70%', height: '100%', position: 'relative'
+            width: '65%', height: '100%', position: 'relative'
         },
         
         // Pannello Destro: Griglia Veicoli
+        // Aumentato flex a 1.2 per dare più spazio orizzontale ai bottoni (rettangoli più larghi)
         rightPanel: {
-            flex: 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '2vmin'
+            flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '2vmin'
         },
         gridContainer: {
             display: 'grid', 
             gridTemplateColumns: 'repeat(2, 1fr)', 
             gridTemplateRows: 'repeat(6, 1fr)', 
-            gap: '1.5vmin', aspectRatio: '2 / 6', height: '85%', maxHeight: '100%'
+            // Gap ridotto per avvicinare i bottoni come nella Wii
+            gap: '1.2vmin 3vmin', 
+            // Width 90% per riempire bene il pannello destro
+            width: '75%',
+            height: '85%', maxHeight: '100%'
         },
         gridItem: (isActive, isEmpty) => ({
             width: '100%', height: '100%', 
-            border: isActive ? '0.5vh solid #ffe600' : '0.2vh solid #444', 
-            background: isEmpty ? '#ccc' : 'linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(50,50,50,0.8))',
-            borderRadius: '1vh', cursor: isEmpty ? 'default' : 'pointer',
+            // Stile Bordo: Giallo acceso se attivo, Grigio scuro se inattivo
+            border: isActive ? '0.4vh solid #ffe600' : '0.3vh solid #444', 
+            // Sfondo: Gradiente verticale scuro per simulare l'effetto "tubo" o metallico della Wii
+            background: isEmpty 
+                ? 'transparent' 
+                : 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(60,60,60,0.8) 50%, rgba(0,0,0,0.8) 100%)',
+            // Border radius ridotto per renderli più rettangolari
+            borderRadius: '4px', 
+            cursor: isEmpty ? 'default' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: isActive ? '0 0 20px #ffe600' : 'inset 0 0 10px #000',
-            transform: isActive ? 'scale(1.05)' : 'scale(1)',
-            transition: 'all 0.1s',
+            // GLOW: Ombra esterna gialla + Ombra interna gialla per illuminare il bottone
+            boxShadow: isActive ? '0 0 15px #ffe600, inset 0 0 10px rgba(255, 230, 0, 0.4)' : 'none',
+            // Scala leggermente per feedback tattile
+            transform: isActive ? 'scale(1.02)' : 'scale(1)',
+            transition: 'all 0.1s ease-in-out',
+            position: 'relative',
         }),
         vehicleNameBox: {
             position: 'absolute', bottom: '10%', left: '50%', transform: 'translateX(-50%) skewX(-10deg)',
@@ -167,7 +179,7 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
 
                     {/* Canvas 3D */}
                     <div style={styles.canvasContainer}>
-                         {/* Sfondo circolare dietro l'auto */}
+                         {/* Sfondo circolare */}
                         <div style={{
                             position: 'absolute', width: '50vmin', height: '50vmin',
                             border: '0.3vmin solid rgba(255,255,255,0.1)', borderRadius: '50%', 
@@ -201,6 +213,15 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
                             const isEmpty = !veh;
                             const isActive = veh && localSelection.name === veh.name;
 
+                            let vehicleName = veh ? veh.name.replace(/\s+/g, '') : '';
+                            if (vehicleName === 'StandardBikeS' || vehicleName === 'StandardKartS'
+                                || vehicleName === 'StandardBikeM' || vehicleName === 'StandardKartM'
+                                || vehicleName === 'StandardBikeL' || vehicleName === 'StandardKartL'
+                            ) {
+                                vehicleName = vehicleName.slice(0, -1);
+                            }
+                            const spritePath = veh ? `/vehicleSprites/${vehicleName}.png` : '';
+
                             return (
                                 <div 
                                     key={index} 
@@ -208,9 +229,28 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
                                     onClick={() => !isEmpty && setLocalSelection(veh)}
                                 >
                                     {!isEmpty && (
-                                        <div style={{color: 'white', textAlign:'center', fontWeight:'bold', fontSize:'1.5vh'}}>
-                                            {veh.name}
-                                        </div>
+                                        <img 
+                                            src={spritePath} 
+                                            alt={veh.name}
+                                            style={{
+                                                // Imposta larghezza su auto e altezza fissa per evitare stretching
+                                                // e mantenere l'aspect ratio originale dello sprite
+                                                width: 'auto',
+                                                height: '95%',
+                                                maxWidth: '95%',
+                                                objectFit: 'contain',
+                                                pointerEvents: 'none',
+                                                // Aggiunta ombra allo sprite stesso quando selezionato per farlo risaltare
+                                                filter: isActive ? 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' : 'none'
+                                            }}
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.parentNode.innerText = veh.name;
+                                                e.target.parentNode.style.color = 'white';
+                                                e.target.parentNode.style.fontSize = '1.5vh';
+                                                e.target.parentNode.style.fontWeight = 'bold';
+                                            }}
+                                        />
                                     )}
                                 </div>
                             )
@@ -222,7 +262,7 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
             <div style={styles.footer}>
                 <button 
                     style={{...styles.button, background: '#ccc', color: '#333'}}
-                    onClick={() => setMenuState(0)} // Torna ai personaggi
+                    onClick={() => setMenuState(0)}
                 >
                     Back
                 </button>

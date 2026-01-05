@@ -187,8 +187,8 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
     <group ref={group} {...props} dispose={null}>
       <primitive 
         object={clone} 
-        scale={characterConfig.scale || 1} 
-        position={[values.offX, values.offY, values.offZ]} 
+        scale={isInMenu ? 1.8 : (characterConfig.scale || 1)} 
+        position={isInMenu ? [0, -1, 0] : [values.offX, values.offY, values.offZ]} 
         rotation={[values.rotX, values.rotY, values.rotZ]} 
       />
     </group>

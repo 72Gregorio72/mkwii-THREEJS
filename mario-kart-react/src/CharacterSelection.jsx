@@ -1,29 +1,9 @@
 import React, { useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, Center } from '@react-three/drei'
-
-// --- NUOVO IMPORT ---
 import { RacerModel } from './models/RacerModel'
 import { Suspense } from 'react'
 import { OrbitControls } from '@react-three/drei'
-// Componente wrapper per la preview
-function PreviewScene({ config }) {
-    return (
-        <Center top>
-            {/* Moltiplichiamo la scala: 
-               Il modello è 0.008. Qui lo ingrandiamo x150 per vederlo bene nel menu.
-            */}
-            <group scale={150} position={[0, -1, 0]}> 
-                 <RacerModel 
-                    characterConfig={config} 
-                    steer={0} 
-                    drift={0} 
-					debug={true}
-                 />
-            </group>
-        </Center>
-    )
-}
 
 export function CharacterSelection({ 
     setMenuState, 
@@ -47,7 +27,8 @@ export function CharacterSelection({
       width: '100vw', 
       height: '100vh', 
       position: 'absolute', top: 0, left: 0,
-      background: `repeating-linear-gradient(0deg, #000, #000 4px, #111 4px, #111 8px)`,
+      // MODIFICA: Sfondo stile "Scanlines" scure come VehicleSelection
+      background: `repeating-linear-gradient(0deg, #050505, #050505 2px, #111 2px, #111 4px)`,
       display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'sans-serif'
     },
     header: {
@@ -79,11 +60,12 @@ export function CharacterSelection({
       display: 'grid', 
       gridTemplateColumns: 'repeat(4, 1fr)', 
       gridTemplateRows: 'repeat(6, 1fr)', 
-      gap: '1vmin', 
-      aspectRatio: '4 / 6', 
+      // MODIFICA: Gap adattato (verticale stretto, orizzontale bilanciato)
+      gap: '1.2vmin 1.5vmin', 
+      // MODIFICA: Width ridotta per rendere i bottoni visivamente più simili a rettangoli 4:3
+      width: '85%',
       height: '85%',
       maxHeight: '100%', 
-      maxWidth: '100%'
     },
     charNameBox: {
         width: '90%',
@@ -105,15 +87,20 @@ export function CharacterSelection({
     gridItem: (isActive, isEmpty) => ({
       width: '100%',  
       height: '100%', 
-      border: isActive ? '0.5vh solid #ffe600' : '0.2vh solid #444', 
-      background: isEmpty ? '#ccc' : 'rgba(0,0,0,0.6)',
-      borderRadius: '1vh',
+      // MODIFICA: Stile bordo giallo acceso vs grigio scuro
+      border: isActive ? '0.4vh solid #ffe600' : '0.3vh solid #444', 
+      // MODIFICA: Gradiente scuro metallico
+      background: isEmpty 
+        ? 'transparent' 
+        : 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(60,60,60,0.8) 50%, rgba(0,0,0,0.8) 100%)',
+      borderRadius: '4px', // Meno arrotondato
       cursor: isEmpty ? 'default' : 'pointer',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: isActive ? '0 0 20px #ffe600' : 'inset 0 0 10px #000',
+      // MODIFICA: Glow giallo intenso
+      boxShadow: isActive ? '0 0 15px #ffe600, inset 0 0 10px rgba(255, 230, 0, 0.4)' : 'none',
       position: 'relative',
-      transition: 'transform 0.1s, border-color 0.1s',
-      transform: isActive ? 'scale(1.05)' : 'scale(1)',
+      transition: 'all 0.1s ease-in-out',
+      transform: isActive ? 'scale(1.02)' : 'scale(1)',
     }),
     footer: {
         height: '10vh', display: 'flex', justifyContent: 'space-between', 
@@ -138,10 +125,10 @@ export function CharacterSelection({
             <div style={styles.circleBg}></div>
             <div style={{width: '100%', height: '55%', zIndex: 1}}>
                 <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
-					<ambientLight intensity={1} />
-					<Environment preset="sunset" />
-					{/* <OrbitControls /> */}
-
+                    <ambientLight intensity={1} />
+                    <Environment preset="sunset" />
+                    {/* <OrbitControls /> */}
+					
 					<RacerModel 
 						characterConfig={localSelection.modelConfig} 
 						steer={0}
@@ -149,8 +136,9 @@ export function CharacterSelection({
 						position={[0, -0.5, 0]}
 						debug={true}
 						key={localSelection.id}
+						isInMenu={true}
 					/>
-				</Canvas>
+                </Canvas>
             </div>
             <div style={styles.charNameBox}>
                 {localSelection.name}
@@ -173,7 +161,15 @@ export function CharacterSelection({
                             <img 
                                     src={char.sprite} 
                                     alt={char.name} 
-                                    style={{width: '90%', height: '90%', objectFit: 'contain', filter: isActive ? 'brightness(1.2)' : 'brightness(0.9)'}}
+                                    style={{
+                                        // MODIFICA: Logica per evitare stretching e centrare lo sprite
+                                        width: 'auto', 
+                                        height: '95%', 
+                                        maxWidth: '95%',
+                                        objectFit: 'contain', 
+                                        // MODIFICA: Drop shadow e luminosità su attivo
+                                        filter: isActive ? 'brightness(1.1) drop-shadow(0 0 2px rgba(255,255,255,0.5))' : 'brightness(0.9)'
+                                    }}
                                     onError={(e) => e.target.style.display='none'}
                             /> 
                             )}
