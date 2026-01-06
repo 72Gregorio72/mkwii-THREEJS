@@ -17,6 +17,23 @@ const LARGE_VEHICLES = [
     'Jetsetter', 'Spear', 'HoneyCoupe', 'Phantom'
 ];
 
+export const Tracks = {
+	'Luigi Circuit': { 
+		file: './Tracks/LuigiCircuit.glb',
+		preview: './TrackPreviews/LuigiCircuit.png',
+		startPos: [-200, 10, 270],
+		checkpoints: './Tracks/LuigiCircuit/LuigiCircuit_checkpoints.glb',
+		maxCheckpoints: 1
+	},
+	'Daisy Circuit': { 
+		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
+		preview: './TrackPreviews/DaisyCircuit.png',
+		startPos: [9, 12, 98],
+		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+		maxCheckpoints: 3
+	},
+}
+
 export const Characters = [
     // === RIGA 1: PICCOLI (Baby) ===
     { 

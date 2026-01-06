@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Characters } from './components/Data'
 import { CharacterSelection } from './CharacterSelection'
 import { VehicleSelection } from './VehicleSelection'
+import { TrackSelection } from './TrackSelection'
 import { GameScene } from './GameScene' // Import the new component
 
 export default function App() {
@@ -11,13 +12,12 @@ export default function App() {
     // State for selections
     const [SelectedCharacter, setSelectedCharacter] = useState(Characters[0])
     const [SelectedVehicle, setSelectedVehicle] = useState(null)
-    
+	const [SelectedTrack, setSelectedTrack] = useState(null)
     // Data source
     const [availableCharacters, ] = useState(Characters)
 
     return (
         <div style={{ backgroundImage: "url(/sprites/skybox.jpg)", minHeight: '100vh' }}>
-            {/* STATE 0: Character Selection */}
             {MenuState === 0 && (
                 <CharacterSelection 
                     setMenuState={setMenuState} 
@@ -26,7 +26,6 @@ export default function App() {
                 />
             )}
 
-            {/* STATE 1: Vehicle Selection */}
             {MenuState === 1 && (
                 <VehicleSelection 
                     setMenuState={setMenuState} 
@@ -36,16 +35,27 @@ export default function App() {
                 />
             )}
 
-            {/* STATE 2: The Game (Map Spawn) */}
-            {MenuState === 2 && (
-                <GameScene 
-                    character={SelectedCharacter}
-                    vehicle={SelectedVehicle}
-                    // Load the specific map you requested
-                    mapPath="./LuigiCircuit_colliders.glb" 
-                    onBack={() => setMenuState(0)}
-                />
-            )}
+			{MenuState === 2 && (
+				<TrackSelection
+					setMenuState={setMenuState}
+					setSelectedTrack={setSelectedTrack}
+				/>
+			)}
+
+            {MenuState === 3 && (
+				<GameScene 
+					character={SelectedCharacter}
+					vehicle={SelectedVehicle}
+					
+					// Passiamo i dati dinamici dalla pista selezionata
+					mapPath={SelectedTrack.file} 
+					checkpointPath={SelectedTrack.checkpoints} // <--- NUOVO
+					maxCheckpoints={SelectedTrack.maxCheckpoints || 1} // <--- NUOVO
+					start_pos={SelectedTrack.startPos}
+					selectedTrack={SelectedTrack}
+					onBack={() => setMenuState(0)}
+				/>
+			)}
 		</div>
     )
 }
