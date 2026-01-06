@@ -7,6 +7,7 @@ services:
     volumes:
       - ./mario-kart-react:/app               # Sincronizza il tuo codice
       - /app/node_modules    # IMPORTANTE: Usa i node_modules interni al container
+      - ./certs:/app/certs
     environment:
       - CHOKIDAR_USEPOLLING=true # Fix per aggiornamento automatico file
 
@@ -18,6 +19,7 @@ services:
       volumes:
         - ./backend:/app
         - /app/node_modules
+        - ./certs:/app/certs
       environment:
         - NODE_ENV=development
       command: npm run start:dev
