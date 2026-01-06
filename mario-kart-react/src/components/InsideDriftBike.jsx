@@ -1,43 +1,181 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider } from '@react-three/rapier' 
 import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
-import { useControls } from '../hooks/useControls' 
-import { Sparkles, Html } from '@react-three/drei' 
+import * as THREE from 'three' 
+import { Html } from '@react-three/drei' 
 import gsap from 'gsap'
 
+// --- TUOI IMPORT CUSTOM ---
+import { useControls as useGameControls } from '../hooks/useControls' 
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
-import { useHitboxHandler } from '../utils/HitboxHandler'
+import { useHitboxHandler } from '../utils/HitboxHandler' 
 
+// --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1.2 
-const VISUAL_OFFSET = 0; 
 
-const SETTINGS = {
-  maxSpeed: 50, 
-  maxTurboLimit: 90, 
-  acceleration: 0.25, 
+const cBlue = new THREE.Color(0x00FFFF); 
+const cRed = new THREE.Color(0xFF3300); 
+
+const DEFAULT_SETTINGS = {
+  maxSpeed: 40,
+  maxTurboLimit: 50,       
+  acceleration: 0.25,       
   deceleration: 2.0,       
-  turnSpeed: 0.9, 
-  driftTurnSpeed: 0.6, 
+  turnSpeed: 0.9,
+  driftTurnSpeed: 0.9, 
   driftGrip: 0.02, 
   boostStrength: 0,        
-  boostDuration: 60, 
-  jumpForce: 1.5, 
-  driftLevel1Time: 1.5, 
+  boostDuration: 60,       
+  jumpForce: 1.5,          
+  driftLevel1Time: 1.5,
   driftMinSpeed: 10,       
+  slideOutForce: 0.08,
+  
+  // --- SETTINGS MOTO ---
+  wheelieSpeedBonus: 10,   
+  wheelieTurnReduction: 0.3, 
 }
 
-const cBlue = new Color("#00aeff") 
-const cRed = new Color("#ff3300")  
+// --- 2. SISTEMA PARTICELLE ---
+function getNintendoSparkTexture() {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  const size = 64; 
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const cx = size / 2;
+  const cy = size / 2;
+  const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size/2);
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 1)'); 
+  gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
+  gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = "white";
+  ctx.beginPath();
+  const outerRadius = size * 0.45;
+  const innerRadius = size * 0.15;
+  for (let i = 0; i < 4; i++) {
+    const angle = (i * Math.PI) / 2; 
+    ctx.lineTo(cx + Math.cos(angle) * outerRadius, cy + Math.sin(angle) * outerRadius);
+    const angleInner = angle + Math.PI / 4;
+    ctx.lineTo(cx + Math.cos(angleInner) * innerRadius, cy + Math.sin(angleInner) * innerRadius);
+  }
+  ctx.closePath();
+  ctx.fill();
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true; 
+  return tex;
+}
 
-// AGGIUNGI trackRef ALLE PROPS
-export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onCheckpoint, trackRef }) {
+const DriftParticles = React.forwardRef((props, ref) => {
+  const { count = 45 } = props; 
+  const points = useRef();
+  const texture = useMemo(() => getNintendoSparkTexture(), []);
+  const [data] = useState(() => ({
+      positions: new Float32Array(count * 3),
+      velocities: new Float32Array(count * 3), 
+      life: new Float32Array(count),           
+      sizes: new Float32Array(count)           
+  }));
+
+  const resetParticle = (i) => {
+    data.positions[i * 3] = (Math.random() - 0.5) * 0.1;
+    data.positions[i * 3 + 1] = (Math.random() - 0.5) * 0.1;
+    data.positions[i * 3 + 2] = (Math.random() - 0.5) * 0.1;
+    data.velocities[i * 3 + 2] = 10 + Math.random() * 8; 
+    data.velocities[i * 3 + 1] = Math.random() * 3; 
+    data.velocities[i * 3] = (Math.random() - 0.5) * 4;
+    data.life[i] = 0.5 + Math.random() * 0.5; 
+    data.sizes[i] = Math.random(); 
+  };
+
+  useMemo(() => { for (let i = 0; i < count; i++) resetParticle(i); }, []);
+
+  useFrame((state, delta) => {
+    if (!points.current || !ref.current || !ref.current.visible) return;
+    const pos = points.current.geometry.attributes.position.array;
+    for (let i = 0; i < count; i++) {
+      data.life[i] -= delta * 3.5; 
+      if (data.life[i] <= 0) {
+        resetParticle(i);
+      } else {
+        pos[i * 3] += data.velocities[i * 3] * delta;     
+        pos[i * 3 + 1] += data.velocities[i * 3 + 1] * delta; 
+        pos[i * 3 + 2] += data.velocities[i * 3 + 2] * delta; 
+        data.velocities[i * 3 + 1] -= 9.8 * delta;
+        data.velocities[i * 3 + 2] *= 0.95;
+        data.velocities[i * 3] *= 0.95;
+        if (pos[i * 3 + 1] < -0.2) {
+            pos[i * 3 + 1] = -0.2;
+            data.velocities[i * 3 + 1] *= -0.5; 
+        }
+      }
+    }
+    points.current.geometry.attributes.position.needsUpdate = true;
+  });
+
+  if (!texture) return null;
+  return (
+    <group ref={ref} visible={false}>
+      <points ref={points}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" count={count} array={data.positions} itemSize={3} />
+        </bufferGeometry>
+        <pointsMaterial map={texture} size={0.8} color="white" transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation={true} vertexColors={false} />
+      </points>
+    </group>
+  );
+});
+
+// --- 3. HELPER COLORE ---
+function updateSparksColor(level, sparksRef) {
+    if (!sparksRef) return;
+    const show = level > 0;
+    if (sparksRef.visible !== show) sparksRef.visible = show;
+    if (!show) return;
+    const targetColor = cBlue;
+    const applyColor = (obj) => {
+        obj.traverse((child) => {
+            if (child.isPoints || child.isMesh) {
+                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+                if (!mat) return;
+                if (mat.vertexColors === true) { mat.vertexColors = false; mat.needsUpdate = true; }
+                if (mat.color && mat.color.isColor) { mat.color.lerp(targetColor, 0.3); }
+            }
+        });
+    };
+    applyColor(sparksRef);
+}
+
+
+// --- 4. COMPONENTE PRINCIPALE MOTO ---
+
+export function InsideDriftBike({ 
+  characterConfig, 
+  vehicleConfig, 
+  START_POS, 
+  onCheckpoint, 
+  trackConfig, 
+  SETTINGS = DEFAULT_SETTINGS 
+}) {
   const { scene } = useThree()
-  const controls = useControls()
+  const controls = useGameControls() 
   
-  // --- Refs Fisica e Stato ---
+  const camConfig = {
+    distance: 7.2,
+    height: 2.3,
+    lookAtHeight: 1.0,
+    stiffness: 0.2, // MANTENIAMO BASSO per l'effetto elastico su X e Z
+    fovBase: 53,
+    fovMax: 55
+  }
+
   const rigidBody = useRef()
   const speedUiRef = useRef() 
 
@@ -45,12 +183,13 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
   const speed = useRef(0)
   const rotation = useRef(0) 
   const driftVector = useRef(new Vector3(0, 0, 0))
+  
   const currentVelocity = useRef(new Vector3())
   const currentPosition = useRef(new Vector3())
   const cameraTarget = useRef(new Vector3(0, 0, 0))
+
   const isGrounded = useRef(false)
-  
-  const raycaster = useRef(new Raycaster()) 
+  const raycaster = useRef(new Raycaster())
   
   const driftTime = useRef(0)      
   const driftLevel = useRef(0)     
@@ -58,54 +197,30 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
   const boostTime = useRef(0)
   const driftHopLocked = useRef(false)
   const driftEngageWindow = useRef(false) 
+  
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
 
-  // --- Refs Visuali ---
-  const visualGroupRef = useRef() 
-  const backLeft = useRef()
-  const backRight = useRef()
-  const leftSparksRef = useRef()
-  const rightSparksRef = useRef()
+  const isWheelie = useRef(false)
+  // --- STATI PER IL TOGGLE IMPENNATA ---
+  const isWheelieActive = useRef(false)   
+  const wasWheeliePressed = useRef(false) 
 
-  if (!vehicleConfig || !characterConfig) return null;
+  const visualGroupRef = useRef() 
+  const centerSparksRef = useRef()
 
   const { checkSurface } = useHitboxHandler({
     speed,
     boostTime,
-    SETTINGS
+    SETTINGS,
+    onCheckpoint,
+    maxCheckpoints: trackConfig?.maxCheckpoints || 3
   })
-
-  // --- RESPAWN ASINCRONO ---
-  const handleRespawn = () => {
-      setTimeout(() => {
-          if (!rigidBody.current) return;
-          console.log("♻️ Safe Respawn Triggered");
-          
-          speed.current = 0;
-          rigidBody.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
-          rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
-
-          const pos = Array.isArray(START_POS) 
-            ? { x: START_POS[0], y: START_POS[1], z: START_POS[2] }
-            : { x: START_POS.x, y: START_POS.y, z: START_POS.z };
-
-          rigidBody.current.setTranslation(pos, true);
-      }, 0);
-  };
-
-  // --- CHECKPOINT ASINCRONO ---
-  const handleCheckpointHit = (index) => {
-      setTimeout(() => {
-          if (onCheckpoint) {
-              onCheckpoint(index);
-          }
-      }, 0);
-  };
 
   const performHop = () => {
     if (isJumping.current) return
     isJumping.current = true
+    
     gsap.to(jumpOffset.current, {
       y: 0.3, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.out",
       onComplete: () => { isJumping.current = false }
@@ -113,7 +228,7 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
   }
 
   const activateBoost = (level) => {
-    const durationMult = level === 2 ? 1.5 : 1.0
+    const durationMult = 1.0
     boostTime.current = SETTINGS.boostDuration * durationMult
     pendingBoost.current = false
   }
@@ -121,7 +236,6 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
   useFrame((state, delta) => {
     if (!rigidBody.current) return;
 
-    // --- UI Update ---
     if (speedUiRef.current) {
         const kmh = Math.abs(Math.round(speed.current * 1.5)) 
         speedUiRef.current.innerText = `${kmh} km/h`
@@ -130,87 +244,75 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
         speedUiRef.current.style.transform = isOver ? `scale(1.1)` : `scale(1)`
     }
 
-    const { forward, backward, left, right, drift } = controls.current
-    
-    // Lettura stato fisico
     const rbPos = rigidBody.current.translation();
     const rbVel = rigidBody.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
     currentVelocity.current.set(rbVel.x, rbVel.y, rbVel.z);
 
-    // -----------------------------------------------------------------
-    // 1. RAYCAST GROUND (Safe Mode: Usa trackRef)
-    // -----------------------------------------------------------------
-    const origin = currentPosition.current.clone()
-    origin.y += 0.5 
-    raycaster.current.set(origin, new Vector3(0, -1, 0))
-    raycaster.current.far = 5 
+    const { forward, backward, left, right, drift, wheelie } = controls.current
     
-    let groundDistance = Infinity
-    
-    // FIX PRINCIPALE: Usiamo trackRef invece di scene.children
-    // Questo impedisce di colpire il veicolo stesso e causare il crash Rust
-    if (trackRef && trackRef.current) {
-        const hits = raycaster.current.intersectObjects([trackRef.current], true)
-        const groundHit = hits[0] // Prendiamo il primo
+    let groundDist = Infinity; 
+
+    // --- Raycast Logic ---
+    if (scene) {
+        const safeRaycast = (origin, direction, limitDistance) => {
+            try {
+                raycaster.current.set(origin, direction);
+                raycaster.current.far = limitDistance; 
+                const hits = raycaster.current.intersectObjects(scene.children, true);
+                
+                return hits.find(hit => {
+                    let obj = hit.object;
+                    while (obj) {
+                          if (obj.uuid === visualGroupRef.current?.uuid) return false;
+                          obj = obj.parent;
+                    }
+                    return true;
+                });
+            } catch (e) {
+                return null;
+            }
+        };
+
+        const downOrigin = currentPosition.current.clone();
+        downOrigin.y += 0.5; 
+        const groundHit = safeRaycast(downOrigin, new Vector3(0, -1, 0), 5);
         
         if (groundHit) {
-            groundDistance = groundHit.distance - 0.5 - PHYSICS_RADIUS
-            
-            const status = checkSurface(groundHit.object)
-            
-            if (status.type === 'checkpoint') handleCheckpointHit(status.index);
-            if (status.type === 'outbound') {
-                handleRespawn();
-                return; // STOP FRAME
-            }
+            groundDist = groundHit.distance - 0.5 - PHYSICS_RADIUS;
+            checkSurface(groundHit.object);
         }
-    }
-    isGrounded.current = groundDistance < 0.6
+        isGrounded.current = groundDist < 0.6;
 
-    // -----------------------------------------------------------------
-    // 2. RAYCAST FORWARD (Safe Mode: Usa trackRef)
-    // -----------------------------------------------------------------
-    const sensorOrigin = currentPosition.current.clone()
-    sensorOrigin.y += 0.5 
-    const forwardDir = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-    sensorOrigin.add(forwardDir.clone().multiplyScalar(0.8)) 
-
-    raycaster.current.set(sensorOrigin, forwardDir)
-    raycaster.current.far = 3.0
-
-    if (trackRef && trackRef.current) {
-        const hits = raycaster.current.intersectObjects([trackRef.current], true)
-        const forwardHit = hits[0]
-
-        if (forwardHit) {
-             // Ignora collisioni con la strada "normale" per il muro frontale
-             if (!forwardHit.object.name.includes("Road") && !forwardHit.object.name.includes("Floor")) {
-                const status = checkSurface(forwardHit.object)
-                
-                if (status.type === 'checkpoint') handleCheckpointHit(status.index);
-                if (status.type === 'outbound') {
-                    handleRespawn();
-                    return; // STOP FRAME
-                }
-             }
+        const forwardDir = new Vector3(0, 0, -1)
+            .applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+            .normalize();
+        
+        const frontOrigin = currentPosition.current.clone();
+        frontOrigin.y += 1.0; 
+        const wallHit = safeRaycast(frontOrigin, forwardDir, 3.5);
+        if (wallHit) {
+             checkSurface(wallHit.object);
         }
     }
 
-    // --- LOGICA DI GUIDA (INVARIATA) ---
-
+    // --- Logic Drift ---
     if (!drift) {
         driftHopLocked.current = false
         driftEngageWindow.current = false 
         if (driftDirection.current !== 0) {
-            if (driftLevel.current > 0 && isGrounded.current) activateBoost(driftLevel.current);
-            else if (driftLevel.current > 0) pendingBoost.current = true;
+            if (driftLevel.current > 0) {
+                if (isGrounded.current) activateBoost(driftLevel.current);
+                else pendingBoost.current = true;
+            }
             driftDirection.current = 0;
             driftTime.current = 0;
             driftLevel.current = 0;
         }
     } else {
-        if (isGrounded.current && !isJumping.current && driftDirection.current === 0) driftEngageWindow.current = false;
+        if (isGrounded.current && !isJumping.current && driftDirection.current === 0) {
+            driftEngageWindow.current = false;
+        }
     }
 
     if (drift && !driftHopLocked.current && isGrounded.current && !isJumping.current) {
@@ -222,44 +324,84 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
 
     if (drift) {
         if (driftDirection.current === 0 && driftEngageWindow.current) {
-            if (left) driftDirection.current = 1;
-            else if (right) driftDirection.current = -1;
+            const rightVector = new Vector3(1, 0, 0).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+            if (left) {
+                driftDirection.current = 1;
+                driftVector.current.add(rightVector.multiplyScalar(SETTINGS.slideOutForce))
+            } 
+            else if (right) {
+                driftDirection.current = -1;
+                driftVector.current.add(rightVector.multiplyScalar(-SETTINGS.slideOutForce))
+            }
         }
         if (driftDirection.current !== 0 && isGrounded.current) {
              driftTime.current += delta;
-             driftLevel.current = driftTime.current > SETTINGS.driftLevel1Time ? 1 : 0;
+             
+             if (driftTime.current > SETTINGS.driftLevel1Time) {
+                driftLevel.current = 1;
+             } else {
+                driftLevel.current = 0;
+             }
         }
     } else {
         if (pendingBoost.current && isGrounded.current) activateBoost(1);
     }
 
-    updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
+    updateSparksColor(driftLevel.current, centerSparksRef.current);
 
-    // Speed Logic
+    // --- NUOVA LOGICA IMPENNATA (TOGGLE) ---
+    // 1. Rileva il click singolo
+    if (wheelie && !wasWheeliePressed.current) {
+        isWheelieActive.current = !isWheelieActive.current; // Switch ON/OFF
+    }
+    wasWheeliePressed.current = wheelie;
+
+    // 2. Condizioni di reset automatico (Disattiva se...)
+    if (
+        drift ||                        // Stai driftando
+        Math.abs(speed.current) < 10 || // Vai troppo piano
+        !forward                        // (Opzionale) Hai lasciato il gas
+    ) {
+        isWheelieActive.current = false;
+    }
+
+    // 3. Applica stato finale
+    isWheelie.current = isWheelieActive.current && !isJumping.current && !drift;
+
+    // Engine
     const isBoosting = boostTime.current > 0
     if (isBoosting) boostTime.current -= 1
 
     const isDrifting = driftDirection.current !== 0
+    
     let currentSpeedLimit = SETTINGS.maxSpeed
-    if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
-    else if (isDrifting) currentSpeedLimit += 5 
+    
+    if (isBoosting) {
+        currentSpeedLimit = SETTINGS.maxTurboLimit;
+    } 
+    else if (isWheelie.current) {
+        currentSpeedLimit = SETTINGS.maxSpeed + (SETTINGS.wheelieSpeedBonus || 10);
+    }
+    else if (isDrifting) {
+        currentSpeedLimit += 5; 
+    }
 
     let targetSpeed = 0
     if (forward) targetSpeed = currentSpeedLimit
     if (backward) targetSpeed = -currentSpeedLimit * 0.5
     
-    const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
-    
+    const isOverspeeding = speed.current > (currentSpeedLimit + 5)
     if (forward && !isBoosting && isOverspeeding) {
-        speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
+        speed.current = MathUtils.damp(speed.current, currentSpeedLimit, SETTINGS.deceleration, delta)
     } else {
         let currentAccel = SETTINGS.acceleration
         if (isBoosting) currentAccel *= 2.5
         else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
+        
         speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
     }
 
-    // Turn Logic
+    // Sterzo
     let turnFactor = 0
     if (isDrifting) {
         const isLeftDrift = driftDirection.current === 1
@@ -272,21 +414,38 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
             if (right) turnFactor = -SETTINGS.turnSpeed * reverseFactor
         }
     }
+
+    if (isWheelie.current) {
+        turnFactor *= (SETTINGS.wheelieTurnReduction || 0.3);
+    }
+
     rotation.current += turnFactor * delta
 
-    // Physics Application
+    // Fisica Movimento
     const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const driftGrip = isDrifting ? SETTINGS.driftGrip : 0.15
     const airControl = isGrounded.current ? 1 : 0.5 
+
     driftVector.current.lerp(forwardVector, driftGrip * 60 * delta * airControl)
     const finalVelocity = driftVector.current.clone().multiplyScalar(speed.current)
 
+    // Fisica Gravità
     let newY = rbVel.y
-    if (!isGrounded.current && !isJumping.current) newY -= 20 * delta 
-    else if (isJumping.current) newY -= 15 * delta
-    
-    if (groundDistance > 0.05 && groundDistance < 0.8 && !isJumping.current && newY > 0) {
-        newY = -5 
+    const gravity = 25 * delta;
+
+    if (!isGrounded.current && !isJumping.current) {
+        newY -= gravity
+    } 
+    else if (isJumping.current) {
+        newY -= 15 * delta
+    } 
+    else {
+        if (groundDist > 0.1) {
+             newY = -3 
+        } 
+        else if (newY > 0) {
+             newY = 0 
+        }
     }
 
     rigidBody.current.setLinvel({ x: finalVelocity.x, y: newY, z: finalVelocity.z }, true)
@@ -296,47 +455,77 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
     rigidBody.current.setRotation(q, true)
     rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
-    // Visuals Update
+    // --- VISUALI ---
     if (visualGroupRef.current) {
-        const speedShake = speed.current > SETTINGS.maxSpeed + 5 ? (Math.random() - 0.5) * 0.05 : 0
-        visualGroupRef.current.position.y = (-PHYSICS_RADIUS + VISUAL_OFFSET) + jumpOffset.current.y + speedShake;
+        const speedShake = 0; 
+        
+        // Tilt Z per Drift
+        const driftTilt = isDrifting ? (driftDirection.current * 0.15) : 0;
+        
+        // Tilt X per Impennata (POSITIVO = naso giù, NEGATIVO = naso su)
+        const targetWheelieTilt = isWheelie.current ? 0.4 : 0;
 
-        let targetTilt = 0
-        if (isDrifting) targetTilt = driftDirection.current === 1 ? -0.5 : 0.5
-        else targetTilt = (left ? -0.15 : 0) + (right ? 0.15 : 0)
-        visualGroupRef.current.rotation.z = MathUtils.damp(visualGroupRef.current.rotation.z, targetTilt, 8, delta)
+        visualGroupRef.current.position.y = (-PHYSICS_RADIUS) + jumpOffset.current.y + speedShake
+        
+        visualGroupRef.current.rotation.z = MathUtils.lerp(visualGroupRef.current.rotation.z, driftTilt, 0.1)
+        visualGroupRef.current.rotation.x = MathUtils.lerp(visualGroupRef.current.rotation.x, targetWheelieTilt, 0.1)
     }
 
-    // Camera Update
-    const baseFov = 75
-    state.camera.fov = baseFov
-    const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-    const desiredCamPos = new Vector3(
-        currentPosition.current.x + backVector.x * 6,
-        currentPosition.current.y + 2.5,
-        currentPosition.current.z + backVector.z * 6
+    // --- CAMERA ---
+
+    // MODIFICA: Distanza fissa, non si allontana mai
+
+    const dynamicDistance = camConfig.distance 
+    const idealOffset = new Vector3(0, camConfig.height, dynamicDistance)
+    idealOffset.applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+
+    const desiredCamPos = new Vector3().copy(currentPosition.current).add(idealOffset)
+    state.camera.position.lerp(desiredCamPos, camConfig.stiffness)
+
+    const targetLookAt = new Vector3(
+        currentPosition.current.x,
+        currentPosition.current.y + camConfig.lookAtHeight,
+        currentPosition.current.z
     )
-    state.camera.position.lerp(desiredCamPos, 0.2)
-    cameraTarget.current.lerp(new Vector3(currentPosition.current.x, currentPosition.current.y + 2.0, currentPosition.current.z), 0.2)
+    cameraTarget.current.lerp(targetLookAt, camConfig.stiffness * 1.5)
     state.camera.lookAt(cameraTarget.current)
+    state.camera.updateProjectionMatrix()
   })
 
   const steerVal = (controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)
 
   return (
-    <RigidBody ref={rigidBody} position={START_POS} mass={100} linearDamping={0.5} angularDamping={0.5} colliders={false} type="dynamic" ccd={true} restitution={0}>
+    <RigidBody 
+        ref={rigidBody} 
+        position={START_POS} 
+        mass={100} 
+        linearDamping={0.5} 
+        angularDamping={0.5} 
+        colliders={false} 
+        type="dynamic" 
+        ccd={true} 
+        name="bike" 
+        restitution={0}
+        onIntersectionEnter={({ other }) => {
+            const obj = other.rigidBodyObject || other.parent();
+            if (obj) checkSurface(obj); 
+        }}
+    >
       <BallCollider args={[PHYSICS_RADIUS]} material={{ friction: 0.0, restitution: 0 }} />
       
       <Html fullscreen style={{ pointerEvents: 'none' }}>
         <div style={{ position: 'absolute', top: '40px', right: '40px', color: 'white', fontFamily:'sans-serif', fontWeight:'bold', fontSize: '40px', display: 'flex', flexDirection:'column', alignItems:'flex-end' }}>
             <span ref={speedUiRef}>0 km/h</span>
-            <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>SPACE TO HOP/DRIFT</div>
+            <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>
+                {isWheelie.current ? <span style={{color:'#ffff00'}}>WHEELIE!</span> : "PRESS TO WHEELIE"}
+            </div>
         </div>
       </Html>
 
-      <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS + VISUAL_OFFSET, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-          <group position={vehicleConfig.vehicleOffset}>
-                  <VehicleModel 
+      <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
+            <group position={vehicleConfig.vehicleOffset}>
+
+                <VehicleModel 
                   vehicleConfig={vehicleConfig.modelConfig} 
                   scale={1.4}
                   rotation={[0, Math.PI, 0]} 
@@ -345,8 +534,9 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
                   drift={driftDirection.current}
                   speed={speed.current}
                   isBike={true}
-                  />
-                  <group rotation={[0, Math.PI, 0]}>
+                />
+                
+                <group rotation={[0, Math.PI, 0]}>
                   <RacerModel 
                       isInMenu={false}
                       scale={1.5}
@@ -355,34 +545,18 @@ export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onC
                       steer={steerVal} 
                       drift={driftDirection.current} 
                       speed={speed.current}
-                      isKart={true}
-                      key={vehicleConfig.name + "_racer"}
+                      isKart={true} 
+                    key={vehicleConfig.name + "_racer"}
                   />
-                  </group>
-          </group>
-
-          <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
-          <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>
+                </group>
+            </group>    
+  
+            <WheelPosition position={[0, 0, 1.0]}>
+                <DriftParticles ref={centerSparksRef} count={60} />
+            </WheelPosition>
       </group>
     </RigidBody>
   )
 }
 
 const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group position={position} ref={ref}>{children}</group>))
-const DriftSparks = React.forwardRef((props, ref) => (
-    <group position={[0, 0.2, 1]} ref={ref} visible={false}>
-        <Sparkles count={10} scale={[0.6, 0.3, 1.5]} size={30} speed={1.2} opacity={1} color={"#0066FF"} noise={0.1}/>
-    </group>
-))
-
-function updateSparksColor(level, leftRef, rightRef) {
-    if (!leftRef || !rightRef) return
-    const show = level > 0 
-    leftRef.visible = show
-    rightRef.visible = show
-    if (show) {
-        let targetColor = level === 2 ? cRed : cBlue
-        leftRef.traverse((c) => { if(c.isMesh) { c.material.color.lerp(targetColor, 0.4); c.material.emissive = targetColor } })
-        rightRef.traverse((c) => { if(c.isMesh) { c.material.color.lerp(targetColor, 0.4); c.material.emissive = targetColor } })
-    }
-}
