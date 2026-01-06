@@ -1,52 +1,62 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider } from '@react-three/rapier' 
 import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
 import { useControls } from '../hooks/useControls' 
 import { Sparkles, Html } from '@react-three/drei' 
+import { useControls as useLeva } from 'leva'
 import gsap from 'gsap'
-import { FunkyKong } from '../models/Funky_kong' 
-import { KartModel } from '../models/Flame_flyer' 
 
-const KART_SIZE = 1       
-const PHYSICS_RADIUS = 1.2   
+import { RacerModel } from '../models/RacerModel'
+import { VehicleModel } from '../models/VehicleModel'
+
+const KART_SIZE = 1 
+const PHYSICS_RADIUS = 1.2 
+const START_POS = [-200, 10, 270] 
+
+// MODIFICA: Se vuoi alzare VISIVAMENTE i modelli rispetto alla pallina fisica (es. sospensioni alte),
+// cambia questo valore. Se lasci a 0, si basano solo sulla posizione del RigidBody.
+// Dato che hai alzato il gruppo in GameScene, questo può rimanere a 0 o essere usato per fine-tuning.
+const VISUAL_OFFSET = 0; 
 
 const SETTINGS = {
-  maxSpeed: 40,
-  maxTurboLimit: 80,       
-  acceleration: 0.2,       
-  deceleration: 1.0,       
-  turnSpeed: 0.8,
-  driftTurnSpeed: 1.0, 
-  driftGrip: 0.02, 
-  boostStrength: 0,        
-  boostDuration: 60,       
-  jumpForce: 1.5,          
-  driftLevel1Time: 1.5,    
-  driftMinSpeed: 10,       
+  maxSpeed: 50, maxTurboLimit: 90, acceleration: 0.25, deceleration: 2.0,       
+  turnSpeed: 0.9, driftTurnSpeed: 0.6, driftGrip: 0.02, boostStrength: 0,        
+  boostDuration: 60, jumpForce: 1.5, driftLevel1Time: 1.5, driftMinSpeed: 10,       
 }
-
-const START_POS = [-200, 10, 270] 
 const cBlue = new Color("#00aeff") 
 const cRed = new Color("#ff3300")  
 
-export function SimpleKart() {
+export function InsideDriftBike({ characterConfig, vehicleConfig }) {
   const { scene } = useThree()
   const controls = useControls()
   
   const rigidBody = useRef()
   const speedUiRef = useRef() 
 
+  if (!vehicleConfig || !vehicleConfig.modelConfig) {
+      console.warn("InsideDriftBike: Manca vehicleConfig o modelConfig!", vehicleConfig);
+      return null; 
+  }
+  if (!characterConfig) {
+      console.warn("InsideDriftBike: Manca characterConfig!", characterConfig);
+      return null;
+  }
+
+//   const { offX, offY, offZ } = useLeva("Vehicle Visual Offset", {
+//       offX: { value: vehicleConfig?.vehicleOffset?.[0] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset X' },
+//       offY: { value: vehicleConfig?.vehicleOffset?.[1] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Y' },
+//       offZ: { value: vehicleConfig?.vehicleOffset?.[2] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Z' },
+//   })
+
   // STATO FISICA
   const driftDirection = useRef(0) 
   const speed = useRef(0)
   const rotation = useRef(0) 
   const driftVector = useRef(new Vector3(0, 0, 0))
-  
   const currentVelocity = useRef(new Vector3())
   const currentPosition = useRef(new Vector3())
   const cameraTarget = useRef(new Vector3(0, 0, 0))
-
   const isGrounded = useRef(false)
   const raycaster = useRef(new Raycaster())
   
@@ -56,8 +66,7 @@ export function SimpleKart() {
   const pendingBoost = useRef(false)
   const boostTime = useRef(0)
   const driftHopLocked = useRef(false)
-  const driftEngageWindow = useRef(false) // <--- NUOVO: Finestra temporale per attivare il drift
-  
+  const driftEngageWindow = useRef(false) 
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
 
@@ -71,7 +80,6 @@ export function SimpleKart() {
   const performHop = () => {
     if (isJumping.current) return
     isJumping.current = true
-    
     gsap.to(jumpOffset.current, {
       y: 0.3, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.out",
       onComplete: () => { isJumping.current = false }
@@ -87,7 +95,7 @@ export function SimpleKart() {
   useFrame((state, delta) => {
     if (!rigidBody.current) return;
 
-    // --- UI ---
+    // UI UPDATE
     if (speedUiRef.current) {
         const kmh = Math.abs(Math.round(speed.current * 1.5)) 
         speedUiRef.current.innerText = `${kmh} km/h`
@@ -96,7 +104,7 @@ export function SimpleKart() {
         speedUiRef.current.style.transform = isOver ? `scale(1.1)` : `scale(1)`
     }
 
-    // 1. LEGGI DATI
+    // LEGGI DATI
     const rbPos = rigidBody.current.translation();
     const rbVel = rigidBody.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
@@ -104,7 +112,7 @@ export function SimpleKart() {
 
     const { forward, backward, left, right, drift } = controls.current
     
-    // 2. GROUND CHECK
+    // GROUND CHECK
     const origin = currentPosition.current.clone()
     origin.y += 0.1 
     raycaster.current.set(origin, new Vector3(0, -1, 0))
@@ -123,15 +131,10 @@ export function SimpleKart() {
     }
     isGrounded.current = groundDistance < 0.6
 
-    // --- 3. LOGICA DRIFT & HOP ---
-
-    // A. RESET E CHIUSURA FINESTRA
+    // LOGICA DRIFT & HOP
     if (!drift) {
-        // Rilascio il tasto: resetto tutto
         driftHopLocked.current = false
-        driftEngageWindow.current = false // Chiudo la finestra di opportunità
-        
-        // Se stavo driftando, finisco il drift
+        driftEngageWindow.current = false 
         if (driftDirection.current !== 0) {
             if (driftLevel.current > 0) {
                 if (isGrounded.current) activateBoost(driftLevel.current);
@@ -142,33 +145,23 @@ export function SimpleKart() {
             driftLevel.current = 0;
         }
     } else {
-        // Tasto drift premuto:
-        // Se atterro e non ho ancora iniziato a driftare, la finestra SI CHIUDE.
-        // Hai perso l'occasione!
         if (isGrounded.current && !isJumping.current && driftDirection.current === 0) {
             driftEngageWindow.current = false;
         }
     }
 
-    // B. TRIGGER DEL SALTO (HOP) SINGOLO
     if (drift && !driftHopLocked.current && isGrounded.current && !isJumping.current) {
         driftHopLocked.current = true; 
-        driftEngageWindow.current = true; // <--- Apro la finestra ORA (durante il salto)
+        driftEngageWindow.current = true; 
         performHop();
         rigidBody.current.setLinvel({ x: rbVel.x, y: SETTINGS.jumpForce, z: rbVel.z }, true);
     }
 
-    // C. ATTIVAZIONE DRIFT
     if (drift) {
-        // Posso iniziare a driftare SOLO se:
-        // 1. Non sto ancora driftando
-        // 2. La finestra di opportunità è APERTA (quindi sono in aria o sto saltando)
         if (driftDirection.current === 0 && driftEngageWindow.current) {
             if (left) driftDirection.current = 1;
             else if (right) driftDirection.current = -1;
         }
-
-        // Se il drift è attivo (o appena attivato), calcola le scintille
         if (driftDirection.current !== 0 && isGrounded.current) {
              driftTime.current += delta;
              driftLevel.current = driftTime.current > SETTINGS.driftLevel1Time ? 1 : 0;
@@ -179,7 +172,7 @@ export function SimpleKart() {
 
     updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
 
-    // 4. MOTORE
+    // MOTORE
     const isBoosting = boostTime.current > 0
     if (isBoosting) boostTime.current -= 1
 
@@ -199,11 +192,10 @@ export function SimpleKart() {
         let currentAccel = SETTINGS.acceleration
         if (isBoosting) currentAccel *= 2.5
         else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
-        
         speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
     }
 
-    // 5. STERZO
+    // STERZO
     let turnFactor = 0
     if (isDrifting) {
         const isLeftDrift = driftDirection.current === 1
@@ -218,11 +210,10 @@ export function SimpleKart() {
     }
     rotation.current += turnFactor * delta
 
-    // 6. FISICA
+    // FISICA
     const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const driftGrip = isDrifting ? SETTINGS.driftGrip : 0.15
     const airControl = isGrounded.current ? 1 : 0.5 
-
     driftVector.current.lerp(forwardVector, driftGrip * 60 * delta * airControl)
     const finalVelocity = driftVector.current.clone().multiplyScalar(speed.current)
 
@@ -241,23 +232,27 @@ export function SimpleKart() {
     rigidBody.current.setRotation(q, true)
     rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
-    // VISUAL UPDATE
+    // VISUAL UPDATE - MODIFICA IMPORTANTE
+    // Qui leghiamo insieme la posizione visuale. Abbiamo aggiunto VISUAL_OFFSET.
     if (visualGroupRef.current) {
         const speedShake = speed.current > SETTINGS.maxSpeed + 5 ? (Math.random() - 0.5) * 0.05 : 0
-        visualGroupRef.current.position.y = (-PHYSICS_RADIUS) + jumpOffset.current.y + speedShake
         
+        // Calcolo della Y: 
+        // 1. Base del collider (-PHYSICS_RADIUS)
+        // 2. Eventuale offset visuale (+ VISUAL_OFFSET)
+        // 3. Animazione salto (+ jumpOffset)
+        // 4. Vibrazione velocità (+ speedShake)
+        visualGroupRef.current.position.y = (-PHYSICS_RADIUS + VISUAL_OFFSET) + jumpOffset.current.y + speedShake;
+
         let targetTilt = 0
         if (isDrifting) targetTilt = driftDirection.current === 1 ? -0.5 : 0.5
         else targetTilt = (left ? -0.15 : 0) + (right ? 0.15 : 0)
-        
         visualGroupRef.current.rotation.z = MathUtils.damp(visualGroupRef.current.rotation.z, targetTilt, 8, delta)
     }
 
     // CAMERA
     const baseFov = 75
-    const extraFov = Math.min((Math.abs(speed.current) / SETTINGS.maxTurboLimit) * 20, 30)
-    state.camera.fov = MathUtils.lerp(state.camera.fov, baseFov + (extraFov / 10), 0.1)
-
+    state.camera.fov = baseFov
     const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const desiredCamPos = new Vector3(
         currentPosition.current.x + backVector.x * 6,
@@ -270,6 +265,8 @@ export function SimpleKart() {
     state.camera.updateProjectionMatrix()
   })
 
+  const steerVal = (controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)
+
   return (
     <RigidBody ref={rigidBody} position={START_POS} mass={100} linearDamping={0.5} angularDamping={0.5} colliders={false} type="dynamic" ccd={true} restitution={0}>
       <BallCollider args={[PHYSICS_RADIUS]} material={{ friction: 0.0, restitution: 0 }} />
@@ -281,9 +278,37 @@ export function SimpleKart() {
         </div>
       </Html>
 
-      <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-          <KartModel scale={1} rotation={[0, Math.PI, 0]} position={[0, 0.5, 0]} />
-          <FunkyKong position={[0, 0, 0]} rotation={[0, Math.PI, 0]} steer={(controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)} drift={driftDirection.current} speed={speed.current}/>
+      {/* visualGroupRef contiene sia VehicleModel che RacerModel, si muoveranno insieme */}
+      <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS + VISUAL_OFFSET, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
+          
+          <group position={vehicleConfig.vehicleOffset}>
+					<VehicleModel 
+					vehicleConfig={vehicleConfig.modelConfig} 
+					scale={1.4}
+					rotation={[0, Math.PI, 0]} 
+					position={[0, 0, 0]}
+					steer={steerVal}
+					drift={driftDirection.current}
+					speed={speed.current}
+					isBike={true}
+					/>
+					
+					{/* Modello Pilota */}
+					<group rotation={[0, Math.PI, 0]}>
+					<RacerModel 
+						isInMenu={false}
+						scale={1.5}
+						characterConfig={characterConfig}
+						vehicleConfig={vehicleConfig} 
+						steer={steerVal} 
+						drift={driftDirection.current} 
+						speed={speed.current}
+						isKart={true}
+						key={vehicleConfig.name + "_racer"}
+					/>
+					</group>
+			</group>
+
           <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
           <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>
       </group>

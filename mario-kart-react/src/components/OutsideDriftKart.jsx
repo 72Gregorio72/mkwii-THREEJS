@@ -2,37 +2,68 @@ import React, { useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider } from '@react-three/rapier' 
 import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
-import { useControls } from '../hooks/useControls' 
+// Alias per evitare conflitti con i tuoi controlli di gioco
+import { useControls as useGameControls } from '../hooks/useControls' 
+import { useControls as useLeva, Leva } from 'leva'
 import { Sparkles, Html } from '@react-three/drei' 
 import gsap from 'gsap'
-import { FunkyKong } from '../models/Funky_kong' 
-import { KartModel } from '../models/Flame_flyer' 
 
-const KART_SIZE = 1       
-const PHYSICS_RADIUS = 1.2   
+// --- 1. IMPORTA I MODELLI REALI ---
+import { RacerModel } from '../models/RacerModel'
+import { VehicleModel } from '../models/VehicleModel'
+
+const KART_SIZE = 1 
+const PHYSICS_RADIUS = 1.2 
 
 const SETTINGS = {
-  maxSpeed: 40,
-  maxTurboLimit: 80,       
-  acceleration: 0.2,       
-  deceleration: 1.0,       
-  turnSpeed: 0.8,
-  driftTurnSpeed: 1.0, 
+  maxSpeed: 50,
+  maxTurboLimit: 90,       
+  acceleration: 0.25,       
+  deceleration: 2.0,       
+  turnSpeed: 0.9,
+  driftTurnSpeed: 0.9, 
   driftGrip: 0.02, 
   boostStrength: 0,        
   boostDuration: 60,       
   jumpForce: 1.5,          
   driftLevel1Time: 1.5,    
   driftMinSpeed: 10,       
+  slideOutForce: 0.3,
 }
 
 const START_POS = [-200, 10, 270] 
 const cBlue = new Color("#00aeff") 
 const cRed = new Color("#ff3300")  
 
-export function SimpleKart() {
+export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
   const { scene } = useThree()
-  const controls = useControls()
+  const controls = useGameControls() // I tuoi controlli (WASD/Gamepad)
+  
+  // --- CONFIGURAZIONE DEBUG & CAMERA ---
+  const DEBUG_MODE = true; // <--- IMPOSTA SU FALSE PER NASCONDERE IL PANNELLO
+
+  // Configuriamo i parametri della camera con Leva
+  const camConfig = {//useLeva('Camera Settings', {
+    // distance: { value: 7.0, min: 2, max: 20, step: 0.1 },
+    // height: { value: 3.5, min: 1, max: 10, step: 0.1 },
+    // lookAtHeight: { value: 1.0, min: -2, max: 5, step: 0.1 },
+    // stiffness: { value: 0.15, min: 0.01, max: 1, step: 0.01 }, // 0.01 = lento, 1.0 = istantaneo
+    // fovBase: { value: 75, min: 40, max: 120 },
+    // fovMax: { value: 90, min: 40, max: 140 },
+	distance: 7.2,
+	height: 2.3,
+	lookAtHeight: 1.0,
+	stiffness: 0.15,
+	fovBase: 53,
+	fovMax: 55
+  //)}, [DEBUG_MODE]
+  }
+
+//   const { offX, offY, offZ } = useLeva("Vehicle Visual Offset", {
+// 		offX: { value: vehicleConfig?.vehicleOffset?.[0] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset X' },
+// 		offY: { value: vehicleConfig?.vehicleOffset?.[1] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Y' },
+// 		offZ: { value: vehicleConfig?.vehicleOffset?.[2] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Z' },
+// 	})
   
   const rigidBody = useRef()
   const speedUiRef = useRef() 
@@ -56,7 +87,7 @@ export function SimpleKart() {
   const pendingBoost = useRef(false)
   const boostTime = useRef(0)
   const driftHopLocked = useRef(false)
-  const driftEngageWindow = useRef(false) // <--- NUOVO: Finestra temporale per attivare il drift
+  const driftEngageWindow = useRef(false) 
   
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
@@ -124,14 +155,9 @@ export function SimpleKart() {
     isGrounded.current = groundDistance < 0.6
 
     // --- 3. LOGICA DRIFT & HOP ---
-
-    // A. RESET E CHIUSURA FINESTRA
     if (!drift) {
-        // Rilascio il tasto: resetto tutto
         driftHopLocked.current = false
-        driftEngageWindow.current = false // Chiudo la finestra di opportunità
-        
-        // Se stavo driftando, finisco il drift
+        driftEngageWindow.current = false 
         if (driftDirection.current !== 0) {
             if (driftLevel.current > 0) {
                 if (isGrounded.current) activateBoost(driftLevel.current);
@@ -142,33 +168,30 @@ export function SimpleKart() {
             driftLevel.current = 0;
         }
     } else {
-        // Tasto drift premuto:
-        // Se atterro e non ho ancora iniziato a driftare, la finestra SI CHIUDE.
-        // Hai perso l'occasione!
         if (isGrounded.current && !isJumping.current && driftDirection.current === 0) {
             driftEngageWindow.current = false;
         }
     }
 
-    // B. TRIGGER DEL SALTO (HOP) SINGOLO
     if (drift && !driftHopLocked.current && isGrounded.current && !isJumping.current) {
         driftHopLocked.current = true; 
-        driftEngageWindow.current = true; // <--- Apro la finestra ORA (durante il salto)
+        driftEngageWindow.current = true; 
         performHop();
         rigidBody.current.setLinvel({ x: rbVel.x, y: SETTINGS.jumpForce, z: rbVel.z }, true);
     }
 
-    // C. ATTIVAZIONE DRIFT
     if (drift) {
-        // Posso iniziare a driftare SOLO se:
-        // 1. Non sto ancora driftando
-        // 2. La finestra di opportunità è APERTA (quindi sono in aria o sto saltando)
         if (driftDirection.current === 0 && driftEngageWindow.current) {
-            if (left) driftDirection.current = 1;
-            else if (right) driftDirection.current = -1;
+            const rightVector = new Vector3(1, 0, 0).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+            if (left) {
+                driftDirection.current = 1;
+                driftVector.current.add(rightVector.multiplyScalar(SETTINGS.slideOutForce))
+            } 
+            else if (right) {
+                driftDirection.current = -1;
+                driftVector.current.add(rightVector.multiplyScalar(-SETTINGS.slideOutForce))
+            }
         }
-
-        // Se il drift è attivo (o appena attivato), calcola le scintille
         if (driftDirection.current !== 0 && isGrounded.current) {
              driftTime.current += delta;
              driftLevel.current = driftTime.current > SETTINGS.driftLevel1Time ? 1 : 0;
@@ -245,33 +268,55 @@ export function SimpleKart() {
     if (visualGroupRef.current) {
         const speedShake = speed.current > SETTINGS.maxSpeed + 5 ? (Math.random() - 0.5) * 0.05 : 0
         visualGroupRef.current.position.y = (-PHYSICS_RADIUS) + jumpOffset.current.y + speedShake
-        
-        let targetTilt = 0
-        if (isDrifting) targetTilt = driftDirection.current === 1 ? -0.5 : 0.5
-        else targetTilt = (left ? -0.15 : 0) + (right ? 0.15 : 0)
-        
-        visualGroupRef.current.rotation.z = MathUtils.damp(visualGroupRef.current.rotation.z, targetTilt, 8, delta)
+        visualGroupRef.current.rotation.z = 0 
     }
 
-    // CAMERA
-    const baseFov = 75
-    const extraFov = Math.min((Math.abs(speed.current) / SETTINGS.maxTurboLimit) * 20, 30)
-    state.camera.fov = MathUtils.lerp(state.camera.fov, baseFov + (extraFov / 10), 0.1)
+    // --- NUOVA LOGICA CAMERA (Corretta e controllata da Leva) ---
+    
+    // 1. Definiamo l'offset ideale (relativo al retro del kart)
+    const overSpeed = Math.max(0, speed.current - SETTINGS.maxSpeed)
+	const boostRange = SETTINGS.maxTurboLimit - SETTINGS.maxSpeed
+	// boostRatio andrà da 0 (guida normale) a 1 (turbo massimo)
+	const boostRatio = Math.min(overSpeed / boostRange, 1)
 
-    const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-    const desiredCamPos = new Vector3(
-        currentPosition.current.x + backVector.x * 6,
-        currentPosition.current.y + 2.5,
-        currentPosition.current.z + backVector.z * 6
-    )
-    state.camera.position.lerp(desiredCamPos, 0.2)
-    cameraTarget.current.lerp(new Vector3(currentPosition.current.x, currentPosition.current.y + 2.0, currentPosition.current.z), 0.2)
-    state.camera.lookAt(cameraTarget.current)
-    state.camera.updateProjectionMatrix()
+	// 2. Definiamo l'offset ideale
+	// Aggiungiamo un "kick" alla distanza basato sul boostRatio.
+	// Esempio: +3 unità indietro quando sei al massimo del turbo.
+	const dynamicDistance = camConfig.distance + (boostRatio) 
+
+	const idealOffset = new Vector3(0, camConfig.height, dynamicDistance)
+	idealOffset.applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+    
+    // 3. Posizione Target = Posizione Kart + Offset Ruotato
+    const desiredCamPos = new Vector3().copy(currentPosition.current).add(idealOffset)
+	state.camera.position.lerp(desiredCamPos, camConfig.stiffness)
+
+    const targetLookAt = new Vector3(
+		currentPosition.current.x,
+		currentPosition.current.y + camConfig.lookAtHeight,
+		currentPosition.current.z
+	)
+	cameraTarget.current.lerp(targetLookAt, camConfig.stiffness * 1.5)
+	state.camera.lookAt(cameraTarget.current)
+
+	// 3. FOV dinamico basato SOLO sul boost
+	// Ora il FOV cambierà solo se superi i 50 km/h
+	// const targetFov = MathUtils.lerp(camConfig.fovBase, camConfig.fovMax, boostRatio)
+	// state.camera.fov = MathUtils.damp(state.camera.fov, targetFov, 2.0, delta)
+	state.camera.updateProjectionMatrix()
   })
+
+  // Calcolo dati sterzo per passare al componente Character
+  const steerVal = (controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)
 
   return (
     <RigidBody ref={rigidBody} position={START_POS} mass={100} linearDamping={0.5} angularDamping={0.5} colliders={false} type="dynamic" ccd={true} restitution={0}>
+      
+      {/* !!! RIMOSSO <Leva /> DA QUI !!! 
+         Il pannello apparirà comunque grazie all'hook useLeva.
+         Non mettere mai componenti HTML/UI nudi dentro il Canvas 3D.
+      */}
+
       <BallCollider args={[PHYSICS_RADIUS]} material={{ friction: 0.0, restitution: 0 }} />
       
       <Html fullscreen style={{ pointerEvents: 'none' }}>
@@ -282,10 +327,39 @@ export function SimpleKart() {
       </Html>
 
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-          <KartModel scale={1} rotation={[0, Math.PI, 0]} position={[0, 0.5, 0]} />
-          <FunkyKong position={[0, 0, 0]} rotation={[0, Math.PI, 0]} steer={(controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)} drift={driftDirection.current} speed={speed.current}/>
-          <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
-          <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>
+            {/* ... tutto il resto dei modelli rimane identico ... */}
+            <group position={vehicleConfig.vehicleOffset}>
+
+                {/* Modello Veicolo */}
+                <VehicleModel 
+                  vehicleConfig={vehicleConfig.modelConfig} 
+                  scale={1.4}
+                  rotation={[0, Math.PI, 0]} 
+                  position={[0, 0, 0]}
+                  steer={steerVal}
+                  drift={driftDirection.current}
+                  speed={speed.current}
+                  isBike={true}
+                />
+                
+                {/* Modello Pilota */}
+                <group rotation={[0, Math.PI, 0]}>
+                  <RacerModel 
+                      isInMenu={false}
+                      scale={1.5}
+                      characterConfig={characterConfig}
+                      vehicleConfig={vehicleConfig} 
+                      steer={steerVal} 
+                      drift={driftDirection.current} 
+                      speed={speed.current}
+                      isKart={true}
+                    key={vehicleConfig.name + "_racer"}
+                  />
+                </group>
+			</group>	
+  
+            <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
+            <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>
       </group>
     </RigidBody>
   )
