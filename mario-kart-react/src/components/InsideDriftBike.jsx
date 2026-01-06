@@ -4,52 +4,43 @@ import { RigidBody, BallCollider } from '@react-three/rapier'
 import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
 import { useControls } from '../hooks/useControls' 
 import { Sparkles, Html } from '@react-three/drei' 
-import { useControls as useLeva } from 'leva'
 import gsap from 'gsap'
 
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
+import { useHitboxHandler } from '../utils/HitboxHandler'
 
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1.2 
-const START_POS = [-200, 10, 270] 
-
-// MODIFICA: Se vuoi alzare VISIVAMENTE i modelli rispetto alla pallina fisica (es. sospensioni alte),
-// cambia questo valore. Se lasci a 0, si basano solo sulla posizione del RigidBody.
-// Dato che hai alzato il gruppo in GameScene, questo può rimanere a 0 o essere usato per fine-tuning.
 const VISUAL_OFFSET = 0; 
 
 const SETTINGS = {
-  maxSpeed: 50, maxTurboLimit: 90, acceleration: 0.25, deceleration: 2.0,       
-  turnSpeed: 0.9, driftTurnSpeed: 0.6, driftGrip: 0.02, boostStrength: 0,        
-  boostDuration: 60, jumpForce: 1.5, driftLevel1Time: 1.5, driftMinSpeed: 10,       
+  maxSpeed: 50, 
+  maxTurboLimit: 90, 
+  acceleration: 0.25, 
+  deceleration: 2.0,       
+  turnSpeed: 0.9, 
+  driftTurnSpeed: 0.6, 
+  driftGrip: 0.02, 
+  boostStrength: 0,        
+  boostDuration: 60, 
+  jumpForce: 1.5, 
+  driftLevel1Time: 1.5, 
+  driftMinSpeed: 10,       
 }
+
 const cBlue = new Color("#00aeff") 
 const cRed = new Color("#ff3300")  
 
-export function InsideDriftBike({ characterConfig, vehicleConfig }) {
+// AGGIUNGI trackRef ALLE PROPS
+export function InsideDriftBike({ characterConfig, vehicleConfig, START_POS, onCheckpoint, trackRef }) {
   const { scene } = useThree()
   const controls = useControls()
   
+  // --- Refs Fisica e Stato ---
   const rigidBody = useRef()
   const speedUiRef = useRef() 
 
-  if (!vehicleConfig || !vehicleConfig.modelConfig) {
-      console.warn("InsideDriftBike: Manca vehicleConfig o modelConfig!", vehicleConfig);
-      return null; 
-  }
-  if (!characterConfig) {
-      console.warn("InsideDriftBike: Manca characterConfig!", characterConfig);
-      return null;
-  }
-
-//   const { offX, offY, offZ } = useLeva("Vehicle Visual Offset", {
-//       offX: { value: vehicleConfig?.vehicleOffset?.[0] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset X' },
-//       offY: { value: vehicleConfig?.vehicleOffset?.[1] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Y' },
-//       offZ: { value: vehicleConfig?.vehicleOffset?.[2] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Z' },
-//   })
-
-  // STATO FISICA
   const driftDirection = useRef(0) 
   const speed = useRef(0)
   const rotation = useRef(0) 
@@ -58,9 +49,9 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
   const currentPosition = useRef(new Vector3())
   const cameraTarget = useRef(new Vector3(0, 0, 0))
   const isGrounded = useRef(false)
-  const raycaster = useRef(new Raycaster())
   
-  // STATO DRIFT & BOOST
+  const raycaster = useRef(new Raycaster()) 
+  
   const driftTime = useRef(0)      
   const driftLevel = useRef(0)     
   const pendingBoost = useRef(false)
@@ -70,12 +61,47 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
 
-  // REFS VISUALI
+  // --- Refs Visuali ---
   const visualGroupRef = useRef() 
   const backLeft = useRef()
   const backRight = useRef()
   const leftSparksRef = useRef()
   const rightSparksRef = useRef()
+
+  if (!vehicleConfig || !characterConfig) return null;
+
+  const { checkSurface } = useHitboxHandler({
+    speed,
+    boostTime,
+    SETTINGS
+  })
+
+  // --- RESPAWN ASINCRONO ---
+  const handleRespawn = () => {
+      setTimeout(() => {
+          if (!rigidBody.current) return;
+          console.log("♻️ Safe Respawn Triggered");
+          
+          speed.current = 0;
+          rigidBody.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+          rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
+
+          const pos = Array.isArray(START_POS) 
+            ? { x: START_POS[0], y: START_POS[1], z: START_POS[2] }
+            : { x: START_POS.x, y: START_POS.y, z: START_POS.z };
+
+          rigidBody.current.setTranslation(pos, true);
+      }, 0);
+  };
+
+  // --- CHECKPOINT ASINCRONO ---
+  const handleCheckpointHit = (index) => {
+      setTimeout(() => {
+          if (onCheckpoint) {
+              onCheckpoint(index);
+          }
+      }, 0);
+  };
 
   const performHop = () => {
     if (isJumping.current) return
@@ -95,7 +121,7 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
   useFrame((state, delta) => {
     if (!rigidBody.current) return;
 
-    // UI UPDATE
+    // --- UI Update ---
     if (speedUiRef.current) {
         const kmh = Math.abs(Math.round(speed.current * 1.5)) 
         speedUiRef.current.innerText = `${kmh} km/h`
@@ -104,50 +130,87 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
         speedUiRef.current.style.transform = isOver ? `scale(1.1)` : `scale(1)`
     }
 
-    // LEGGI DATI
+    const { forward, backward, left, right, drift } = controls.current
+    
+    // Lettura stato fisico
     const rbPos = rigidBody.current.translation();
     const rbVel = rigidBody.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
     currentVelocity.current.set(rbVel.x, rbVel.y, rbVel.z);
 
-    const { forward, backward, left, right, drift } = controls.current
-    
-    // GROUND CHECK
+    // -----------------------------------------------------------------
+    // 1. RAYCAST GROUND (Safe Mode: Usa trackRef)
+    // -----------------------------------------------------------------
     const origin = currentPosition.current.clone()
-    origin.y += 0.1 
+    origin.y += 0.5 
     raycaster.current.set(origin, new Vector3(0, -1, 0))
+    raycaster.current.far = 5 
+    
     let groundDistance = Infinity
-    if (scene) {
-        const hits = raycaster.current.intersectObjects(scene.children, true)
-        const groundHit = hits.find(hit => {
-            let obj = hit.object
-            while(obj) {
-                if (obj.uuid === visualGroupRef.current?.uuid) return false
-                obj = obj.parent
+    
+    // FIX PRINCIPALE: Usiamo trackRef invece di scene.children
+    // Questo impedisce di colpire il veicolo stesso e causare il crash Rust
+    if (trackRef && trackRef.current) {
+        const hits = raycaster.current.intersectObjects([trackRef.current], true)
+        const groundHit = hits[0] // Prendiamo il primo
+        
+        if (groundHit) {
+            groundDistance = groundHit.distance - 0.5 - PHYSICS_RADIUS
+            
+            const status = checkSurface(groundHit.object)
+            
+            if (status.type === 'checkpoint') handleCheckpointHit(status.index);
+            if (status.type === 'outbound') {
+                handleRespawn();
+                return; // STOP FRAME
             }
-            return true
-        })
-        if (groundHit) groundDistance = groundHit.distance - 0.1 - PHYSICS_RADIUS
+        }
     }
     isGrounded.current = groundDistance < 0.6
 
-    // LOGICA DRIFT & HOP
+    // -----------------------------------------------------------------
+    // 2. RAYCAST FORWARD (Safe Mode: Usa trackRef)
+    // -----------------------------------------------------------------
+    const sensorOrigin = currentPosition.current.clone()
+    sensorOrigin.y += 0.5 
+    const forwardDir = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+    sensorOrigin.add(forwardDir.clone().multiplyScalar(0.8)) 
+
+    raycaster.current.set(sensorOrigin, forwardDir)
+    raycaster.current.far = 3.0
+
+    if (trackRef && trackRef.current) {
+        const hits = raycaster.current.intersectObjects([trackRef.current], true)
+        const forwardHit = hits[0]
+
+        if (forwardHit) {
+             // Ignora collisioni con la strada "normale" per il muro frontale
+             if (!forwardHit.object.name.includes("Road") && !forwardHit.object.name.includes("Floor")) {
+                const status = checkSurface(forwardHit.object)
+                
+                if (status.type === 'checkpoint') handleCheckpointHit(status.index);
+                if (status.type === 'outbound') {
+                    handleRespawn();
+                    return; // STOP FRAME
+                }
+             }
+        }
+    }
+
+    // --- LOGICA DI GUIDA (INVARIATA) ---
+
     if (!drift) {
         driftHopLocked.current = false
         driftEngageWindow.current = false 
         if (driftDirection.current !== 0) {
-            if (driftLevel.current > 0) {
-                if (isGrounded.current) activateBoost(driftLevel.current);
-                else pendingBoost.current = true;
-            }
+            if (driftLevel.current > 0 && isGrounded.current) activateBoost(driftLevel.current);
+            else if (driftLevel.current > 0) pendingBoost.current = true;
             driftDirection.current = 0;
             driftTime.current = 0;
             driftLevel.current = 0;
         }
     } else {
-        if (isGrounded.current && !isJumping.current && driftDirection.current === 0) {
-            driftEngageWindow.current = false;
-        }
+        if (isGrounded.current && !isJumping.current && driftDirection.current === 0) driftEngageWindow.current = false;
     }
 
     if (drift && !driftHopLocked.current && isGrounded.current && !isJumping.current) {
@@ -172,7 +235,7 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
 
     updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
 
-    // MOTORE
+    // Speed Logic
     const isBoosting = boostTime.current > 0
     if (isBoosting) boostTime.current -= 1
 
@@ -186,6 +249,7 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
     if (backward) targetSpeed = -currentSpeedLimit * 0.5
     
     const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
+    
     if (forward && !isBoosting && isOverspeeding) {
         speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
     } else {
@@ -195,7 +259,7 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
         speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
     }
 
-    // STERZO
+    // Turn Logic
     let turnFactor = 0
     if (isDrifting) {
         const isLeftDrift = driftDirection.current === 1
@@ -210,7 +274,7 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
     }
     rotation.current += turnFactor * delta
 
-    // FISICA
+    // Physics Application
     const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const driftGrip = isDrifting ? SETTINGS.driftGrip : 0.15
     const airControl = isGrounded.current ? 1 : 0.5 
@@ -232,16 +296,9 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
     rigidBody.current.setRotation(q, true)
     rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
-    // VISUAL UPDATE - MODIFICA IMPORTANTE
-    // Qui leghiamo insieme la posizione visuale. Abbiamo aggiunto VISUAL_OFFSET.
+    // Visuals Update
     if (visualGroupRef.current) {
         const speedShake = speed.current > SETTINGS.maxSpeed + 5 ? (Math.random() - 0.5) * 0.05 : 0
-        
-        // Calcolo della Y: 
-        // 1. Base del collider (-PHYSICS_RADIUS)
-        // 2. Eventuale offset visuale (+ VISUAL_OFFSET)
-        // 3. Animazione salto (+ jumpOffset)
-        // 4. Vibrazione velocità (+ speedShake)
         visualGroupRef.current.position.y = (-PHYSICS_RADIUS + VISUAL_OFFSET) + jumpOffset.current.y + speedShake;
 
         let targetTilt = 0
@@ -250,7 +307,7 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
         visualGroupRef.current.rotation.z = MathUtils.damp(visualGroupRef.current.rotation.z, targetTilt, 8, delta)
     }
 
-    // CAMERA
+    // Camera Update
     const baseFov = 75
     state.camera.fov = baseFov
     const backVector = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
@@ -262,7 +319,6 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
     state.camera.position.lerp(desiredCamPos, 0.2)
     cameraTarget.current.lerp(new Vector3(currentPosition.current.x, currentPosition.current.y + 2.0, currentPosition.current.z), 0.2)
     state.camera.lookAt(cameraTarget.current)
-    state.camera.updateProjectionMatrix()
   })
 
   const steerVal = (controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)
@@ -278,36 +334,32 @@ export function InsideDriftBike({ characterConfig, vehicleConfig }) {
         </div>
       </Html>
 
-      {/* visualGroupRef contiene sia VehicleModel che RacerModel, si muoveranno insieme */}
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS + VISUAL_OFFSET, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-          
           <group position={vehicleConfig.vehicleOffset}>
-					<VehicleModel 
-					vehicleConfig={vehicleConfig.modelConfig} 
-					scale={1.4}
-					rotation={[0, Math.PI, 0]} 
-					position={[0, 0, 0]}
-					steer={steerVal}
-					drift={driftDirection.current}
-					speed={speed.current}
-					isBike={true}
-					/>
-					
-					{/* Modello Pilota */}
-					<group rotation={[0, Math.PI, 0]}>
-					<RacerModel 
-						isInMenu={false}
-						scale={1.5}
-						characterConfig={characterConfig}
-						vehicleConfig={vehicleConfig} 
-						steer={steerVal} 
-						drift={driftDirection.current} 
-						speed={speed.current}
-						isKart={true}
-						key={vehicleConfig.name + "_racer"}
-					/>
-					</group>
-			</group>
+                  <VehicleModel 
+                  vehicleConfig={vehicleConfig.modelConfig} 
+                  scale={1.4}
+                  rotation={[0, Math.PI, 0]} 
+                  position={[0, 0, 0]}
+                  steer={steerVal}
+                  drift={driftDirection.current}
+                  speed={speed.current}
+                  isBike={true}
+                  />
+                  <group rotation={[0, Math.PI, 0]}>
+                  <RacerModel 
+                      isInMenu={false}
+                      scale={1.5}
+                      characterConfig={characterConfig}
+                      vehicleConfig={vehicleConfig} 
+                      steer={steerVal} 
+                      drift={driftDirection.current} 
+                      speed={speed.current}
+                      isKart={true}
+                      key={vehicleConfig.name + "_racer"}
+                  />
+                  </group>
+          </group>
 
           <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
           <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>

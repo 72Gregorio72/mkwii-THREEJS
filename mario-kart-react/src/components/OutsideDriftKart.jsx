@@ -1,10 +1,9 @@
 import React, { useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { RigidBody, BallCollider } from '@react-three/rapier' 
+import { RigidBody, BallCollider, CylinderCollider } from '@react-three/rapier' 
 import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
 // Alias per evitare conflitti con i tuoi controlli di gioco
 import { useControls as useGameControls } from '../hooks/useControls' 
-import { useControls as useLeva, Leva } from 'leva'
 import { Sparkles, Html } from '@react-three/drei' 
 import gsap from 'gsap'
 
@@ -12,10 +11,14 @@ import gsap from 'gsap'
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 
+// --- 2. IMPORTA L'HANDLER ---
+import { useHitboxHandler } from '../utils/HitboxHandler' 
+
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1.2 
 
-const SETTINGS = {
+// Impostazioni di default
+const DEFAULT_SETTINGS = {
   maxSpeed: 50,
   maxTurboLimit: 90,       
   acceleration: 0.25,       
@@ -31,40 +34,30 @@ const SETTINGS = {
   slideOutForce: 0.3,
 }
 
-const START_POS = [-200, 10, 270] 
 const cBlue = new Color("#00aeff") 
 const cRed = new Color("#ff3300")  
 
-export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
+export function OutsideDriftKart({ 
+    characterConfig, 
+    vehicleConfig, 
+    START_POS, 
+    // onCheckpoint, <--- RIMOSSO: Gestito ora da GameScene e Physics Sensors
+    trackConfig, 
+    SETTINGS = DEFAULT_SETTINGS 
+}) {
   const { scene } = useThree()
-  const controls = useGameControls() // I tuoi controlli (WASD/Gamepad)
+  const controls = useGameControls() 
   
-  // --- CONFIGURAZIONE DEBUG & CAMERA ---
-  const DEBUG_MODE = true; // <--- IMPOSTA SU FALSE PER NASCONDERE IL PANNELLO
-
-  // Configuriamo i parametri della camera con Leva
-  const camConfig = {//useLeva('Camera Settings', {
-    // distance: { value: 7.0, min: 2, max: 20, step: 0.1 },
-    // height: { value: 3.5, min: 1, max: 10, step: 0.1 },
-    // lookAtHeight: { value: 1.0, min: -2, max: 5, step: 0.1 },
-    // stiffness: { value: 0.15, min: 0.01, max: 1, step: 0.01 }, // 0.01 = lento, 1.0 = istantaneo
-    // fovBase: { value: 75, min: 40, max: 120 },
-    // fovMax: { value: 90, min: 40, max: 140 },
-	distance: 7.2,
-	height: 2.3,
-	lookAtHeight: 1.0,
-	stiffness: 0.15,
-	fovBase: 53,
-	fovMax: 55
-  //)}, [DEBUG_MODE]
+  // Parametri Camera
+  const camConfig = {
+    distance: 7.2,
+    height: 2.3,
+    lookAtHeight: 1.0,
+    stiffness: 0.15,
+    fovBase: 53,
+    fovMax: 55
   }
 
-//   const { offX, offY, offZ } = useLeva("Vehicle Visual Offset", {
-// 		offX: { value: vehicleConfig?.vehicleOffset?.[0] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset X' },
-// 		offY: { value: vehicleConfig?.vehicleOffset?.[1] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Y' },
-// 		offZ: { value: vehicleConfig?.vehicleOffset?.[2] ?? 0, min: -5, max: 5, step: 0.05, label: 'Offset Z' },
-// 	})
-  
   const rigidBody = useRef()
   const speedUiRef = useRef() 
 
@@ -79,6 +72,8 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
   const cameraTarget = useRef(new Vector3(0, 0, 0))
 
   const isGrounded = useRef(false)
+  
+  // Raycaster persistente (Solo per il terreno ora)
   const raycaster = useRef(new Raycaster())
   
   // STATO DRIFT & BOOST
@@ -99,6 +94,16 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
   const leftSparksRef = useRef()
   const rightSparksRef = useRef()
 
+  // --- 3. INIZIALIZZA L'HANDLER ---
+  // Nota: Qui gestiamo solo le superfici (erba/strada), non i checkpoint
+  const { checkSurface } = useHitboxHandler({
+    speed,
+    boostTime,
+    SETTINGS,
+    onCheckpoint: () => {}, // Funzione vuota, il kart non triggera più checkpoint direttamente
+    maxCheckpoints: trackConfig?.maxCheckpoints || 3
+  })
+
   const performHop = () => {
     if (isJumping.current) return
     isJumping.current = true
@@ -118,7 +123,7 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
   useFrame((state, delta) => {
     if (!rigidBody.current) return;
 
-    // --- UI ---
+    // --- UI Update ---
     if (speedUiRef.current) {
         const kmh = Math.abs(Math.round(speed.current * 1.5)) 
         speedUiRef.current.innerText = `${kmh} km/h`
@@ -127,7 +132,7 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
         speedUiRef.current.style.transform = isOver ? `scale(1.1)` : `scale(1)`
     }
 
-    // 1. LEGGI DATI
+    // 1. LEGGI DATI DAL RIGIDBODY
     const rbPos = rigidBody.current.translation();
     const rbVel = rigidBody.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
@@ -135,24 +140,52 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
 
     const { forward, backward, left, right, drift } = controls.current
     
-    // 2. GROUND CHECK
-    const origin = currentPosition.current.clone()
-    origin.y += 0.1 
-    raycaster.current.set(origin, new Vector3(0, -1, 0))
-    let groundDistance = Infinity
+    let groundDist = Infinity; 
+
+    // =================================================================
+    //  SISTEMA RAYCAST (SOLO TERRENO - GROUND CHECK)
+    // =================================================================
     if (scene) {
-        const hits = raycaster.current.intersectObjects(scene.children, true)
-        const groundHit = hits.find(hit => {
-            let obj = hit.object
-            while(obj) {
-                if (obj.uuid === visualGroupRef.current?.uuid) return false
-                obj = obj.parent
+        const safeRaycast = (origin, direction, limitDistance) => {
+            try {
+                raycaster.current.set(origin, direction);
+                raycaster.current.far = limitDistance; 
+                // Ignoriamo oggetti trasparenti o helper se necessario, ma qui standard va bene
+                const hits = raycaster.current.intersectObjects(scene.children, true);
+                
+                return hits.find(hit => {
+                    // Ignora il kart stesso
+                    let obj = hit.object;
+                    while (obj) {
+                         if (obj.uuid === visualGroupRef.current?.uuid) return false;
+                         obj = obj.parent;
+                    }
+                    return true;
+                });
+            } catch (e) {
+                return null;
             }
-            return true
-        })
-        if (groundHit) groundDistance = groundHit.distance - 0.1 - PHYSICS_RADIUS
+        };
+
+        // A. GROUND CHECK (Verso il basso - Fisica & Erba)
+        // MANTENUTO: Essenziale per capire se possiamo driftare e la velocità sulla superficie
+        const downOrigin = currentPosition.current.clone();
+        downOrigin.y += 0.5; 
+        
+        const groundHit = safeRaycast(downOrigin, new Vector3(0, -1, 0), 5); 
+        
+        if (groundHit) {
+            groundDist = groundHit.distance - 0.5 - PHYSICS_RADIUS;
+            // Passiamo l'oggetto all'handler (per rallentare sull'erba)
+            checkSurface(groundHit.object);
+        }
+        isGrounded.current = groundDist < 0.6;
+
+        // B. WALL CHECK (Verso avanti) -> RIMOSSO COMPLETAMENTE
+        // Ora i collision physics gestiscono i muri, e i sensor physics gestiscono i checkpoint.
     }
-    isGrounded.current = groundDistance < 0.6
+    // =================================================================
+
 
     // --- 3. LOGICA DRIFT & HOP ---
     if (!drift) {
@@ -216,6 +249,7 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
     if (backward) targetSpeed = -currentSpeedLimit * 0.5
     
     const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
+    
     if (forward && !isBoosting && isOverspeeding) {
         speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
     } else {
@@ -241,7 +275,7 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
     }
     rotation.current += turnFactor * delta
 
-    // 6. FISICA
+    // 6. FISICA APPLICATA
     const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     const driftGrip = isDrifting ? SETTINGS.driftGrip : 0.15
     const airControl = isGrounded.current ? 1 : 0.5 
@@ -253,7 +287,8 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
     if (!isGrounded.current && !isJumping.current) newY -= 20 * delta 
     else if (isJumping.current) newY -= 15 * delta
     
-    if (groundDistance > 0.05 && groundDistance < 0.8 && !isJumping.current && newY > 0) {
+    // Gravità magnetica
+    if (isGrounded.current && groundDist < 0.8 && !isJumping.current && newY > 0) {
         newY = -5 
     }
 
@@ -271,52 +306,50 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
         visualGroupRef.current.rotation.z = 0 
     }
 
-    // --- NUOVA LOGICA CAMERA (Corretta e controllata da Leva) ---
-    
-    // 1. Definiamo l'offset ideale (relativo al retro del kart)
+    // --- CAMERA ---
     const overSpeed = Math.max(0, speed.current - SETTINGS.maxSpeed)
-	const boostRange = SETTINGS.maxTurboLimit - SETTINGS.maxSpeed
-	// boostRatio andrà da 0 (guida normale) a 1 (turbo massimo)
-	const boostRatio = Math.min(overSpeed / boostRange, 1)
+    const boostRange = SETTINGS.maxTurboLimit - SETTINGS.maxSpeed
+    const boostRatio = Math.min(overSpeed / boostRange, 1)
 
-	// 2. Definiamo l'offset ideale
-	// Aggiungiamo un "kick" alla distanza basato sul boostRatio.
-	// Esempio: +3 unità indietro quando sei al massimo del turbo.
-	const dynamicDistance = camConfig.distance + (boostRatio) 
+    const dynamicDistance = camConfig.distance + (boostRatio) 
 
-	const idealOffset = new Vector3(0, camConfig.height, dynamicDistance)
-	idealOffset.applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+    const idealOffset = new Vector3(0, camConfig.height, dynamicDistance)
+    idealOffset.applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
     
-    // 3. Posizione Target = Posizione Kart + Offset Ruotato
     const desiredCamPos = new Vector3().copy(currentPosition.current).add(idealOffset)
-	state.camera.position.lerp(desiredCamPos, camConfig.stiffness)
+    state.camera.position.lerp(desiredCamPos, camConfig.stiffness)
 
     const targetLookAt = new Vector3(
-		currentPosition.current.x,
-		currentPosition.current.y + camConfig.lookAtHeight,
-		currentPosition.current.z
-	)
-	cameraTarget.current.lerp(targetLookAt, camConfig.stiffness * 1.5)
-	state.camera.lookAt(cameraTarget.current)
+        currentPosition.current.x,
+        currentPosition.current.y + camConfig.lookAtHeight,
+        currentPosition.current.z
+    )
+    cameraTarget.current.lerp(targetLookAt, camConfig.stiffness * 1.5)
+    state.camera.lookAt(cameraTarget.current)
 
-	// 3. FOV dinamico basato SOLO sul boost
-	// Ora il FOV cambierà solo se superi i 50 km/h
-	// const targetFov = MathUtils.lerp(camConfig.fovBase, camConfig.fovMax, boostRatio)
-	// state.camera.fov = MathUtils.damp(state.camera.fov, targetFov, 2.0, delta)
-	state.camera.updateProjectionMatrix()
+    state.camera.updateProjectionMatrix()
   })
 
-  // Calcolo dati sterzo per passare al componente Character
   const steerVal = (controls.current.left ? 1 : 0) + (controls.current.right ? -1 : 0)
 
   return (
-    <RigidBody ref={rigidBody} position={START_POS} mass={100} linearDamping={0.5} angularDamping={0.5} colliders={false} type="dynamic" ccd={true} restitution={0}>
-      
-      {/* !!! RIMOSSO <Leva /> DA QUI !!! 
-         Il pannello apparirà comunque grazie all'hook useLeva.
-         Non mettere mai componenti HTML/UI nudi dentro il Canvas 3D.
-      */}
-
+    <RigidBody 
+        ref={rigidBody} 
+        position={START_POS} 
+        mass={100} 
+        linearDamping={0.5} 
+        angularDamping={0.5} 
+        colliders={false} 
+        type="dynamic" 
+        ccd={true} 
+		name="kart"  // Diamo un nome al corpo fisico
+        userData={{ type: 'player' }} // Dati extra utili per i controlli
+        restitution={0}
+        // Non serve onIntersectionEnter per i checkpoint, ma lo lasciamo se serve per item box futuri
+        onIntersectionEnter={({ other }) => {
+            // Qui potresti gestire collisioni con ItemBox o Banane
+        }}
+    >
       <BallCollider args={[PHYSICS_RADIUS]} material={{ friction: 0.0, restitution: 0 }} />
       
       <Html fullscreen style={{ pointerEvents: 'none' }}>
@@ -327,10 +360,7 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
       </Html>
 
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-            {/* ... tutto il resto dei modelli rimane identico ... */}
             <group position={vehicleConfig.vehicleOffset}>
-
-                {/* Modello Veicolo */}
                 <VehicleModel 
                   vehicleConfig={vehicleConfig.modelConfig} 
                   scale={1.4}
@@ -342,7 +372,6 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
                   isBike={true}
                 />
                 
-                {/* Modello Pilota */}
                 <group rotation={[0, Math.PI, 0]}>
                   <RacerModel 
                       isInMenu={false}
@@ -356,7 +385,7 @@ export function OutsideDriftKart({ characterConfig, vehicleConfig }) {
                     key={vehicleConfig.name + "_racer"}
                   />
                 </group>
-			</group>	
+            </group>    
   
             <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftSparks ref={leftSparksRef} /></WheelPosition>
             <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftSparks ref={rightSparksRef} /></WheelPosition>
