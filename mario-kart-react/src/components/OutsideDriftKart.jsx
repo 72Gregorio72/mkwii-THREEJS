@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { RigidBody, BallCollider } from '@react-three/rapier' 
+import { RigidBody, BallCollider, CylinderCollider } from '@react-three/rapier' 
 import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
 // Alias per evitare conflitti con i tuoi controlli di gioco
 import { useControls as useGameControls } from '../hooks/useControls' 
