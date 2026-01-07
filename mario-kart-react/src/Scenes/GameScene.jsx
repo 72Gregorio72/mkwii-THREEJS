@@ -5,6 +5,8 @@ import { Environment, PerspectiveCamera, useGLTF } from '@react-three/drei'
 import { SmartMap } from '../Tracks/SmartMap'
 import { OutsideDriftKart } from '../components/OutsideDriftKart'
 import { InsideDriftBike } from '../components/InsideDriftBike'
+import { WaypointRecorder } from '../Bot/WaypointRecorder'
+import trackWaypoints from '../Bot/Waypoints/DaisyCircuit.json'
 
 const TOTAL_LAPS = 3;
 
@@ -97,6 +99,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     // --- REFS ---
     const lastCheckTime = useRef(0);
     const trackRef = useRef(); // Serve ancora per la pista fisica (SmartMap)
+	const kartRef = useRef();
+	const bikeRef = useRef();
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
     const isBike = vehicle.isBike;
@@ -169,7 +173,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 
                     {/* 3. I VEICOLI */}
                     {/* Nota: Non serve più passare handleCheckpoint al veicolo, perché ora è il box che rileva il veicolo, non viceversa */}
-                    <group position={[0, 10, 0]}>
+                    <group position={[0, 10, 0]} ref={isBike ? bikeRef : kartRef}>
                         {isBike ? (
                             <InsideDriftBike 
                                 characterConfig={character.modelConfig}
@@ -186,9 +190,38 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
+								ref={kartRef}
                             />
                         )}
                     </group>
+
+					{/* === 4. IL BOT (Nemico) === */}
+                    <group position={[0, 10, 0]}>
+                         <OutsideDriftKart 
+                            // Puoi usare lo stesso modello o uno diverso
+                            characterConfig={character.modelConfig} 
+                            vehicleConfig={vehicle} 
+                            
+                            // IMPORTANTE: Spostalo leggermente di lato per non spawnare dentro di te!
+                            START_POS={[start_pos[0] + 3, start_pos[1], start_pos[2]]} 
+                            
+                            trackRef={trackRef}
+                            trackConfig={selectedTrack}
+                            
+                            // --- LOGICA BOT ---
+                            isBot={true}              // Attiva l'IA
+                            waypoints={trackWaypoints} // Passagli i 732 punti
+                            
+                            // Opzionale: Rendilo un po' più lento del giocatore per testare
+                            SETTINGS={{
+                                maxSpeed: 35,         // Un po' meno del max (40)
+                                acceleration: 0.20,
+                                turnSpeed: 0.8,
+                                // ... copia gli altri valori di default se servono
+                            }}
+                        />
+                    </group>
+					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} /> */}
                 </Physics>
             </Canvas>
         </div>

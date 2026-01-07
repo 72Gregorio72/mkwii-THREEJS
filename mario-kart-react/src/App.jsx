@@ -7,7 +7,7 @@ import { GameScene } from './Scenes/GameScene' // Import the new component
 
 export default function App() {
 
-    const [MenuState, setMenuState] = useState(0)
+    const [MenuState, setMenuState] = useState(-1)
     
     // State for selections
     const [SelectedCharacter, setSelectedCharacter] = useState(Characters[0])
@@ -19,7 +19,9 @@ export default function App() {
     return (
         <div style={{ backgroundImage: "url(/sprites/skybox.jpg)", minHeight: '100vh' }}>
 
-			
+			{MenuState === -1 && (
+				<button onClick={() => setMenuState(0)}>Character Selection</button>
+			)}
 
             {MenuState === 0 && (
                 <CharacterSelection 
