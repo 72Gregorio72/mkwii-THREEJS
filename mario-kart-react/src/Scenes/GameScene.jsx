@@ -2,9 +2,9 @@ import React, { useState, useRef, useCallback, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, useGLTF } from '@react-three/drei'
-import { SmartMap } from './Tracks/SmartMap'
-import { OutsideDriftKart } from './components/OutsideDriftKart'
-import { InsideDriftBike } from './components/InsideDriftBike'
+import { SmartMap } from '../Tracks/SmartMap'
+import { OutsideDriftKart } from '../components/OutsideDriftKart'
+import { InsideDriftBike } from '../components/InsideDriftBike'
 
 const TOTAL_LAPS = 3;
 
@@ -106,7 +106,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
         if (finished) return;
 
         const now = Date.now();
-        // Anti-rimbalzo ridotto (500ms sono sufficienti con i sensor physics)
         if (now - lastCheckTime.current < 500) return;
 
         console.log(`🏁 CHECKPOINT TOCCATO -> ID: ${hitIndex} | Atteso: ${nextCheck}`);
@@ -116,11 +115,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
             console.log("✅ Checkpoint Valido!");
             setNextCheck(prev => prev + 1);
             lastCheckTime.current = now; 
-        }
-        
-        // CASO 2: Completamento Giro (Assumiamo che il traguardo sia l'oggetto "0" o l'ultimo numero + 1)
-        // Nota: Assicurati che il box del traguardo in Blender si chiami "0" oppure gestisci l'ID qui.
-        else if (hitIndex === 0 && nextCheck > maxCheckpoints) {
+        } else if (hitIndex === 0 && nextCheck > maxCheckpoints) {
             console.log("🏆 GIRO COMPLETATO!");
             
             setLap(prevLap => {

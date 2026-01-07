@@ -1,9 +1,9 @@
 import React, { useState, useRef, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, Center, Html, OrbitControls } from '@react-three/drei'
-import { RacerModel } from './models/RacerModel'
-import { VehicleModel } from './models/VehicleModel'
-import { VEHICLE_DATABASE } from './components/Data'
+import { RacerModel } from '../models/RacerModel'
+import { VehicleModel } from '../models/VehicleModel'
+import { VEHICLE_DATABASE } from '../components/Data'
 
 // --- COMPONENTE BARRA STATISTICHE ---
 const StatBar = ({ label, value }) => (

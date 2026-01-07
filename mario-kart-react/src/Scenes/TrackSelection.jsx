@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Tracks } from './components/Data'
+import { Tracks } from '../components/Data'
 
 export function TrackSelection({ setMenuState, setSelectedTrack }) {
     const tracksList = Object.entries(Tracks).map(([name, data]) => ({

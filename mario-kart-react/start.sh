@@ -1,5 +1,3 @@
-#!/bin/bash
-
 echo "🏎️  Avvio Mario Kart React..."
 
 # Controlla se Docker è attivo

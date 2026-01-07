@@ -1,15 +1,15 @@
 import { useEffect, useRef } from 'react'
 
 export const useControls = () => {
-  // 1. Creiamo un oggetto che persiste tra i render senza scatenarne di nuovi
   const controls = useRef({
     forward: false,
     backward: false,
     left: false,
     right: false,
     brake: false,
-	drift: false,
+    drift: false,
     reset: false,
+    wheelie: false, // <--- NUOVO STATO
   })
 
   useEffect(() => {
@@ -24,10 +24,10 @@ export const useControls = () => {
       ArrowRight: 'right',
       Space: 'drift',
       KeyR: 'reset',
+      ShiftLeft: 'wheelie', // <--- TASTO PER IMPENNARE (Shift Sx)
     }
 
     const handleKeyDown = (e) => {
-      // Se il tasto è nella mappa, impostiamo il valore nel REF a true
       if (keyMap[e.code]) {
         controls.current[keyMap[e.code]] = true
       }
@@ -48,6 +48,5 @@ export const useControls = () => {
     }
   }, [])
 
-  // Restituiamo tutto l'oggetto ref (non il suo contenuto corrente!)
   return controls
 }
