@@ -1,31 +1,28 @@
+// backend/src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as fs from 'fs'; // <--- Importa fs
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function bootstrap() {
-const httpsOptions = {
-    key: fs.readFileSync('./certs/key.pem'),
-    cert: fs.readFileSync('./certs/cert.pem'),
+  // 1. Load your certificates (Make sure these files are in your project root)
+  // If you used mkcert, these are key.pem and cert.pem
+  const httpsOptions = {
+    key: fs.readFileSync(path.resolve('./certs/key.pem')),
+    cert: fs.readFileSync(path.resolve('./certs/cert.pem')),
   };
 
-  // Passa httpsOptions al metodo create
-  const app = await NestFactory.create(AppModule, { httpsOptions });
-
-  app.enableCors({
-    origin: '*', 
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  // 2. Pass httpsOptions to create
+  const app = await NestFactory.create(AppModule, {
+    httpsOptions,
   });
 
-  const config = new DocumentBuilder()
-    .setTitle('Mario Kart API')
-    .setVersion('1.0')
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  // 3. Enable CORS for the HTTP endpoints as well
+  app.enableCors();
 
-  // Ascolta su HTTPS
+  // 4. Listen on 0.0.0.0 so other computers can connect
   await app.listen(3000, '0.0.0.0');
-  console.log(`Application is running on: https://localhost:3000`);
+  
+  console.log(`Application is running on: https://${await app.getUrl()}`);
 }
 bootstrap();

@@ -1,10 +1,14 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, useGLTF } from '@react-three/drei'
+
+import { io } from 'socket.io-client';
+
 import { SmartMap } from '../Tracks/SmartMap'
 import { OutsideDriftKart } from '../components/OutsideDriftKart'
 import { InsideDriftBike } from '../components/InsideDriftBike'
+import { RemoteOpponent } from '../components/RemoteOpponent';
 
 const TOTAL_LAPS = 3;
 
@@ -94,12 +98,52 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     const [nextCheck, setNextCheck] = useState(1); 
     const [finished, setFinished] = useState(false);
 
+    // --- NEW: SOCKET STATE ---
+    const socketRef = useRef(null);
+    const [otherPlayers, setOtherPlayers] = useState({});
+
     // --- REFS ---
     const lastCheckTime = useRef(0);
     const trackRef = useRef(); // Serve ancora per la pista fisica (SmartMap)
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
     const isBike = vehicle.isBike;
+
+    // --- NEW: CONNECT TO BACKEND ---
+    useEffect(() => {
+        // 1. Connect (Replace localhost:3000 with your actual backend URL)
+        socketRef.current = io('https://10.12.1.8:3000');
+        
+        socketRef.current.on('connect', () => {
+            console.log("🟢 Connected to Backend with ID:", socketRef.current.id);
+        });
+
+        // 2. Listen for World Updates (Positions of other players)
+        socketRef.current.on('world_update', (serverPlayers) => {
+            const myId = socketRef.current.id;
+            const opponents = { ...serverPlayers };
+            
+            // Remove ourselves so we don't render a ghost of our own kart
+            delete opponents[myId];
+
+            setOtherPlayers(opponents);
+            console.log("👥 Other Players to render:", Object.keys(opponents).length);
+            
+        });
+
+        // Cleanup on unmount
+        return () => {
+            socketRef.current.disconnect();
+        };
+    }, []);
+
+    // --- NEW: SEND FUNCTION ---
+    // Pass this function to your Kart/Bike component
+    const handleMyMovement = (transform) => {
+        if (socketRef.current && !finished) {
+            socketRef.current.emit('move_kart', transform);
+        }
+    };
 
     // --- LOGICA GIRI ---
     const handleCheckpoint = useCallback((hitIndex) => {
@@ -151,7 +195,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
                 <Environment preset="city" />
 
-                <Physics debug={false}> {/* Metti debug={true} per vedere i box collider verdi/rossi */}
+                <Physics debug={true}> {/* Metti debug={true} per vedere i box collider verdi/rossi */}
                     
                     {/* 1. LA PISTA (Solida) */}
                     <group ref={trackRef}>
@@ -166,6 +210,18 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                             onCheckpointTrigger={handleCheckpoint} 
                         />
                     )}
+                
+                    {/* 3. NEW: REMOTE OPPONENTS */}
+                    {/* Render opponents received from backend */}
+                    {Object.entries(otherPlayers).map(([id, data]) => (
+                        <RemoteOpponent 
+                            key={id}
+                            id={id}
+                            data={data}
+                            vehicleConfig={vehicle} // Assuming everyone uses same models for now
+                            characterConfig={character.modelConfig}
+                        />
+                    ))}
 
                     {/* 3. I VEICOLI */}
                     {/* Nota: Non serve più passare handleCheckpoint al veicolo, perché ora è il box che rileva il veicolo, non viceversa */}
@@ -177,6 +233,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 START_POS={start_pos}
                                 // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI (se hai rimosso il raycast)
                                 trackRef={trackRef} 
+                                onPositionUpdate = {handleMyMovement}
                             />
                         ) : (
                             <OutsideDriftKart 
@@ -186,6 +243,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
+                                onPositionUpdate = {handleMyMovement}
+
                             />
                         )}
                     </group>

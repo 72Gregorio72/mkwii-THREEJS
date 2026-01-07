@@ -117,6 +117,7 @@ const DriftParticles = React.forwardRef((props, ref) => {
         }
       }
     }
+
     points.current.geometry.attributes.position.needsUpdate = true;
   });
 
@@ -161,7 +162,8 @@ export function InsideDriftBike({
   vehicleConfig, 
   START_POS, 
   onCheckpoint, 
-  trackConfig, 
+  trackConfig,
+  onPositionUpdate,
   SETTINGS = DEFAULT_SETTINGS 
 }) {
   const { scene } = useThree()
@@ -295,6 +297,23 @@ export function InsideDriftBike({
              checkSurface(wallHit.object);
         }
     }
+
+    // NEW: Send position to GameScene
+    if (rigidBody.current && onPositionUpdate) {
+        const t = rigidBody.current.translation();
+        const r = rigidBody.current.rotation();
+
+        onPositionUpdate({
+            x: t.x,
+            y: t.y,
+            z: t.z,
+            qx: r.x,
+            qy: r.y,
+            qz: r.z,
+            qw: r.w
+        });
+    }
+
 
     // --- Logic Drift ---
     if (!drift) {

@@ -133,6 +133,7 @@ const DriftParticles = React.forwardRef((props, ref) => {
         }
       }
     }
+
     
     points.current.geometry.attributes.position.needsUpdate = true;
   });
@@ -209,7 +210,8 @@ export function OutsideDriftKart({
   vehicleConfig, 
   START_POS, 
   onCheckpoint, 
-  trackConfig, 
+  trackConfig,
+  onPositionUpdate,
   SETTINGS = DEFAULT_SETTINGS 
 }) {
   const { scene } = useThree()
@@ -232,6 +234,9 @@ export function OutsideDriftKart({
   const rotation = useRef(0) 
   const driftVector = useRef(new Vector3(0, 0, 0))
   
+  const lastUpdate = useRef(0) // Tempo dell'ultimo invio
+  const lastSentPos = useRef(new THREE.Vector3(0, 0, 0)) // Posizione dell'ultimo invio
+
   const currentVelocity = useRef(new Vector3())
   const currentPosition = useRef(new Vector3())
   const cameraTarget = useRef(new Vector3(0, 0, 0))
@@ -342,6 +347,43 @@ export function OutsideDriftKart({
         }
     }
 
+    // NEW: Send position to GameScene
+    const now = Date.now();
+    
+    // 1. Controllo Tempo: Invia solo se sono passati 50ms dall'ultimo invio
+    if (rigidBody.current && onPositionUpdate && (now - lastUpdate.current > 50)) {
+        
+        const t = rigidBody.current.translation();
+        const r = rigidBody.current.rotation();
+        
+        // Calcoliamo la distanza rispetto all'ultimo punto inviato
+        // (Creiamo un vettore temporaneo per il calcolo)
+        const currentPos = new THREE.Vector3(t.x, t.y, t.z);
+        const distanceMoved = currentPos.distanceTo(lastSentPos.current);
+
+        // 2. Controllo Movimento: Invia solo se ci siamo mossi di almeno 0.05 unità
+        //    OPPURE se stiamo sterzando (controllando se la velocità angolare è alta, o semplicemente se c'è input)
+        const isMoving = distanceMoved > 0.05;
+        
+        // Nota: Se ruoti su te stesso da fermo, potresti voler controllare anche la rotazione.
+        // Ma per ora il controllo di distanza blocca lo spam quando sei fermo immobile.
+
+        if (isMoving) {
+            onPositionUpdate({
+                x: t.x,
+                y: t.y,
+                z: t.z,
+                qx: r.x,
+                qy: r.y,
+                qz: r.z,
+                qw: r.w
+            });
+
+            // Aggiorniamo i riferimenti
+            lastUpdate.current = now;
+            lastSentPos.current.copy(currentPos);
+        }
+    }
     // --- Logic Drift ---
     if (!drift) {
         driftHopLocked.current = false
