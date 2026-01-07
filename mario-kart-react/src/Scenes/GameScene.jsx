@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react'
-import { Canvas } from '@react-three/fiber'
+import React, { useState, useRef, useCallback, useMemo	 } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
-import { Environment, PerspectiveCamera, useGLTF } from '@react-three/drei'
+import { Environment, PerspectiveCamera, useGLTF, Line } from '@react-three/drei'
 import { SmartMap } from '../Tracks/SmartMap'
 import { OutsideDriftKart } from '../components/OutsideDriftKart'
 import { InsideDriftBike } from '../components/InsideDriftBike'
@@ -10,26 +10,42 @@ import trackWaypoints from '../Bot/Waypoints/DaisyCircuit.json'
 
 const TOTAL_LAPS = 3;
 
+
+function WaypointVisualizer({ points }) {
+  const linePoints = useMemo(() => {
+    if (!points) return []
+    // Convertiamo l'array di oggetti {x,y,z} in array di array [x,y,z]
+    // Alziamo la Y di 1 metro per vederla bene sopra la strada
+    return points.map(p => [p.x, p.y + 1.0, p.z])
+  }, [points])
+
+  return (
+    <Line
+      points={linePoints}       // Array di vettori [x, y, z]
+      color="red"               // Colore richiesto
+      lineWidth={3}             // Spessore della linea
+      dashed={false}            // Linea continua
+    />
+  )
+}
+
 /**
  * Componente che gestisce i Box Collider dei Checkpoint
  * Carica il GLB, e per ogni oggetto crea un'area sensibile (Sensor)
  */
 function CheckpointSystem({ url, onCheckpointTrigger }) {
     const { scene } = useGLTF(url);
+    
+    // Coda per gestire gli urti "dopo" il calcolo fisico
+    const hitsQueue = useRef([]);
 
     const sensors = useMemo(() => {
         const boxes = [];
-        console.log("📂 INIZIO ANALISI GLB CHECKPOINT:", url);
-        
         scene.traverse((child) => {
-            // Logga ogni singolo oggetto trovato nel file
             if (child.isMesh) {
                 const rawName = child.name;
-                // Pulisce il nome: tiene solo i numeri. Es: "Cube.001" -> "001" -> 1
                 const numberOnly = rawName.replace(/[^0-9]/g, ''); 
                 const id = parseInt(numberOnly);
-
-                console.log(`   Found Mesh: "${rawName}" -> ID estratto: ${id}`);
                 
                 if (!isNaN(id)) {
                     boxes.push({
@@ -39,48 +55,50 @@ function CheckpointSystem({ url, onCheckpointTrigger }) {
                         scale: child.scale,
                         geometry: child.geometry
                     });
-                } else {
-                    console.warn(`   ⚠️ IGNORATO: "${rawName}" non contiene numeri validi.`);
                 }
             }
         });
-
-        console.log(`✅ TOTALE SENSORI CREATI: ${boxes.length}`);
-        // Ordiniamo per sicurezza (1, 2, 3...)
         return boxes.sort((a, b) => a.id - b.id);
     }, [scene, url]);
+
+    // Processiamo la coda degli urti al frame successivo (o fuori dal ciclo fisico)
+    useFrame(() => {
+        if (hitsQueue.current.length > 0) {
+            // Processa ogni urto registrato
+            hitsQueue.current.forEach((hitId) => {
+                onCheckpointTrigger(hitId);
+            });
+            // Svuota la coda
+            hitsQueue.current = [];
+        }
+    });
 
     return (
         <group>
             {sensors.map((box, index) => (
                 <RigidBody
-					key={index} 
-					type="fixed" 
-					colliders="trimesh" // Assicurati che sia 'cuboid' o 'trimesh'
-					sensor={true} 
-					position={box.position}
-					rotation={box.rotation}
-					scale={box.scale}
-					onIntersectionEnter={(payload) => {
-						// --- DEBUG TOTALE ---
-						// Stampiamo chiunque entri, così capiamo se il sensore funziona
-						console.log("💥 QUALCOSA HA TOCCATO IL CHECKPOINT", box.id);
-						console.log("   --> Oggetto:", payload.other.rigidBodyObject?.name);
-
-						// Se l'oggetto si chiama "kart" (come abbiamo impostato sopra), conta il punto
-						if (payload.other.rigidBodyObject?.name === 'kart') {
-							console.log("✅ È IL KART! VALIDO!");
-							onCheckpointTrigger(box.id);
-						}
-						
-						// ALTERNATIVA DI SICUREZZA: 
-						// Se non leggi il nome, scommenta la riga sotto per accettare TUTTO per ora:
-						// onCheckpointTrigger(box.id);
-					}}
-				>
-                    {/* Visualizzazione DEBUG: Cubo semitrasparente Rosso */}
+                    key={index} 
+                    type="fixed" 
+                    colliders="trimesh" 
+                    sensor={true} 
+                    position={box.position}
+                    rotation={box.rotation}
+                    scale={box.scale}
+                    onIntersectionEnter={(payload) => {
+                        // 1. LEGGERO E SICURO: Non loggare oggetti complessi qui!
+                        // 2. Verifica solo il nome se esiste
+                        const other = payload.other.rigidBodyObject;
+                        if (other && (other.name === 'player' || other.name === 'bot')) {
+                            // 3. NON eseguire logica qui. Mettilo in coda.
+                            // Evitiamo duplicati nello stesso frame
+                            if (!hitsQueue.current.includes(box.id)) {
+                                hitsQueue.current.push(box.id);
+                            }
+                        }
+                    }}
+                >
                     <mesh geometry={box.geometry}>
-						<meshBasicMaterial visible={false} />
+                        <meshBasicMaterial visible={false} />
                     </mesh>
                 </RigidBody>
             ))}
@@ -155,6 +173,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
                 <Environment preset="city" />
 
+				<WaypointVisualizer points={trackWaypoints} />
+
                 <Physics debug={false}> {/* Metti debug={true} per vedere i box collider verdi/rossi */}
                     
                     {/* 1. LA PISTA (Solida) */}
@@ -187,7 +207,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 characterConfig={character.modelConfig}
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
-                                // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
 								ref={kartRef}
@@ -198,27 +217,14 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 					{/* === 4. IL BOT (Nemico) === */}
                     <group position={[0, 10, 0]}>
                          <OutsideDriftKart 
-                            // Puoi usare lo stesso modello o uno diverso
                             characterConfig={character.modelConfig} 
                             vehicleConfig={vehicle} 
                             
-                            // IMPORTANTE: Spostalo leggermente di lato per non spawnare dentro di te!
                             START_POS={[start_pos[0] + 3, start_pos[1], start_pos[2]]} 
-                            
                             trackRef={trackRef}
                             trackConfig={selectedTrack}
-                            
-                            // --- LOGICA BOT ---
                             isBot={true}              // Attiva l'IA
                             waypoints={trackWaypoints} // Passagli i 732 punti
-                            
-                            // Opzionale: Rendilo un po' più lento del giocatore per testare
-                            SETTINGS={{
-                                maxSpeed: 35,         // Un po' meno del max (40)
-                                acceleration: 0.20,
-                                turnSpeed: 0.8,
-                                // ... copia gli altri valori di default se servono
-                            }}
                         />
                     </group>
 					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} /> */}

@@ -11,6 +11,8 @@ import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
 
+import { useBotAI } from '../Bot/UseBotAI'
+
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1.2 
@@ -33,61 +35,6 @@ const DEFAULT_SETTINGS = {
   driftLevel2Time: 3.0,  
   driftMinSpeed: 10,       
   slideOutForce: 0.08,
-}
-
-// --- 2. LOGICA INTELLIGENZA ARTIFICIALE (BOT) ---
-function useBotAI({ isBot, rigidBody, waypoints }) {
-  const controls = useRef({ 
-    forward: false, backward: false, left: false, right: false, drift: false 
-  })
-  const currentWpIndex = useRef(0)
-  const vecPos = useMemo(() => new THREE.Vector3(), [])
-  const vecDirToTarget = useMemo(() => new THREE.Vector3(), [])
-  const vecForward = useMemo(() => new THREE.Vector3(), [])
-
-  useFrame(() => {
-    if (!isBot || !rigidBody.current || !waypoints || waypoints.length === 0) return
-
-    const rbPos = rigidBody.current.translation()
-    vecPos.set(rbPos.x, rbPos.y, rbPos.z)
-
-    // Aumentato raggio check a 64 (8 metri) per fluidità
-    let target = waypoints[currentWpIndex.current]
-    const distSq = (vecPos.x - target.x) ** 2 + (vecPos.z - target.z) ** 2
-    
-    if (distSq < 64) { 
-      currentWpIndex.current = (currentWpIndex.current + 1) % waypoints.length
-      target = waypoints[currentWpIndex.current]
-    }
-
-    vecDirToTarget.copy(target).sub(vecPos).normalize()
-    const rot = rigidBody.current.rotation()
-    const q = new THREE.Quaternion(rot.x, rot.y, rot.z, rot.w)
-    vecForward.set(0, 0, -1).applyQuaternion(q).normalize()
-
-    const crossY = new THREE.Vector3().crossVectors(vecForward, vecDirToTarget).y
-    const dot = vecForward.dot(vecDirToTarget)
-
-    controls.current.forward = true 
-    controls.current.backward = false
-
-    const steerThreshold = 0.15
-    if (crossY > steerThreshold) {
-      controls.current.left = true; controls.current.right = false
-    } else if (crossY < -steerThreshold) {
-      controls.current.left = false; controls.current.right = true
-    } else {
-      controls.current.left = false; controls.current.right = false
-    }
-
-    // Drifta nelle curve strette
-    if (dot < 0.8 && (controls.current.left || controls.current.right)) {
-      controls.current.drift = true
-    } else {
-      controls.current.drift = false
-    }
-  })
-  return controls
 }
 
 // --- 3. SISTEMA PARTICELLE ---
@@ -176,7 +123,7 @@ function updateSparksColor(level, leftRef, rightRef) {
     applyColor(leftRef); applyColor(rightRef);
 }
 
-// --- 5. COMPONENTE PRINCIPALE COMPLETO (SENZA RAYCASTER) ---
+// --- 5. COMPONENTE PRINCIPALE COMPLETO E SICURO ---
 
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
@@ -185,13 +132,16 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   } = props;
   
   const { scene } = useThree()
-  // Gestione Ref interno/esterno
   const internalRef = useRef(null)
   const rigidBody = ref || internalRef
   
   const humanControls = useGameControls() 
   const botControls = useBotAI({ isBot, rigidBody, waypoints })
   const activeControls = isBot ? botControls : humanControls
+
+  // --- SICUREZZA FISICA ---
+  // Coda per gestire le collisioni fuori dal ciclo fisico
+  const collisionQueue = useRef([]) 
 
   const camConfig = {
     distance: 7.2, height: 2.3, lookAtHeight: 1.0, stiffness: 0.2, fovBase: 53, fovMax: 55
@@ -206,18 +156,14 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const cameraTarget = useRef(new Vector3(0, 0, 0))
 
   const isGrounded = useRef(false)
-  // ❌ RAYCASTER RIMOSSO
-
   const driftTime = useRef(0)      
   const driftLevel = useRef(0)     
   const pendingBoost = useRef(false)
   const boostTime = useRef(0)
   const driftHopLocked = useRef(false)
   const driftEngageWindow = useRef(false) 
-  
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
-
   const visualGroupRef = useRef() 
   const backLeft = useRef()
   const backRight = useRef()
@@ -244,9 +190,17 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   }
 
   useFrame((state, delta) => {
+    // 1. Processa la coda delle collisioni (SICUREZZA RAPIER)
+    // Lo facciamo qui perché useFrame corre "fuori" dal blocco della fisica
+    if (collisionQueue.current.length > 0) {
+        collisionQueue.current.forEach((obj) => {
+            if (obj) checkSurface(obj);
+        });
+        collisionQueue.current = []; // Svuota la coda
+    }
+
     if (!rigidBody.current) return;
 
-    // UI VELOCITÀ
     if (!isBot && speedUiRef.current) {
         const kmh = Math.abs(Math.round(speed.current * 1.5)) 
         speedUiRef.current.innerText = `${kmh} km/h`
@@ -261,9 +215,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
     const { forward, backward, left, right, drift } = activeControls.current
     
-    // --- GROUND CHECK: Ora gestito dal CylinderCollider sotto (handleGroundEnter/Exit) ---
-
-    // --- LOGICA DRIFT ---
+    // Logic Drift
     if (!drift) {
         driftHopLocked.current = false
         driftEngageWindow.current = false 
@@ -351,13 +303,13 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     driftVector.current.lerp(forwardVector, driftGrip * 60 * delta * airControl)
     const finalVelocity = driftVector.current.clone().multiplyScalar(speed.current)
 
-    // Fisica Gravità
+    // Fisica
     let newY = rbVel.y
     const gravity = 25 * delta;
 
     if (!isGrounded.current && !isJumping.current) newY -= gravity
     else if (isJumping.current) newY -= 15 * delta
-    else if (newY > 0) newY = 0 // Stick to ground quando grounded
+    else if (newY > 0) newY = 0
 
     rigidBody.current.setLinvel({ x: finalVelocity.x, y: newY, z: finalVelocity.z }, true)
 
@@ -366,14 +318,12 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     rigidBody.current.setRotation(q, true)
     rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
-    // Visual Tilt
     if (visualGroupRef.current) {
         const driftTilt = isDrifting ? (driftDirection.current * 0.15) : 0;
         visualGroupRef.current.position.y = (-PHYSICS_RADIUS) + jumpOffset.current.y
         visualGroupRef.current.rotation.z = MathUtils.lerp(visualGroupRef.current.rotation.z, driftTilt, 0.1) 
     }
 
-    // Camera (Solo Player)
     if (!isBot) {
         const overSpeed = Math.max(0, speed.current - SETTINGS.maxSpeed)
         const boostRange = SETTINGS.maxTurboLimit - SETTINGS.maxSpeed
@@ -394,21 +344,51 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)
 
-  // GESTIONE SENSORI COLLISIONE
+  // --- GESTORE COLLISIONI SICURO ---
+  // --- GESTORE COLLISIONI SICURO ---
+  // --- GESTORE COLLISIONI SICURO (Fix Rust Aliasing) ---
   const handleGroundEnter = (payload) => {
-     // Ignora gli altri veicoli (evita crash quando i kart si toccano)
-     const name = payload.other.rigidBodyObject?.name;
+     // 1. Ottieni l'oggetto radice
+     const rootObj = payload.other.rigidBodyObject;
+     if (!rootObj) return;
+
+     // 2. Ignora player/bot per evitare collisioni interne
+     const name = rootObj.name;
      if (name === 'player' || name === 'bot') return;
      
      isGrounded.current = true;
      
-     // Recuperiamo le proprietà della superficie (es. fango/boost)
-     const obj = payload.other.rigidBodyObject || payload.other.parent();
-     if (obj) checkSurface(obj); 
+     // 3. FIX ERRORE RUST:
+     // Invece di salvare 'rootObj' (che è legato alla memoria WASM/Rust),
+     // cerchiamo SUBITO il nome della superficie risalendo i padri ORA.
+     
+     let foundName = '';
+     let curr = rootObj;
+
+     // Risalita sicura (massimo 3 livelli come nel tuo handler)
+     for (let i = 0; i < 3; i++) {
+        if (!curr) break;
+        const n = curr.name || '';
+
+        // Cerchiamo le keyword che ci interessano
+        if (n.includes('Check_') || n.includes('_boost') || 
+            n.includes('_grass') || n.includes('_outBound') || 
+            n.includes('Road') || n.includes('Floor')) {
+            foundName = n;
+            break;
+        }
+        curr = curr.parent;
+     }
+
+     // 4. Se abbiamo trovato un nome valido, lo mettiamo in coda come OGGETTO PURO JS
+     // Creiamo un oggetto { name: ... } finto. 
+     // Il tuo 'checkSurface' funzionerà ugualmente perché leggerà obj.name.
+     if (foundName) {
+        collisionQueue.current.push({ name: foundName });
+     }
   }
 
   const handleGroundExit = (payload) => {
-     // Se stacchiamo dal terreno
      isGrounded.current = false;
   }
 
@@ -422,22 +402,23 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         colliders={false} 
         type="dynamic" 
         ccd={true} 
-        name={isBot ? "bot" : "player"} 
+        name={isBot ? "bot" : "kart"} 
         restitution={0}
+        // IMPORTANTE: Nessun onIntersectionEnter qui sul RigidBody principale!
+        // Usiamo solo il sensore sotto.
     >
-      {/* 1. COLLIDER FISICO (Sfera) */}
+      {/* 1. COLLIDER PRINCIPALE */}
       <BallCollider args={[PHYSICS_RADIUS]} material={{ friction: 0.0, restitution: 0 }} />
 
-      {/* 2. SENSORE TERRA (Sostituisce il Raycast per stabilità e performance) */}
+      {/* 2. SENSORE TERRA (Blindato) */}
       <CylinderCollider 
-         args={[0.2, 0.5]} // Altezza molto bassa, raggio stretto
-         position={[0, -PHYSICS_RADIUS + 0.2, 0]} // Posizionato sotto la sfera
-         sensor={true} // Sensore: rileva ma non sbatte
+         args={[0.2, 0.5]} 
+         position={[0, -PHYSICS_RADIUS + 0.2, 0]} 
+         sensor={true} 
          onIntersectionEnter={handleGroundEnter}
          onIntersectionExit={handleGroundExit}
       />
       
-      {/* HUD SOLO SE UMANO */}
       {!isBot && (
         <Html fullscreen style={{ pointerEvents: 'none' }}>
             <div style={{ position: 'absolute', top: '40px', right: '40px', color: 'white', fontFamily:'sans-serif', fontWeight:'bold', fontSize: '40px', display: 'flex', flexDirection:'column', alignItems:'flex-end' }}>
@@ -447,7 +428,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         </Html>
       )}
 
-      {/* MODELLO VISIVO */}
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
             <group position={vehicleConfig.vehicleOffset}>
                 <VehicleModel 
@@ -469,4 +449,4 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   )
 });
 
-const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group position={position} ref={ref}>{children}</group>));
+const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group position={position} ref={ref}>{children}</group>))
