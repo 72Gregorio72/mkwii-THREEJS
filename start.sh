@@ -1,5 +1,15 @@
 echo "🏎️  Avvio Mario Kart React..."
 
+#crea certificati, se non esistono
+[ ! -d "certs" ] || [ ! -f "certs/key.pem" ] || [ ! -f "certs/cert.pem" ] && \
+{\
+	printf "genero i certificati" ; \
+	mkdir -p certs && \
+	(cd certs && \
+	openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost" \
+	)\
+}
+
 # Controlla se Docker è attivo
 if ! docker info > /dev/null 2>&1 && ! sudo docker info > /dev/null 2>&1; then
     echo "❌ Errore: Docker non sembra avviato."

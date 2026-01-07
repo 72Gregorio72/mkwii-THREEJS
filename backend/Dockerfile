@@ -9,6 +9,7 @@ COPY package*.json ./
 
 # Installa le dipendenze
 RUN npm install
+RUN npm install typeorm mysql2 @nestjs/typeorm
 
 # Copia tutto il resto del codice sorgente nel container
 COPY . .
