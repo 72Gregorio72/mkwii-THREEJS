@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { Characters } from './components/Data'
-import { CharacterSelection } from './CharacterSelection'
-import { VehicleSelection } from './VehicleSelection'
-import { TrackSelection } from './TrackSelection'
-import { GameScene } from './GameScene' // Import the new component
+import { CharacterSelection } from './Scenes/CharacterSelection'
+import { VehicleSelection } from './Scenes/VehicleSelection'
+import { TrackSelection } from './Scenes/TrackSelection'
+import { GameScene } from './Scenes/GameScene' // Import the new component
 
 export default function App() {
 
@@ -18,6 +18,9 @@ export default function App() {
 
     return (
         <div style={{ backgroundImage: "url(/sprites/skybox.jpg)", minHeight: '100vh' }}>
+
+			
+
             {MenuState === 0 && (
                 <CharacterSelection 
                     setMenuState={setMenuState} 

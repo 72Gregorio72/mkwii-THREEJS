@@ -1,0 +1,11 @@
+services:
+  kart-game:
+    build: .
+    container_name: mario-kart-container
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app               # Sincronizza il tuo codice
+      - /app/node_modules    # IMPORTANTE: Usa i node_modules interni al container
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Fix per aggiornamento automatico file

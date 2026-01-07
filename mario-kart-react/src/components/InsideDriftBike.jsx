@@ -10,7 +10,7 @@ import gsap from 'gsap'
 import { useControls as useGameControls } from '../hooks/useControls' 
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
-import { useHitboxHandler } from '../utils/HitboxHandler' 
+import { useHitboxHandler } from '../hooks/HitboxHandler' 
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
@@ -504,7 +504,7 @@ export function InsideDriftBike({
         colliders={false} 
         type="dynamic" 
         ccd={true} 
-        name="bike" 
+        name="kart" 
         restitution={0}
         onIntersectionEnter={({ other }) => {
             const obj = other.rigidBodyObject || other.parent();
@@ -533,7 +533,7 @@ export function InsideDriftBike({
                   steer={steerVal}
                   drift={driftDirection.current}
                   speed={speed.current}
-                  isBike={true}
+                  isKart={true}
                 />
                 
                 <group rotation={[0, Math.PI, 0]}>

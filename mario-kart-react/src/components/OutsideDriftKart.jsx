@@ -10,7 +10,7 @@ import gsap from 'gsap'
 import { useControls as useGameControls } from '../hooks/useControls' 
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
-import { useHitboxHandler } from '../utils/HitboxHandler' 
+import { useHitboxHandler } from '../hooks/HitboxHandler' 
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 

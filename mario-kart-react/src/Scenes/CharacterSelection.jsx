@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, Center } from '@react-three/drei'
-import { RacerModel } from './models/RacerModel'
+import { RacerModel } from '../models/RacerModel'
 import { Suspense } from 'react'
 import { OrbitControls } from '@react-three/drei'
 
