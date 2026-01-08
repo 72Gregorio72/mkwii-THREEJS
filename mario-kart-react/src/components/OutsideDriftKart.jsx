@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo, forwardRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame, useThree, createPortal } from '@react-three/fiber'
 import { RigidBody, BallCollider, CylinderCollider } from '@react-three/rapier'
 import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three' 
 import * as THREE from 'three' 
@@ -123,7 +123,92 @@ function updateSparksColor(level, leftRef, rightRef) {
     applyColor(leftRef); applyColor(rightRef);
 }
 
-// --- 5. COMPONENTE PRINCIPALE COMPLETO E SICURO ---
+// --- SPEED LINES EFFECT TUNED (WIDER CENTER & FEWER LINES) ---
+const SpeedEffect = ({ boostTimeRef }) => {
+  const meshRef = useRef()
+  const count = 20 // RIDOTTO: Da 30 a 20 linee per pulizia
+  const { camera, scene } = useThree()
+  
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+  
+  const lines = useMemo(() => {
+    const temp = []
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2
+      
+      // FIX POSIZIONE: Raggio AUMENTATO (da 5 a 10)
+      // Questo crea un "buco" centrale molto più largo
+      const radius = 10.0 + Math.random() * 6.0 
+      
+      const z = -20 - Math.random() * 30 
+      const speed = 2.0 + Math.random() * 1.5 
+      temp.push({ angle, radius, z, speed })
+    }
+    return temp
+  }, [])
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return
+
+    const isBoosting = boostTimeRef.current > 0
+    const targetOpacity = isBoosting ? 0.35 : 0 
+    
+    meshRef.current.material.opacity = MathUtils.lerp(
+      meshRef.current.material.opacity,
+      targetOpacity,
+      delta * 10
+    )
+    
+    const isVisible = meshRef.current.material.opacity > 0.01
+    meshRef.current.visible = isVisible
+    if (!isVisible) return
+
+    meshRef.current.position.copy(camera.position)
+    meshRef.current.quaternion.copy(camera.quaternion)
+
+    lines.forEach((line, i) => {
+        line.z += line.speed * 120 * delta 
+        
+        if (line.z > 5) line.z = -40 
+
+        dummy.position.set(
+            Math.cos(line.angle) * line.radius, 
+            Math.sin(line.angle) * line.radius, 
+            line.z                              
+        )
+        
+        dummy.rotation.set(0, 0, line.angle) 
+        
+        // Spessore dinamico
+        const depthFactor = MathUtils.mapLinear(line.z, -40, 0, 1.0, 6.0)
+        const thickness = Math.max(1.0, depthFactor)
+
+        dummy.scale.set(1, thickness, 1) 
+
+        dummy.updateMatrix()
+        meshRef.current.setMatrixAt(i, dummy.matrix)
+    })
+    meshRef.current.instanceMatrix.needsUpdate = true
+  })
+
+  return createPortal(
+    <instancedMesh ref={meshRef} args={[null, null, count]} frustumCulled={false} renderOrder={999}>
+      <planeGeometry args={[3.0, 0.03]} /> 
+      <meshBasicMaterial 
+        color="white" 
+        transparent 
+        opacity={0} 
+        blending={THREE.AdditiveBlending} 
+        depthWrite={false} 
+        depthTest={false}  
+        side={THREE.DoubleSide}
+      />
+    </instancedMesh>,
+    scene
+  )
+}
+
+// --- 5. COMPONENTE PRINCIPALE COMPLETO ---
 
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
@@ -140,7 +225,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const activeControls = isBot ? botControls : humanControls
 
   // --- SICUREZZA FISICA ---
-  // Coda per gestire le collisioni fuori dal ciclo fisico
   const collisionQueue = useRef([]) 
 
   const camConfig = {
@@ -190,13 +274,12 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   }
 
   useFrame((state, delta) => {
-    // 1. Processa la coda delle collisioni (SICUREZZA RAPIER)
-    // Lo facciamo qui perché useFrame corre "fuori" dal blocco della fisica
+    // 1. Processa la coda delle collisioni
     if (collisionQueue.current.length > 0) {
         collisionQueue.current.forEach((obj) => {
             if (obj) checkSurface(obj);
         });
-        collisionQueue.current = []; // Svuota la coda
+        collisionQueue.current = []; 
     }
 
     if (!rigidBody.current) return;
@@ -345,32 +428,21 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)
 
   // --- GESTORE COLLISIONI SICURO ---
-  // --- GESTORE COLLISIONI SICURO ---
-  // --- GESTORE COLLISIONI SICURO (Fix Rust Aliasing) ---
   const handleGroundEnter = (payload) => {
-     // 1. Ottieni l'oggetto radice
      const rootObj = payload.other.rigidBodyObject;
      if (!rootObj) return;
 
-     // 2. Ignora player/bot per evitare collisioni interne
      const name = rootObj.name;
      if (name === 'player' || name === 'bot') return;
      
      isGrounded.current = true;
      
-     // 3. FIX ERRORE RUST:
-     // Invece di salvare 'rootObj' (che è legato alla memoria WASM/Rust),
-     // cerchiamo SUBITO il nome della superficie risalendo i padri ORA.
-     
      let foundName = '';
      let curr = rootObj;
 
-     // Risalita sicura (massimo 3 livelli come nel tuo handler)
      for (let i = 0; i < 3; i++) {
         if (!curr) break;
         const n = curr.name || '';
-
-        // Cerchiamo le keyword che ci interessano
         if (n.includes('Check_') || n.includes('_boost') || 
             n.includes('_grass') || n.includes('_outBound') || 
             n.includes('Road') || n.includes('Floor')) {
@@ -380,9 +452,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         curr = curr.parent;
      }
 
-     // 4. Se abbiamo trovato un nome valido, lo mettiamo in coda come OGGETTO PURO JS
-     // Creiamo un oggetto { name: ... } finto. 
-     // Il tuo 'checkSurface' funzionerà ugualmente perché leggerà obj.name.
      if (foundName) {
         collisionQueue.current.push({ name: foundName });
      }
@@ -393,59 +462,60 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   }
 
   return (
-    <RigidBody 
-        ref={rigidBody} 
-        position={START_POS} 
-        mass={100} 
-        linearDamping={0.5} 
-        angularDamping={0.5} 
-        colliders={false} 
-        type="dynamic" 
-        ccd={true} 
-        name={isBot ? "bot" : "kart"} 
-        restitution={0}
-        // IMPORTANTE: Nessun onIntersectionEnter qui sul RigidBody principale!
-        // Usiamo solo il sensore sotto.
-    >
-      {/* 1. COLLIDER PRINCIPALE */}
-      <BallCollider args={[PHYSICS_RADIUS]} material={{ friction: 0.0, restitution: 0 }} />
+    <>
+        {/* Renderizza SpeedEffect solo per il player umano */}
+        {!isBot && <SpeedEffect boostTimeRef={boostTime} />}
 
-      {/* 2. SENSORE TERRA (Blindato) */}
-      <CylinderCollider 
-         args={[0.2, 0.5]} 
-         position={[0, -PHYSICS_RADIUS + 0.2, 0]} 
-         sensor={true} 
-         onIntersectionEnter={handleGroundEnter}
-         onIntersectionExit={handleGroundExit}
-      />
-      
-      {!isBot && (
-        <Html fullscreen style={{ pointerEvents: 'none' }}>
-            <div style={{ position: 'absolute', top: '40px', right: '40px', color: 'white', fontFamily:'sans-serif', fontWeight:'bold', fontSize: '40px', display: 'flex', flexDirection:'column', alignItems:'flex-end' }}>
-                <span ref={speedUiRef}>0 km/h</span>
-                <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>SPACE TO HOP/DRIFT</div>
-            </div>
-        </Html>
-      )}
+        <RigidBody 
+            ref={rigidBody} 
+            position={START_POS} 
+            mass={100} 
+            linearDamping={0.5} 
+            angularDamping={0.5} 
+            colliders={false} 
+            type="dynamic" 
+            ccd={true} 
+            name={isBot ? "bot" : "kart"} 
+            restitution={0}
+        >
+        <BallCollider args={[PHYSICS_RADIUS]} material={{ friction: 0.0, restitution: 0 }} />
 
-      <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-            <group position={vehicleConfig.vehicleOffset}>
-                <VehicleModel 
-                  vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
-                  position={[0, 0, 0]} steer={modelSteer} drift={driftDirection.current} speed={speed.current} isBike={true}
-                />
-                <group rotation={[0, Math.PI, 0]}>
-                  <RacerModel 
-                      isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
-                      steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
-                    key={vehicleConfig.name + "_racer"}
-                  />
-                </group>
-            </group>    
-            <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
-            <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
-      </group>
-    </RigidBody>
+        <CylinderCollider 
+            args={[0.2, 0.5]} 
+            position={[0, -PHYSICS_RADIUS + 0.2, 0]} 
+            sensor={true} 
+            onIntersectionEnter={handleGroundEnter}
+            onIntersectionExit={handleGroundExit}
+        />
+        
+        {!isBot && (
+            <Html fullscreen style={{ pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', top: '40px', right: '40px', color: 'white', fontFamily:'sans-serif', fontWeight:'bold', fontSize: '40px', display: 'flex', flexDirection:'column', alignItems:'flex-end' }}>
+                    <span ref={speedUiRef}>0 km/h</span>
+                    <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>SPACE TO HOP/DRIFT</div>
+                </div>
+            </Html>
+        )}
+
+        <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
+                <group position={vehicleConfig.vehicleOffset}>
+                    <VehicleModel 
+                    vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
+                    position={[0, 0, 0]} steer={modelSteer} drift={driftDirection.current} speed={speed.current} isBike={true}
+                    />
+                    <group rotation={[0, Math.PI, 0]}>
+                    <RacerModel 
+                        isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
+                        steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
+                        key={vehicleConfig.name + "_racer"}
+                    />
+                    </group>
+                </group>    
+                <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
+                <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
+        </group>
+        </RigidBody>
+    </>
   )
 });
 
