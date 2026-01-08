@@ -6,12 +6,17 @@ import { SmartMap } from '../Tracks/SmartMap'
 import { OutsideDriftKart } from '../components/OutsideDriftKart'
 import { InsideDriftBike } from '../components/InsideDriftBike'
 import { WaypointRecorder } from '../Bot/WaypointRecorder'
-import trackWaypoints from '../Bot/Waypoints/DaisyCircuit.json'
+import trackWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit.json'
+import leftWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left.json'
+import rightWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right.json'
+import trackWaypoints1 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit1.json'
+import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
+
 
 const TOTAL_LAPS = 3;
 
 
-function WaypointVisualizer({ points }) {
+function WaypointVisualizer({ points, color }) {
   const linePoints = useMemo(() => {
     if (!points) return []
     // Convertiamo l'array di oggetti {x,y,z} in array di array [x,y,z]
@@ -22,7 +27,7 @@ function WaypointVisualizer({ points }) {
   return (
     <Line
       points={linePoints}       // Array di vettori [x, y, z]
-      color="red"               // Colore richiesto
+      color={color}               // Colore richiesto
       lineWidth={3}             // Spessore della linea
       dashed={false}            // Linea continua
     />
@@ -120,6 +125,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 	const kartRef = useRef();
 	const bikeRef = useRef();
 
+	const paths = [trackWaypoints, leftWaypoints, rightWaypoints, trackWaypoints1, trackWaypoints2]; // Percorsi multipli per il bot
+
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
     const isBike = vehicle.isBike;
 
@@ -173,9 +180,13 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
                 <Environment preset="city" />
 
-				<WaypointVisualizer points={trackWaypoints} />
+				<WaypointVisualizer points={trackWaypoints} color="red" />
+				<WaypointVisualizer points={leftWaypoints} color="green" />
+				<WaypointVisualizer points={rightWaypoints} color="blue" />
+				<WaypointVisualizer points={trackWaypoints1} color="yellow" />
+				<WaypointVisualizer points={trackWaypoints2} color="purple" />
 
-                <Physics debug={false}> {/* Metti debug={true} per vedere i box collider verdi/rossi */}
+                <Physics debug={true}> {/* Metti debug={true} per vedere i box collider verdi/rossi */}
                     
                     {/* 1. LA PISTA (Solida) */}
                     <group ref={trackRef}>
@@ -199,7 +210,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 characterConfig={character.modelConfig}
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
-                                // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI (se hai rimosso il raycast)
                                 trackRef={trackRef} 
                             />
                         ) : (
@@ -210,24 +220,26 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
 								ref={kartRef}
+								START_ROT={[0, 90, 0]}
                             />
                         )}
                     </group>
 
 					{/* === 4. IL BOT (Nemico) === */}
-                    <group position={[0, 10, 0]}>
+                    <group position={[0, 10, 0]}> 
                          <OutsideDriftKart 
                             characterConfig={character.modelConfig} 
                             vehicleConfig={vehicle} 
                             
                             START_POS={[start_pos[0] + 3, start_pos[1], start_pos[2]]} 
-                            trackRef={trackRef}
-                            trackConfig={selectedTrack}
-                            isBot={true}              // Attiva l'IA
-                            waypoints={trackWaypoints} // Passagli i 732 punti
-                        />
+                            trackRef={trackRef} 
+                            trackConfig={selectedTrack} 
+                            isBot={true}              // Attiva l'IA 
+							paths={paths}             // Passa i percorsi multipli
+							START_ROT={[0, 90, 0]}
+                        /> 
                     </group>
-					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} /> */}
+					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} />  */}
                 </Physics>
             </Canvas>
         </div>

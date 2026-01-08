@@ -32,6 +32,13 @@ export const Tracks = {
 		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
 		maxCheckpoints: 3
 	},
+	'Coconut Mall': {
+		file: './Tracks/CoconutMall/CoconutMall.glb',
+		preview: './TrackPreviews/CoconutMall.png',
+		startPos: [-15, 5, -50],
+		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
+		maxCheckpoints: 5
+	}
 }
 
 export const Characters = [
