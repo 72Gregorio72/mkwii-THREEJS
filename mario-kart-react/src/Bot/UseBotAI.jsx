@@ -4,10 +4,10 @@ import { useRapier } from '@react-three/rapier'
 import * as THREE from 'three'
 
 const AI_CONFIG = {
-  lookAheadDist: 50,      // Distanza ideale (rettilinei)
-  minLookAhead: 12,       // Distanza di emergenza (curve strette/ostacoli)
+  lookAheadDist: 30,      // Distanza ideale (rettilinei)
+  minLookAhead: 8,       // Distanza di emergenza (curve strette/ostacoli)
   laneWidth: 4.0,         
-  steerReaction: 8.0,     
+  steerReaction: 15.0,     
   rayLength: 6.0,         // Raggi corti per evitare auto
   stuckTime: 1.5,
   decisionCooldown: 3.0   
