@@ -12,6 +12,7 @@ import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
 
 import { useBotAI } from '../Bot/UseBotAI'
+import { useAudio } from '../audio/AudioManager'
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
