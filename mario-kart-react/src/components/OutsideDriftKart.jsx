@@ -128,7 +128,7 @@ function updateSparksColor(level, leftRef, rightRef) {
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
-    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = []
+    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData
   } = props;
   
   const { scene } = useThree()
@@ -173,6 +173,8 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const backRight = useRef()
   const leftSparksRef = useRef()
   const rightSparksRef = useRef()
+
+  const racerId = userData?.id || (isBot ? "bot" : "player");
 
   // Helper vectors per la fisica (evita Garbage Collection)
   const v = useMemo(() => ({
@@ -420,8 +422,11 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         angularDamping={2} 
         type="dynamic" 
         ccd={true} 
-        name={isBot ? "bot" : "kart"} 
-        
+        name={racerId} 
+        userData={{ 
+            type: 'racer', 
+            id: racerId // <--- Passa l'ID univoco (es. "bot_0", "bot_1") invece di "bot" generico
+        }}
         colliders={false} 
         lockRotations={true}
         

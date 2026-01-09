@@ -11,11 +11,32 @@ import leftWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left.json'
 import rightWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right.json'
 import trackWaypoints1 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit1.json'
 import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
-
+import { CheckpointSystem } from '../Race/CheckPointManager.jsx'
+import { RaceManager } from '../Race/RaceManager.jsx'
 
 const TOTAL_LAPS = 3;
+const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
 
-
+// Funzione helper per calcolare la griglia di partenza
+// index 0 = Player, index 1..11 = Bots
+function getGridPosition(startPos, index) {
+    const ROW_DIST = 3.5; // Distanza tra le file (profondità)
+    const COL_DIST = 2.5; // Distanza laterale
+    
+    // Calcoliamo la fila e se è destra/sinistra
+    const row = Math.floor(index / 2);
+    const isRight = index % 2 !== 0; 
+    
+    // Offset
+    const xOffset = isRight ? COL_DIST : -COL_DIST;
+    const zOffset = row * -ROW_DIST; // Vanno indietro rispetto alla start_pos
+    
+    return [
+        startPos[0] + xOffset,
+        startPos[1], // Y rimane uguale
+        startPos[2] + zOffset // Z va indietro
+    ];
+}
 function WaypointVisualizer({ points, color }) {
   const linePoints = useMemo(() => {
     if (!points) return []
@@ -23,7 +44,6 @@ function WaypointVisualizer({ points, color }) {
     // Alziamo la Y di 1 metro per vederla bene sopra la strada
     return points.map(p => [p.x, p.y + 1.0, p.z])
   }, [points])
-
   return (
     <Line
       points={linePoints}       // Array di vettori [x, y, z]
@@ -38,140 +58,92 @@ function WaypointVisualizer({ points, color }) {
  * Componente che gestisce i Box Collider dei Checkpoint
  * Carica il GLB, e per ogni oggetto crea un'area sensibile (Sensor)
  */
-function CheckpointSystem({ url, onCheckpointTrigger }) {
-    const { scene } = useGLTF(url);
-    
-    // Coda per gestire gli urti "dopo" il calcolo fisico
-    const hitsQueue = useRef([]);
-
-    const sensors = useMemo(() => {
-        const boxes = [];
-        scene.traverse((child) => {
-            if (child.isMesh) {
-                const rawName = child.name;
-                const numberOnly = rawName.replace(/[^0-9]/g, ''); 
-                const id = parseInt(numberOnly);
-                
-                if (!isNaN(id)) {
-                    boxes.push({
-                        id: id,
-                        position: child.position,
-                        rotation: child.rotation,
-                        scale: child.scale,
-                        geometry: child.geometry
-                    });
-                }
-            }
-        });
-        return boxes.sort((a, b) => a.id - b.id);
-    }, [scene, url]);
-
-    // Processiamo la coda degli urti al frame successivo (o fuori dal ciclo fisico)
-    useFrame(() => {
-        if (hitsQueue.current.length > 0) {
-            // Processa ogni urto registrato
-            hitsQueue.current.forEach((hitId) => {
-                onCheckpointTrigger(hitId);
-            });
-            // Svuota la coda
-            hitsQueue.current = [];
-        }
-    });
-
-    return (
-        <group>
-            {sensors.map((box, index) => (
-                <RigidBody
-                    key={index} 
-                    type="fixed" 
-                    colliders="trimesh" 
-                    sensor={true} 
-                    position={box.position}
-                    rotation={box.rotation}
-                    scale={box.scale}
-                    onIntersectionEnter={(payload) => {
-                        // 1. LEGGERO E SICURO: Non loggare oggetti complessi qui!
-                        // 2. Verifica solo il nome se esiste
-                        const other = payload.other.rigidBodyObject;
-                        if (other && (other.name === 'player' || other.name === 'bot')) {
-                            // 3. NON eseguire logica qui. Mettilo in coda.
-                            // Evitiamo duplicati nello stesso frame
-                            if (!hitsQueue.current.includes(box.id)) {
-                                hitsQueue.current.push(box.id);
-                            }
-                        }
-                    }}
-                >
-                    <mesh geometry={box.geometry}>
-                        <meshBasicMaterial visible={false} />
-                    </mesh>
-                </RigidBody>
-            ))}
-        </group>
-    );
-}
-
-
 export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack, start_pos, maxCheckpoints, selectedTrack }) {
-    
-    // --- STATO GARA ---
-    const [lap, setLap] = useState(1);
-    const [nextCheck, setNextCheck] = useState(1); 
+
+    // --- REFS DATI ---
+    const { initialRacersData, initialPositions, botsArray } = useMemo(() => {
+        const data = {
+            player: { id: 'player', lap: 1, nextCP: 1, score: 0 }
+        };
+        const positions = [{ id: 'player', position: 1 }];
+        const bots = [];
+
+        for (let i = 0; i < BOT_COUNT; i++) {
+            const botId = `bot_${i}`;
+            data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0 };
+            positions.push({ id: botId, position: i + 2 });
+            bots.push({ id: botId, index: i });
+        }
+
+        return { initialRacersData: data, initialPositions: positions, botsArray: bots };
+    }, []);
+
+    // --- REFS FISICI ---
+    const [positions, setPositions] = useState(initialPositions);
+    const [uiLap, setUiLap] = useState(1);
     const [finished, setFinished] = useState(false);
 
     // --- REFS ---
-    const lastCheckTime = useRef(0);
-    const trackRef = useRef(); // Serve ancora per la pista fisica (SmartMap)
-	const kartRef = useRef();
-	const bikeRef = useRef();
+    const racersData = useRef(initialRacersData);
+    const trackRef = useRef();
+    
+    const racerRefs = useRef({});
 
-	const paths = [trackWaypoints, leftWaypoints, rightWaypoints, trackWaypoints1, trackWaypoints2]; // Percorsi multipli per il bot
+    // --- LOGICA CHECKPOINT ---
+    // --- LOGICA CHECKPOINT ---
+	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
+		// Controllo sicurezza
+		if (!racerId || !racersData.current[racerId]) return;
 
-    if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
-    const isBike = vehicle.isBike;
+		const racer = racersData.current[racerId];
+		
+		// Debug per capire se i bot vengono rilevati
+		// if (racerId.includes('bot')) console.log(`${racerId} hit CP ${hitIndex}. Next expected: ${racer.nextCP}`);
 
-    // --- LOGICA GIRI ---
-    const handleCheckpoint = useCallback((hitIndex) => {
-        if (finished) return;
+		// CASO 1: Checkpoint corretto (sequenziale)
+		if (hitIndex === racer.nextCP && hitIndex !== 0) {
+			racer.nextCP += 1;
+		} 
+		// CASO 2: Traguardo (Index 0)
+		// Bisogna aver superato l'ultimo checkpoint (maxCheckpoints)
+		else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
+			racer.lap += 1;
+			racer.nextCP = 1; // Reset per il nuovo giro
+			
+			// Log visivo per confermare che il bot ha completato il giro
+			console.log(`🏁 ${racerId} COMPLETED LAP ${racer.lap - 1}! Now on Lap ${racer.lap}`);
 
-        const now = Date.now();
-        if (now - lastCheckTime.current < 500) return;
+			// Gestione fine gara solo per il player (o logica globale se vuoi)
+			if (racerId === 'player') {
+				if (racer.lap > TOTAL_LAPS) setFinished(true);
+				else setUiLap(racer.lap);
+			}
+		}
+	}, [maxCheckpoints]);
 
-        console.log(`🏁 CHECKPOINT TOCCATO -> ID: ${hitIndex} | Atteso: ${nextCheck}`);
+    const playerRank = positions.find(p => p.id === 'player')?.position || 1;
 
-        // CASO 1: Checkpoint Intermedio Corretto
-        if (hitIndex === nextCheck && hitIndex !== 0) {
-            console.log("✅ Checkpoint Valido!");
-            setNextCheck(prev => prev + 1);
-            lastCheckTime.current = now; 
-        } else if (hitIndex === 0 && nextCheck > maxCheckpoints) {
-            console.log("🏆 GIRO COMPLETATO!");
-            
-            setLap(prevLap => {
-                const newLap = prevLap + 1;
-                if (newLap > TOTAL_LAPS) {
-                    setFinished(true);
-                    return prevLap; 
-                }
-                return newLap;
-            });
+	const checkpointPositionsRef = useRef({});
 
-            setNextCheck(1); 
-            lastCheckTime.current = now; 
-        }
-    }, [finished, nextCheck, maxCheckpoints]);
+	const playerRef = useRef();
+
+	const botRefs = useRef({});
+
+	const racers = [playerRef, botRefs];
+	
+	// Inizializza i ref per tutti i 11 bot
+	for (let i = 0; i < BOT_COUNT; i++) {
+		if (!botRefs.current[`bot_${i}`]) {
+			botRefs.current[`bot_${i}`] = React.createRef();
+		}
+	}
 
     return (
         <div style={{ width: '100vw', height: '100vh' }}>
-            {/* UI HUD */}
-            <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white', fontFamily: 'sans-serif', textShadow: '2px 2px 0 #000' }}>
-                <button onClick={onBack} style={{marginBottom: 10, cursor: 'pointer'}}>Exit Race</button>
-                <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
-                    {finished ? <span style={{color: '#ffdd00'}}>FINISH!</span> : `Lap ${lap} / ${TOTAL_LAPS}`}
-                </div>
-                <div style={{ fontSize: '14px', opacity: 0.7 }}>
-                      Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
-                </div>
+            {/* UI HTML */}
+            <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white' }}>
+                 <h1>Pos: {playerRank} / 2</h1>
+                 <h2>Lap: {uiLap}</h2>
             </div>
 
             <Canvas>
@@ -180,33 +152,49 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
                 <Environment preset="city" />
 
-				<WaypointVisualizer points={trackWaypoints} color="red" />
+				<WaypointVisualizer points={trackWaypoints} color="blue" />
 				<WaypointVisualizer points={leftWaypoints} color="green" />
-				<WaypointVisualizer points={rightWaypoints} color="blue" />
+				<WaypointVisualizer points={rightWaypoints} color="red" />
 				<WaypointVisualizer points={trackWaypoints1} color="yellow" />
-				<WaypointVisualizer points={trackWaypoints2} color="purple" />
+				<WaypointVisualizer points={trackWaypoints2} color="orange" />
+				
 
-                <Physics debug={true}> {/* Metti debug={true} per vedere i box collider verdi/rossi */}
+                <Physics debug={false}>
                     
-                    {/* 1. LA PISTA (Solida) */}
+                    <RaceManager 
+                        racersData={racersData}
+                        finished={finished}
+                        setPositions={setPositions}
+                        positions={positions}
+						playerRef={playerRef}
+						botRefs={botRefs}
+                        trackPath={trackWaypoints}
+                    />
+                    
                     <group ref={trackRef}>
                         <SmartMap modelPath={mapPath} scale={1} />
                     </group>
-
-                    {/* 2. I CHECKPOINT (Sensori Invisibili) */}
-                    {/* Sostituiamo il <Gltf> statico con il nostro sistema intelligente */}
                     {checkpointPath && (
                         <CheckpointSystem 
                             url={checkpointPath} 
-                            onCheckpointTrigger={handleCheckpoint} 
+                            // 1. Salviamo le posizioni appena caricate
+                            onSystemReady={(posMap) => {
+                                checkpointPositionsRef.current = posMap;
+                                // console.log("📍 Mappa Checkpoint caricata per RaceManager:", posMap);
+                            }}
+                            // 2. Logica trigger esistente
+                            onCheckpointTrigger={(index, racerId) => {
+                                handleCheckpointTrigger(index, racerId); 
+                            }} 
                         />
                     )}
 
-                    {/* 3. I VEICOLI */}
-                    {/* Nota: Non serve più passare handleCheckpoint al veicolo, perché ora è il box che rileva il veicolo, non viceversa */}
-                    <group position={[0, 10, 0]} ref={isBike ? bikeRef : kartRef}>
-                        {isBike ? (
+                    {/* PLAYER */}
+                    <group position={[0, 10, 0]} > 
+                        {vehicle.isBike ? (
                             <InsideDriftBike 
+                                ref={playerRef} // USA playerRef
+                                userData={{ type: 'racer', id: 'player' }} // FONDAMENTALE PER IL CHECKPOINT
                                 characterConfig={character.modelConfig}
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
@@ -214,32 +202,43 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                             />
                         ) : (
                             <OutsideDriftKart 
+                                ref={playerRef} // USA playerRef
+                                userData={{ type: 'racer', id: 'player' }} // FONDAMENTALE PER IL CHECKPOINT
                                 characterConfig={character.modelConfig}
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
-								ref={kartRef}
-								START_ROT={[0, 90, 0]}
+                                START_ROT={[0, 90, 0]}
                             />
                         )}
                     </group>
 
-					{/* === 4. IL BOT (Nemico) === */}
-                    <group position={[0, 10, 0]}> 
-                         <OutsideDriftKart 
-                            characterConfig={character.modelConfig} 
-                            vehicleConfig={vehicle} 
-                            
-                            START_POS={[start_pos[0] + 3, start_pos[1], start_pos[2]]} 
-                            trackRef={trackRef} 
-                            trackConfig={selectedTrack} 
-                            isBot={true}              // Attiva l'IA 
-							paths={paths}             // Passa i percorsi multipli
-							START_ROT={[0, 90, 0]}
-                        /> 
-                    </group>
-					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} />  */}
+                    {/* BOT */}
+                    {Array.from({ length: BOT_COUNT }, (_, i) => {
+						const botId = `bot_${i}`;
+						const gridPos = getGridPosition(start_pos, i + 1); // +1 perché player è index 0
+						
+						return (
+							<group key={botId} position={[0, 10, 0]}> 
+								<OutsideDriftKart 
+									ref={botRefs.current[botId]}
+									userData={{ type: 'racer', id: botId }}
+									characterConfig={character.modelConfig} 
+									vehicleConfig={vehicle} 
+									START_POS={gridPos}
+									trackRef={trackRef} 
+									trackConfig={selectedTrack} 
+									isBot={true}
+									paths={[trackWaypoints, trackWaypoints1, trackWaypoints2, leftWaypoints, rightWaypoints]} 
+									START_ROT={[0, 90, 0]}
+									onCheckpoint={(idx) => handleCheckpointTrigger(idx, botId)}
+								/> 
+							</group>
+						);
+					})}
+					
+
                 </Physics>
             </Canvas>
         </div>

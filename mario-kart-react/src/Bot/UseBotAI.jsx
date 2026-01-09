@@ -4,13 +4,18 @@ import { useRapier } from '@react-three/rapier'
 import * as THREE from 'three'
 
 const AI_CONFIG = {
-  lookAheadDist: 30,      // Distanza ideale (rettilinei)
-  minLookAhead: 8,       // Distanza di emergenza (curve strette/ostacoli)
-  laneWidth: 4.0,         
-  steerReaction: 15.0,     
-  rayLength: 6.0,         // Raggi corti per evitare auto
+  lookAheadDist: 12.0,    // Distanza media per precisione (nè troppo vicina nè troppo lontana)
+  minLookAhead: 4.0,      // Minimo per le curve strette
+  maxLaneOffset: 1.8,     // Metri massimi dal centro (+/-)
+  
+  laneSwitchInterval: 8.0,// OGNI QUANTO CAMBIA LINEA (Secondi) - Molto più "stabile"
+  laneSwitchSpeed: 1.5,   // Velocità dello spostamento laterale (più basso = cambio morbido)
+  
+  steerReaction: 15.0,    // MOLTO ALTO: Sterzo "su binari", reagisce subito
+  
+  rayLength: 5.0,         
   stuckTime: 1.5,
-  decisionCooldown: 3.0   
+  debugEnabled: false      
 }
 
 export function useBotAI({ isBot, rigidBody, paths }) {
@@ -21,14 +26,13 @@ export function useBotAI({ isBot, rigidBody, paths }) {
     forward: false, backward: false, left: false, right: false, drift: false 
   })
 
-  // Stati logici
   const activePathIndex = useRef(0)
-  const currentWpIndex = useRef(0) // Questo "corre" avanti di 50m
-  const closestWpIndex = useRef(0) //  Questo traccia dove è l'auto REALE
+  const closestWpIndex = useRef(0)
   
+  // Gestione Linea
   const currentLaneOffset = useRef(0)
   const targetLaneOffset = useRef(0)
-  const humanizeTimer = useRef(0)
+  const laneTimer = useRef(Math.random() * 10) // Start random per non farli cambiare tutti insieme
   
   const currentSteer = useRef(0)
   const stuckTimer = useRef(0)
@@ -45,7 +49,7 @@ export function useBotAI({ isBot, rigidBody, paths }) {
     rayDir: new THREE.Vector3(),
     temp: new THREE.Vector3(),
     pathRight: new THREE.Vector3(),
-    sightRayDir: new THREE.Vector3() // Nuovo vettore per la linea di vista
+    sightRayDir: new THREE.Vector3() 
   }), [])
 
   // --- CLEANUP DEBUG ---
@@ -62,12 +66,10 @@ export function useBotAI({ isBot, rigidBody, paths }) {
   useEffect(() => {
     if (!paths || paths.length === 0 || !rigidBody.current) return
     
-    // Assegnazione percorso casuale
     activePathIndex.current = Math.floor(Math.random() * paths.length)
     const currentPath = paths[activePathIndex.current]
     const rbPos = rigidBody.current.translation()
     
-    // Troviamo il punto più vicino per iniziare
     let closestDist = Infinity
     let closestIndex = 0
     for (let i = 0; i < currentPath.length; i++) {
@@ -80,9 +82,9 @@ export function useBotAI({ isBot, rigidBody, paths }) {
         }
     }
     closestWpIndex.current = closestIndex
-    currentWpIndex.current = closestIndex // All'inizio coincidono
     
-    targetLaneOffset.current = (Math.random() - 0.5) * AI_CONFIG.laneWidth
+    // Inizia subito su una linea casuale
+    targetLaneOffset.current = (Math.random() - 0.5) * 2 * AI_CONFIG.maxLaneOffset
     currentLaneOffset.current = targetLaneOffset.current
   }, [paths]) 
 
@@ -102,16 +104,20 @@ export function useBotAI({ isBot, rigidBody, paths }) {
     const q = new THREE.Quaternion(rbRot.x, rbRot.y, rbRot.z, rbRot.w)
     v.forward.set(0, 0, -1).applyQuaternion(q).normalize()
     
-    // Origine raggio un po' alzata per non colpire il pavimento stesso
-    v.rayOrigin.copy(v.pos).add(new THREE.Vector3(0, 0.8, 0))
+    // Raycast basso per i cordoli
+    v.rayOrigin.copy(v.pos).add(new THREE.Vector3(0, 0.35, 0))
 
     // --- 2. Gestione Indici Percorso ---
-    // A. Trova indice realmente più vicino all'auto (per il fallback corto)
-    // Non facciamo un loop completo per performance, cerchiamo solo nei prossimi 10
     let bestDist = Infinity
     let checkIndex = closestWpIndex.current
-    for(let i=0; i<10; i++) {
-        const idx = (closestWpIndex.current + i) % currentPath.length
+    const pathLen = currentPath.length
+
+    // Range di ricerca esteso
+    for(let i = -5; i < 25; i++) {
+        let idx = (closestWpIndex.current + i);
+        if (idx < 0) idx += pathLen;
+        idx = idx % pathLen;
+
         const wp = currentPath[idx]
         const d = (wp.x - v.pos.x)**2 + (wp.z - v.pos.z)**2
         if(d < bestDist) {
@@ -121,106 +127,129 @@ export function useBotAI({ isBot, rigidBody, paths }) {
     }
     closestWpIndex.current = checkIndex
 
-    // B. Gestione indice "Lontano" (Target ideale a 50m)
-    let currWp = currentPath[currentWpIndex.current]
-    let nextWp = currentPath[(currentWpIndex.current + 1) % currentPath.length]
-    
-    // Distanza dal "cursore target" attuale
-    const distToCurrTarget = v.pos.distanceToSquared(v.temp.set(currWp.x, v.pos.y, currWp.z))
-    
-    // Se siamo più vicini di 50m (2500 dist^2), spingiamo il target più avanti
-    if (distToCurrTarget < (AI_CONFIG.lookAheadDist ** 2)) {
-      currentWpIndex.current = (currentWpIndex.current + 1) % currentPath.length
-    }
+    // --- 3. Calcolo Target Base ---
+    const speedBonus = Math.floor(currentSpeed * 0.5); 
+    const lookAheadNodes = Math.max(AI_CONFIG.minLookAhead, Math.floor(AI_CONFIG.lookAheadDist * 0.6) + speedBonus);
 
-    // --- 3. Umanizzazione Corsia ---
-    humanizeTimer.current += delta
-    if (humanizeTimer.current > 2.0) { 
-        targetLaneOffset.current = (Math.random() - 0.5) * AI_CONFIG.laneWidth
-        humanizeTimer.current = -(Math.random() * 2.0)
-    }
-    currentLaneOffset.current = THREE.MathUtils.lerp(currentLaneOffset.current, targetLaneOffset.current, delta * 0.5)
+    // Indice Target
+    const farIndex = (closestWpIndex.current + lookAheadNodes) % pathLen;
+    const farWp = currentPath[farIndex];
 
-
-    // --- 4. CALCOLO TARGET INTELLIGENTE (Corner Cutting Logic) ---
-    
-    // Target LONTANO (default)
-    const farWp = currentPath[currentWpIndex.current]
-    
-    // Target VICINO (fallback sicuro)
-    // Prendiamo un punto qualche indice avanti rispetto a dove siamo fisicamente
-    const safeLookAheadNodes = 4 // ~10-15 metri avanti in base alla densità dei punti
-    const nearIndex = (closestWpIndex.current + safeLookAheadNodes) % currentPath.length
-    const nearWp = currentPath[nearIndex]
-
+    // --- 4. Safety Check (Panic Mode per Rotonde) ---
+    // Questo serve SOLO se c'è un muro fisico davanti. Se è libero, seguono la linea.
     let finalTargetWp = farWp
-    let isCuttingCorner = false
+    let isSightBlocked = false
 
-    // Raycast verso il target LONTANO per vedere se tagliamo l'erba
     if (world && rapier) {
-        v.temp.set(farWp.x, v.pos.y + 0.8, farWp.z) // Target aggiustato in altezza
+        v.temp.set(farWp.x, v.pos.y + 0.5, farWp.z) 
         v.sightRayDir.copy(v.temp).sub(v.rayOrigin)
         const distanceToFar = v.sightRayDir.length()
         v.sightRayDir.normalize()
 
         const sightRay = new rapier.Ray(v.rayOrigin, v.sightRayDir)
-        // Raycast che ignora gli oggetti dinamici se configurati, ma colpisce statici (muri, terreno)
-        // true = colpisce tutto. Controlliamo la distanza
+        // Check muri/statici
         const hit = world.castRay(sightRay, distanceToFar, true)
         
-        // Se colpiamo qualcosa prima di arrivare al target (tolleranza 1 metro), stiamo tagliando
-        if (hit && hit.toi < distanceToFar - 1.0) {
-             isCuttingCorner = true
+        if (hit && hit.toi < distanceToFar - 1.5) {
+             isSightBlocked = true
         }
     }
 
-    // Se stiamo tagliando la curva, usiamo il target VICINO
-    if (isCuttingCorner) {
-        finalTargetWp = nearWp
+    // --- 5. LOGICA LINEA (Cambi Occasionali) ---
+    let targetIndexForOffset = farIndex;
+
+    if (isSightBlocked) {
+        // PANIC MODE: Muro davanti, dimentica la linea e stai al centro
+        const panicIndex = (closestWpIndex.current + 3) % pathLen;
+        finalTargetWp = currentPath[panicIndex];
+        targetIndexForOffset = panicIndex; 
+        
+        // Reset immediato al centro
+        currentLaneOffset.current = THREE.MathUtils.damp(currentLaneOffset.current, 0, 10, delta);
+    } else {
+        // NORMAL MODE: Segui la linea scelta
+        laneTimer.current += delta;
+        
+        // Cambia decisione solo ogni X secondi
+        if (laneTimer.current > AI_CONFIG.laneSwitchInterval) {
+            laneTimer.current = 0;
+            // Scegli una nuova linea a caso
+            targetLaneOffset.current = (Math.random() - 0.5) * 2 * AI_CONFIG.maxLaneOffset;
+        }
+
+        // Movimento verso la linea scelta (Smussato ma preciso)
+        // NOTA: Ho rimosso il "Safety Clamp" che riduceva l'offset in curva.
+        // Ora mantengono la linea anche in curva, a meno che non ci sia un muro (gestito sotto).
+        currentLaneOffset.current = THREE.MathUtils.damp(currentLaneOffset.current, targetLaneOffset.current, AI_CONFIG.laneSwitchSpeed, delta);
     }
 
-    // --- DEBUG VISUAL: Linea di Vista (Sight Line) ---
-    // Blu = Vedo il target lontano (Rettilineo)
-    // Arancione = Vista bloccata, uso target vicino (Curva)
-    if (!debugArrows.current['sight']) {
-        const arrow = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), v.rayOrigin, 5, 0x0000ff)
-        scene.add(arrow)
-        debugArrows.current['sight'] = arrow
-    }
-    const sightArrow = debugArrows.current['sight']
-    sightArrow.position.copy(v.rayOrigin)
+    // --- 6. Calcolo Vettore Target ---
+    const nextWpRef = currentPath[(targetIndexForOffset + 1) % pathLen]
     
-    // Direzione visuale
-    const actualDir = v.temp.set(finalTargetWp.x, v.pos.y, finalTargetWp.z).sub(v.pos)
-    const dist = actualDir.length()
-    sightArrow.setDirection(actualDir.normalize())
-    sightArrow.setLength(Math.min(dist, 30)) // Cap lunghezza visiva
-    sightArrow.setColor(isCuttingCorner ? new THREE.Color(0xffaa00) : new THREE.Color(0x0088ff))
-
-
-    // --- 5. Calcolo Vettore Target Finale con Offset ---
-    // Calcoliamo la "destra" del percorso nel punto del target scelto
-    const targetNextIndex = (isCuttingCorner ? nearIndex : currentWpIndex.current) + 1
-    const nextWpRef = currentPath[targetNextIndex % currentPath.length]
+    // Calcolo vettore laterale (Destra)
     const roadDir = v.temp.copy(nextWpRef).sub(finalTargetWp).normalize()
     v.pathRight.crossVectors(new THREE.Vector3(0, 1, 0), roadDir).normalize()
     
+    // Applica Offset
     v.target.copy(finalTargetWp)
-    v.target.addScaledVector(v.pathRight, currentLaneOffset.current) // Applica offset corsia
+    v.target.addScaledVector(v.pathRight, currentLaneOffset.current) 
 
-    // --- 6. Raycasting Corto (Evitamento Auto) ---
-    // (Uguale a prima, ma con visualizzazione helper)
+    // --- SAFETY CHECK LATERALE ---
+    // Verifica che la linea scelta ("Perfect Line") non passi attraverso un muro laterale
+    if (world && !isSightBlocked) { 
+        v.temp.copy(v.target).sub(v.pos);
+        const distToTarget = v.temp.length();
+        v.temp.normalize(); 
+
+        const safetyRay = new rapier.Ray(v.rayOrigin, v.temp);
+        const safetyHit = world.castRay(safetyRay, distToTarget, true);
+
+        if (safetyHit && safetyHit.toi < distToTarget - 1.0) {
+             // La linea scelta colpisce un muro! Annulla l'offset temporaneamente.
+             // Non cambiamo targetLaneOffset (così riprova appena finito il muro),
+             // ma forziamo currentLaneOffset a 0 adesso.
+             currentLaneOffset.current = THREE.MathUtils.lerp(currentLaneOffset.current, 0, delta * 5.0);
+             v.target.copy(finalTargetWp); // Reset target fisico al centro
+             
+             if (AI_CONFIG.debugEnabled && debugArrows.current['sight']) {
+                 debugArrows.current['sight'].setColor(new THREE.Color(0xff0000));
+             }
+        }
+    }
+
+    // --- DEBUG VISUAL ---
+    if (AI_CONFIG.debugEnabled) {
+      if (!debugArrows.current['sight']) {
+          const arrow = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), v.rayOrigin, 5, 0x0000ff)
+          scene.add(arrow)
+          debugArrows.current['sight'] = arrow
+      }
+      const sightArrow = debugArrows.current['sight']
+      sightArrow.position.copy(v.rayOrigin)
+      const actualDir = v.temp.copy(v.target).sub(v.pos)
+      const dist = actualDir.length()
+      sightArrow.setDirection(actualDir.normalize())
+      sightArrow.setLength(Math.min(dist, 30))
+      
+      if (sightArrow.material.color.getHex() !== 0xff0000) {
+         sightArrow.setColor(isSightBlocked ? new THREE.Color(0xffaa00) : new THREE.Color(0x0088ff))
+      }
+    } 
+
+    // --- 7. Evitamento Auto ---
     let avoidanceSteer = 0
     let obstacleDetected = false
 
     const updateArrow = (key, dir, origin, isHit) => {
-        if (!debugArrows.current[key]) {
-            const arrow = new THREE.ArrowHelper(dir, origin, AI_CONFIG.rayLength, 0x00ff00)
-            scene.add(arrow); debugArrows.current[key] = arrow
+        if (AI_CONFIG.debugEnabled) {
+            if (!debugArrows.current[key]) {
+                const arrow = new THREE.ArrowHelper(dir, origin, AI_CONFIG.rayLength, 0x00ff00)
+                scene.add(arrow); debugArrows.current[key] = arrow
+            }
+            const arr = debugArrows.current[key]
+            arr.position.copy(origin); arr.setDirection(dir)
+            arr.setColor(new THREE.Color(isHit ? 0xff0000 : 0xb6ff00))
         }
-        const arr = debugArrows.current[key]
-        arr.position.copy(origin); arr.setDirection(dir)
-        arr.setColor(new THREE.Color(isHit ? 0xff0000 : 0xb6ff00))
     }
 
     if (world) {
@@ -232,34 +261,41 @@ export function useBotAI({ isBot, rigidBody, paths }) {
         updateArrow(key, v.rayDir, v.rayOrigin, isHit)
         return isHit
       }
-      const hitLeft = cast(0.6, 'left'); const hitCenter = cast(0, 'center'); const hitRight = cast(-0.6, 'right')
+      
+      const hitLeft = cast(0.5, 'left'); 
+      const hitCenter = cast(0, 'center'); 
+      const hitRight = cast(-0.5, 'right')
+      
       if (hitCenter || hitLeft || hitRight) {
         obstacleDetected = true
-        if (hitCenter) avoidanceSteer = hitLeft ? -1 : 1
-        else if (hitLeft) avoidanceSteer = -1.0
-        else if (hitRight) avoidanceSteer = 1.0
-        targetLaneOffset.current = 0 
+        if (hitCenter) avoidanceSteer = hitLeft ? -1 : (hitRight ? 1 : (Math.random() > 0.5 ? 1 : -1))
+        else if (hitLeft) avoidanceSteer = -1.0 
+        else if (hitRight) avoidanceSteer = 1.0 
+        // Non resettiamo l'offset qui, aggiriamo solo l'auto momentaneamente
       }
     }
 
-    // --- 7. Output Comandi ---
+    // --- 8. Output Comandi ---
     v.dirToTarget.copy(v.target).sub(v.pos).normalize()
+    
+    const dotFront = v.forward.dot(v.dirToTarget);
     const steerToTarget = v.forward.cross(v.dirToTarget).y
     
-    // Logica sterzo migliorata: Se siamo in "mode curva" (isCuttingCorner), sterziamo più aggressivi
-    let reactionSpeed = isCuttingCorner ? AI_CONFIG.steerReaction * 1.5 : AI_CONFIG.steerReaction
-
+    // Reattività Aumentata per seguire la linea
+    let baseReaction = AI_CONFIG.steerReaction;
+    if (isSightBlocked) baseReaction *= 2.0; 
+    
     let targetSteer = obstacleDetected ? avoidanceSteer : steerToTarget
     
-    // Fix inversione se target è dietro (raro con la nuova logica, ma sicurezza)
-    if (v.forward.dot(v.dirToTarget) < 0 && !obstacleDetected) targetSteer = steerToTarget > 0 ? 1 : -1
+    if (dotFront < 0 && !obstacleDetected) {
+        targetSteer = steerToTarget > 0 ? 1 : -1
+    }
 
-    currentSteer.current = THREE.MathUtils.lerp(currentSteer.current, targetSteer, delta * reactionSpeed)
+    currentSteer.current = THREE.MathUtils.lerp(currentSteer.current, targetSteer, delta * baseReaction)
 
     controls.current.forward = true
     controls.current.backward = false
 
-    // Deadzone sterzo
     if (currentSteer.current > 0.1) {
       controls.current.left = true; controls.current.right = false
     } else if (currentSteer.current < -0.1) {
@@ -268,12 +304,6 @@ export function useBotAI({ isBot, rigidBody, paths }) {
       controls.current.left = false; controls.current.right = false
     }
 
-    // Freno a mano se sterzata estrema
-    if (Math.abs(currentSteer.current) > 0.9 && !controls.current.drift) {
-        controls.current.forward = false 
-    }
-
-    // Anti-Blocco (Reset)
     if (currentSpeed < 1.0) {
       stuckTimer.current += delta
       if (stuckTimer.current > AI_CONFIG.stuckTime) {
