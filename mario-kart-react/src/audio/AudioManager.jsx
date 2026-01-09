@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 
 const AudioContext = createContext();
 
@@ -8,26 +8,37 @@ export const useAudio = () => useContext(AudioContext);
 // COSTANTI: Tracce audio disponibili
 // ============================================
 export const AUDIO_TRACKS = {
-  MENU: '/sounds/MENU_MUSIC.mp3',
-  RACE_DAISY_CIRCUIT: '/sounds/DAISY_CIRCUIT_ST.mp3',
+  MENU: '/soundTracks/TITLE_SCREEN.mp3', // title screen music
+  LOBBY_MUSIC: '/soundTracks/SET_UP.mp3', // lobby music
+  CHARACTER_SELECT: '/soundTracks/CHARACTER_SELECT_SCREEN.mp3', // character select music
+  KART_SELECT: '/soundTracks/KART_SELECT_SCREEN.mp3', // kart select music
+  COURSE_SELECT: '/soundTracks/COURSE_SELECT.mp3', // course select music
+  RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
+  RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
 };
 
 export const AUDIO_SFX = {
-  KART_IDLE: '/sounds/KART_IDLE.wav',
-  KART_GAS: '/sounds/KART_GAS.wav',
-  KART_LOOP: '/sounds/KART_LOOP.wav',
+  KART_IDLE: '/SFX/KART_IDLE.wav', // idle sound
+  KART_GAS: '/SFX/KART_GAS.wav', // gas sound
+  KART_DOWNSHIFT: '/SFX/KART_DOWN.wav', // downshift sound
+  KART_LOOP: '/SFX/KART_LOOP.wav', // loop sound
+  BIKE_IDLE: '/SFX/BIKE_IDLE.wav',
+  BIKE_GAS: '/SFX/BIKE_GAS.wav',
+  BIKE_DOWNSHIFT: '/SFX/BIKE_DOWN.wav',
+  BIKE_LOOP: '/SFX/BIKE_LOOP.wav',
 };
 
 export const AudioProvider = ({ children }) => {
 
-const [isMuted, setIsMuted] = useState(false);
-const [musicVolume, setMusicVolume] = useState(0.3);
-const [sfxVolume, setSfxVolume] = useState(0.5);
-const [audioEnabled, setAudioEnabled] = useState(false);
-const [currentContext, setCurrentContext] = useState('menu');
-
+  const [isMuted, setIsMuted] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0.3);
+  const [sfxVolume, setSfxVolume] = useState(0.5);
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [currentContext, setCurrentContext] = useState('menu');
+  const [musicPlaybackRate, setMusicPlaybackRate] = useState(1.0);
   // Ref: contiene l'elemento audio della musica di sottofondo (BGM = Background Music)
   // Serve per controllare la musica: play(), pause(), volume, etc.
+
   const bgmRef = useRef(null);
 
   // Ref: tiene traccia del percorso della traccia corrente
@@ -63,26 +74,52 @@ const currentTrackRef = useRef(null);
   //   url: percorso del file audio (es: '/sounds/click.wav')
   //   volumeMultiplier: moltiplicatore volume (optional, default=1.0)
   //                     0.5 = metà volume, 2.0 = doppio volume
+  //   maxInstances: numero massimo di istanze dello stesso suono (optional, default=3)
   //
   // Utilizzo:
   //   playSfx('/sounds/beep.wav');           // Volume normale
-  //   playSfx('/sounds/beep.wav', 0.5);      // Volume ridotto
-  const playSfx = (url, volumeMultiplier = 1.0) => {
-    // Se l'audio è mutato O non ancora abilitato, non fare nulla
+  //   playSfx('/sounds/beep.wav', 0.5, 2);   // Volume ridotto, max 2 istanze
+  const sfxPoolRef = useRef({});
+
+  const playSfx = useCallback((url, volumeMultiplier = 1.0, maxInstances = 3) => {
     if (isMuted || !audioEnabled) return;
     
-    // Crea un nuovo elemento audio HTML
-    const audio = new Audio(url);
-    
-    // Calcola il volume finale (SFX volume × moltiplicatore)
-    // Math.min() assicura che non superi 1.0 (100%)
-    audio.volume = Math.min(sfxVolume * volumeMultiplier, 1.0);
-    
-    // Riproduci il suono (catch() ignora errori)
-    audio.play().catch(e => {
-      console.warn("Errore nella riproduzione audio:", e);
-    });
-  };
+    // Crea il pool per questo suono se non esiste
+    if (!sfxPoolRef.current[url]) {
+      sfxPoolRef.current[url] = [];
+    }
+
+    const pool = sfxPoolRef.current[url];
+    let audioElement = null;
+
+    // Cerca un elemento audio disponibile (non in riproduzione)
+    for (let i = 0; i < pool.length; i++) {
+      if (pool[i].paused) {
+        audioElement = pool[i];
+        break;
+      }
+    }
+
+    // Se non ce n'è uno disponibile e non abbiamo raggiunto il limite, creane uno nuovo
+    if (!audioElement && pool.length < maxInstances) {
+      audioElement = new Audio(url);
+      audioElement.preload = 'auto';
+      pool.push(audioElement);
+    }
+
+    // Se non abbiamo un elemento disponibile, esci (raggiunto limite di istanze)
+    if (!audioElement) return;
+
+    try {
+      audioElement.volume = Math.min(sfxVolume * volumeMultiplier, 1.0);
+      audioElement.currentTime = 0; // Riavvia dall'inizio
+      audioElement.play().catch(e => {
+        console.warn("Errore nella riproduzione audio:", e);
+      });
+    } catch (e) {
+      console.warn("Errore nell'impostazione dell'audio:", e);
+    }
+  }, [audioEnabled, isMuted, sfxVolume]);
 
   // ============================================
   // FUNZIONE: setMusic()
@@ -97,7 +134,7 @@ const currentTrackRef = useRef(null);
   // Utilizzo:
   //   setMusic('/sounds/race-music.mp3');
   //   setMusic('/sounds/race-music.mp3', true);  // Con fade out
-  const setMusic = (url, fadeOut = false) => {
+  const setMusic = useCallback((url, fadeOut = false) => {
     // Evita di ricaricare la stessa traccia
     if (currentTrackRef.current === url && bgmRef.current && !bgmRef.current.paused) {
       return;
@@ -130,17 +167,9 @@ const currentTrackRef = useRef(null);
       return;
     }
 
-    // STEP 2: Crea un nuovo elemento audio
     const audio = new Audio(url);
-    
-    // STEP 3: Configura la musica
     audio.loop = true;  // Ripeti in loop quando finisce
-    
-    // STEP 4: Imposta il volume
-    // Se mutato: volume 0, altrimenti: usa musicVolume
     audio.volume = isMuted ? 0 : musicVolume;
-    
-    // STEP 5: Salva i riferimenti
     bgmRef.current = audio;
     currentTrackRef.current = url;
 
@@ -150,7 +179,7 @@ const currentTrackRef = useRef(null);
         console.warn("Errore nella riproduzione della musica:", e);
       });
     }
-  };
+  }, [audioEnabled, isMuted, musicVolume]);
 
   // ============================================
   // FUNZIONE: switchContext()
@@ -162,7 +191,7 @@ const currentTrackRef = useRef(null);
   //   trackUrl: URL della traccia (opzionale)
   //
   // Utilizzo:
-  //   switchContext('menu', AUDIO_TRACKS.MENU);
+  //   switchContext('menu', AUDIO_TRACKS.TITLE_SCREEN);
   //   switchContext('race', AUDIO_TRACKS.RACE_DAISY_CIRCUIT);
   const switchContext = (context, trackUrl = null) => {
     setCurrentContext(context);
@@ -172,19 +201,24 @@ const currentTrackRef = useRef(null);
     } else {
       // Selezione automatica in base al contesto
       if (context === 'menu') {
-        setMusic(AUDIO_TRACKS.MENU, true);
+        setMusic(AUDIO_TRACKS.TITLE_SCREEN, true);
       }
       // Per 'race' devi passare esplicitamente la traccia del circuito
     }
   };
 
-  // ============================================
-  // FUNZIONE: stopMusic()
-  // ============================================
-  // Ferma completamente la musica corrente
-  //
-  // Utilizzo:
-  //   stopMusic();
+  const changeTrack = useCallback((trackKey, fadeOut = true) => {
+    const trackUrl = AUDIO_TRACKS[trackKey];
+    if (!trackUrl) {
+      console.warn(`Traccia audio non trovata: ${trackKey}`);
+      return;
+    }
+    setMusic(trackUrl, fadeOut);
+  }, [setMusic]);
+
+
+
+  // stops music playback
   const stopMusic = () => {
     if (bgmRef.current) {
       bgmRef.current.pause();
@@ -192,16 +226,7 @@ const currentTrackRef = useRef(null);
     }
   };
 
-  // ============================================
-  // EFFETTO: Sincronizza volume con stato
-  // ============================================
-  // useEffect esegue codice quando dipendenze cambiano
-  // 
-  // Dipendenze: [musicVolume, isMuted]
-  // = Esegui quando musicVolume o isMuted cambiano
-  // 
-  // Cosa fa: aggiorna il volume dell'audio in tempo reale
-  // (es: quando muovi lo slider del volume)
+  // mute / unmute effect
   useEffect(() => {
     if (bgmRef.current) {
       // Se mutato: 0, altrimenti: usa musicVolume
@@ -221,34 +246,33 @@ const currentTrackRef = useRef(null);
     // Funzione da eseguire quando l'utente interagisce
     const handleInteraction = () => enableAudio();
     
-    // Aggiungi listener: click ({ once: true } = esegui solo una volta)
     window.addEventListener('click', handleInteraction, { once: true });
-    
-    // Aggiungi listener: keydown ({ once: true } = esegui solo una volta)
     window.addEventListener('keydown', handleInteraction, { once: true });
     
     // CLEANUP: Rimuovi listener quando il componente si smonta
-    // (evita memory leak)
     return () => {
       window.removeEventListener('click', handleInteraction);
       window.removeEventListener('keydown', handleInteraction);
     };
   }, []);
 
-  // ============================================
-  // OGGETTO VALUE: Cosa esportare nel Context
-  // ============================================
-  // Questo oggetto contiene TUTTI i dati e funzioni che i componenti
-  // possono usare tramite useAudio()
+
+  const setMusicSpeed = (speed = 1.0) => {
+    if (bgmRef.current) {
+      bgmRef.current.playbackRate = Math.max(0.5, Math.min(speed, 2.0));
+      setMusicPlaybackRate(speed);
+    }
+  };
+
+
   const value = {
-    // DATI (Stati)
     isMuted,              // Booleano: audio mutato?
     musicVolume,          // Numero: volume musica (0.0 - 1.0)
     sfxVolume,            // Numero: volume effetti (0.0 - 1.0)
     audioEnabled,         // Booleano: audio abilitato?
     currentContext,       // Stringa: 'menu' o 'race'
+    musicPlaybackRate,    // Numero: velocità di riproduzione della musica
     
-    // FUNZIONI (Setters e azioni)
     toggleMute: () => setIsMuted(prev => !prev),  // Attiva/disattiva mute
     setMusicVolume,       // Funzione: cambia volume musica
     setSfxVolume,         // Funzione: cambia volume effetti
@@ -256,13 +280,11 @@ const currentTrackRef = useRef(null);
     setMusic,             // Funzione: cambia musica di sottofondo
     switchContext,        // Funzione: cambia contesto (menu/race)
     stopMusic,            // Funzione: ferma la musica
+    setMusicSpeed,        // Funzione: cambia la velocità della musica
+    changeTrack,          // Funzione: cambia traccia musicale
   };
 
-  // ============================================
-  // PROVIDER: Fornisce il value a tutti i figli
-  // ============================================
-  // Ritorna il Provider con il value
-  // I componenti figli possono accedere a "value" tramite useAudio()
+
   return (
     <AudioContext.Provider value={value}>
       {children}

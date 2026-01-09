@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, forwardRef } from 'react'
+import React, { useRef, useState, useMemo, forwardRef, useEffect } from 'react'
 import { useFrame, useThree, createPortal } from '@react-three/fiber'
 import { RigidBody, BallCollider, CylinderCollider } from '@react-three/rapier'
 import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three' 
@@ -13,6 +13,7 @@ import { useHitboxHandler } from '../hooks/HitboxHandler'
 
 import { useBotAI } from '../Bot/UseBotAI'
 import { useAudio } from '../audio/AudioManager'
+import { useKartAudio } from '../hooks/useKartAudio'
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
@@ -214,7 +215,8 @@ const SpeedEffect = ({ boostTimeRef }) => {
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
-    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS 
+    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS,
+    isRaceActive = true  // Prop per sapere se la gara è attiva
   } = props;
   
   const { scene } = useThree()
@@ -224,6 +226,12 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const humanControls = useGameControls() 
   const botControls = useBotAI({ isBot, rigidBody, waypoints })
   const activeControls = isBot ? botControls : humanControls
+  
+  // Hook per gestire gli SFX del kart (solo per il player, non per i bot)
+  const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
+    isBike: false, 
+    isActive: isRaceActive && !isBot  // Attivo solo se la gara è attiva e non è un bot
+  })
 
   // --- SICUREZZA FISICA ---
   const collisionQueue = useRef([]) 
@@ -258,6 +266,24 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { checkSurface } = useHitboxHandler({
     speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
   })
+
+  // Avvia l'audio IDLE quando la gara inizia (solo per il player)
+  useEffect(() => {
+    if (isRaceActive && !isBot) {
+      // Piccolo delay per assicurarsi che l'audio context sia pronto
+      const timeout = setTimeout(() => {
+        startIdleAudio();
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [isRaceActive, isBot, startIdleAudio]);
+
+  // Ferma tutti i suoni quando si esce dalla gara
+  useEffect(() => {
+    if (!isRaceActive && !isBot) {
+      stopAllAudio();
+    }
+  }, [isRaceActive, isBot, stopAllAudio]);
 
   const performHop = () => {
     if (isJumping.current) return
@@ -298,6 +324,11 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
 
     const { forward, backward, left, right, drift } = activeControls.current
+    
+    // Aggiorna l'audio SFX del veicolo (solo per il player)
+    if (!isBot) {
+      updateAudio(speed.current, forward);
+    }
     
     // Logic Drift
     if (!drift) {

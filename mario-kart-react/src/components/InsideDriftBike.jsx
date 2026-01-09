@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react'
+import React, { useRef, useState, useMemo, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider } from '@react-three/rapier' 
 import { Vector3, MathUtils, Raycaster, Quaternion, Euler, Color } from 'three' 
@@ -11,6 +11,7 @@ import { useControls as useGameControls } from '../hooks/useControls'
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
+import { useKartAudio } from '../hooks/useKartAudio' 
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
@@ -162,10 +163,17 @@ export function InsideDriftBike({
   START_POS, 
   onCheckpoint, 
   trackConfig, 
-  SETTINGS = DEFAULT_SETTINGS 
+  SETTINGS = DEFAULT_SETTINGS,
+  isRaceActive = true  // Prop per sapere se la gara è attiva
 }) {
   const { scene } = useThree()
   const controls = useGameControls() 
+  
+  // Hook per gestire gli SFX della bike
+  const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
+    isBike: true, 
+    isActive: isRaceActive 
+  }) 
   
   const camConfig = {
     distance: 7.2,
@@ -217,6 +225,24 @@ export function InsideDriftBike({
     maxCheckpoints: trackConfig?.maxCheckpoints || 3
   })
 
+  // Avvia l'audio IDLE quando la gara inizia
+  useEffect(() => {
+    if (isRaceActive) {
+      // Piccolo delay per assicurarsi che l'audio context sia pronto
+      const timeout = setTimeout(() => {
+        startIdleAudio();
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [isRaceActive, startIdleAudio]);
+
+  // Ferma tutti i suoni quando si esce dalla gara
+  useEffect(() => {
+    if (!isRaceActive) {
+      stopAllAudio();
+    }
+  }, [isRaceActive, stopAllAudio]);
+
   const performHop = () => {
     if (isJumping.current) return
     isJumping.current = true
@@ -250,6 +276,9 @@ export function InsideDriftBike({
     currentVelocity.current.set(rbVel.x, rbVel.y, rbVel.z);
 
     const { forward, backward, left, right, drift, wheelie } = controls.current
+    
+    // Aggiorna l'audio SFX della bike
+    updateAudio(speed.current, forward);
     
     let groundDist = Infinity; 
 

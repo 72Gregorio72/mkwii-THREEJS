@@ -1,15 +1,23 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, Center } from '@react-three/drei'
 import { RacerModel } from '../models/RacerModel'
 import { Suspense } from 'react'
 import { OrbitControls } from '@react-three/drei'
+import { useAudio } from '../audio/AudioManager.jsx'
 
 export function CharacterSelection({ 
     setMenuState, 
     availableCharacters, 
     setSelectedCharacter 
 }) {
+
+  const { changeTrack } = useAudio();
+  useEffect(() => {
+    changeTrack('CHARACTER_SELECT');
+  }, []);
+
+
   const [localSelection, setLocalSelection] = useState(availableCharacters[0])
 
   const totalSlots = 24

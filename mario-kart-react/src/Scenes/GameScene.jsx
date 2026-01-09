@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo	 } from 'react'
+import React, { useState, useRef, useCallback, useMemo	, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, useGLTF, Line } from '@react-three/drei'
@@ -7,6 +7,7 @@ import { OutsideDriftKart } from '../components/OutsideDriftKart'
 import { InsideDriftBike } from '../components/InsideDriftBike'
 import { WaypointRecorder } from '../Bot/WaypointRecorder'
 import trackWaypoints from '../Bot/Waypoints/DaisyCircuit.json'
+import { useAudio } from '../audio/AudioManager.jsx'
 
 const TOTAL_LAPS = 3;
 
@@ -109,10 +110,21 @@ function CheckpointSystem({ url, onCheckpointTrigger }) {
 
 export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack, start_pos, maxCheckpoints, selectedTrack }) {
     
+    const { changeTrack } = useAudio();
+
+    useEffect(() => {
+        if (selectedTrack.name === 'Daisy Circuit') {
+          changeTrack('RACE_DAISY_CIRCUIT', false);
+        } else if (selectedTrack.name === 'Luigi Circuit') {
+          changeTrack('RACE_LUIGI_CIRCUIT', false);
+        }
+    }, [changeTrack, selectedTrack]);
+
     // --- STATO GARA ---
     const [lap, setLap] = useState(1);
     const [nextCheck, setNextCheck] = useState(1); 
     const [finished, setFinished] = useState(false);
+    const [raceExited, setRaceExited] = useState(false);  // Stato per quando l'utente esce dalla gara
 
     // --- REFS ---
     const lastCheckTime = useRef(0);
@@ -154,11 +166,23 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
         }
     }, [finished, nextCheck, maxCheckpoints]);
 
+    // Funzione per gestire l'uscita dalla gara
+    const handleExitRace = useCallback(() => {
+        setRaceExited(true);  // Ferma immediatamente tutti gli SFX
+        // Piccolo delay per assicurarsi che gli audio si fermino prima di cambiare scena
+        setTimeout(() => {
+            onBack();
+        }, 50);
+    }, [onBack]);
+
+    // Calcola se la gara è attiva (non finita e non uscito)
+    const isRaceActive = !finished && !raceExited;
+
     return (
         <div style={{ width: '100vw', height: '100vh' }}>
             {/* UI HUD */}
             <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white', fontFamily: 'sans-serif', textShadow: '2px 2px 0 #000' }}>
-                <button onClick={onBack} style={{marginBottom: 10, cursor: 'pointer'}}>Exit Race</button>
+                <button onClick={handleExitRace} style={{marginBottom: 10, cursor: 'pointer'}}>Exit Race</button>
                 <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
                     {finished ? <span style={{color: '#ffdd00'}}>FINISH!</span> : `Lap ${lap} / ${TOTAL_LAPS}`}
                 </div>
@@ -200,7 +224,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
                                 // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI (se hai rimosso il raycast)
-                                trackRef={trackRef} 
+                                trackRef={trackRef}
+                                isRaceActive={isRaceActive}
                             />
                         ) : (
                             <OutsideDriftKart 
@@ -210,6 +235,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
 								ref={kartRef}
+                                isRaceActive={isRaceActive}
                             />
                         )}
                     </group>
@@ -225,6 +251,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                             trackConfig={selectedTrack}
                             isBot={true}              // Attiva l'IA
                             waypoints={trackWaypoints} // Passagli i 732 punti
+                            isRaceActive={isRaceActive}
                         />
                     </group>
 					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} /> */}

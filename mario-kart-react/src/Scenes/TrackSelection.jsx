@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Tracks } from '../components/Data'
+import { useAudio } from '../audio/AudioManager.jsx'
 
 export function TrackSelection({ setMenuState, setSelectedTrack }) {
     const tracksList = Object.entries(Tracks).map(([name, data]) => ({
