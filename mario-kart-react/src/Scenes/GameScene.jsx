@@ -13,7 +13,6 @@ import trackWaypoints1 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit1.json'
 import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
 import { CheckpointSystem } from '../Race/CheckPointManager.jsx'
 import { RaceManager } from '../Race/RaceManager.jsx'
-import trackWaypoints from '../Bot/Waypoints/DaisyCircuit.json'
 import { useAudio } from '../audio/AudioManager.jsx'
 
 const TOTAL_LAPS = 3;
@@ -84,12 +83,13 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     const [positions, setPositions] = useState(initialPositions);
     const [uiLap, setUiLap] = useState(1);
     
-    const { changeTrack } = useAudio();
+    const audioContext = useAudio();
+    const changeTrack = audioContext?.changeTrack;
 
     useEffect(() => {
-        if (selectedTrack.name === 'Daisy Circuit') {
+        if (changeTrack && selectedTrack?.name === 'Daisy Circuit') {
           changeTrack('RACE_DAISY_CIRCUIT', false);
-        } else if (selectedTrack.name === 'Luigi Circuit') {
+        } else if (changeTrack && selectedTrack?.name === 'Luigi Circuit') {
           changeTrack('RACE_LUIGI_CIRCUIT', false);
         }
     }, [changeTrack, selectedTrack]);
@@ -107,8 +107,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     const racerRefs = useRef({});
 
     // --- LOGICA CHECKPOINT ---
-    // --- LOGICA CHECKPOINT ---
-	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
+    const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
 		// Controllo sicurezza
 		if (!racerId || !racersData.current[racerId]) return;
 
@@ -155,9 +154,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 		}
 	}
     const lastCheckTime = useRef(0);
-    const trackRef = useRef(); // Serve ancora per la pista fisica (SmartMap)
-	const kartRef = useRef();
-	const bikeRef = useRef();
+    const kartRef = useRef();
+    const bikeRef = useRef();
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
     const isBike = vehicle.isBike;
@@ -276,7 +274,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 START_POS={start_pos}
                                 trackRef={trackRef} 
                                 // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI (se hai rimosso il raycast)
-                                trackRef={trackRef}
                                 isRaceActive={isRaceActive}
                             />
                         ) : (
@@ -289,7 +286,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
                                 START_ROT={[0, 90, 0]}
-								ref={kartRef}
                                 isRaceActive={isRaceActive}
                             />
                         )}
@@ -337,6 +333,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} /> */}
                 </Physics>
             </Canvas>
+        </div>
         </div>
     )
 }

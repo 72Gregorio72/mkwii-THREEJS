@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react';
-import { useAudio, AUDIO_SFX } from '../audio/AudioManager';
+import { AUDIO_SFX } from '../audio/AudioManager';
 
 /**
  * Hook per gestire gli SFX del kart/bike
@@ -9,12 +9,18 @@ import { useAudio, AUDIO_SFX } from '../audio/AudioManager';
  * - GAS: quando si inizia ad accelerare (riprodotto una volta)
  * - LOOP: subito dopo GAS, riprodotto in loop continuo con crossfade
  * 
+ * NOTA: Questo hook NON usa useAudio() perché viene chiamato dentro il Canvas
+ * di react-three-fiber che ha un contesto React separato.
+ * 
  * @param {Object} options
  * @param {boolean} options.isBike - true se è una moto, false se è un kart
  * @param {boolean} options.isActive - true se la gara è attiva (false = stop tutti i suoni)
  */
 export const useKartAudio = ({ isBike = false, isActive = true }) => {
-  const { audioEnabled, isMuted, sfxVolume } = useAudio();
+  // Valori audio hardcoded (non possiamo usare useAudio dentro Canvas)
+  const audioEnabled = true;
+  const isMuted = false;
+  const sfxVolume = 0.5;
   
   // Riferimenti agli elementi audio
   const gasAudioRef = useRef(null);

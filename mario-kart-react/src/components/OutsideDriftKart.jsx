@@ -1,12 +1,9 @@
-import React, { useRef, useState, useMemo, forwardRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
-import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier' // Aggiunto useRapier
 import React, { useRef, useState, useMemo, forwardRef, useEffect } from 'react'
 import { useFrame, useThree, createPortal } from '@react-three/fiber'
-import { RigidBody, BallCollider, CylinderCollider } from '@react-three/rapier'
-import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three' 
-import * as THREE from 'three' 
-import { Html } from '@react-three/drei' 
+import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier'
+import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three'
+import * as THREE from 'three'
+import { Html } from '@react-three/drei'
 import gsap from 'gsap'
 
 import { useControls as useGameControls } from '../hooks/useControls' 
@@ -14,7 +11,6 @@ import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
 import { useBotAI } from '../Bot/UseBotAI'
-import { useAudio } from '../audio/AudioManager'
 import { useKartAudio } from '../hooks/useKartAudio'
 
 // --- 1. COSTANTI E SETTINGS ---
@@ -219,8 +215,7 @@ const SpeedEffect = ({ boostTimeRef }) => {
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
-    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData
-    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS,
+    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
     isRaceActive = true  // Prop per sapere se la gara è attiva
   } = props;
   
@@ -553,21 +548,19 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         position={START_POS} 
         rotation={START_ROT}
         mass={100} 
-        linearDamping={2}  // Aumentato leggermente per ridurre il jitter dopo un urto
+        linearDamping={2}
         angularDamping={2} 
         type="dynamic" 
         ccd={true} 
         name={racerId} 
         userData={{ 
             type: 'racer', 
-            id: racerId // <--- Passa l'ID univoco (es. "bot_0", "bot_1") invece di "bot" generico
+            id: racerId
         }}
         colliders={false} 
         lockRotations={true}
-        
-        // --- NO BOUNCE SETTINGS ---
-        restitution={0}            // Rimbalzo nullo
-        restitutionCombine="min"   // <--- FONDAMENTALE: Vince sempre il valore più basso (0)
+        restitution={0}
+        restitutionCombine="min"
     >
       {/* 1. SFERA (Ruota per rampe e terreno) */}
       <BallCollider 
@@ -575,7 +568,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
           position={[0, 0, 0]} 
           friction={0.0}
           frictionCombine="min"
-          // Applica anche qui per sicurezza
           restitution={0}
           restitutionCombine="min" 
       />
@@ -586,27 +578,9 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
           position={[0, -0.1, 0]} 
           friction={0.0}
           frictionCombine="min"
-          // Applica anche qui per sicurezza
           restitution={0}
           restitutionCombine="min" 
       />
-    <>
-        {/* Renderizza SpeedEffect solo per il player umano */}
-        {!isBot && <SpeedEffect boostTimeRef={boostTime} />}
-
-        <RigidBody 
-            ref={rigidBody} 
-            position={START_POS} 
-            mass={100} 
-            linearDamping={0.5} 
-            angularDamping={0.5} 
-            colliders={false} 
-            type="dynamic" 
-            ccd={true} 
-            name={isBot ? "bot" : "kart"} 
-            restitution={0}
-        >
-        <BallCollider args={[PHYSICS_RADIUS]} material={{ friction: 0.0, restitution: 0 }} />
 
       {/* 3. SENSORE TERRA (Logic Only) */}
       <CylinderCollider 
@@ -616,6 +590,9 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
          onIntersectionEnter={handleGroundEnter}
          onIntersectionExit={handleGroundExit}
       />
+
+      {/* Renderizza SpeedEffect solo per il player umano */}
+      {!isBot && <SpeedEffect boostTimeRef={boostTime} />}
       
       {!isBot && (
         <Html fullscreen style={{ pointerEvents: 'none' }}>
@@ -625,42 +602,25 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
             </div>
         </Html>
       )}
-        <CylinderCollider 
-            args={[0.2, 0.5]} 
-            position={[0, -PHYSICS_RADIUS + 0.2, 0]} 
-            sensor={true} 
-            onIntersectionEnter={handleGroundEnter}
-            onIntersectionExit={handleGroundExit}
-        />
-        
-        {!isBot && (
-            <Html fullscreen style={{ pointerEvents: 'none' }}>
-                <div style={{ position: 'absolute', top: '40px', right: '40px', color: 'white', fontFamily:'sans-serif', fontWeight:'bold', fontSize: '40px', display: 'flex', flexDirection:'column', alignItems:'flex-end' }}>
-                    <span ref={speedUiRef}>0 km/h</span>
-                    <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>SPACE TO HOP/DRIFT</div>
-                </div>
-            </Html>
-        )}
 
-        <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-                <group position={vehicleConfig.vehicleOffset}>
-                    <VehicleModel 
-                    vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
-                    position={[0, 0, 0]} steer={modelSteer} drift={driftDirection.current} speed={speed.current} isBike={true}
-                    />
-                    <group rotation={[0, Math.PI, 0]}>
-                    <RacerModel 
-                        isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
-                        steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
-                        key={vehicleConfig.name + "_racer"}
-                    />
-                    </group>
-                </group>    
-                <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
-                <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
-        </group>
-        </RigidBody>
-    </>
+      <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
+          <group position={vehicleConfig.vehicleOffset}>
+              <VehicleModel 
+              vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
+              position={[0, 0, 0]} steer={modelSteer} drift={driftDirection.current} speed={speed.current} isBike={true}
+              />
+              <group rotation={[0, Math.PI, 0]}>
+              <RacerModel 
+                  isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
+                  steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
+                  key={vehicleConfig.name + "_racer"}
+              />
+              </group>
+          </group>    
+          <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
+          <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
+      </group>
+    </RigidBody>
   )
 });
 
