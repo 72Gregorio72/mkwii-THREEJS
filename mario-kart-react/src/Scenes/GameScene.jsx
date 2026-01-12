@@ -91,6 +91,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
           changeTrack('RACE_DAISY_CIRCUIT', false);
         } else if (changeTrack && selectedTrack?.name === 'Luigi Circuit') {
           changeTrack('RACE_LUIGI_CIRCUIT', false);
+        } else if (changeTrack && selectedTrack?.name === 'Coconut Mall') {
+          changeTrack('RACE_COCONUT_MALL', false);
         }
     }, [changeTrack, selectedTrack]);
 
@@ -204,23 +206,21 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     const isRaceActive = !finished && !raceExited;
 
     return (
-        <div style={{ width: '100vw', height: '100vh' }}>
-            {/* UI HTML */}
-            <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white' }}>
-                 <h1>Pos: {playerRank} / 2</h1>
-                 <h2>Lap: {uiLap}</h2>
+        <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
             {/* UI HUD */}
             <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white', fontFamily: 'sans-serif', textShadow: '2px 2px 0 #000' }}>
                 <button onClick={handleExitRace} style={{marginBottom: 10, cursor: 'pointer'}}>Exit Race</button>
+                <h1 style={{ margin: 0 }}>Pos: {playerRank} / 2</h1>
                 <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
                     {finished ? <span style={{color: '#ffdd00'}}>FINISH!</span> : `Lap ${lap} / ${TOTAL_LAPS}`}
                 </div>
+                <h2 style={{ margin: 0 }}>Lap: {uiLap}</h2>
                 <div style={{ fontSize: '14px', opacity: 0.7 }}>
                       Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
                 </div>
             </div>
 
-            <Canvas>
+            <Canvas style={{ width: '100%', height: '100%' }}>
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
@@ -333,7 +333,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} /> */}
                 </Physics>
             </Canvas>
-        </div>
         </div>
     )
 }

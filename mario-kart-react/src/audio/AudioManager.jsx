@@ -15,6 +15,7 @@ export const AUDIO_TRACKS = {
   COURSE_SELECT: '/soundTracks/COURSE_SELECT.mp3', // course select music
   RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
   RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
+  RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
 };
 
 export const AUDIO_SFX = {
