@@ -22,16 +22,16 @@ export function SmartMap({ modelPath, scale = 1 }) {
         const name = child.name.toLowerCase()
         
         // --- 1. PROXY COLLIDERS (Invisibili + Tag Speciali) ---
-        if (name.includes('road_collider')) {
-          child.visible = true 
+        if (name.includes('polygon456')) {
+          // child.visible = true // NON NECESSARIO QUI se usiamo il wireframe sotto
           buckets.roads.push(child.geometry)
         } 
         else if (name.includes('wall_collider')) {
-          child.visible = true
+          // child.visible = true
           buckets.walls.push(child.geometry)
         } 
         else if (name.includes('grass_collider')) {
-          child.visible = true
+          // child.visible = true
           buckets.grass.push(child.geometry)
         }
         // --- 2. ESCLUSIONI (Solo Grafica) ---
@@ -73,10 +73,8 @@ export function SmartMap({ modelPath, scale = 1 }) {
       >
         {geometries.map((geo, index) => (
           <MeshCollider key={index} type="trimesh">
-            {/* Se isVisible=false (Proxy), usiamo il trucco del material invisible.
-               Se isVisible=true (Default), non mettiamo nulla qui dentro perché 
-               la grafica è già gestita da <primitive object={visualScene} />.
-               Qui serve SOLO la fisica fantasma.
+            {/* MODIFICA 1: Cambiato visible={false} in visible={true} 
+                Questo rende visibili le mesh della fisica (in wireframe)
             */}
             <mesh geometry={geo}>
                <meshBasicMaterial visible={false} color={color} wireframe />
@@ -95,16 +93,17 @@ export function SmartMap({ modelPath, scale = 1 }) {
       {/* 2. LIVELLI FISICI */}
       
       {/* Proxy Strada */}
-      <ColliderGroup geometries={roads} label="road" friction={1} restitution={0} color="yellow" />
+      {/* MODIFICA 2: Cambiato color="yellow" in color="purple" 
+      */}
+      <ColliderGroup geometries={roads} label="road" friction={1} restitution={0} color="purple" />
 
-      {/* Proxy Muri */}
+      {/* Proxy Muri (Si vedranno rossi wireframe) */}
       <ColliderGroup geometries={walls} label="wall" friction={0} restitution={0.5} color="red" />
 
-      {/* Proxy Erba */}
+      {/* Proxy Erba (Si vedranno verdi wireframe) */}
       <ColliderGroup geometries={grass} label="grass" friction={0.6} restitution={0} color="green" />
 
-      {/* Oggetti Comuni (Alberi, Case, Tubi...) */}
-      {/* Usiamo friction 0.5 standard. Sono solidi ma senza tag speciali. */}
+      {/* Oggetti Comuni (Si vedranno blu wireframe sopra la grafica reale) */}
       <ColliderGroup geometries={defaults} label="default" friction={0} restitution={0} color="blue" />
 
     </group>
