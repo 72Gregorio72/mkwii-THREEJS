@@ -225,7 +225,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true
+    isRaceActive = true, onSpawnBanana
   } = props;
   
   const { scene } = useThree()
@@ -287,7 +287,10 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { currentItem, handleItemInput, pickupItem } = usePowerupHandler({
     boostTime: boostTime, 
     speed: speed,        
-    SETTINGS: SETTINGS    
+    SETTINGS: SETTINGS,    
+	position: currentPosition,
+	rotation: rotation,
+	onSpawnBanana: onSpawnBanana
   });
   
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)

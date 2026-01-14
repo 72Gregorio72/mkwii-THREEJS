@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo	, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useMemo	, useEffect, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, Stats } from '@react-three/drei'
@@ -14,6 +14,7 @@ import { CheckpointSystem } from '../Race/CheckPointManager.jsx'
 import { RaceManager } from '../Race/RaceManager.jsx'
 import { useAudio } from '../audio/AudioManager.jsx'
 import { RoadWalls } from '../Tracks/RoadWalls.jsx'
+import { Banana } from '../Items/Banana';
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -62,6 +63,17 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 
         return { initialRacersData: data, initialPositions: positions, botsArray: bots };
     }, []);
+
+	const [bananas, setBananas] = useState([]);
+
+	const handleSpawnBanana = (position, velocity) => { // <--- Aggiungi velocity
+        const newBanana = {
+            id: Date.now() + Math.random(),
+            position: position,
+            velocity: velocity // <--- Salvalo nell'oggetto
+        };
+        setBananas((prev) => [...prev, newBanana]);
+    };
 
     // --- REFS FISICI ---
     const [positions, setPositions] = useState(initialPositions);
@@ -167,7 +179,17 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 				<WaypointVisualizer points={trackWaypoints2} color="orange" /> */}
 				
 
-                <Physics debug={false}>
+                <Physics debug={true}>
+
+					<Suspense fallback={null}>
+						{bananas.map((b) => (
+							<Banana 
+								key={b.id} 
+								position={b.position} 
+								initVelocity={b.velocity}
+							/>
+						))}
+					</Suspense>
                     
                     <RaceManager 
                         racersData={racersData}
@@ -224,6 +246,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 trackConfig={selectedTrack}
                                 START_ROT={[0, 90, 0]}
                                 isRaceActive={isRaceActive}
+								onSpawnBanana={handleSpawnBanana}
                             />
                         )}
                     </group>
