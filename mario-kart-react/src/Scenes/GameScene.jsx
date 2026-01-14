@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo	 } from 'react'
+import React, { useState, useRef, useCallback, useMemo	, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, useGLTF, Line, Stats } from '@react-three/drei'
@@ -13,6 +13,7 @@ import trackWaypoints1 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit1.json'
 import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
 import { CheckpointSystem } from '../Race/CheckPointManager.jsx'
 import { RaceManager } from '../Race/RaceManager.jsx'
+import { useAudio } from '../audio/AudioManager.jsx'
 import { RoadWalls } from '../Tracks/RoadWalls.jsx'
 
 const TOTAL_LAPS = 3;
@@ -82,7 +83,25 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     // --- REFS FISICI ---
     const [positions, setPositions] = useState(initialPositions);
     const [uiLap, setUiLap] = useState(1);
+    
+    const audioContext = useAudio();
+    const changeTrack = audioContext?.changeTrack;
+
+    useEffect(() => {
+        if (changeTrack && selectedTrack?.name === 'Daisy Circuit') {
+          changeTrack('RACE_DAISY_CIRCUIT', false);
+        } else if (changeTrack && selectedTrack?.name === 'Luigi Circuit') {
+          changeTrack('RACE_LUIGI_CIRCUIT', false);
+        } else if (changeTrack && selectedTrack?.name === 'Coconut Mall') {
+          changeTrack('RACE_COCONUT_MALL', false);
+        }
+    }, [changeTrack, selectedTrack]);
+
+    // --- STATO GARA ---
+    const [lap, setLap] = useState(1);
+    const [nextCheck, setNextCheck] = useState(1); 
     const [finished, setFinished] = useState(false);
+    const [raceExited, setRaceExited] = useState(false);  // Stato per quando l'utente esce dalla gara
 
     // --- REFS ---
     const racersData = useRef(initialRacersData);
@@ -90,6 +109,9 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     
     const racerRefs = useRef({});
 
+    // --- LOGICA CHECKPOINT ---
+    const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
+		// Controllo sicurezza
 	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
 		if (!racerId || !racersData.current[racerId]) return;
 
@@ -124,14 +146,76 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 			botRefs.current[`bot_${i}`] = React.createRef();
 		}
 	}
+    const lastCheckTime = useRef(0);
+    const kartRef = useRef();
+    const bikeRef = useRef();
+
+    if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
+    const isBike = vehicle.isBike;
+
+    // --- LOGICA GIRI ---
+    const handleCheckpoint = useCallback((hitIndex) => {
+        if (finished) return;
+
+        const now = Date.now();
+        if (now - lastCheckTime.current < 500) return;
+
+        console.log(`🏁 CHECKPOINT TOCCATO -> ID: ${hitIndex} | Atteso: ${nextCheck}`);
+
+        // CASO 1: Checkpoint Intermedio Corretto
+        if (hitIndex === nextCheck && hitIndex !== 0) {
+            console.log("✅ Checkpoint Valido!");
+            setNextCheck(prev => prev + 1);
+            lastCheckTime.current = now; 
+        } else if (hitIndex === 0 && nextCheck > maxCheckpoints) {
+            console.log("🏆 GIRO COMPLETATO!");
+            
+            setLap(prevLap => {
+                const newLap = prevLap + 1;
+                if (newLap > TOTAL_LAPS) {
+                    setFinished(true);
+                    return prevLap; 
+                }
+                return newLap;
+            });
+
+            setNextCheck(1); 
+            lastCheckTime.current = now; 
+        }
+    }, [finished, nextCheck, maxCheckpoints]);
+
+    // Funzione per gestire l'uscita dalla gara
+    const handleExitRace = useCallback(() => {
+        setRaceExited(true);  // Ferma immediatamente tutti gli SFX
+        // Piccolo delay per assicurarsi che gli audio si fermino prima di cambiare scena
+        setTimeout(() => {
+            onBack();
+        }, 50);
+    }, [onBack]);
+
+    // Calcola se la gara è attiva (non finita e non uscito)
+    const isRaceActive = !finished && !raceExited;
 
     return (
+        <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+            {/* UI HUD */}
+            <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white', fontFamily: 'sans-serif', textShadow: '2px 2px 0 #000' }}>
+                <button onClick={handleExitRace} style={{marginBottom: 10, cursor: 'pointer'}}>Exit Race</button>
+                <h1 style={{ margin: 0 }}>Pos: {playerRank} / 2</h1>
+                <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
+                    {finished ? <span style={{color: '#ffdd00'}}>FINISH!</span> : `Lap ${lap} / ${TOTAL_LAPS}`}
+                </div>
+                <h2 style={{ margin: 0 }}>Lap: {uiLap}</h2>
+                <div style={{ fontSize: '14px', opacity: 0.7 }}>
+                      Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
+                </div>
         <div style={{ width: '100vw', height: '100vh' }}>
             <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white' }}>
                  <h1>Pos: {playerRank} / 2</h1>
                  <h2>Lap: {uiLap}</h2>
             </div>
 
+            <Canvas style={{ width: '100%', height: '100%' }}>
             <Canvas>
 				<Stats />
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
@@ -189,6 +273,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
                                 trackRef={trackRef} 
+                                // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI (se hai rimosso il raycast)
+                                isRaceActive={isRaceActive}
                             />
                         ) : (
                             <OutsideDriftKart 
@@ -200,6 +286,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
                                 START_ROT={[0, 90, 0]}
+                                isRaceActive={isRaceActive}
                             />
                         )}
                     </group>
@@ -228,6 +315,21 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 					})}
 					
 
+					{/* === 4. IL BOT (Nemico) === */}
+                    <group position={[0, 10, 0]}>
+                         <OutsideDriftKart 
+                            characterConfig={character.modelConfig} 
+                            vehicleConfig={vehicle} 
+                            
+                            START_POS={[start_pos[0] + 3, start_pos[1], start_pos[2]]} 
+                            trackRef={trackRef}
+                            trackConfig={selectedTrack}
+                            isBot={true}              // Attiva l'IA
+                            waypoints={trackWaypoints} // Passagli i 732 punti
+                            isRaceActive={isRaceActive}
+                        />
+                    </group>
+					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} /> */}
                 </Physics>
             </Canvas>
         </div>

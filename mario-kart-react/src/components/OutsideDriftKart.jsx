@@ -1,3 +1,9 @@
+import React, { useRef, useState, useMemo, forwardRef, useEffect } from 'react'
+import { useFrame, useThree, createPortal } from '@react-three/fiber'
+import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier'
+import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three'
+import * as THREE from 'three'
+import { Html } from '@react-three/drei'
 import React, { useRef, useState, useMemo, forwardRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier' 
@@ -13,6 +19,7 @@ import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
 import { useBotAI } from '../Bot/UseBotAI'
+import { useKartAudio } from '../hooks/useKartAudio'
 import { usePowerupHandler } from './PowerupHandler';
 
 // --- 1. COSTANTI E SETTINGS ---
@@ -133,11 +140,98 @@ function updateSparksColor(level, leftRef, rightRef) {
 const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group position={position} ref={ref}>{children}</group>))
 
 // --- 4. COMPONENTE PRINCIPALE ---
+// --- SPEED LINES EFFECT TUNED (WIDER CENTER & FEWER LINES) ---
+const SpeedEffect = ({ boostTimeRef }) => {
+  const meshRef = useRef()
+  const count = 20 // RIDOTTO: Da 30 a 20 linee per pulizia
+  const { camera, scene } = useThree()
+  
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+  
+  const lines = useMemo(() => {
+    const temp = []
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2
+      
+      // FIX POSIZIONE: Raggio AUMENTATO (da 5 a 10)
+      // Questo crea un "buco" centrale molto più largo
+      const radius = 10.0 + Math.random() * 6.0 
+      
+      const z = -20 - Math.random() * 30 
+      const speed = 2.0 + Math.random() * 1.5 
+      temp.push({ angle, radius, z, speed })
+    }
+    return temp
+  }, [])
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return
+
+    const isBoosting = boostTimeRef.current > 0
+    const targetOpacity = isBoosting ? 0.35 : 0 
+    
+    meshRef.current.material.opacity = MathUtils.lerp(
+      meshRef.current.material.opacity,
+      targetOpacity,
+      delta * 10
+    )
+    
+    const isVisible = meshRef.current.material.opacity > 0.01
+    meshRef.current.visible = isVisible
+    if (!isVisible) return
+
+    meshRef.current.position.copy(camera.position)
+    meshRef.current.quaternion.copy(camera.quaternion)
+
+    lines.forEach((line, i) => {
+        line.z += line.speed * 120 * delta 
+        
+        if (line.z > 5) line.z = -40 
+
+        dummy.position.set(
+            Math.cos(line.angle) * line.radius, 
+            Math.sin(line.angle) * line.radius, 
+            line.z                              
+        )
+        
+        dummy.rotation.set(0, 0, line.angle) 
+        
+        // Spessore dinamico
+        const depthFactor = MathUtils.mapLinear(line.z, -40, 0, 1.0, 6.0)
+        const thickness = Math.max(1.0, depthFactor)
+
+        dummy.scale.set(1, thickness, 1) 
+
+        dummy.updateMatrix()
+        meshRef.current.setMatrixAt(i, dummy.matrix)
+    })
+    meshRef.current.instanceMatrix.needsUpdate = true
+  })
+
+  return createPortal(
+    <instancedMesh ref={meshRef} args={[null, null, count]} frustumCulled={false} renderOrder={999}>
+      <planeGeometry args={[3.0, 0.03]} /> 
+      <meshBasicMaterial 
+        color="white" 
+        transparent 
+        opacity={0} 
+        blending={THREE.AdditiveBlending} 
+        depthWrite={false} 
+        depthTest={false}  
+        side={THREE.DoubleSide}
+      />
+    </instancedMesh>,
+    scene
+  )
+}
+
+// --- 5. COMPONENTE PRINCIPALE COMPLETO ---
 
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
-    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData
+    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
+    isRaceActive = true  // Prop per sapere se la gara è attiva
   } = props;
   
   const { scene } = useThree()
@@ -150,6 +244,15 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const humanControls = useGameControls() 
   const botControls = useBotAI({ isBot, rigidBody, paths }) // Assicurati di usare la versione ottimizzata di useBotAI
   const activeControls = isBot ? botControls : humanControls
+  
+  // Hook per gestire gli SFX del kart (solo per il player, non per i bot)
+  const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
+    isBike: false, 
+    isActive: isRaceActive && !isBot  // Attivo solo se la gara è attiva e non è un bot
+  })
+
+  // Coda collisioni (Sicurezza Thread)
+  // --- SICUREZZA FISICA ---
   
   const collisionQueue = useRef([]) 
 
@@ -207,6 +310,24 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
   })
 
+  // Avvia l'audio IDLE quando la gara inizia (solo per il player)
+  useEffect(() => {
+    if (isRaceActive && !isBot) {
+      // Piccolo delay per assicurarsi che l'audio context sia pronto
+      const timeout = setTimeout(() => {
+        startIdleAudio();
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [isRaceActive, isBot, startIdleAudio]);
+
+  // Ferma tutti i suoni quando si esce dalla gara
+  useEffect(() => {
+    if (!isRaceActive && !isBot) {
+      stopAllAudio();
+    }
+  }, [isRaceActive, isBot, stopAllAudio]);
+
   const performHop = () => {
     if (isJumping.current) return
     isJumping.current = true
@@ -226,9 +347,14 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     if (!rigidBody.current) return;
 
     // --- 0. GESTIONE COLLISIONI SICURA ---
+    // 1. Processa la coda delle collisioni
     if (collisionQueue.current.length > 0) {
         collisionQueue.current.forEach((obj) => { if (obj) checkSurface(obj); });
         collisionQueue.current = [];
+        collisionQueue.current.forEach((obj) => {
+            if (obj) checkSurface(obj);
+        });
+        collisionQueue.current = []; 
     }
 
     // --- UI Update (Solo Player) ---
@@ -244,6 +370,12 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     const rbPos = rigidBody.current.translation();
     const rbVel = rigidBody.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
+    const { forward, backward, left, right, drift } = activeControls.current
+    
+    // Aggiorna l'audio SFX del veicolo (solo per il player)
+    if (!isBot) {
+      updateAudio(speed.current, forward);
+    }
     
     // Estrai input
     const { forward, backward, left, right, drift, item } = activeControls.current
@@ -413,10 +545,13 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   // Visual Steering
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)
 
+  // --- Handlers Sensore Terra ---
+  // --- GESTORE COLLISIONI SICURO ---
   // Handlers
   const handleGroundEnter = (payload) => {
      const rootObj = payload.other.rigidBodyObject;
      if (!rootObj) return;
+
      const name = rootObj.name;
      if (name === 'player' || name.startsWith('bot')) return; 
      
@@ -424,6 +559,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
      
      let foundName = '';
      let curr = rootObj;
+
      // Cerca solo per 3 livelli di profondità per performance
      for (let i = 0; i < 3; i++) {
         if (!curr) break;
@@ -434,6 +570,10 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         curr = curr.parent;
      }
      if (foundName) collisionQueue.current.push({ name: foundName });
+
+     if (foundName) {
+        collisionQueue.current.push({ name: foundName });
+     }
   }
 
   const handleGroundExit = () => { isGrounded.current = false; }
@@ -445,13 +585,20 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         rotation={START_ROT}
         mass={100} 
         linearDamping={2}
+        linearDamping={2}
         angularDamping={2} 
         type="dynamic" 
         ccd={true} 
         name={racerId} 
+        userData={{ 
+            type: 'racer', 
+            id: racerId
+        }}
         userData={{ type: 'racer', id: racerId }}
         colliders={false} 
         lockRotations={true}
+        restitution={0}
+        restitutionCombine="min"
         restitution={0}            
         restitutionCombine="min"   
     >
@@ -465,6 +612,17 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
           restitutionCombine="min" 
       />
 
+      {/* 2. PARAURTI CILINDRICO (Anti-Climb Bumper) */}
+      <CylinderCollider 
+          args={[0.5, PHYSICS_RADIUS + 0.1]} 
+          position={[0, -0.1, 0]} 
+          friction={0.0}
+          frictionCombine="min"
+          restitution={0}
+          restitutionCombine="min" 
+      />
+
+      {/* 3. SENSORE TERRA (Logic Only) */}
       {/* 2. SENSORE TERRA */}
       <CylinderCollider 
          args={[0.2, 0.5]} 
@@ -473,6 +631,9 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
          onIntersectionEnter={handleGroundEnter}
          onIntersectionExit={handleGroundExit}
       />
+
+      {/* Renderizza SpeedEffect solo per il player umano */}
+      {!isBot && <SpeedEffect boostTimeRef={boostTime} />}
       
       {/* UI PER PLAYER */}
       {!isBot && (
@@ -489,6 +650,21 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
       {/* GRUPPO VISUALE */}
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
+          <group position={vehicleConfig.vehicleOffset}>
+              <VehicleModel 
+              vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
+              position={[0, 0, 0]} steer={modelSteer} drift={driftDirection.current} speed={speed.current} isBike={true}
+              />
+              <group rotation={[0, Math.PI, 0]}>
+              <RacerModel 
+                  isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
+                  steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
+                  key={vehicleConfig.name + "_racer"}
+              />
+              </group>
+          </group>    
+          <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
+          <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
             <group position={vehicleConfig.vehicleOffset}>
                 <VehicleModel 
                   vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 

@@ -1,3 +1,4 @@
+import React, { useRef, useState, useMemo, useEffect } from 'react'
 import React, { useRef, useState, useMemo, forwardRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier' 
@@ -11,6 +12,7 @@ import { useControls as useGameControls } from '../hooks/useControls'
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
+import { useKartAudio } from '../hooks/useKartAudio' 
 import { useBotAI } from '../Bot/UseBotAI'
 
 // --- 1. COSTANTI E SETTINGS SPECIFICI MOTO ---
@@ -127,6 +129,15 @@ function updateSparksColor(level, leftRef, rightRef) {
 
 // --- 4. COMPONENTE PRINCIPALE MOTO ---
 
+export function InsideDriftBike({ 
+  characterConfig, 
+  vehicleConfig, 
+  START_POS, 
+  onCheckpoint, 
+  trackConfig, 
+  SETTINGS = DEFAULT_SETTINGS,
+  isRaceActive = true  // Prop per sapere se la gara è attiva
+}) {
 export const InsideDriftBike = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
@@ -134,6 +145,14 @@ export const InsideDriftBike = forwardRef((props, ref) => {
   } = props;
   
   const { scene } = useThree()
+  const controls = useGameControls() 
+  
+  // Hook per gestire gli SFX della bike
+  const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
+    isBike: true, 
+    isActive: isRaceActive 
+  }) 
+  
   const { world, rapier } = useRapier()
   
   const internalRef = useRef(null)
@@ -193,6 +212,24 @@ export const InsideDriftBike = forwardRef((props, ref) => {
     speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
   })
 
+  // Avvia l'audio IDLE quando la gara inizia
+  useEffect(() => {
+    if (isRaceActive) {
+      // Piccolo delay per assicurarsi che l'audio context sia pronto
+      const timeout = setTimeout(() => {
+        startIdleAudio();
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [isRaceActive, startIdleAudio]);
+
+  // Ferma tutti i suoni quando si esce dalla gara
+  useEffect(() => {
+    if (!isRaceActive) {
+      stopAllAudio();
+    }
+  }, [isRaceActive, stopAllAudio]);
+
   const performHop = () => {
     if (isJumping.current) return
     isJumping.current = true
@@ -231,6 +268,56 @@ export const InsideDriftBike = forwardRef((props, ref) => {
     const rbPos = rigidBody.current.translation();
     const rbVel = rigidBody.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
+    currentVelocity.current.set(rbVel.x, rbVel.y, rbVel.z);
+
+    const { forward, backward, left, right, drift, wheelie } = controls.current
+    
+    // Aggiorna l'audio SFX della bike
+    updateAudio(speed.current, forward);
+    
+    let groundDist = Infinity; 
+
+    // --- Raycast Logic ---
+    if (scene) {
+        const safeRaycast = (origin, direction, limitDistance) => {
+            try {
+                raycaster.current.set(origin, direction);
+                raycaster.current.far = limitDistance; 
+                const hits = raycaster.current.intersectObjects(scene.children, true);
+                
+                return hits.find(hit => {
+                    let obj = hit.object;
+                    while (obj) {
+                          if (obj.uuid === visualGroupRef.current?.uuid) return false;
+                          obj = obj.parent;
+                    }
+                    return true;
+                });
+            } catch (e) {
+                return null;
+            }
+        };
+
+        const downOrigin = currentPosition.current.clone();
+        downOrigin.y += 0.5; 
+        const groundHit = safeRaycast(downOrigin, new Vector3(0, -1, 0), 5);
+        
+        if (groundHit) {
+            groundDist = groundHit.distance - 0.5 - PHYSICS_RADIUS;
+            checkSurface(groundHit.object);
+        }
+        isGrounded.current = groundDist < 0.6;
+
+        const forwardDir = new Vector3(0, 0, -1)
+            .applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+            .normalize();
+        
+        const frontOrigin = currentPosition.current.clone();
+        frontOrigin.y += 1.0; 
+        const wallHit = safeRaycast(frontOrigin, forwardDir, 3.5);
+        if (wallHit) {
+             checkSurface(wallHit.object);
+        }
     
     const { forward, backward, left, right, drift, wheelie } = activeControls.current
     
