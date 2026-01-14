@@ -15,6 +15,8 @@ import { RaceManager } from '../Race/RaceManager.jsx'
 import { useAudio } from '../audio/AudioManager.jsx'
 import { RoadWalls } from '../Tracks/RoadWalls.jsx'
 import { Banana } from '../Items/Banana';
+import { GreenShell } from '../Items/GreenShell';
+import { RedShell } from '../Items/RedShell';
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -66,6 +68,10 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 
 	const [bananas, setBananas] = useState([]);
 
+	const [shells, setShells] = useState([]);
+
+	const [redShells, setRedShells] = useState([]);
+
 	const handleSpawnBanana = (position, velocity) => { // <--- Aggiungi velocity
         const newBanana = {
             id: Date.now() + Math.random(),
@@ -73,6 +79,32 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
             velocity: velocity // <--- Salvalo nell'oggetto
         };
         setBananas((prev) => [...prev, newBanana]);
+    };
+
+	const handleSpawnGreenShell = (position, velocity) => {
+        const newShell = {
+            id: Date.now() + Math.random(),
+            position: position,
+            velocity: velocity
+        };
+        setShells((prev) => [...prev, newShell]);
+    };
+
+	const handleSpawnRedShell = (position, velocity) => {
+		const newShell = {
+			id: Date.now() + Math.random(),
+			position: position,
+			velocity: velocity
+		};
+		setRedShells((prev) => [...prev, newShell]);
+	};
+
+	const handleRemoveRedShell = (id) => {
+		setRedShells((prev) => prev.filter(s => s.id !== id));
+	};
+
+	const handleRemoveShell = (id) => {
+        setShells((prev) => prev.filter(s => s.id !== id));
     };
 
     // --- REFS FISICI ---
@@ -147,6 +179,22 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
         }, 50);
     }, [onBack]);
 
+	
+	const targets = useMemo(() => {
+        const list = [];
+        // Aggiungi Player
+        if (playerRef) list.push({ id: 'player', ref: playerRef });
+        
+        // Aggiungi Bots
+        for (let i = 0; i < BOT_COUNT; i++) {
+            const id = `bot_${i}`;
+            if (botRefs.current[id]) {
+                list.push({ id: id, ref: botRefs.current[id] });
+            }
+        }
+        return list;
+    }, [playerRef]);
+
     // Calcola se la gara è attiva (non finita e non uscito)
     const isRaceActive = !finished && !raceExited;
 
@@ -187,6 +235,31 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 								key={b.id} 
 								position={b.position} 
 								initVelocity={b.velocity}
+							/>
+						))}
+					</Suspense>
+
+					<Suspense fallback={null}>
+						{shells.map((s) => (
+							<GreenShell 
+								key={s.id} 
+								position={s.position} 
+								initVelocity={s.velocity}
+								onDestroy={() => handleRemoveShell(s.id)} // Pulizia memoria
+							/>
+						))}
+					</Suspense>
+
+					<Suspense fallback={null}>
+						{redShells.map((s) => (
+							<RedShell 
+								key={s.id} 
+								position={s.position} 
+								initVelocity={s.velocity}
+								waypoints={trackWaypoints} // <--- Passiamo i Waypoints centrali
+								targets={targets}          // <--- Passiamo la lista dei bersagli
+								ownerId={s.ownerId}        // <--- Chi l'ha lanciato
+								onDestroy={() => handleRemoveRedShell(s.id)} 
 							/>
 						))}
 					</Suspense>
@@ -247,6 +320,10 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 START_ROT={[0, 90, 0]}
                                 isRaceActive={isRaceActive}
 								onSpawnBanana={handleSpawnBanana}
+								onSpawnGreenShell={handleSpawnGreenShell}
+								onSpawnRedShell={handleSpawnRedShell}
+								waypoints={trackWaypoints}
+    							rank={playerRank}
                             />
                         )}
                     </group>
