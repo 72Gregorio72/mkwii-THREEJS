@@ -1,5 +1,4 @@
-import React, { useRef, useState, useMemo, useEffect } from 'react'
-import React, { useRef, useState, useMemo, forwardRef } from 'react'
+import React, { useRef, useState, useMemo, useEffect, forwardRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier' 
 import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three' 
@@ -127,21 +126,11 @@ function updateSparksColor(level, leftRef, rightRef) {
     applyColor(leftRef); applyColor(rightRef);
 }
 
-// --- 4. COMPONENTE PRINCIPALE MOTO ---
-
-export function InsideDriftBike({ 
-  characterConfig, 
-  vehicleConfig, 
-  START_POS, 
-  onCheckpoint, 
-  trackConfig, 
-  SETTINGS = DEFAULT_SETTINGS,
-  isRaceActive = true  // Prop per sapere se la gara è attiva
-}) {
 export const InsideDriftBike = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
-    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData
+    isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
+    isRaceActive = true
   } = props;
   
   const { scene } = useThree()
@@ -268,12 +257,6 @@ export const InsideDriftBike = forwardRef((props, ref) => {
     const rbPos = rigidBody.current.translation();
     const rbVel = rigidBody.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
-    currentVelocity.current.set(rbVel.x, rbVel.y, rbVel.z);
-
-    const { forward, backward, left, right, drift, wheelie } = controls.current
-    
-    // Aggiorna l'audio SFX della bike
-    updateAudio(speed.current, forward);
     
     let groundDist = Infinity; 
 
@@ -318,8 +301,12 @@ export const InsideDriftBike = forwardRef((props, ref) => {
         if (wallHit) {
              checkSurface(wallHit.object);
         }
+  }
     
     const { forward, backward, left, right, drift, wheelie } = activeControls.current
+    
+    // Aggiorna l'audio SFX della bike
+    updateAudio(speed.current, forward);
     
     // --- LOGICA IMPENNATA (WHEELIE) ---
     // 1. Toggle Logic (Premi una volta per attivare, premi di nuovo per disattivare)

@@ -35,11 +35,15 @@ export const usePowerupHandler = ({
     // 2. Opzionale: Dai un colpo di velocità immediato se sei quasi fermo
     // (Simula l'accelerazione improvvisa del fungo)
     if (speed && speed.current < SETTINGS.maxSpeed) {
-      speed.current = MathUtils.lerp(speed.current, SETTINGS.maxSpeed + 10, 0.5);
+      speed.current = MathUtils.lerp(speed.current, SETTINGS.maxSpeed + 20, 0.5);
     }
 
     console.log("Fungo utilizzato!");
   };
+
+  const useBanana = () => {
+	
+  }
 
   // Funzione principale chiamata nel loop del kart per gestire l'input
   const handleItemInput = (inputActive) => {
