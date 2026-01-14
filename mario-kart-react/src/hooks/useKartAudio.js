@@ -20,7 +20,7 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
   // Valori audio hardcoded (non possiamo usare useAudio dentro Canvas)
   const audioEnabled = true;
   const isMuted = false;
-  const sfxVolume = 0.5;
+  const sfxVolume = 0.9;
   
   // Riferimenti agli elementi audio
   const gasAudioRef = useRef(null);
@@ -36,10 +36,16 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
   const loopAudioBRef = useRef(null);
   const activeLoopRef = useRef('A');
   const loopCrossfadeIntervalRef = useRef(null);
-  
+
   // Stato corrente dell'audio
   const currentStateRef = useRef('idle'); // 'idle' | 'gas' | 'loop' | 'stopped'
   const isAcceleratingRef = useRef(false);
+  
+  // Stato drift per gli SFX
+  const prevDriftLevelRef = useRef(0);
+  const driftAudioRef = useRef(null);       // Suono "bling" blu/rosso (one-shot)
+  const driftLoopAudioRef = useRef(null);   // Suono generico drift in loop
+  const isDriftingRef = useRef(false);      // Traccia se stiamo driftando
   
   // Seleziona i file audio corretti in base al tipo di veicolo
   const audioFiles = isBike ? {
@@ -215,6 +221,13 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
           ref.current = null;
         }
       });
+      
+      // Cleanup drift audio
+      if (driftAudioRef.current) {
+        driftAudioRef.current.pause();
+        driftAudioRef.current.src = '';
+        driftAudioRef.current = null;
+      }
     };
   }, [audioFiles.idle, audioFiles.gas, audioFiles.loop, startLoopWithCrossfade]);
 
@@ -254,6 +267,20 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
       gasAudioRef.current.pause();
       gasAudioRef.current.currentTime = 0;
     }
+    
+    // Ferma anche i suoni del drift
+    if (driftAudioRef.current) {
+      driftAudioRef.current.pause();
+      driftAudioRef.current.src = '';
+      driftAudioRef.current = null;
+    }
+    if (driftLoopAudioRef.current) {
+      driftLoopAudioRef.current.pause();
+      driftLoopAudioRef.current.src = '';
+      driftLoopAudioRef.current = null;
+    }
+    isDriftingRef.current = false;
+    prevDriftLevelRef.current = 0;
   }, [stopIdleCrossfade, stopLoopCrossfade]);
 
   // Gestisce lo stop quando si esce dalla gara
@@ -269,8 +296,10 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
    * 
    * @param {number} speed - Velocità attuale del veicolo
    * @param {boolean} isAccelerating - true se il giocatore sta premendo accelera
+   * @param {number} driftLevel - Livello drift corrente (0, 1=blu, 2=rosso)
+   * @param {boolean} isDrifting - true se il kart è in fase di drift (driftDirection !== 0)
    */
-  const updateAudio = useCallback((speed, isAccelerating) => {
+  const updateAudio = useCallback((speed, isAccelerating, driftLevel = 0, isDrifting = false) => {
     if (!audioEnabled || !isActive || isMuted) {
       return;
     }
@@ -313,53 +342,93 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
       targetState = 'idle';
     }
 
-    // Se lo stato non è cambiato, non fare nulla
-    if (targetState === currentStateRef.current) {
-      return;
+    // Se lo stato non è cambiato, non fare nulla (per il motore)
+    if (targetState !== currentStateRef.current) {
+      // Ferma l'audio corrente
+      const stopCurrent = () => {
+        switch (currentStateRef.current) {
+          case 'idle':
+            stopIdleCrossfade();
+            break;
+          case 'gas':
+            if (gasAudioRef.current) {
+              gasAudioRef.current.pause();
+              gasAudioRef.current.currentTime = 0;
+            }
+            break;
+          case 'loop':
+            stopLoopCrossfade();
+            break;
+        }
+      };
+
+      // Avvia il nuovo audio
+      const playTarget = () => {
+        const volume = isMuted ? 0 : sfxVolume;
+        
+        switch (targetState) {
+          case 'idle':
+            startIdleWithCrossfade();
+            break;
+          case 'gas':
+            if (gasAudioRef.current) {
+              gasAudioRef.current.volume = volume;
+              gasAudioRef.current.currentTime = 0;
+              gasAudioRef.current.play().catch(() => {});
+            }
+            break;
+          case 'loop':
+            startLoopWithCrossfade();
+            break;
+        }
+      };
+
+      stopCurrent();
+      currentStateRef.current = targetState;
+      playTarget();
     }
-
-    // Ferma l'audio corrente
-    const stopCurrent = () => {
-      switch (currentStateRef.current) {
-        case 'idle':
-          stopIdleCrossfade();
-          break;
-        case 'gas':
-          if (gasAudioRef.current) {
-            gasAudioRef.current.pause();
-            gasAudioRef.current.currentTime = 0;
-          }
-          break;
-        case 'loop':
-          stopLoopCrossfade();
-          break;
+    
+    // Gestione suono generico drift in LOOP (NORMAL_DRIFT)
+    // Usa isDrifting (quando si entra in drift) non driftLevel (quando è blu/rosso)
+    if (isDrifting !== isDriftingRef.current) {
+      if (isDrifting) {
+        // Inizia il drift: avvia il suono loop
+        const loopAudio = new Audio(AUDIO_SFX.NORMAL_DRIFT);
+        loopAudio.loop = true;
+        loopAudio.volume = 0.7;  // Volume medio per il suono di sottofondo
+        loopAudio.play().catch(() => {});
+        driftLoopAudioRef.current = loopAudio;
+      } else {
+        // Fine drift: ferma il suono loop
+        if (driftLoopAudioRef.current) {
+          driftLoopAudioRef.current.pause();
+          driftLoopAudioRef.current.src = '';
+          driftLoopAudioRef.current = null;
+        }
       }
-    };
-
-    // Avvia il nuovo audio
-    const playTarget = () => {
-      const volume = isMuted ? 0 : sfxVolume;
+      isDriftingRef.current = isDrifting;
+    }
+    
+    // Gestione suoni drift "bling" blu/rosso (SEMPRE eseguita, indipendente dallo stato motore)
+    if (driftLevel !== prevDriftLevelRef.current) {
+      // Ferma il suono drift precedente se esiste
+      if (driftAudioRef.current) {
+        driftAudioRef.current.pause();
+        driftAudioRef.current.src = '';
+        driftAudioRef.current = null;
+      }
       
-      switch (targetState) {
-        case 'idle':
-          startIdleWithCrossfade();
-          break;
-        case 'gas':
-          if (gasAudioRef.current) {
-            gasAudioRef.current.volume = volume;
-            gasAudioRef.current.currentTime = 0;
-            gasAudioRef.current.play().catch(() => {});
-          }
-          break;
-        case 'loop':
-          startLoopWithCrossfade();
-          break;
+      // Riproduci nuovo suono se drift level > 0
+      if (driftLevel > 0) {
+        const soundFile = driftLevel === 1 ? AUDIO_SFX.BLUE_DRIFT : AUDIO_SFX.RED_DRIFT;
+        const audio = new Audio(soundFile);
+        audio.volume = 1.0;  // Volume alto per il drift (più forte del motore)
+        audio.play().catch(() => {});
+        driftAudioRef.current = audio;
       }
-    };
-
-    stopCurrent();
-    currentStateRef.current = targetState;
-    playTarget();
+      
+      prevDriftLevelRef.current = driftLevel;
+    }
     
   }, [audioEnabled, isActive, isMuted, sfxVolume, stopIdleCrossfade, stopLoopCrossfade, startIdleWithCrossfade, startLoopWithCrossfade]);
 

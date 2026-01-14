@@ -3,6 +3,12 @@ import { Tracks } from '../components/Data'
 import { useAudio } from '../audio/AudioManager.jsx'
 
 export function TrackSelection({ setMenuState, setSelectedTrack }) {
+    const { changeTrack } = useAudio();
+    useEffect(() => {
+      changeTrack('COURSE_SELECT', false);
+    }, []);
+
+
     const tracksList = Object.entries(Tracks).map(([name, data]) => ({
         name,
         ...data

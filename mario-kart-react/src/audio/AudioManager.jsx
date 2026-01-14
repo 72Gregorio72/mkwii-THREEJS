@@ -12,7 +12,7 @@ export const AUDIO_TRACKS = {
   LOBBY_MUSIC: '/soundTracks/SET_UP.mp3', // lobby music
   CHARACTER_SELECT: '/soundTracks/CHARACTER_SELECT_SCREEN.mp3', // character select music
   KART_SELECT: '/soundTracks/KART_SELECT_SCREEN.mp3', // kart select music
-  COURSE_SELECT: '/soundTracks/COURSE_SELECT.mp3', // course select music
+  COURSE_SELECT: '/soundTracks/COURSE_SELECTION.mp3', // course select music
   RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
   RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
   RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
@@ -27,6 +27,9 @@ export const AUDIO_SFX = {
   BIKE_GAS: '/SFX/BIKE_GAS.wav',
   BIKE_DOWNSHIFT: '/SFX/BIKE_DOWN.wav',
   BIKE_LOOP: '/SFX/BIKE_LOOP.wav',
+  BLUE_DRIFT: '/SFX/SE_VCL_DRIFT_HIBANA_BLUE.wav',
+  RED_DRIFT: '/SFX/SE_VCL_DRIFT_HIBANA_RED.wav',
+  NORMAL_DRIFT: '/SFX/SE_VCL_SLIP_ASPHALT.wav',
 };
 
 export const AudioProvider = ({ children }) => {

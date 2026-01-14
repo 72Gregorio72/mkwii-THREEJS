@@ -305,9 +305,6 @@ export const InsideDriftBike = forwardRef((props, ref) => {
     
     const { forward, backward, left, right, drift, wheelie } = activeControls.current
     
-    // Aggiorna l'audio SFX della bike
-    updateAudio(speed.current, forward);
-    
     // --- LOGICA IMPENNATA (WHEELIE) ---
     // 1. Toggle Logic (Premi una volta per attivare, premi di nuovo per disattivare)
     if (wheelie && !wheeliePressed.current) {
@@ -366,11 +363,14 @@ export const InsideDriftBike = forwardRef((props, ref) => {
         if (pendingBoost.current && isGrounded.current) activateBoost(1);
     }
     updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
-
+    
     // --- Engine Speed Calculation ---
     const isBoosting = boostTime.current > 0
     if (isBoosting) boostTime.current -= 1
     const isDrifting = driftDirection.current !== 0
+    
+    // Aggiorna audio SFX (motore + drift sounds)
+    updateAudio(speed.current, forward, driftLevel.current, isDrifting);
     
     // Velocità Base
     let currentSpeedLimit = SETTINGS.maxSpeed
