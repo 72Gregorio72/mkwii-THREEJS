@@ -4,12 +4,6 @@ import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-thr
 import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three'
 import * as THREE from 'three'
 import { Html } from '@react-three/drei'
-import React, { useRef, useState, useMemo, forwardRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
-import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier' 
-import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three' 
-import * as THREE from 'three' 
-import { Html } from '@react-three/drei' 
 import gsap from 'gsap'
 
 // --- IMPORTS CUSTOM ---
@@ -231,7 +225,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true  // Prop per sapere se la gara è attiva
+    isRaceActive = true
   } = props;
   
   const { scene } = useThree()
@@ -370,15 +364,14 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     const rbPos = rigidBody.current.translation();
     const rbVel = rigidBody.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
-    const { forward, backward, left, right, drift } = activeControls.current
+    
+    // Estrai input
+    const { forward, backward, left, right, drift, item } = activeControls.current
     
     // Aggiorna l'audio SFX del veicolo (solo per il player)
     if (!isBot) {
       updateAudio(speed.current, forward);
     }
-    
-    // Estrai input
-    const { forward, backward, left, right, drift, item } = activeControls.current
 
     // Gestione Oggetti
     handleItemInput(item);
@@ -585,7 +578,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         rotation={START_ROT}
         mass={100} 
         linearDamping={2}
-        linearDamping={2}
         angularDamping={2} 
         type="dynamic" 
         ccd={true} 
@@ -594,13 +586,10 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
             type: 'racer', 
             id: racerId
         }}
-        userData={{ type: 'racer', id: racerId }}
         colliders={false} 
         lockRotations={true}
         restitution={0}
-        restitutionCombine="min"
-        restitution={0}            
-        restitutionCombine="min"   
+        restitutionCombine="min" 
     >
       {/* 1. SFERA FISICA */}
       <BallCollider 
@@ -613,14 +602,14 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       />
 
       {/* 2. PARAURTI CILINDRICO (Anti-Climb Bumper) */}
-      <CylinderCollider 
+      {/* <CylinderCollider 
           args={[0.5, PHYSICS_RADIUS + 0.1]} 
           position={[0, -0.1, 0]} 
           friction={0.0}
           frictionCombine="min"
           restitution={0}
           restitutionCombine="min" 
-      />
+      /> */}
 
       {/* 3. SENSORE TERRA (Logic Only) */}
       {/* 2. SENSORE TERRA */}

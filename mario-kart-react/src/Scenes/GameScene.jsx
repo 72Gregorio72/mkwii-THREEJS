@@ -1,11 +1,10 @@
 import React, { useState, useRef, useCallback, useMemo	, useEffect } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
-import { Environment, PerspectiveCamera, useGLTF, Line, Stats } from '@react-three/drei'
+import { Canvas } from '@react-three/fiber'
+import { Physics } from '@react-three/rapier'
+import { Environment, PerspectiveCamera, Stats } from '@react-three/drei'
 import { SmartMap } from '../Tracks/SmartMap'
 import { OutsideDriftKart } from '../components/OutsideDriftKart'
 import { InsideDriftBike } from '../components/InsideDriftBike'
-import { WaypointRecorder } from '../Bot/WaypointRecorder'
 import trackWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit.json'
 import leftWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left.json'
 import rightWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right.json'
@@ -39,22 +38,6 @@ function getGridPosition(startPos, index) {
         startPos[2] + zOffset // Z va indietro
     ];
 }
-function WaypointVisualizer({ points, color }) {
-  const linePoints = useMemo(() => {
-    if (!points) return []
-    // Convertiamo l'array di oggetti {x,y,z} in array di array [x,y,z]
-    // Alziamo la Y di 1 metro per vederla bene sopra la strada
-    return points.map(p => [p.x, p.y + 1.0, p.z])
-  }, [points])
-  return (
-    <Line
-      points={linePoints}       // Array di vettori [x, y, z]
-      color={color}               // Colore richiesto
-      lineWidth={3}             // Spessore della linea
-      dashed={false}            // Linea continua
-    />
-  )
-}
 
 /**
  * Componente che gestisce i Box Collider dei Checkpoint
@@ -63,7 +46,7 @@ function WaypointVisualizer({ points, color }) {
 export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack, start_pos, maxCheckpoints, selectedTrack }) {
 
     // --- REFS DATI ---
-    const { initialRacersData, initialPositions, botsArray } = useMemo(() => {
+    const { initialRacersData, initialPositions } = useMemo(() => {
         const data = {
             player: { id: 'player', lap: 1, nextCP: 1, score: 0 }
         };
@@ -106,12 +89,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     // --- REFS ---
     const racersData = useRef(initialRacersData);
     const trackRef = useRef();
-    
-    const racerRefs = useRef({});
 
-    // --- LOGICA CHECKPOINT ---
-    const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
-		// Controllo sicurezza
+        // Controllo sicurezza
 	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
 		if (!racerId || !racersData.current[racerId]) return;
 
@@ -136,53 +115,16 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 
 	const playerRef = useRef();
 
-	const botRefs = useRef({});
-
-	const racers = [playerRef, botRefs];
-	
-	// Inizializza i ref per tutti i 11 bot
+    const botRefs = useRef({});
+    
+    // Inizializza i ref per tutti i 11 bot
 	for (let i = 0; i < BOT_COUNT; i++) {
 		if (!botRefs.current[`bot_${i}`]) {
 			botRefs.current[`bot_${i}`] = React.createRef();
 		}
-	}
-    const lastCheckTime = useRef(0);
-    const kartRef = useRef();
-    const bikeRef = useRef();
+    }
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
-    const isBike = vehicle.isBike;
-
-    // --- LOGICA GIRI ---
-    const handleCheckpoint = useCallback((hitIndex) => {
-        if (finished) return;
-
-        const now = Date.now();
-        if (now - lastCheckTime.current < 500) return;
-
-        console.log(`🏁 CHECKPOINT TOCCATO -> ID: ${hitIndex} | Atteso: ${nextCheck}`);
-
-        // CASO 1: Checkpoint Intermedio Corretto
-        if (hitIndex === nextCheck && hitIndex !== 0) {
-            console.log("✅ Checkpoint Valido!");
-            setNextCheck(prev => prev + 1);
-            lastCheckTime.current = now; 
-        } else if (hitIndex === 0 && nextCheck > maxCheckpoints) {
-            console.log("🏆 GIRO COMPLETATO!");
-            
-            setLap(prevLap => {
-                const newLap = prevLap + 1;
-                if (newLap > TOTAL_LAPS) {
-                    setFinished(true);
-                    return prevLap; 
-                }
-                return newLap;
-            });
-
-            setNextCheck(1); 
-            lastCheckTime.current = now; 
-        }
-    }, [finished, nextCheck, maxCheckpoints]);
 
     // Funzione per gestire l'uscita dalla gara
     const handleExitRace = useCallback(() => {
@@ -206,17 +148,12 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                     {finished ? <span style={{color: '#ffdd00'}}>FINISH!</span> : `Lap ${lap} / ${TOTAL_LAPS}`}
                 </div>
                 <h2 style={{ margin: 0 }}>Lap: {uiLap}</h2>
-                <div style={{ fontSize: '14px', opacity: 0.7 }}>
-                      Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
-                </div>
-        <div style={{ width: '100vw', height: '100vh' }}>
-            <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white' }}>
-                 <h1>Pos: {playerRank} / 2</h1>
-                 <h2>Lap: {uiLap}</h2>
+            <div style={{ fontSize: '14px', opacity: 0.7 }}>
+                  Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
             </div>
+        </div>
 
-            <Canvas style={{ width: '100%', height: '100%' }}>
-            <Canvas>
+        <Canvas>
 				<Stats />
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
                 <ambientLight intensity={0.5} />
@@ -329,7 +266,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                             isRaceActive={isRaceActive}
                         />
                     </group>
-					{/* <WaypointRecorder kartRef={isBike ? bikeRef : kartRef} isRecording={true} /> */}
                 </Physics>
             </Canvas>
         </div>

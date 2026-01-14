@@ -95,16 +95,11 @@ export function SmartMap({ modelPath, scale = 1 }) {
       {/* Proxy Strada */}
       {/* MODIFICA 2: Cambiato color="yellow" in color="purple" 
       */}
-      <ColliderGroup geometries={roads} label="road" friction={1} restitution={0} color="purple" />
+      {/* <ColliderGroup geometries={roads} label="road" friction={1} restitution={0} color="purple" /> */}
 
-      {/* Proxy Muri (Si vedranno rossi wireframe) */}
-      <ColliderGroup geometries={walls} label="wall" friction={0} restitution={0.5} color="red" />
-
-      {/* Proxy Erba (Si vedranno verdi wireframe) */}
+      {/* <ColliderGroup geometries={walls} label="wall" friction={0} restitution={0.5} color="red" />
       <ColliderGroup geometries={grass} label="grass" friction={0.6} restitution={0} color="green" />
-
-      {/* Oggetti Comuni (Si vedranno blu wireframe sopra la grafica reale) */}
-      <ColliderGroup geometries={defaults} label="default" friction={0} restitution={0} color="blue" />
+      <ColliderGroup geometries={defaults} label="default" friction={0} restitution={0} color="blue" /> */}
 
     </group>
   )

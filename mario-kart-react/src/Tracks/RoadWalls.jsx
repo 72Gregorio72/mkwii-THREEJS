@@ -1,106 +1,126 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
 import { RigidBody, MeshCollider } from '@react-three/rapier'
-// Importiamo l'utility per unire i vertici
 import { mergeVertices } from 'three-stdlib'
 
-export function RoadWalls({ modelPath, wallHeight = 3, thresholdAngle = 20, debug = false }) {
-  const { scene } = useGLTF(modelPath)
+export function RoadWalls({ modelPath, wallHeight = 3, thresholdAngle = 20 }) {
+	const { scene } = useGLTF(modelPath)
 
-  const wallGeometry = useMemo(() => {
-    const allVertices = [];
-    const allIndices = [];
-    let indexOffset = 0;
+	const { wallGeometry, roadGeometry } = useMemo(() => {
+		const allWallVertices = [];
+		const allWallIndices = [];
+		const allRoadVertices = [];
+		const allRoadIndices = [];
+		let wallIndexOffset = 0;
+		let roadIndexOffset = 0;
 
-    scene.updateMatrixWorld(true);
+		scene.updateMatrixWorld(true);
 
-    scene.traverse((child) => {
-      if (child.isMesh) {
-        // --- PASSAGGIO CHIAVE: SALDATURA VERTICI ---
-        // 1. Cloniamo la geometria per non rompere il modello visivo originale
-        let tempGeo = child.geometry.clone();
+		scene.traverse((child) => {
+			if (child.isMesh) {
+				// --- COLLIDER STRADA (Mesh originale) ---
+				const posAttr = child.geometry.attributes.position;
+				const indexAttr = child.geometry.index;
 
-        // 2. Opzionale: Rimuoviamo attributi che potrebbero impedire l'unione 
-        // (se due vertici hanno UV diverse, non vengono uniti, quindi li togliamo per il calcolo fisico)
-        tempGeo.deleteAttribute('uv'); 
-        tempGeo.deleteAttribute('normal'); 
+				if (posAttr && indexAttr) {
+					for (let i = 0; i < posAttr.count; i++) {
+						const v = new THREE.Vector3(
+							posAttr.getX(i),
+							posAttr.getY(i),
+							posAttr.getZ(i)
+						);
+						v.applyMatrix4(child.matrixWorld);
+						allRoadVertices.push(v.x, v.y, v.z);
+					}
 
-        // 3. Uniamo i vertici vicini (Saldatura)
-        // Questo trasforma i segmenti separati in un unico nastro continuo
-        tempGeo = mergeVertices(tempGeo, 0.01); // 0.01 è la tolleranza di distanza
-        
-        // Ricalcoliamo le normali per sicurezza (serve a EdgesGeometry)
-        tempGeo.computeVertexNormals();
+					for (let i = 0; i < indexAttr.count; i++) {
+						allRoadIndices.push(indexAttr.getX(i) + roadIndexOffset);
+					}
 
-        // --- FINE SALDATURA ---
+					roadIndexOffset += posAttr.count;
+				}
 
-        // 4. Ora EdgesGeometry vedrà solo il bordo ESTERNO, ignorando le linee interne
-        const edges = new THREE.EdgesGeometry(tempGeo, thresholdAngle);
-        const linePos = edges.attributes.position.array;
+				// --- COLLIDER MURI (EdgesGeometry) ---
+				let tempGeo = child.geometry.clone();
+				tempGeo.deleteAttribute('uv'); 
+				tempGeo.deleteAttribute('normal'); 
+				tempGeo = mergeVertices(tempGeo, 0.01);
+				tempGeo.computeVertexNormals();
 
-        if (linePos.length === 0) return;
+				const edges = new THREE.EdgesGeometry(tempGeo, thresholdAngle);
+				const linePos = edges.attributes.position.array;
 
-        const v1 = new THREE.Vector3();
-        const v2 = new THREE.Vector3();
+				if (linePos.length === 0) return;
 
-        for (let i = 0; i < linePos.length; i += 6) {
-          v1.set(linePos[i], linePos[i+1], linePos[i+2]);
-          v2.set(linePos[i+3], linePos[i+4], linePos[i+5]);
+				const v1 = new THREE.Vector3();
+				const v2 = new THREE.Vector3();
 
-          // Convertiamo in World Space
-          v1.applyMatrix4(child.matrixWorld);
-          v2.applyMatrix4(child.matrixWorld);
+				for (let i = 0; i < linePos.length; i += 6) {
+					v1.set(linePos[i], linePos[i+1], linePos[i+2]);
+					v2.set(linePos[i+3], linePos[i+4], linePos[i+5]);
 
-          // Costruzione Muro (Verticale su Y assoluta)
-          allVertices.push(v1.x, v1.y, v1.z); 
-          allVertices.push(v2.x, v2.y, v2.z); 
-          
-          allVertices.push(v1.x, v1.y + wallHeight, v1.z); 
-          allVertices.push(v2.x, v2.y + wallHeight, v2.z); 
+					v1.applyMatrix4(child.matrixWorld);
+					v2.applyMatrix4(child.matrixWorld);
 
-          allIndices.push(
-            indexOffset, indexOffset + 1, indexOffset + 2, 
-            indexOffset + 1, indexOffset + 3, indexOffset + 2
-          );
-          
-          indexOffset += 4;
-        }
-      }
-    });
+					allWallVertices.push(v1.x, v1.y, v1.z); 
+					allWallVertices.push(v2.x, v2.y, v2.z); 
+					allWallVertices.push(v1.x, v1.y + wallHeight, v1.z); 
+					allWallVertices.push(v2.x, v2.y + wallHeight, v2.z); 
 
-    if (allVertices.length === 0) return null;
+					allWallIndices.push(
+						wallIndexOffset, wallIndexOffset + 1, wallIndexOffset + 2, 
+						wallIndexOffset + 1, wallIndexOffset + 3, wallIndexOffset + 2
+					);
+					
+					wallIndexOffset += 4;
+				}
+			}
+		});
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(allVertices, 3));
-    geometry.setIndex(allIndices);
-    geometry.computeVertexNormals();
+		const wallGeo = allWallVertices.length > 0 ? (() => {
+			const geometry = new THREE.BufferGeometry();
+			geometry.setAttribute('position', new THREE.Float32BufferAttribute(allWallVertices, 3));
+			geometry.setIndex(allWallIndices);
+			geometry.computeVertexNormals();
+			return geometry;
+		})() : null;
 
-    return geometry;
+		const roadGeo = allRoadVertices.length > 0 ? (() => {
+			const geometry = new THREE.BufferGeometry();
+			geometry.setAttribute('position', new THREE.Float32BufferAttribute(allRoadVertices, 3));
+			geometry.setIndex(allRoadIndices);
+			geometry.computeVertexNormals();
+			return geometry;
+		})() : null;
 
-  }, [scene, wallHeight, thresholdAngle]);
+		return { wallGeometry: wallGeo, roadGeometry: roadGeo };
 
-  if (!wallGeometry) return null;
+	}, [scene, wallHeight, thresholdAngle]);
 
-  return (
-    <RigidBody 
-      key={wallGeometry.uuid} 
-      type="fixed" 
-      colliders={false} 
-      position={[0,0,0]} 
-      rotation={[0,0,0]}
-    >
-      <MeshCollider type="trimesh">
-        <mesh geometry={wallGeometry}>
-          <meshBasicMaterial 
-            color="red" 
-            opacity={0.5} 
-            transparent={true} 
-            visible={false} 
-            side={THREE.DoubleSide} 
-          />
-        </mesh>
-      </MeshCollider>
-    </RigidBody>
-  )
+	return (
+		<>
+			{/* Collider Strada */}
+			{roadGeometry && (
+				<RigidBody type="fixed" colliders={false}>
+					<MeshCollider type="trimesh">
+						<mesh geometry={roadGeometry}>
+							<meshBasicMaterial visible={false} />
+						</mesh>
+					</MeshCollider>
+				</RigidBody>
+			)}
+
+			{/* Collider Muri */}
+			{wallGeometry && (
+				<RigidBody type="fixed" colliders={false}>
+					<MeshCollider type="trimesh">
+						<mesh geometry={wallGeometry}>
+							<meshBasicMaterial visible={false} side={THREE.DoubleSide} />
+						</mesh>
+					</MeshCollider>
+				</RigidBody>
+			)}
+		</>
+	)
 }
