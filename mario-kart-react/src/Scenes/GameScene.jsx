@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo	, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
-import { Environment, PerspectiveCamera, useGLTF, Line } from '@react-three/drei'
+import { Environment, PerspectiveCamera, useGLTF, Line, Stats } from '@react-three/drei'
 import { SmartMap } from '../Tracks/SmartMap'
 import { OutsideDriftKart } from '../components/OutsideDriftKart'
 import { InsideDriftBike } from '../components/InsideDriftBike'
@@ -14,6 +14,7 @@ import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
 import { CheckpointSystem } from '../Race/CheckPointManager.jsx'
 import { RaceManager } from '../Race/RaceManager.jsx'
 import { useAudio } from '../audio/AudioManager.jsx'
+import { RoadWalls } from '../Tracks/RoadWalls.jsx'
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -111,27 +112,17 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     // --- LOGICA CHECKPOINT ---
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
 		// Controllo sicurezza
+	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
 		if (!racerId || !racersData.current[racerId]) return;
 
 		const racer = racersData.current[racerId];
 		
-		// Debug per capire se i bot vengono rilevati
-		// if (racerId.includes('bot')) console.log(`${racerId} hit CP ${hitIndex}. Next expected: ${racer.nextCP}`);
-
-		// CASO 1: Checkpoint corretto (sequenziale)
 		if (hitIndex === racer.nextCP && hitIndex !== 0) {
 			racer.nextCP += 1;
 		} 
-		// CASO 2: Traguardo (Index 0)
-		// Bisogna aver superato l'ultimo checkpoint (maxCheckpoints)
 		else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
 			racer.lap += 1;
-			racer.nextCP = 1; // Reset per il nuovo giro
-			
-			// Log visivo per confermare che il bot ha completato il giro
-			console.log(`🏁 ${racerId} COMPLETED LAP ${racer.lap - 1}! Now on Lap ${racer.lap}`);
-
-			// Gestione fine gara solo per il player (o logica globale se vuoi)
+			racer.nextCP = 1;
 			if (racerId === 'player') {
 				if (racer.lap > TOTAL_LAPS) setFinished(true);
 				else setUiLap(racer.lap);
@@ -218,19 +209,25 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                 <div style={{ fontSize: '14px', opacity: 0.7 }}>
                       Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
                 </div>
+        <div style={{ width: '100vw', height: '100vh' }}>
+            <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white' }}>
+                 <h1>Pos: {playerRank} / 2</h1>
+                 <h2>Lap: {uiLap}</h2>
             </div>
 
             <Canvas style={{ width: '100%', height: '100%' }}>
+            <Canvas>
+				<Stats />
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
                 <Environment preset="city" />
 
-				<WaypointVisualizer points={trackWaypoints} color="blue" />
+				{/* <WaypointVisualizer points={trackWaypoints} color="blue" />
 				<WaypointVisualizer points={leftWaypoints} color="green" />
 				<WaypointVisualizer points={rightWaypoints} color="red" />
 				<WaypointVisualizer points={trackWaypoints1} color="yellow" />
-				<WaypointVisualizer points={trackWaypoints2} color="orange" />
+				<WaypointVisualizer points={trackWaypoints2} color="orange" /> */}
 				
 
                 <Physics debug={false}>
@@ -248,15 +245,18 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                     <group ref={trackRef}>
                         <SmartMap modelPath={mapPath} scale={1} />
                     </group>
+					<RoadWalls 
+						modelPath={selectedTrack.road}
+						wallHeight={10}
+						thresholdAngle={20}
+						debug={true}
+					/>
                     {checkpointPath && (
                         <CheckpointSystem 
                             url={checkpointPath} 
-                            // 1. Salviamo le posizioni appena caricate
                             onSystemReady={(posMap) => {
                                 checkpointPositionsRef.current = posMap;
-                                // console.log("📍 Mappa Checkpoint caricata per RaceManager:", posMap);
                             }}
-                            // 2. Logica trigger esistente
                             onCheckpointTrigger={(index, racerId) => {
                                 handleCheckpointTrigger(index, racerId); 
                             }} 
@@ -291,7 +291,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                         )}
                     </group>
 
-                    {/* BOT */}
                     {Array.from({ length: BOT_COUNT }, (_, i) => {
 						const botId = `bot_${i}`;
 						const gridPos = getGridPosition(start_pos, i + 1); // +1 perché player è index 0

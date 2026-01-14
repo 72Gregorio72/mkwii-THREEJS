@@ -9,7 +9,8 @@ export const useControls = () => {
     brake: false,
     drift: false,
     reset: false,
-    wheelie: false, // <--- NUOVO STATO
+    wheelie: false,
+	item: false,
   })
 
   useEffect(() => {
@@ -24,7 +25,8 @@ export const useControls = () => {
       ArrowRight: 'right',
       Space: 'drift',
       KeyR: 'reset',
-      ShiftLeft: 'wheelie', // <--- TASTO PER IMPENNARE (Shift Sx)
+      ShiftLeft: 'wheelie',
+	  KeyE: 'item',
     }
 
     const handleKeyDown = (e) => {

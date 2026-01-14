@@ -4,14 +4,23 @@ import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-thr
 import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three'
 import * as THREE from 'three'
 import { Html } from '@react-three/drei'
+import React, { useRef, useState, useMemo, forwardRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier' 
+import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three' 
+import * as THREE from 'three' 
+import { Html } from '@react-three/drei' 
 import gsap from 'gsap'
 
+// --- IMPORTS CUSTOM ---
+// Assicurati che i percorsi siano corretti rispetto alla tua struttura cartelle
 import { useControls as useGameControls } from '../hooks/useControls' 
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
 import { useBotAI } from '../Bot/UseBotAI'
 import { useKartAudio } from '../hooks/useKartAudio'
+import { usePowerupHandler } from './PowerupHandler';
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
@@ -22,22 +31,22 @@ const cRed = new THREE.Color(0xFF3300);
 
 const DEFAULT_SETTINGS = {
   maxSpeed: 40,
-  maxTurboLimit: 50,       
-  acceleration: 0.25,       
-  deceleration: 2.0,       
+  maxTurboLimit: 50,        
+  acceleration: 0.25,        
+  deceleration: 2.0,        
   turnSpeed: 0.9,
   driftTurnSpeed: 0.9, 
   driftGrip: 0.02, 
-  boostStrength: 0,        
-  boostDuration: 60,       
-  jumpForce: 0,          
+  boostStrength: 0,          
+  boostDuration: 60,        
+  jumpForce: 0,           
   driftLevel1Time: 1.5,    
   driftLevel2Time: 3.0,  
-  driftMinSpeed: 10,       
+  driftMinSpeed: 10,        
   slideOutForce: 0.08,
 }
 
-// --- 2. SISTEMA PARTICELLE (Spark Texture) ---
+// --- 2. SISTEMA PARTICELLE (Texture) ---
 function getNintendoSparkTexture() {
   if (typeof document === 'undefined') return null;
   const canvas = document.createElement('canvas');
@@ -69,7 +78,7 @@ const DriftParticles = React.forwardRef((props, ref) => {
   const texture = useMemo(() => getNintendoSparkTexture(), []);
   const [data] = useState(() => ({
       positions: new Float32Array(count * 3), velocities: new Float32Array(count * 3), 
-      life: new Float32Array(count), sizes: new Float32Array(count)           
+      life: new Float32Array(count), sizes: new Float32Array(count)            
   }));
 
   const resetParticle = (i) => {
@@ -90,7 +99,7 @@ const DriftParticles = React.forwardRef((props, ref) => {
       data.life[i] -= delta * 3.5; 
       if (data.life[i] <= 0) resetParticle(i);
       else {
-        pos[i * 3] += data.velocities[i * 3] * delta;     
+        pos[i * 3] += data.velocities[i * 3] * delta;      
         pos[i * 3 + 1] += data.velocities[i * 3 + 1] * delta; 
         pos[i * 3 + 2] += data.velocities[i * 3 + 2] * delta; 
         data.velocities[i * 3 + 1] -= 9.8 * delta;
@@ -104,25 +113,31 @@ const DriftParticles = React.forwardRef((props, ref) => {
   return (<group ref={ref} visible={false}><points ref={points}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={data.positions} itemSize={3} /></bufferGeometry><pointsMaterial map={texture} size={0.8} color="white" transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation={true} vertexColors={false} /></points></group>);
 });
 
+// Ottimizzazione colore: evita traverse inutili
 function updateSparksColor(level, leftRef, rightRef) {
     if (!leftRef || !rightRef) return;
     const show = level > 0;
+    
+    // Se lo stato di visibilità non cambia e sono nascoste, esci subito
+    if (leftRef.visible === show && rightRef.visible === show && !show) return;
+
     if (leftRef.visible !== show) leftRef.visible = show;
     if (rightRef.visible !== show) rightRef.visible = show;
     if (!show) return;
+    
     const targetColor = level === 2 ? cRed : cBlue;
     const applyColor = (obj) => {
-        obj.traverse((child) => {
-            if (child.isPoints || child.isMesh) {
-                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
-                if (!mat) return;
-                if (mat.vertexColors === true) { mat.vertexColors = false; mat.needsUpdate = true; }
-                if (mat.color && mat.color.isColor) { mat.color.lerp(targetColor, 0.3); }
-            }
-        });
+        if(!obj) return;
+        // Accesso diretto al figlio points se esiste
+        const pointChild = obj.children[0]; 
+        if (pointChild && pointChild.material && pointChild.material.color.isColor) {
+             pointChild.material.color.lerp(targetColor, 0.3); 
+        }
     };
-    applyColor(leftRef); applyColor(rightRef);
+    applyColor(leftRef.current); applyColor(rightRef.current); 
 }
+
+const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group position={position} ref={ref}>{children}</group>))
 
 // --- 4. COMPONENTE PRINCIPALE ---
 // --- SPEED LINES EFFECT TUNED (WIDER CENTER & FEWER LINES) ---
@@ -220,13 +235,14 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   } = props;
   
   const { scene } = useThree()
-  const { world, rapier } = useRapier() // Hook Rapier per accesso al mondo fisico
+  const { world, rapier } = useRapier()
   
   const internalRef = useRef(null)
   const rigidBody = ref || internalRef
   
+  // Controls
   const humanControls = useGameControls() 
-  const botControls = useBotAI({ isBot, rigidBody, paths })
+  const botControls = useBotAI({ isBot, rigidBody, paths }) // Assicurati di usare la versione ottimizzata di useBotAI
   const activeControls = isBot ? botControls : humanControls
   
   // Hook per gestire gli SFX del kart (solo per il player, non per i bot)
@@ -237,14 +253,13 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   // Coda collisioni (Sicurezza Thread)
   // --- SICUREZZA FISICA ---
+  
   const collisionQueue = useRef([]) 
 
-  const camConfig = {
-    distance: 7.2, height: 2.3, lookAtHeight: 1.0, stiffness: 0.2, fovBase: 53, fovMax: 55
-  }
-
+  const camConfig = { distance: 7.2, height: 2.3, lookAtHeight: 1.0, stiffness: 0.2, fovBase: 53, fovMax: 55 }
   const initialRotationY = START_ROT ? START_ROT[1] : 0
 
+  // Refs di stato
   const speedUiRef = useRef() 
   const driftDirection = useRef(0) 
   const speed = useRef(0)
@@ -255,23 +270,36 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const cameraTarget = useRef(new Vector3(0, 0, 0))
 
   const isGrounded = useRef(false)
-  const driftTime = useRef(0)      
-  const driftLevel = useRef(0)     
+  const driftTime = useRef(0)       
+  const driftLevel = useRef(0)      
   const pendingBoost = useRef(false)
   const boostTime = useRef(0)
   const driftHopLocked = useRef(false)
   const driftEngageWindow = useRef(false) 
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
+  
+  // Refs visuali
   const visualGroupRef = useRef() 
   const backLeft = useRef()
   const backRight = useRef()
   const leftSparksRef = useRef()
   const rightSparksRef = useRef()
+  
+  // Ref per ottimizzazione FPS (Time Slicing Raycasts)
+  const frameCounter = useRef(Math.floor(Math.random() * 3)); 
 
+  // --- INTEGRATION POWERUP ---
+  const { currentItem, handleItemInput, pickupItem } = usePowerupHandler({
+    boostTime: boostTime, 
+    speed: speed,        
+    SETTINGS: SETTINGS    
+  });
+  
+  const smoothedY = useRef(START_POS ? START_POS[1] : 0)
   const racerId = userData?.id || (isBot ? "bot" : "player");
 
-  // Helper vectors per la fisica (evita Garbage Collection)
+  // Vettori riutilizzabili
   const v = useMemo(() => ({
       forwardGlobal: new Vector3(),
       rayOrigin: new Vector3(),
@@ -329,7 +357,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         collisionQueue.current = []; 
     }
 
-    // --- UI Update ---
+    // --- UI Update (Solo Player) ---
     if (!isBot && speedUiRef.current) {
         const kmh = Math.abs(Math.round(speed.current * 1.5)) 
         speedUiRef.current.innerText = `${kmh} km/h`
@@ -349,7 +377,13 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       updateAudio(speed.current, forward);
     }
     
-    // Logica Drift & Boost (Invariata)
+    // Estrai input
+    const { forward, backward, left, right, drift, item } = activeControls.current
+
+    // Gestione Oggetti
+    handleItemInput(item);
+    
+    // --- Logica Drift & Boost ---
     if (!drift) {
         driftHopLocked.current = false; driftEngageWindow.current = false 
         if (driftDirection.current !== 0) {
@@ -382,18 +416,24 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     } else {
         if (pendingBoost.current && isGrounded.current) activateBoost(1);
     }
-    updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
 
-    // Engine Speed Calculation
+    // UPDATE SPARKS (SOLO PLAYER)
+    if (!isBot) {
+        updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
+    }
+
+    // --- Fisica Motore ---
     const isBoosting = boostTime.current > 0
     if (isBoosting) boostTime.current -= 1
     const isDrifting = driftDirection.current !== 0
     let currentSpeedLimit = SETTINGS.maxSpeed
     if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
     else if (isDrifting) currentSpeedLimit += 5 
+    
     let targetSpeed = 0
     if (forward) targetSpeed = currentSpeedLimit
     if (backward) targetSpeed = -currentSpeedLimit * 0.5
+    
     const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
     if (forward && !isBoosting && isOverspeeding) {
         speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
@@ -404,7 +444,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
     }
 
-    // Steering
+    // --- Sterzo ---
     let turnFactor = 0
     if (isDrifting) {
         const isLeftDrift = driftDirection.current === 1
@@ -426,66 +466,61 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
 
     // -----------------------------------------------------------------------------------
-    // --- FISICA ANTI-WALL CLIMBING & DOWNFORCE ---
+    // --- FISICA ANTI-WALL CLIMBING & DOWNFORCE (OTTIMIZZATA) ---
     // -----------------------------------------------------------------------------------
     
-    // 1. Rileva se stiamo colpendo un Muro Verticale
+    // Esegui il raycast del muro solo 1 volta ogni 2 frame per i bot
+    frameCounter.current++;
     let isHittingVerticalWall = false
-    if (world && rapier) {
-        // Direzione fronte globale
+    
+    // Skip raycast se bot e frame pari
+    if (world && rapier && (!isBot || frameCounter.current % 2 === 0)) {
         v.forwardGlobal.set(0, 0, -1).applyAxisAngle(new Vector3(0,1,0), rotation.current).normalize()
-        
-        // Raycast dal centro del kart (alzato da terra) in avanti
         v.rayOrigin.copy(currentPosition.current).add(new Vector3(0, 0.5, 0))
-        
-        // Ray length: raggio fisico + margine. Es. 1.5m
         const ray = new rapier.Ray(v.rayOrigin, v.forwardGlobal)
-        const hit = world.castRay(ray, PHYSICS_RADIUS + 1.0, true) // Solid=true
-        
-        // Se colpisce qualcosa e la normale Y è vicina a 0 (superficie verticale)
+        const hit = world.castRay(ray, PHYSICS_RADIUS + 1.0, true) 
         if (hit && hit.normal && Math.abs(hit.normal.y) < 0.3) {
-			isHittingVerticalWall = true
-		}
+            isHittingVerticalWall = true
+        }
     }
 
-    // 2. Calcolo nuova Y (Gravità)
+    // Gravità custom
     let newY = rbVel.y
     const gravity = 25 * delta;
 
     if (!isGrounded.current && !isJumping.current) {
-        // Applica gravità normale se siamo in aria
         newY -= gravity
-        
-        // DOWNFORCE EXTRA: Se non stiamo saltando, spingi giù per evitare che fluttui sui muri
-        // Questo impulso è fondamentale per l'effetto "incollato a terra"
-        rigidBody.current.applyImpulse({ x: 0, y: -2000000.0, z: 0 }, true)
+        // Downforce: spingi giù il kart per non farlo volare su rampe lievi
+        // NOTA: Usa un valore elevato * delta per consistenza frame-rate
+        rigidBody.current.applyImpulse({ x: 0, y: -2000000.0 * delta, z: 0 }, true) 
     } 
     else if (isJumping.current) {
-        newY -= 15 * delta // Gravità ridotta durante l'hop
+        newY -= 15 * delta 
     }
 
-    // 3. WALL CLAMP: Se colpiamo un muro E stiamo salendo (Y > 0) -> BLOCCA Y
-    // Questo impedisce fisicamente al kart di salire
     if (isHittingVerticalWall && newY > 0 && !isJumping.current) {
-        newY = 0 // Annulla ascesa
+        newY = 0 // Blocca ascesa sui muri
     }
     
-    // Applica le velocità finali
+    // Applica velocità
     rigidBody.current.setLinvel({ x: finalVelocity.x, y: newY, z: finalVelocity.z }, true)
 
-    // -----------------------------------------------------------------------------------
-
-    // Rotazione (Locking handled by RigidBody prop, but we update rotation manually)
+    // Applica rotazione
     const q = new Quaternion()
     q.setFromEuler(new Euler(0, rotation.current, 0))
     rigidBody.current.setRotation(q, true)
     rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
-    // Visual Update
+    // --- VISUAL SMOOTHING ---
+    const yDiff = Math.abs(rbPos.y - smoothedY.current);
+    const smoothFactor = yDiff < 0.15 ? 5.0 : 40.0; 
+    smoothedY.current = MathUtils.damp(smoothedY.current, rbPos.y, smoothFactor, delta);
+    const visualLocalY = (smoothedY.current - rbPos.y) - PHYSICS_RADIUS + jumpOffset.current.y;
+
     if (visualGroupRef.current) {
         const driftTilt = isDrifting ? (driftDirection.current * 0.15) : 0;
-        visualGroupRef.current.position.y = (-PHYSICS_RADIUS) + jumpOffset.current.y
-        visualGroupRef.current.rotation.z = MathUtils.lerp(visualGroupRef.current.rotation.z, driftTilt, 0.1) 
+        visualGroupRef.current.position.y = visualLocalY;
+        visualGroupRef.current.rotation.z = MathUtils.lerp(visualGroupRef.current.rotation.z, driftTilt, 0.1);
     }
 
     // Camera Update (Solo Player)
@@ -507,28 +542,29 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     }
   })
 
+  // Visual Steering
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)
 
   // --- Handlers Sensore Terra ---
   // --- GESTORE COLLISIONI SICURO ---
+  // Handlers
   const handleGroundEnter = (payload) => {
      const rootObj = payload.other.rigidBodyObject;
      if (!rootObj) return;
 
      const name = rootObj.name;
-     if (name === 'player' || name === 'bot') return;
+     if (name === 'player' || name.startsWith('bot')) return; 
      
      isGrounded.current = true;
      
      let foundName = '';
      let curr = rootObj;
 
+     // Cerca solo per 3 livelli di profondità per performance
      for (let i = 0; i < 3; i++) {
         if (!curr) break;
         const n = curr.name || '';
-        if (n.includes('Check_') || n.includes('_boost') || 
-            n.includes('_grass') || n.includes('_outBound') || 
-            n.includes('Road') || n.includes('Floor')) {
+        if (n.startsWith('Check_') || n.includes('Road') || n.includes('Floor')) {
             foundName = n; break;
         }
         curr = curr.parent;
@@ -549,6 +585,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         rotation={START_ROT}
         mass={100} 
         linearDamping={2}
+        linearDamping={2}
         angularDamping={2} 
         type="dynamic" 
         ccd={true} 
@@ -557,12 +594,15 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
             type: 'racer', 
             id: racerId
         }}
+        userData={{ type: 'racer', id: racerId }}
         colliders={false} 
         lockRotations={true}
         restitution={0}
         restitutionCombine="min"
+        restitution={0}            
+        restitutionCombine="min"   
     >
-      {/* 1. SFERA (Ruota per rampe e terreno) */}
+      {/* 1. SFERA FISICA */}
       <BallCollider 
           args={[PHYSICS_RADIUS]} 
           position={[0, 0, 0]} 
@@ -583,6 +623,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       />
 
       {/* 3. SENSORE TERRA (Logic Only) */}
+      {/* 2. SENSORE TERRA */}
       <CylinderCollider 
          args={[0.2, 0.5]} 
          position={[0, -PHYSICS_RADIUS + 0.2, 0]} 
@@ -594,15 +635,20 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       {/* Renderizza SpeedEffect solo per il player umano */}
       {!isBot && <SpeedEffect boostTimeRef={boostTime} />}
       
+      {/* UI PER PLAYER */}
       {!isBot && (
         <Html fullscreen style={{ pointerEvents: 'none' }}>
             <div style={{ position: 'absolute', top: '40px', right: '40px', color: 'white', fontFamily:'sans-serif', fontWeight:'bold', fontSize: '40px', display: 'flex', flexDirection:'column', alignItems:'flex-end' }}>
                 <span ref={speedUiRef}>0 km/h</span>
-                <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>SPACE TO HOP/DRIFT</div>
+                <div style={{fontSize:'24px', color: '#FFD700', marginTop: 10}}>
+                   ITEM: {currentItem}
+                </div>
+                <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>SPACE TO HOP/DRIFT | E to ITEM</div>
             </div>
         </Html>
       )}
 
+      {/* GRUPPO VISUALE */}
       <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
           <group position={vehicleConfig.vehicleOffset}>
               <VehicleModel 
@@ -619,9 +665,28 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
           </group>    
           <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
           <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
+            <group position={vehicleConfig.vehicleOffset}>
+                <VehicleModel 
+                  vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
+                  position={[0, 0, 0]} steer={modelSteer} drift={driftDirection.current} speed={speed.current} isBike={true}
+                />
+                <group rotation={[0, Math.PI, 0]}>
+                  <RacerModel 
+                      isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
+                      steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
+                    key={vehicleConfig.name + "_racer"}
+                  />
+                </group>
+            </group>    
+            
+            {/* RENDERIZZA PARTICELLE SOLO SE NON È UN BOT (FPS BOOST) */}
+            {!isBot && (
+                <>
+                    <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
+                    <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
+                </>
+            )}
       </group>
     </RigidBody>
   )
 });
-
-const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group position={position} ref={ref}>{children}</group>))

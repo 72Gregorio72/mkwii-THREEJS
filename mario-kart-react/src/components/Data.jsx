@@ -30,6 +30,7 @@ export const Tracks = {
 		preview: './TrackPreviews/DaisyCircuit.png',
 		startPos: [9, 12, 98],
 		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+		road: './Tracks/DaisyCircuit/DaisyCircuit_road.glb',
 		maxCheckpoints: 3
 	},
 	'Coconut Mall': {
