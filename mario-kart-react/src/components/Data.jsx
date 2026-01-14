@@ -50,7 +50,12 @@ export const Characters = [
         sprite: './sprites/BabyMario.png', 
         modelConfig: { file: '/riggedCharacters/BabyMario_Skeleton.glb', scale: 0.8, bodyNode: 'baby_mario_body' },
         veichles: SMALL_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '0', handling: '1', traction: '1', drift: '0', offroad: '0' }
+        stats: { speed: '0', acceleration: '1', weight: '0', handling: '1', traction: '1', drift: '0', offroad: '0' },
+        win_sfx: './SFX/babyMario/VO_BMR_GOL_GOD_END.rwav.wav',
+        lose_sfx: './SFX/babyMario/VO_BMR_GOL_BAD_END.rwav.wav',
+        item_sfx: './SFX/babyMario/VO_BMR_ITM_PUT.rwav.wav',
+        turbo_sfx: './SFX/babyMario/VO_BMR_DSH3.rwav.wav',
+        dmg_sfx: './SFX/babyMario/SE_BMR_DMG_L2.rwav.wav'
     },
     { 
         id: 'baby_luigi',

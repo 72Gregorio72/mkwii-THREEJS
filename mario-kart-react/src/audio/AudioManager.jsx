@@ -19,17 +19,17 @@ export const AUDIO_TRACKS = {
 };
 
 export const AUDIO_SFX = {
-  KART_IDLE: '/SFX/KART_IDLE.wav', // idle sound
-  KART_GAS: '/SFX/KART_GAS.wav', // gas sound
-  KART_DOWNSHIFT: '/SFX/KART_DOWN.wav', // downshift sound
-  KART_LOOP: '/SFX/KART_LOOP.wav', // loop sound
-  BIKE_IDLE: '/SFX/BIKE_IDLE.wav',
-  BIKE_GAS: '/SFX/BIKE_GAS.wav',
-  BIKE_DOWNSHIFT: '/SFX/BIKE_DOWN.wav',
-  BIKE_LOOP: '/SFX/BIKE_LOOP.wav',
-  BLUE_DRIFT: '/SFX/SE_VCL_DRIFT_HIBANA_BLUE.wav',
-  RED_DRIFT: '/SFX/SE_VCL_DRIFT_HIBANA_RED.wav',
-  NORMAL_DRIFT: '/SFX/SE_VCL_SLIP_ASPHALT.wav',
+  KART_IDLE: '/SFX/kart/KART_IDLE.wav', // idle sound
+  KART_GAS: '/SFX/kart/KART_GAS.wav', // gas sound
+  KART_DOWNSHIFT: '/SFX/kart/KART_DOWN.wav', // downshift sound
+  KART_LOOP: '/SFX/kart/KART_LOOP.wav', // loop sound
+  BIKE_IDLE: '/SFX/bike/BIKE_IDLE.wav',
+  BIKE_GAS: '/SFX/bike/BIKE_GAS.wav',
+  BIKE_DOWNSHIFT: '/SFX/bike/BIKE_DOWN.wav',
+  BIKE_LOOP: '/SFX/bike/BIKE_LOOP.wav',
+  BLUE_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_BLUE.wav',
+  RED_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_RED.wav',
+  NORMAL_DRIFT: '/SFX/drift/SE_VCL_SLIP_ASPHALT.wav',
 };
 
 export const AudioProvider = ({ children }) => {
