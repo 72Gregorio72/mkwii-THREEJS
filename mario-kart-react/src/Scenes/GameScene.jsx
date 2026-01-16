@@ -19,6 +19,7 @@ import { GreenShell } from '../Items/GreenShell';
 import { RedShell } from '../Items/RedShell';
 import { BlueShell } from '../Items/BlueShell.jsx'
 import { BobOmb } from '../Items/BobOmb.jsx'
+import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx';
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -43,6 +44,7 @@ function getGridPosition(startPos, index) {
         startPos[2] + zOffset // Z va indietro
     ];
 }
+
 
 /**
  * Componente che gestisce i Box Collider dei Checkpoint
@@ -249,8 +251,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                   Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
             </div>
         </div>
-
         <Canvas>
+				<LightningAtmosphere />
 				<Stats />
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
                 <ambientLight intensity={0.5} />

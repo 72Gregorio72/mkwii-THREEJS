@@ -1,5 +1,5 @@
 // PowerupHandler.js
-import { useState, useRef } from 'react';
+import { useState, useRef, use } from 'react';
 import { MathUtils } from 'three';
 
 export const ITEMS = {
@@ -11,7 +11,9 @@ export const ITEMS = {
   BULLET_BILL: 'BULLET_BILL',
   BLUE_SHELL: 'BLUE_SHELL',
   BOB_OMB: 'BOB_OMB',
-  STAR: 'STAR'
+  STAR: 'STAR',
+  MEGA_MUSHROOM: 'MEGA_MUSHROOM',
+  LIGHTNING: 'LIGHTNING',
 };
 
 export const usePowerupHandler = ({ 
@@ -28,16 +30,38 @@ export const usePowerupHandler = ({
   kartRef,
   onActivateBulletBill,
   onSpawnBomb,
-  onActivateStar
+  onActivateStar,
+  activateMega,
+  onActivateLightning,
+  racerId,
 }) => {
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
   const isItemKeyPressed = useRef(false);
 
   const pickupItem = () => {
-    // DEBUG: Testiamo la Stella
-    setCurrentItem(ITEMS.STAR);
-    console.log("Oggetto raccolto: STAR");
+    // DEBUG: Testiamo il Fulmine
+    setCurrentItem(ITEMS.LIGHTNING);
+    console.log("Oggetto raccolto: LIGHTNING");
+  };
+
+  const useLightning = () => {
+      console.log("KABOOM! Fulmine attivato!");
+      
+      // 1. Invia evento Globale
+      window.dispatchEvent(new CustomEvent('lightning-strike', { 
+          detail: { attackerId: racerId } // Diciamo chi l'ha lanciato
+      }));
+
+      // 2. Callback locale (opzionale, es. per suoni o animazione del lanciatore)
+      if (onActivateLightning) onActivateLightning();
+  };
+
+  const useMegaMushroom = () => {
+      console.log("Attivazione MEGA FUNGO!");
+      if (activateMega) {
+          activateMega();
+      }
   };
 
   const useStar = () => {
@@ -218,7 +242,9 @@ export const usePowerupHandler = ({
 	  case ITEMS.BLUE_SHELL: useBlueShell(); break;
 	  case ITEMS.BULLET_BILL: useBulletBill(); break;
 	  case ITEMS.BOB_OMB: useBomb(); break;
+	  case ITEMS.MEGA_MUSHROOM: useMegaMushroom(); break;
 	  case ITEMS.STAR: useStar(); break;
+	  case ITEMS.LIGHTNING: useLightning(); break;
       default: break;
     }
     setCurrentItem(ITEMS.NONE);

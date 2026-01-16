@@ -26,6 +26,14 @@ const PHYSICS_RADIUS = 1
 const STAR_DURATION = 10000; // 10 secondi
 const STAR_SPEED_BOOST = 1.15;
 
+const MEGA_DURATION = 12000; // Dura un po' più della stella
+const MEGA_SCALE = 2.5;      // Diventa 2.5 volte più grande
+const MEGA_SPEED_BOOST = 1.15;
+
+const SMALL_DURATION = 10000; // Rimani piccolo per 10 secondi
+const SMALL_SCALE = 0.5;      // Diventi la metà
+const SMALL_SPEED_PENALTY = 0.6;
+
 const cBlue = new THREE.Color(0x00BFFF); // Blu drift (azzurro)
 const cOrange = new THREE.Color(0xF24807); // Arancione/giallo per drift potente 
 
@@ -212,8 +220,6 @@ const SpeedEffect = ({ boostTimeRef, isBulletBill }) => {
   )
 }
 
-// --- 5. COMPONENTE PRINCIPALE COMPLETO ---
-
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
@@ -233,6 +239,49 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const isStarActive = useRef(false);
   const starTimer = useRef(null);
   const originalMaterials = useRef(new Map()); // Per salvare i colori originali
+
+  const isMegaActive = useRef(false);
+  const megaTimer = useRef(null);
+
+  const isSmall = useRef(false);
+  const smallTimer = useRef(null);
+
+  const activateMega = () => {
+      isMegaActive.current = true;
+      console.log("Attivazione MEGA FUNGOasdasd!");
+      if (rb.current) {
+          rb.current.setAdditionalMass(500, true); // Diventa pesantissimo
+      }
+
+      // Timer per disattivare
+      if (megaTimer.current) clearTimeout(megaTimer.current);
+      megaTimer.current = setTimeout(() => {
+          deactivateMega();
+      }, MEGA_DURATION);
+  };
+
+  const deactivateMega = () => {
+      isMegaActive.current = false;
+      
+      // Reset Massa
+      if (rb.current) {
+          rb.current.setAdditionalMass(0, true);
+      }
+  };
+
+
+  const activateLightning = () => {
+      isSmall.current = true;
+
+      if (smallTimer.current) clearTimeout(smallTimer.current);
+      smallTimer.current = setTimeout(() => {
+          deactivateLightning();
+      }, SMALL_DURATION);
+  };
+
+  const deactivateLightning = () => {
+      isSmall.current = false;
+  };
 
   const activateStar = () => {
       if (isStarActive.current) return; // Se è già attiva, ignora o resetta timer
@@ -360,6 +409,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const frameCounter = useRef(Math.floor(Math.random() * 3)); 
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)
   const racerId = userData?.id || (isBot ? "bot" : "player");
+  
 
   // Vettori riutilizzabili
   const v = useMemo(() => ({
@@ -399,8 +449,9 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     onSpawnRedShell: onSpawnRedShell,
     onSpawnBlueShell: onSpawnBlueShell,
 	onActivateStar: activateStar,
+	activateMega: activateMega,
+	racerId: racerId,
     kartRef: rb,
-    // AGGIUNGI QUESTA RIGA: Passa la funzione direttamente
     onActivateBulletBill: activateBulletBill 
   });
   
@@ -409,7 +460,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     const handleBananaHit = (e) => {
         const victimId = e.detail?.victimId;
         // Se siamo Bullet Bill siamo invincibili, ignoriamo il colpo
-        if (isBulletBill || isStarActive.current) return;
+        if (isBulletBill || isStarActive.current || isMegaActive.current) return;
 
         if (victimId === racerId && !isSpinning.current) { 
             console.log(`${racerId} colpito! Spin out!`);
@@ -468,7 +519,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
               }));
           }
       }
-	  if (isStarActive.current) {
+	  if (isStarActive.current || isMegaActive.current) {
           const targetObj = payload.other.rigidBodyObject;
           const targetName = targetObj?.name || "";
           
@@ -524,6 +575,22 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
                 child.material.emissiveIntensity = 0.08; 
             }
         });
+    }
+
+	if (visualGroupRef.current) {
+        let targetScale = KART_SIZE;
+
+        if (isMegaActive.current) {
+            targetScale = KART_SIZE * MEGA_SCALE; // 2.5
+        } else if (isSmall.current) {
+			targetScale = KART_SIZE * SMALL_SCALE; // 0.5
+		}
+        
+        // Interpolazione fluida
+        const currentScale = visualGroupRef.current.scale.x;
+        const smoothScale = MathUtils.lerp(currentScale, targetScale, delta * 5);
+        
+        visualGroupRef.current.scale.set(smoothScale, smoothScale, smoothScale);
     }
 
     // --- 0. COLLISIONI GROUND (Coda) ---
@@ -633,6 +700,10 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
 		if (isStarActive.current) {
 			currentSpeedLimit *= STAR_SPEED_BOOST; // Aumenta max speed (es. 40 -> 56)
+		} else if (isMegaActive.current) {
+			currentSpeedLimit *= MEGA_SPEED_BOOST; // Aumenta max speed (es. 40 -> 60)
+		} else if (isSmall.current) {
+			currentSpeedLimit *= SMALL_SPEED_PENALTY; // Diminuisci max speed (es. 40 -> 30)
 		}
         
         let targetSpeed = 0
@@ -754,7 +825,51 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         state.camera.lookAt(cameraTarget.current)
         state.camera.updateProjectionMatrix()
     }
+
+	const currentY = rb.current.translation().y;
+    if (currentY < -5) { // -5 o un valore sicuramente sotto la pista
+        console.warn(`${racerId} fell through world, resetting!`);
+        // Riporta il kart in alto nel punto in cui si trova
+        rb.current.setTranslation({ x: rbPos.x, y: START_POS[1] + 2, z: rbPos.z }, true);
+        rb.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    }
   })
+
+  useEffect(() => {
+    const handleLightningStrike = (e) => {
+        const attackerId = e.detail?.attackerId;
+
+        if (attackerId === racerId) {
+            console.log("Ho lanciato io il fulmine, sono salvo.");
+            return; 
+        }
+
+        if (isBulletBill || isStarActive.current || isMegaActive.current) {
+            console.log("Schivato fulmine grazie all'invincibilità!");
+            return;
+        }
+        const delay = Math.random() * 500;
+
+        setTimeout(() => {
+            if (!rb.current) return;
+
+            console.log(`${racerId} colpito dal FULMINE di ${attackerId}!`);
+
+            isSpinning.current = true;
+            spinTimer.current = 1.0; 
+            speed.current = 0;       
+
+            const curVel = rb.current.linvel();
+            rb.current.setLinvel({ x: curVel.x * 0.5, y: Math.max(0, curVel.y), z: curVel.z * 0.5 }, true);
+
+            activateLightning();
+
+        }, delay);
+    };
+
+    window.addEventListener('lightning-strike', handleLightningStrike);
+    return () => window.removeEventListener('lightning-strike', handleLightningStrike);
+  }, [racerId, isBulletBill]); // Dipendenze importanti
 
   // Visual Steering
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)
