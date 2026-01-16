@@ -14,14 +14,16 @@ import { useHitboxHandler } from '../hooks/HitboxHandler'
 import { useBotAI } from '../Bot/UseBotAI'
 import { useKartAudio } from '../hooks/useKartAudio'
 import { usePowerupHandler } from './PowerupHandler';
+import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+
 import { useBulletBill } from '../Items/BulletBill'; 
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1 
 
-const cBlue = new THREE.Color(0x00FFFF); 
-const cRed = new THREE.Color(0xFF3300); 
+const cBlue = new THREE.Color(0x00BFFF); // Blu drift (azzurro)
+const cOrange = new THREE.Color(0xF24807); // Arancione/giallo per drift potente 
 
 const DEFAULT_SETTINGS = {
   maxSpeed: 40,
@@ -104,7 +106,7 @@ const DriftParticles = React.forwardRef((props, ref) => {
     points.current.geometry.attributes.position.needsUpdate = true;
   });
   if (!texture) return null;
-  return (<group ref={ref} visible={false}><points ref={points}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={data.positions} itemSize={3} /></bufferGeometry><pointsMaterial map={texture} size={0.8} color="white" transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation={true} vertexColors={false} /></points></group>);
+  return (<group ref={ref} visible={false}><points ref={points}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={data.positions} itemSize={3} /></bufferGeometry><pointsMaterial map={texture} size={0.8} color={0x00BFFF} transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation={true} vertexColors={false} /></points></group>);
 });
 
 function updateSparksColor(level, leftRef, rightRef) {
@@ -116,15 +118,16 @@ function updateSparksColor(level, leftRef, rightRef) {
     if (rightRef.visible !== show) rightRef.visible = show;
     if (!show) return;
     
-    const targetColor = level === 2 ? cRed : cBlue;
+    const targetColor = level === 2 ? cOrange : cBlue;
     const applyColor = (obj) => {
         if(!obj) return;
         const pointChild = obj.children[0]; 
         if (pointChild && pointChild.material && pointChild.material.color.isColor) {
-             pointChild.material.color.lerp(targetColor, 0.3); 
+             // Usa copy() per impostare il colore direttamente invece di lerp lento
+             pointChild.material.color.copy(targetColor); 
         }
     };
-    applyColor(leftRef.current); applyColor(rightRef.current); 
+    applyColor(leftRef); applyColor(rightRef); 
 }
 
 const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group position={position} ref={ref}>{children}</group>))
@@ -254,7 +257,8 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   const isGrounded = useRef(false)
   const driftTime = useRef(0)       
-  const driftLevel = useRef(0)      
+  const driftLevel = useRef(0)
+  const prevDriftLevel = useRef(0)  // Per tracciare i cambi di livello drift (audio)
   const pendingBoost = useRef(false)
   const boostTime = useRef(0)
   const driftHopLocked = useRef(false)
@@ -486,10 +490,13 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
             if (pendingBoost.current && isGrounded.current) activateBoost(1);
         }
 
-        // Sparks Update
-        if (!isBot) {
-            updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
-        }
+    // UPDATE SPARKS (SOLO PLAYER)
+    if (!isBot) {
+        updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
+        // Aggiorna audio SFX (motore + drift sounds)
+        const isDrifting = driftDirection.current !== 0;
+        updateAudio(speed.current, forward, driftLevel.current, isDrifting);
+    }
 
         // Calcolo Velocità
         const isBoosting = boostTime.current > 0
