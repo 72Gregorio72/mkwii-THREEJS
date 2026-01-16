@@ -66,19 +66,12 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     // --- REFS FISICI ---
     const [positions, setPositions] = useState(initialPositions);
     const [uiLap, setUiLap] = useState(1);
-    
-    const audioContext = useAudio();
-    const changeTrack = audioContext?.changeTrack;
 
+    const { changeTrack } = useAudio();
     useEffect(() => {
-        if (changeTrack && selectedTrack?.name === 'Daisy Circuit') {
-          changeTrack('RACE_DAISY_CIRCUIT', false);
-        } else if (changeTrack && selectedTrack?.name === 'Luigi Circuit') {
-          changeTrack('RACE_LUIGI_CIRCUIT', false);
-        } else if (changeTrack && selectedTrack?.name === 'Coconut Mall') {
-          changeTrack('RACE_COCONUT_MALL', false);
-        }
-    }, [changeTrack, selectedTrack]);
+      changeTrack(selectedTrack.soundtrack, false);
+    }, []);
+
 
     // --- STATO GARA ---
     const [lap, setLap] = useState(1);
