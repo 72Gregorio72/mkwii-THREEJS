@@ -18,6 +18,7 @@ import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { SkeletonUtils } from 'three-stdlib'
 
 import { useBulletBill } from '../Items/BulletBill'; 
+import { GameHUD } from '../ui/GameHUD.jsx';
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
@@ -437,7 +438,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   }));
 
   // --- INTEGRATION POWERUP ---
-  const { currentItem, handleItemInput } = usePowerupHandler({
+  const { currentItem, handleItemInput, tripleCount } = usePowerupHandler({
     boostTime: boostTime, 
     speed: speed,        
     SETTINGS: SETTINGS,    
@@ -799,28 +800,40 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
             visualGroupRef.current.position.y = visualLocalY;
             visualGroupRef.current.rotation.z = MathUtils.lerp(visualGroupRef.current.rotation.z, driftTilt, 0.1);
         }
-    } // END ELSE (Normal Physics)
+    }
 
-    // --- CAMERA UPDATE (Sempre attivo, ma adattato) ---
+    // --- CAMERA UPDATE (Modificato) ---
     if (!isBot) {
-        // Se Bill attivo, simula una velocità alta per allontanare la camera
         const effSpeed = isBulletBill ? 100 : speed.current; 
         const overSpeed = Math.max(0, effSpeed - SETTINGS.maxSpeed)
         const boostRange = SETTINGS.maxTurboLimit - SETTINGS.maxSpeed
         const boostRatio = Math.min(overSpeed / boostRange, 1)
         const dynamicDistance = camConfig.distance + (boostRatio) 
         
-        // Se Bill, usa la rotazione del RB (direzione movimento), altrimenti rotation.current (sterzo)
-		const camRotRef = rotation.current;
+        const camRotRef = rotation.current;
 
         const idealOffset = new Vector3(0, camConfig.height, dynamicDistance)
         idealOffset.applyAxisAngle(new Vector3(0, 1, 0), camRotRef)
-        const desiredCamPos = new Vector3().copy(currentPosition.current).add(idealOffset)
+
+        // FIX: Creiamo un vettore base che usa X e Z fisici, ma Y FLUIDA (smoothedY)
+        // Aggiungiamo un piccolo offset (+0.5) se la camera sembra troppo bassa
+        const smoothedBasePos = new Vector3(
+            currentPosition.current.x, 
+            smoothedY.current, // <--- QUESTA È LA CHIAVE: Usa la Y interpolata, non fisica
+            currentPosition.current.z
+        );
+
+        const desiredCamPos = new Vector3().copy(smoothedBasePos).add(idealOffset)
         
         state.camera.position.lerp(desiredCamPos, camConfig.stiffness)
+
+        // FIX: Anche il punto che guardiamo (LookAt) deve usare la Y fluida
         const targetLookAt = new Vector3(
-            currentPosition.current.x, currentPosition.current.y + camConfig.lookAtHeight, currentPosition.current.z
+            currentPosition.current.x, 
+            smoothedY.current + camConfig.lookAtHeight, // <--- Anche qui
+            currentPosition.current.z
         )
+        
         cameraTarget.current.lerp(targetLookAt, camConfig.stiffness * 1.5)
         state.camera.lookAt(cameraTarget.current)
         state.camera.updateProjectionMatrix()
@@ -935,14 +948,15 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       {!isBot && <SpeedEffect boostTimeRef={boostTime} isBulletBill={isBulletBill} />}
       
       {!isBot && (
-        <Html fullscreen style={{ pointerEvents: 'none' }}>
-            <div style={{ position: 'absolute', top: '40px', right: '40px', color: 'white', fontFamily:'sans-serif', fontWeight:'bold', fontSize: '40px', display: 'flex', flexDirection:'column', alignItems:'flex-end' }}>
-                <span ref={speedUiRef}>0 km/h</span>
-                <div style={{fontSize:'24px', color: '#FFD700', marginTop: 10}}>
-                   ITEM: {currentItem}
-                </div>
-                <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>SPACE TO HOP/DRIFT | E to ITEM</div>
-            </div>
+        <Html fullscreen style={{ pointerEvents: 'none', zIndex: 10 }}>
+            <GameHUD 
+                currentItem={currentItem}
+                tripleCount={tripleCount} // Passiamo il conteggio triplo
+                lap={1}                   // Qui dovresti passare la prop lap reale
+                totalLaps={3}             // Qui il totale
+                rank={rank}               // La tua posizione
+                speed={Math.abs(Math.round(speed.current * 1.5))} // Velocità scalata
+            />
         </Html>
       )}
 

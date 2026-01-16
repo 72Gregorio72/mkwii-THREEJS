@@ -42,7 +42,7 @@ export const LightningAtmosphere = () => {
             .to(atmosValues.current, {
                 fogDensity: 0.002,     // Torna al valore base
                 darknessOpacity: 0,    // Torna trasparente
-                duration: 2.5,
+                duration: 1,
                 ease: "power2.out", // Dissolvenza morbida
                 onUpdate: applyValues
             });

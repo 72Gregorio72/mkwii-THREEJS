@@ -20,6 +20,7 @@ import { RedShell } from '../Items/RedShell';
 import { BlueShell } from '../Items/BlueShell.jsx'
 import { BobOmb } from '../Items/BobOmb.jsx'
 import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx';
+import { Light } from 'three/src/Three.Core.js'
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
