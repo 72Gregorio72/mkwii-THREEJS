@@ -17,6 +17,8 @@ import { RoadWalls } from '../Tracks/RoadWalls.jsx'
 import { Banana } from '../Items/Banana';
 import { GreenShell } from '../Items/GreenShell';
 import { RedShell } from '../Items/RedShell';
+import { BlueShell } from '../Items/BlueShell.jsx'
+import { BobOmb } from '../Items/BobOmb.jsx'
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -72,14 +74,44 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 
 	const [redShells, setRedShells] = useState([]);
 
-	const handleSpawnBanana = (position, velocity) => { // <--- Aggiungi velocity
+	const [blueShells, setBlueShells] = useState([]);
+
+	const [bobOmbs, setBobOmbs] = useState([]);
+
+	const handleSpawnBanana = (position, velocity) => {
         const newBanana = {
             id: Date.now() + Math.random(),
             position: position,
-            velocity: velocity // <--- Salvalo nell'oggetto
+            velocity: velocity
         };
         setBananas((prev) => [...prev, newBanana]);
     };
+
+	const handleSpawnBobOmb = (position, velocity) => {
+		const newBomb = {
+			id: Date.now() + Math.random(),
+			position: position,
+			velocity: velocity
+		};
+		setBobOmbs((prev) => [...prev, newBomb]);
+	};
+
+	const destroyBobOmb = (id) => {
+		setBobOmbs((prev) => prev.filter(b => b.id !== id));
+	};
+
+	const handleSpawnBlueShell = (position, velocity) => {
+		const newBlueShell = {
+			id: Date.now() + Math.random(),
+			position: position,
+			velocity: velocity
+		};
+		setBlueShells((prev) => [...prev, newBlueShell]);
+	}
+
+	const handleDestroyBlueShell = (id) => {
+		setBlueShells((prev) => prev.filter(s => s.id !== id));
+	};
 
 	const handleSpawnGreenShell = (position, velocity) => {
         const newShell = {
@@ -191,6 +223,18 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     // Calcola se la gara è attiva (non finita e non uscito)
     const isRaceActive = !finished && !raceExited;
 
+	const blueShellTargets = useMemo(() => {
+        return targets.map(t => {
+            // Trova la posizione in classifica per questo ID
+            const rankInfo = positions.find(p => p.id === t.id);
+            return {
+                id: t.id,
+                ref: t.ref,
+                rank: rankInfo ? rankInfo.position : 99 // Se non trova rank, metti ultimo
+            };
+        });
+    }, [targets, positions]);
+
     return (
         <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
             {/* UI HUD */}
@@ -217,10 +261,10 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 				<WaypointVisualizer points={leftWaypoints} color="green" />
 				<WaypointVisualizer points={rightWaypoints} color="red" />
 				<WaypointVisualizer points={trackWaypoints1} color="yellow" />
-				<WaypointVisualizer points={trackWaypoints2} color="orange" /> */}
-				
+				<WaypointVisualizer points={trackWaypoints2} color="orange" />
+				 */}
 
-                <Physics debug={true}>
+                <Physics debug={false}>
 
 					<Suspense fallback={null}>
 						{bananas.map((b) => (
@@ -244,6 +288,17 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 					</Suspense>
 
 					<Suspense fallback={null}>
+						{bobOmbs.map((b) => (
+							<BobOmb
+								key={b.id}
+								position={b.position}
+								initVelocity={b.velocity}
+								onDestroy={() => destroyBobOmb(b.id)}
+							/>
+						))}
+					</Suspense>
+
+					<Suspense fallback={null}>
 						{redShells.map((s) => (
 							<RedShell 
 								key={s.id} 
@@ -253,6 +308,19 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 								targets={targets}          // <--- Passiamo la lista dei bersagli
 								ownerId={s.ownerId}        // <--- Chi l'ha lanciato
 								onDestroy={() => handleRemoveRedShell(s.id)} 
+							/>
+						))}
+					</Suspense>
+
+					<Suspense fallback={null}>
+						{blueShells.map((s) => (
+							<BlueShell 
+								key={s.id}
+								position={s.position} // <--- FONDAMENTALE: Mancava la posizione di spawn!
+								waypoints={trackWaypoints}
+								// Usiamo la nuova variabile calcolata sopra
+								targets={blueShellTargets} 
+								onDestroy={() => handleDestroyBlueShell(s.id)}
 							/>
 						))}
 					</Suspense>
@@ -315,6 +383,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 								onSpawnBanana={handleSpawnBanana}
 								onSpawnGreenShell={handleSpawnGreenShell}
 								onSpawnRedShell={handleSpawnRedShell}
+								onSpawnBlueShell={handleSpawnBlueShell}
+								onSpawnBomb={handleSpawnBobOmb}
 								waypoints={trackWaypoints}
     							rank={playerRank}
                             />
@@ -343,22 +413,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 							</group>
 						);
 					})}
-					
-
-					{/* === 4. IL BOT (Nemico) === */}
-                    <group position={[0, 10, 0]}>
-                         <OutsideDriftKart 
-                            characterConfig={character.modelConfig} 
-                            vehicleConfig={vehicle} 
-                            
-                            START_POS={[start_pos[0] + 3, start_pos[1], start_pos[2]]} 
-                            trackRef={trackRef}
-                            trackConfig={selectedTrack}
-                            isBot={true}              // Attiva l'IA
-                            waypoints={trackWaypoints} // Passagli i 732 punti
-                            isRaceActive={isRaceActive}
-                        />
-                    </group>
                 </Physics>
             </Canvas>
         </div>

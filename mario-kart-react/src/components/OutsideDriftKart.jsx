@@ -15,12 +15,16 @@ import { useBotAI } from '../Bot/UseBotAI'
 import { useKartAudio } from '../hooks/useKartAudio'
 import { usePowerupHandler } from './PowerupHandler';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { SkeletonUtils } from 'three-stdlib'
 
 import { useBulletBill } from '../Items/BulletBill'; 
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1 
+
+const STAR_DURATION = 10000; // 10 secondi
+const STAR_SPEED_BOOST = 1.15;
 
 const cBlue = new THREE.Color(0x00BFFF); // Blu drift (azzurro)
 const cOrange = new THREE.Color(0xF24807); // Arancione/giallo per drift potente 
@@ -214,17 +218,95 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank
+    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb
   } = props;
   
-  const { scene } = useThree()
+//   const { scene } = useThree()
   const { world, rapier } = useRapier()
   
   // FIX CRITICO: Usa SEMPRE un ref interno distinto da quello esterno per evitare loop infiniti
   const rb = useRef(null) 
   
   // Caricamento modello Bullet Bill
-  const { scene: billScene } = useGLTF('/items/BulletBill.glb'); 
+  const { scene } = useGLTF('/items/BulletBill.glb');
+
+  const isStarActive = useRef(false);
+  const starTimer = useRef(null);
+  const originalMaterials = useRef(new Map()); // Per salvare i colori originali
+
+  const activateStar = () => {
+      if (isStarActive.current) return; // Se è già attiva, ignora o resetta timer
+      
+      isStarActive.current = true;
+      
+      // Salva i materiali originali se non l'hai già fatto (per ripristinare il colore dopo)
+      // Nota: Questo è un approccio semplificato. Se i modelli cambiano, va gestito meglio.
+      if (visualGroupRef.current) {
+          visualGroupRef.current.traverse((child) => {
+              if (child.isMesh && child.material) {
+                  // Salviamo il colore originale usando l'UUID della mesh come chiave
+                  if (!originalMaterials.current.has(child.uuid)) {
+                      originalMaterials.current.set(child.uuid, child.material.color.clone());
+                  }
+              }
+          });
+      }
+
+      // Timer per disattivare
+      if (starTimer.current) clearTimeout(starTimer.current);
+      starTimer.current = setTimeout(() => {
+          deactivateStar();
+      }, STAR_DURATION);
+  };
+
+  useEffect(() => {
+    // Aspettiamo un attimo che il modello sia montato
+    if (visualGroupRef.current) {
+        visualGroupRef.current.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // CLONA IL MATERIALE!
+                // Ora questo kart ha la sua copia personale del materiale.
+                // Modificare questo non influenzerà gli altri.
+                child.material = child.material.clone();
+            }
+        });
+    }
+  }, []);
+
+  const deactivateStar = () => {
+      isStarActive.current = false;
+      
+      // Ripristina colori originali
+      if (visualGroupRef.current) {
+          visualGroupRef.current.traverse((child) => {
+              if (child.isMesh && child.material && originalMaterials.current.has(child.uuid)) {
+                  child.material.color.copy(originalMaterials.current.get(child.uuid));
+                  child.material.emissive.setHex(0x000000); // Spegni l'emissive
+              }
+          });
+      }
+  };
+  
+  const billScene = useMemo(() => {
+    // 1. Clona usando SkeletonUtils (fondamentale per SkinnedMesh)
+    const clonedScene = SkeletonUtils.clone(scene);
+    
+    // 2. Attraversa il modello per assicurarsi che sia sempre renderizzato
+    clonedScene.traverse((object) => {
+      if (object.isMesh) {
+        // Disabilita il culling: il modello viene renderizzato anche se Three.js pensa sia fuori schermo
+        // Spesso il bounding box si rompe col clone, causando la sparizione.
+        object.frustumCulled = false; 
+        
+        // Assicuriamoci che materiali e ombre siano attivi
+        object.castShadow = true;
+        object.receiveShadow = true;
+      }
+    });
+    
+    return clonedScene;
+  }, [scene]);
+
   const billVisualsRef = useRef();
 
   // Controls
@@ -288,11 +370,10 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   // --- LOGICA BULLET BILL ---
   const { isBulletBill, activateBulletBill } = useBulletBill({
-      rb: rb, // Passiamo il ref interno
+      rb: rb, 
       waypoints: waypoints, 
-      currentRank: rank || 8, // Default a ultimo se rank indefinito
+      currentRank: rank || 8,
       onEnd: () => {
-         // Reset: quando finisce, azzera velocità o dai un piccolo boost
          if(rb.current) rb.current.setLinvel({x:0, y:0, z:0}, true);
       }
   });
@@ -313,9 +394,14 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     position: currentPosition,
     rotation: rotation,
     onSpawnBanana: onSpawnBanana,
+	onSpawnBomb: onSpawnBomb,
     onSpawnGreenShell: onSpawnGreenShell,
     onSpawnRedShell: onSpawnRedShell,
-    kartRef: rb // Passiamo il ref interno anche qui per sicurezza
+    onSpawnBlueShell: onSpawnBlueShell,
+	onActivateStar: activateStar,
+    kartRef: rb,
+    // AGGIUNGI QUESTA RIGA: Passa la funzione direttamente
+    onActivateBulletBill: activateBulletBill 
   });
   
   // Gestione Eventi Colpo
@@ -323,7 +409,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     const handleBananaHit = (e) => {
         const victimId = e.detail?.victimId;
         // Se siamo Bullet Bill siamo invincibili, ignoriamo il colpo
-        if (isBulletBill) return;
+        if (isBulletBill || isStarActive.current) return;
 
         if (victimId === racerId && !isSpinning.current) { 
             console.log(`${racerId} colpito! Spin out!`);
@@ -382,6 +468,25 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
               }));
           }
       }
+	  if (isStarActive.current) {
+          const targetObj = payload.other.rigidBodyObject;
+          const targetName = targetObj?.name || "";
+          
+          // Se tocchiamo un bot o un player
+          if (targetName.startsWith('bot') || targetName === 'player') {
+              console.log(`STAR SMASH: ${targetName}`);
+              
+              // Applica effetto sonoro colpo (opzionale)
+              
+              // Invia evento danno
+              window.dispatchEvent(new CustomEvent('banana-hit', { 
+                  detail: { victimId: targetName, type: 'star_hit' } 
+              }));
+              
+              // Opzionale: Dai una spinta fisica via al nemico
+              // payload.other.rigidBody.applyImpulse({x:0, y:10, z:0}, true);
+          }
+      }
   };
 
   useFrame((state, delta) => {
@@ -405,6 +510,22 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 	if (isBulletBill)
 		console.log(`BULLET BILL VELOCITÀ: ${Math.abs(Math.round(speed.current * 1.5))} km/h`);
 
+	if (isStarActive.current && visualGroupRef.current) {
+        // Velocità cambio colore
+        const time = state.clock.elapsedTime * 5; 
+        
+        // Calcola colore arcobaleno (HSL)
+        const rainbowColor = new Color().setHSL((time % 1), 1.0, 0.5); 
+        
+        visualGroupRef.current.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // 1. Emissive alto per farla brillare
+                child.material.emissive.copy(rainbowColor);
+                child.material.emissiveIntensity = 0.08; 
+            }
+        });
+    }
+
     // --- 0. COLLISIONI GROUND (Coda) ---
     if (collisionQueue.current.length > 0) {
         collisionQueue.current.forEach((obj) => { if (obj) checkSurface(obj); });
@@ -417,11 +538,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     const { forward, backward, left, right, drift, item } = activeControls.current
     handleItemInput(item);
 
-    // Audio Update
-    if (!isBot && !isBulletBill) {
-      updateAudio(speed.current, forward);
-    }
-
     // -----------------------------------------------------------
     // --- LOGICA BIFORCATA: BULLET BILL vs GUIDA NORMALE ---
     // -----------------------------------------------------------
@@ -429,25 +545,34 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     if (isBulletBill) {
         // A. BULLET BILL MODE
         const velLen = Math.sqrt(rbVel.x**2 + rbVel.z**2);
-        speed.current = velLen; // Serve per la camera
+        speed.current = velLen;
+        
+        if (velLen > 1.0) {
+            // Calcola l'angolo di movimento basato sulla velocità
+            // Nota: Math.PI serve se il modello "guarda indietro" di default, altrimenti rimuovilo
+            const moveAngle = Math.atan2(rbVel.x, rbVel.z) + Math.PI;
+            
+            // Aggiorniamo la ref di rotazione per la camera
+            rotation.current = moveAngle;
 
-        // Rotazione Visiva del Bullet Bill
-        if (billVisualsRef.current) {
-            // Ruota verso la direzione di movimento
-            if (velLen > 0.1) {
-                const angle = Math.atan2(rbVel.x, rbVel.z);
-                const targetQ = new Quaternion().setFromEuler(new Euler(0, angle, 0));
-                billVisualsRef.current.quaternion.slerp(targetQ, 10 * delta);
-            }
+            // --- FIX: Ruotiamo fisicamente il RigidBody ---
+            // Creiamo un quaternione target basato sulla direzione
+            const targetQ = new Quaternion().setFromEuler(new Euler(0, moveAngle, 0));
+            
+            // Otteniamo la rotazione corrente e facciamo un slerp (interpolazione) morbido
+            const currentQ = new Quaternion().copy(rb.current.rotation());
+            currentQ.slerp(targetQ, 10 * delta);
+            
+            // Applichiamo la rotazione al corpo fisico
+            rb.current.setRotation(currentQ, true);
         }
-        
-        // Aggiorna smoothedY per quando finisce l'effetto
+
         smoothedY.current = rbPos.y;
-        
-        // Reset variabili guida normale
         driftLevel.current = 0;
         driftDirection.current = 0;
-
+        
+        // Rimuoviamo la logica billVisualsRef qui, non serve più ruotare il figlio dinamicamente
+        
     } else {
         // B. GUIDA NORMALE (Standard Kart Physics)
         
@@ -505,20 +630,32 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         let currentSpeedLimit = SETTINGS.maxSpeed
         if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
         else if (isDrifting) currentSpeedLimit += 5 
+
+		if (isStarActive.current) {
+			currentSpeedLimit *= STAR_SPEED_BOOST; // Aumenta max speed (es. 40 -> 56)
+		}
         
         let targetSpeed = 0
         if (forward) targetSpeed = currentSpeedLimit
         if (backward) targetSpeed = -currentSpeedLimit * 0.5
         
-        const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
-        if (forward && !isBoosting && isOverspeeding) {
-            speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
-        } else {
-            let currentAccel = SETTINGS.acceleration
-            if (isBoosting) currentAccel *= 2.5
-            else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
-            speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
-        }
+		if (!isStarActive.current) {
+			const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
+			if (forward && !isBoosting && isOverspeeding) {
+				speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
+			} else {
+				let currentAccel = SETTINGS.acceleration
+				if (isBoosting) currentAccel *= 2.5
+				if (isStarActive.current) currentAccel *= 2;
+				else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
+				speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
+			}
+		} else {
+			// Se Star attivo, accelera sempre verso il targetSpeed senza limiti
+			let currentAccel = SETTINGS.acceleration * 3.0; 
+			if (!forward && !backward) currentAccel = SETTINGS.deceleration; 
+			speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta);
+		}
 
         // Sterzo e Rotazione
         let turnFactor = 0
@@ -603,7 +740,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         const dynamicDistance = camConfig.distance + (boostRatio) 
         
         // Se Bill, usa la rotazione del RB (direzione movimento), altrimenti rotation.current (sterzo)
-        const camRotRef = isBulletBill && rb.current ? new Euler().setFromQuaternion(rb.current.rotation()).y : rotation.current;
+		const camRotRef = rotation.current;
 
         const idealOffset = new Vector3(0, camConfig.height, dynamicDistance)
         idealOffset.applyAxisAngle(new Vector3(0, 1, 0), camRotRef)
@@ -718,9 +855,15 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
           )}
       </group>
 
-      {/* --- GRUPPO 2: BULLET BILL --- */}
-      <group ref={billVisualsRef} visible={isBulletBill} scale={[2.5, 2.5, 2.5]}>
-           <primitive object={billScene} />
+      <group 
+          ref={billVisualsRef} 
+          visible={isBulletBill} 
+          scale={[2.5, 2.5, 2.5]} 
+          position={[0, -PHYSICS_RADIUS + 0.8, 0]} 
+      >
+           <group rotation={[0, Math.PI, 0]} > 
+               <primitive object={billScene} />
+           </group>
       </group>
 
     </RigidBody>

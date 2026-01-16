@@ -8,7 +8,10 @@ export const ITEMS = {
   BANANA: 'BANANA',
   GREEN_SHELL: 'GREEN_SHELL',
   RED_SHELL: 'RED_SHELL',
-  BULLET_BILL: 'BULLET_BILL'
+  BULLET_BILL: 'BULLET_BILL',
+  BLUE_SHELL: 'BLUE_SHELL',
+  BOB_OMB: 'BOB_OMB',
+  STAR: 'STAR'
 };
 
 export const usePowerupHandler = ({ 
@@ -20,24 +23,37 @@ export const usePowerupHandler = ({
   onSpawnBanana,
   onSpawnGreenShell,
   onSpawnRedShell,
+  onSpawnBlueShell,
   roadWayPoints,
   kartRef,
+  onActivateBulletBill,
+  onSpawnBomb,
+  onActivateStar
 }) => {
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
   const isItemKeyPressed = useRef(false);
 
   const pickupItem = () => {
-    // DEBUG: Forziamo la banana per testare
-    setCurrentItem(ITEMS.BULLET_BILL);
-    console.log("Oggetto raccolto: BULLET BILL");
+    // DEBUG: Testiamo la Stella
+    setCurrentItem(ITEMS.STAR);
+    console.log("Oggetto raccolto: STAR");
+  };
+
+  const useStar = () => {
+      console.log("Attivazione STELLA!");
+      if (onActivateStar) {
+          onActivateStar();
+      }
   };
 
   const useBulletBill = () => {
       console.log("Attivazione Bullet Bill...");
       // Chiamiamo il metodo imperativo esposto nel Kart
-      if (kartRef.current && kartRef.current.triggerBulletBill) {
-          kartRef.current.triggerBulletBill();
+      if (onActivateBulletBill) {
+          onActivateBulletBill();
+      } else {
+          console.warn("Funzione onActivateBulletBill non trovata!");
       }
   };
 
@@ -141,13 +157,68 @@ export const usePowerupHandler = ({
     }
   }
 
+  const useBlueShell = () => {
+	if (position && position.current && onSpawnBlueShell) {
+        const currentPos = position.current;
+        const currentRot = rotation.current; // Rotazione Y del kart
+
+        // Spawn leggermente avanti e in alto
+        const offsetDistance = 6; 
+        const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
+        const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
+        const spawnY = currentPos.y + 0.8;
+
+        // Velocità iniziale moderata (l'IA accelererà a 65 subito dopo)
+        const initSpeed = 20; 
+        const velX = -Math.sin(currentRot) * initSpeed;
+        const velZ = -Math.cos(currentRot) * initSpeed;
+
+        onSpawnBlueShell(
+            [spawnX, spawnY, spawnZ], 
+            [velX, 0, velZ]
+        );
+        
+        console.log("Guscio BLU lanciato!");
+    }
+  }
+
+  const useBomb = () => {
+    if (position && position.current && onSpawnBomb) { // Assicurati di passare onSpawnBomb nelle props
+        const currentPos = position.current;
+        const currentRot = rotation.current; 
+
+        // Spawn leggermente avanti e in alto
+        const offsetDistance = 3.0; 
+        const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
+        const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
+        const spawnY = currentPos.y + 1.5; // Un po' più in alto per fare un arco
+
+        // Lancia in avanti con un arco (forza Y positiva)
+        const throwForce = 50; 
+        const upForce = 15; // Forza verso l'alto per fare la parabola
+
+        const velX = -Math.sin(currentRot) * throwForce;
+        const velZ = -Math.cos(currentRot) * throwForce;
+
+        onSpawnBomb(
+            [spawnX, spawnY, spawnZ], 
+            [velX, upForce, velZ]
+        );
+        
+        console.log("Bomba lanciata!");
+    }
+  };
+
   const activateItem = () => {
     switch (currentItem) {
       case ITEMS.MUSHROOM: useMushroom(); break;
       case ITEMS.BANANA: useBanana(); break;
       case ITEMS.GREEN_SHELL: useGreenShell(); break;
 	  case ITEMS.RED_SHELL: useRedShell(); break;
+	  case ITEMS.BLUE_SHELL: useBlueShell(); break;
 	  case ITEMS.BULLET_BILL: useBulletBill(); break;
+	  case ITEMS.BOB_OMB: useBomb(); break;
+	  case ITEMS.STAR: useStar(); break;
       default: break;
     }
     setCurrentItem(ITEMS.NONE);
