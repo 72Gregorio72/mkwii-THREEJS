@@ -58,7 +58,8 @@ export const Characters = [
         lose_sfx: 'BABY_MARIO_LOSE',
         item_sfx: 'BABY_MARIO_ITEM',
         turbo_sfx: 'BABY_MARIO_TURBO',
-        dmg_sfx: 'BABY_MARIO_DAMAGE'
+        dmg_sfx: 'BABY_MARIO_DAMAGE',
+        select_sfx: 'BABY_MARIO_SELECT'
     },
     { 
         id: 'baby_luigi',
@@ -66,7 +67,13 @@ export const Characters = [
         sprite: './sprites/BabyLuigi.png', 
         modelConfig: { file: '/riggedCharacters/BabyLuigi_Skeleton.glb', scale: 0.8, bodyNode: 'baby_luigi_body' },
         veichles: SMALL_VEHICLES,
-        stats: { speed: '1', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '0', offroad: '0' }
+        stats: { speed: '1', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '0', offroad: '0' },
+        win_sfx: 'BABY_LUIGI_WIN',
+        lose_sfx: 'BABY_LUIGI_LOSE',
+        item_sfx: 'BABY_LUIGI_ITEM',
+        turbo_sfx: 'BABY_LUIGI_TURBO',
+        dmg_sfx: 'BABY_LUIGI_DAMAGE',
+        select_sfx: 'BABY_LUIGI_SELECT'
     },
     { 
         id: 'baby_peach',
@@ -74,7 +81,13 @@ export const Characters = [
         sprite: './sprites/BabyPeach.png', 
         modelConfig: { file: '/riggedCharacters/BabyPeach_Skeleton.glb', scale: 0.8, bodyNode: 'baby_peach_body' },
         veichles: SMALL_VEHICLES,
-        stats: { speed: '1', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '1', offroad: '0' }
+        stats: { speed: '1', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '1', offroad: '0' },
+        win_sfx: 'BABY_PEACH_WIN',
+        lose_sfx: 'BABY_PEACH_LOSE',
+        item_sfx: 'BABY_PEACH_ITEM',
+        turbo_sfx: 'BABY_PEACH_TURBO',
+        dmg_sfx: 'BABY_PEACH_DAMAGE',
+        select_sfx: 'BABY_PEACH_SELECT'
     },
     { 
         id: 'baby_daisy',
@@ -82,7 +95,13 @@ export const Characters = [
         sprite: './sprites/BabyDaisy.png', 
         modelConfig: { file: '/riggedCharacters/BabyDaisy_Skeleton.glb', scale: 0.8, bodyNode: 'baby_daisy_body' },
         veichles: SMALL_VEHICLES,
-        stats: { speed: '2', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '0', offroad: '0' }
+        stats: { speed: '2', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '0', offroad: '0' },
+        win_sfx: 'BABY_DAISY_WIN',
+        lose_sfx: 'BABY_DAISY_LOSE',
+        item_sfx: 'BABY_DAISY_ITEM',
+        turbo_sfx: 'BABY_DAISY_TURBO',
+        dmg_sfx: 'BABY_DAISY_DAMAGE',
+        select_sfx: 'BABY_DAISY_SELECT'
     },
 
     // === RIGA 2: PICCOLI (Toads & Koopas) ===
@@ -92,7 +111,13 @@ export const Characters = [
         sprite: './sprites/Toad.png', 
         modelConfig: { file: '/riggedCharacters/Toad_Skeleton.glb', scale: 0.8, bodyNode: 'toad_body' },
         veichles: SMALL_VEHICLES,
-        stats: { speed: '0', acceleration: '2', weight: '0', handling: '1', traction: '1', drift: '1', offroad: '0' }
+        stats: { speed: '0', acceleration: '2', weight: '0', handling: '1', traction: '1', drift: '1', offroad: '0' },
+        win_sfx: 'TOAD_WIN',
+        lose_sfx: 'TOAD_LOSE',
+        item_sfx: 'TOAD_ITEM',
+        turbo_sfx: 'TOAD_TURBO',
+        dmg_sfx: 'TOAD_DAMAGE',
+        select_sfx: 'TOAD_SELECT'
     },
     { 
         id: 'toadette',
@@ -100,7 +125,13 @@ export const Characters = [
         sprite: './sprites/Toadette.png', 
         modelConfig: { file: '/riggedCharacters/Toadette_Skeleton.glb', scale: 0.8, bodyNode: 'toadette_body' },
         veichles: SMALL_VEHICLES,
-        stats: { speed: '1', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '0', offroad: '2' }
+        stats: { speed: '1', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '0', offroad: '2' },
+        win_sfx: 'TOADETTE_WIN',
+        lose_sfx: 'TOADETTE_LOSE',
+        item_sfx: 'TOADETTE_ITEM',
+        turbo_sfx: 'TOADETTE_TURBO',
+        dmg_sfx: 'TOADETTE_DAMAGE',
+        select_sfx: 'TOADETTE_SELECT'
     },
     { 
         id: 'koopa',
@@ -108,7 +139,13 @@ export const Characters = [
         sprite: './sprites/KoopaTroopa.png', 
         modelConfig: { file: '/riggedCharacters/KoopaTroopa_Skeleton.glb', scale: 0.8, bodyNode: 'koopa_body' },
         veichles: SMALL_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '0', handling: '1', traction: '2', drift: '0', offroad: '0' }
+        stats: { speed: '0', acceleration: '1', weight: '0', handling: '1', traction: '2', drift: '0', offroad: '0' },
+        win_sfx: 'KOOPA_WIN',
+        lose_sfx: 'KOOPA_LOSE',
+        item_sfx: 'KOOPA_ITEM',
+        turbo_sfx: 'KOOPA_TURBO',
+        dmg_sfx: 'KOOPA_DAMAGE',
+        select_sfx: 'KOOPA_SELECT'
     },
     { 
         id: 'dry_bones',
@@ -116,7 +153,13 @@ export const Characters = [
         sprite: './sprites/DryBones.png', 
         modelConfig: { file: '/riggedCharacters/DryBones_Skeleton.glb', scale: 0.8, bodyNode: 'dry_bones_body' },
         veichles: SMALL_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '1', offroad: '1' }
+        stats: { speed: '0', acceleration: '1', weight: '0', handling: '1', traction: '0', drift: '1', offroad: '1' },
+        win_sfx: 'DRY_BONES_WIN',
+        lose_sfx: 'DRY_BONES_LOSE',
+        item_sfx: 'DRY_BONES_ITEM',
+        turbo_sfx: 'DRY_BONES_TURBO',
+        dmg_sfx: 'DRY_BONES_DAMAGE',
+        select_sfx: 'DRY_BONES_SELECT'
     },
 
     // === RIGA 3: MEDI (Classici) ===
@@ -126,7 +169,13 @@ export const Characters = [
         sprite: './sprites/Mario.png', 
         modelConfig: { file: '/riggedCharacters/Mario_Skeleton.glb', scale: 0.8, bodyNode: 'mario_body' },
         veichles: MEDIUM_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '2', handling: '1', traction: '0', drift: '1', offroad: '0' }
+        stats: { speed: '0', acceleration: '1', weight: '2', handling: '1', traction: '0', drift: '1', offroad: '0' },
+        win_sfx: 'MARIO_WIN',
+        lose_sfx: 'MARIO_LOSE',
+        item_sfx: 'MARIO_ITEM',
+        turbo_sfx: 'MARIO_TURBO',
+        dmg_sfx: 'MARIO_DAMAGE',
+        select_sfx: 'MARIO_SELECT'
     },
     { 
         id: 'luigi',
@@ -134,7 +183,13 @@ export const Characters = [
         sprite: './sprites/Luigi.png', 
         modelConfig: { file: '/riggedCharacters/Luigi_Skeleton.glb', scale: 0.8, bodyNode: 'luigi_body' },
         veichles: MEDIUM_VEHICLES,
-        stats: { speed: '1', acceleration: '0', weight: '2', handling: '1', traction: '0', drift: '0', offroad: '0' }
+        stats: { speed: '1', acceleration: '0', weight: '2', handling: '1', traction: '0', drift: '0', offroad: '0' },
+        win_sfx: 'LUIGI_WIN',
+        lose_sfx: 'LUIGI_LOSE',
+        item_sfx: 'LUIGI_ITEM',
+        turbo_sfx: 'LUIGI_TURBO',
+        dmg_sfx: 'LUIGI_DAMAGE',
+        select_sfx: 'LUIGI_SELECT'
     },
     { 
         id: 'peach',
@@ -142,7 +197,13 @@ export const Characters = [
         sprite: './sprites/Peach.png', 
         modelConfig: { file: '/riggedCharacters/Peach_Skeleton.glb', scale: 0.8, bodyNode: 'peach_body' },
         veichles: MEDIUM_VEHICLES,
-        stats: { speed: '1', acceleration: '2', weight: '1', handling: '0', traction: '0', drift: '2', offroad: '0' }
+        stats: { speed: '1', acceleration: '2', weight: '1', handling: '0', traction: '0', drift: '2', offroad: '0' },
+        win_sfx: 'PEACH_WIN',
+        lose_sfx: 'PEACH_LOSE',
+        item_sfx: 'PEACH_ITEM',
+        turbo_sfx: 'PEACH_TURBO',
+        dmg_sfx: 'PEACH_DAMAGE',
+        select_sfx: 'PEACH_SELECT'
     },
     { 
         id: 'daisy',
@@ -150,7 +211,13 @@ export const Characters = [
         sprite: './sprites/Daisy.png', 
         modelConfig: { file: '/riggedCharacters/Daisy_Skeleton.glb', scale: 0.8, bodyNode: 'daisy_body' },
         veichles: MEDIUM_VEHICLES,
-        stats: { speed: '2', acceleration: '0', weight: '1', handling: '1', traction: '0', drift: '1', offroad: '0' }
+        stats: { speed: '2', acceleration: '0', weight: '1', handling: '1', traction: '0', drift: '1', offroad: '0' },
+        win_sfx: 'DAISY_WIN',
+        lose_sfx: 'DAISY_LOSE',
+        item_sfx: 'DAISY_ITEM',
+        turbo_sfx: 'DAISY_TURBO',
+        dmg_sfx: 'DAISY_DAMAGE',
+        select_sfx: 'DAISY_SELECT'
     },
 
     // === RIGA 4: MEDI (Non Umani) ===
@@ -160,7 +227,13 @@ export const Characters = [
         sprite: './sprites/Yoshi.png', 
         modelConfig: { file: '/riggedCharacters/Yoshi_Skeleton.glb', scale: 0.8, bodyNode: 'yoshi_body' },
         veichles: MEDIUM_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '1', handling: '1', traction: '0', drift: '1', offroad: '1' }
+        stats: { speed: '0', acceleration: '1', weight: '1', handling: '1', traction: '0', drift: '1', offroad: '1' },
+        win_sfx: 'YOSHI_WIN',
+        lose_sfx: 'YOSHI_LOSE',
+        item_sfx: 'YOSHI_ITEM',
+        turbo_sfx: 'YOSHI_TURBO',
+        dmg_sfx: 'YOSHI_DAMAGE',
+        select_sfx: 'YOSHI_SELECT'
     },
     { 
         id: 'birdo',
@@ -168,7 +241,13 @@ export const Characters = [
         sprite: './sprites/Birdo.png', 
         modelConfig: { file: '/riggedCharacters/Birdo_Skeleton.glb', scale: 0.8, bodyNode: 'birdo_body' },
         veichles: MEDIUM_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '2', handling: '0', traction: '0', drift: '1', offroad: '2' }
+        stats: { speed: '0', acceleration: '1', weight: '2', handling: '0', traction: '0', drift: '1', offroad: '2' },
+        win_sfx: 'BIRDO_WIN',
+        lose_sfx: 'BIRDO_LOSE',
+        item_sfx: 'BIRDO_ITEM',
+        turbo_sfx: 'BIRDO_TURBO',
+        dmg_sfx: 'BIRDO_DAMAGE',
+        select_sfx: 'BIRDO_SELECT'
     },
     { 
         id: 'diddy_kong',
@@ -176,7 +255,13 @@ export const Characters = [
         sprite: './sprites/DiddyKong.png', 
         modelConfig: { file: '/riggedCharacters/DiddyKong_Skeleton.glb', scale: 0.8, bodyNode: 'diddy_kong_body' },
         veichles: MEDIUM_VEHICLES,
-        stats: { speed: '0', acceleration: '2', weight: '1', handling: '1', traction: '1', drift: '2', offroad: '0' }
+        stats: { speed: '0', acceleration: '2', weight: '1', handling: '1', traction: '1', drift: '2', offroad: '0' },
+        win_sfx: 'DIDDY_KONG_WIN',
+        lose_sfx: 'DIDDY_KONG_LOSE',
+        item_sfx: 'DIDDY_KONG_ITEM',
+        turbo_sfx: 'DIDDY_KONG_TURBO',
+        dmg_sfx: 'DIDDY_KONG_DAMAGE',
+        select_sfx: 'DIDDY_KONG_SELECT'
     },
     { 
         id: 'bowser_jr',
@@ -184,7 +269,13 @@ export const Characters = [
         sprite: './sprites/BowserJr.png', 
         modelConfig: { file: '/riggedCharacters/BowserJr_Skeleton.glb', scale: 0.8, bodyNode: 'bowser_jr_body' },
         veichles: MEDIUM_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '1', handling: '0', traction: '0', drift: '0', offroad: '1' }
+        stats: { speed: '0', acceleration: '1', weight: '1', handling: '0', traction: '0', drift: '0', offroad: '1' },
+        win_sfx: 'BOWSER_JR_WIN',
+        lose_sfx: 'BOWSER_JR_LOSE',
+        item_sfx: 'BOWSER_JR_ITEM',
+        turbo_sfx: 'BOWSER_JR_TURBO',
+        dmg_sfx: 'BOWSER_JR_DAMAGE',
+        select_sfx: 'BOWSER_JR_SELECT'
     },
 
     // === RIGA 5: GRANDI (Rivali) ===
@@ -194,7 +285,13 @@ export const Characters = [
         sprite: './sprites/Wario.png', 
         modelConfig: { file: '/riggedCharacters/Wario_Skeleton.glb', scale: 0.8, bodyNode: 'wario_body' },
         veichles: LARGE_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '2', handling: '0', traction: '1', drift: '1', offroad: '1' }
+        stats: { speed: '0', acceleration: '1', weight: '2', handling: '0', traction: '1', drift: '1', offroad: '1' },
+        win_sfx: 'WARIO_WIN',
+        lose_sfx: 'WARIO_LOSE',
+        item_sfx: 'WARIO_ITEM',
+        turbo_sfx: 'WARIO_TURBO',
+        dmg_sfx: 'WARIO_DAMAGE',
+        select_sfx: 'WARIO_SELECT'
     },
     { 
         id: 'waluigi',
@@ -202,7 +299,13 @@ export const Characters = [
         sprite: './sprites/Waluigi.png', 
         modelConfig: { file: '/riggedCharacters/Waluigi_Skeleton.glb', scale: 0.8, bodyNode: 'waluigi_body' },
         veichles: LARGE_VEHICLES,
-        stats: { speed: '1', acceleration: '2', weight: '2', handling: '0', traction: '0', drift: '2', offroad: '1' }
+        stats: { speed: '1', acceleration: '2', weight: '2', handling: '0', traction: '0', drift: '2', offroad: '1' },
+        win_sfx: 'WALUIGI_WIN',
+        lose_sfx: 'WALUIGI_LOSE',
+        item_sfx: 'WALUIGI_ITEM',
+        turbo_sfx: 'WALUIGI_TURBO',
+        dmg_sfx: 'WALUIGI_DAMAGE',
+        select_sfx: 'WALUIGI_SELECT'
     },
     { 
         id: 'donkey_kong',
@@ -210,7 +313,13 @@ export const Characters = [
         sprite: './sprites/DonkeyKong.png', 
         modelConfig: { file: '/riggedCharacters/DonkeyKong_Skeleton.glb', scale: 0.8, bodyNode: 'donkey_kong_body' },
         veichles: LARGE_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '2', handling: '1', traction: '0', drift: '1', offroad: '1' }
+        stats: { speed: '0', acceleration: '1', weight: '2', handling: '1', traction: '0', drift: '1', offroad: '1' },
+        win_sfx: 'DONKEY_KONG_WIN',
+        lose_sfx: 'DONKEY_KONG_LOSE',
+        item_sfx: 'DONKEY_KONG_ITEM',
+        turbo_sfx: 'DONKEY_KONG_TURBO',
+        dmg_sfx: 'DONKEY_KONG_DAMAGE',
+        select_sfx: 'DONKEY_KONG_SELECT'
     },
     { 
         id: 'bowser',
@@ -218,7 +327,13 @@ export const Characters = [
         sprite: './sprites/Bowser.png', 
         modelConfig: { file: '/riggedCharacters/Bowser_Skeleton.glb', scale: 0.8, bodyNode: 'bowser_body' },
         veichles: LARGE_VEHICLES,
-        stats: { speed: '2', acceleration: '0', weight: '3', handling: '0', traction: '0', drift: '1', offroad: '0' }
+        stats: { speed: '2', acceleration: '0', weight: '3', handling: '0', traction: '0', drift: '1', offroad: '0' },
+        win_sfx: 'BOWSER_WIN',
+        lose_sfx: 'BOWSER_LOSE',
+        item_sfx: 'BOWSER_ITEM',
+        turbo_sfx: 'BOWSER_TURBO',
+        dmg_sfx: 'BOWSER_DAMAGE',
+        select_sfx: 'BOWSER_SELECT'
     },
 
     // === RIGA 6: GRANDI (Speciali) ===
@@ -228,7 +343,13 @@ export const Characters = [
         sprite: './sprites/KingBoo.png', 
         modelConfig: { file: '/riggedCharacters/KingBoo_Skeleton.glb', scale: 0.8, bodyNode: 'king_boo_body' },
         veichles: LARGE_VEHICLES,
-        stats: { speed: '0', acceleration: '0', weight: '1', handling: '2', traction: '0', drift: '0', offroad: '1' }
+        stats: { speed: '0', acceleration: '0', weight: '1', handling: '2', traction: '0', drift: '0', offroad: '1' },
+        win_sfx: 'KING_BOO_WIN',
+        lose_sfx: 'KING_BOO_LOSE',
+        item_sfx: 'KING_BOO_ITEM',
+        turbo_sfx: 'KING_BOO_TURBO',
+        dmg_sfx: 'KING_BOO_DAMAGE',
+        select_sfx: 'KING_BOO_SELECT'
     },
     { 
         id: 'rosalina',
@@ -236,7 +357,13 @@ export const Characters = [
         sprite: './sprites/Rosalina.png', 
         modelConfig: { file: '/riggedCharacters/Rosalina_Skeleton.glb', scale: 0.8, bodyNode: 'rosalina_body' },
         veichles: LARGE_VEHICLES,
-        stats: { speed: '1', acceleration: '0', weight: '1', handling: '1', traction: '0', drift: '1', offroad: '0' }
+        stats: { speed: '1', acceleration: '0', weight: '1', handling: '1', traction: '0', drift: '1', offroad: '0' },
+        win_sfx: 'ROSALINA_WIN',
+        lose_sfx: 'ROSALINA_LOSE',
+        item_sfx: 'ROSALINA_ITEM',
+        turbo_sfx: 'ROSALINA_TURBO',
+        dmg_sfx: 'ROSALINA_DAMAGE',
+        select_sfx: 'ROSALINA_SELECT'
     },
     { 
         id: 'funky_kong',
@@ -244,7 +371,13 @@ export const Characters = [
         sprite: './sprites/FunkyKong.png', 
         modelConfig: { file: '/riggedCharacters/FunkyKong_Skeleton.glb', scale: 0.8, bodyNode: 'funky_body' },
         veichles: LARGE_VEHICLES,
-        stats: { speed: '2', acceleration: '0', weight: '0', handling: '0', traction: '0', drift: '0', offroad: '1' }
+        stats: { speed: '2', acceleration: '0', weight: '0', handling: '0', traction: '0', drift: '0', offroad: '1' },
+        win_sfx: 'FUNKY_KONG_WIN',
+        lose_sfx: 'FUNKY_KONG_LOSE',
+        item_sfx: 'FUNKY_KONG_ITEM',
+        turbo_sfx: 'FUNKY_KONG_TURBO',
+        dmg_sfx: 'FUNKY_KONG_DAMAGE',
+        select_sfx: 'FUNKY_KONG_SELECT'
     },
     { 
         id: 'dry_bowser',
@@ -252,7 +385,13 @@ export const Characters = [
         sprite: './sprites/DryBowser.png', 
         modelConfig: { file: '/riggedCharacters/DryBowser_Skeleton.glb', scale: 0.8, bodyNode: 'dry_bowser_body' },
         veichles: LARGE_VEHICLES,
-        stats: { speed: '0', acceleration: '0', weight: '2', handling: '0', traction: '0', drift: '0', offroad: '2' }
+        stats: { speed: '0', acceleration: '0', weight: '2', handling: '0', traction: '0', drift: '0', offroad: '2' },
+        win_sfx: 'DRY_BOWSER_WIN',
+        lose_sfx: 'DRY_BOWSER_LOSE',
+        item_sfx: 'DRY_BOWSER_ITEM',
+        turbo_sfx: 'DRY_BOWSER_TURBO',
+        dmg_sfx: 'DRY_BOWSER_DAMAGE',
+        select_sfx: 'DRY_BOWSER_SELECT'
     }
 ];
 
@@ -673,12 +812,176 @@ export const AUDIO_SFX = {
     BLUE_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_BLUE.wav',
     RED_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_RED.wav',
     TURBO_DRIFT: '/SFX/drift/SE_VCL_DASH.wav',
-
     NORMAL_DRIFT: '/SFX/drift/SE_VCL_SLIP_ASPHALT.wav',
-    BABY_MARIO_WIN: '/SFX/babyMario/VO_BMR_GOL_GOD_END.rwav.wav',
-    BABY_MARIO_LOSE: '/SFX/babyMario/VO_BMR_GOL_BAD_END.rwav.wav',
-    BABY_MARIO_ITEM: '/SFX/babyMario/VO_BMR_ITM_PUT.rwav.wav',
-    BABY_MARIO_TURBO: '/SFX/babyMario/VO_BMR_DSH3.rwav.wav',
-    BABY_MARIO_DAMAGE: '/SFX/babyMario/VO_BMR_DMG_L2.rwav.wav',
+    
+    BABY_MARIO_WIN: '/SFX/BabyMario/VO_BMR_GOL_GOD_END.rwav.wav',
+    BABY_MARIO_LOSE: '/SFX/BabyMario/VO_BMR_GOL_BAD_END.rwav.wav',
+    BABY_MARIO_ITEM: '/SFX/BabyMario/VO_BMR_ITM_PUT.rwav.wav',
+    BABY_MARIO_TURBO: '/SFX/BabyMario/VO_BMR_DSH3.rwav.wav',
+    BABY_MARIO_DAMAGE: '/SFX/BabyMario/VO_BMR_DMG_L2.rwav.wav',
+    BABY_MARIO_SELECT: '/SFX/BabyMario/Baby_Mario_Select.wav',
+
+    BABY_LUIGI_WIN: '/SFX/BabyLuigi/VO_BLG_GOL_GOD_END.rwav.wav',
+    BABY_LUIGI_LOSE: '/SFX/BabyLuigi/VO_BLG_GOL_BAD_END.rwav.wav',
+    BABY_LUIGI_ITEM: '/SFX/BabyLuigi/VO_BLG_ITM_PUT.rwav.wav',
+    BABY_LUIGI_TURBO: '/SFX/BabyLuigi/VO_BLG_DSH3.rwav.wav',
+    BABY_LUIGI_DAMAGE: '/SFX/BabyLuigi/VO_BLG_DMG_L2.rwav.wav',
+    BABY_LUIGI_SELECT: '/SFX/BabyLuigi/Baby_Luigi_Select.wav',
+
+    BABY_DAISY_WIN: '/SFX/BabyDaisy/VO_BDS_GOL_GOD_END.rwav.wav',
+    BABY_DAISY_LOSE: '/SFX/BabyDaisy/VO_BDS_GOL_BAD_END.rwav.wav',
+    BABY_DAISY_ITEM: '/SFX/BabyDaisy/VO_BDS_ITM_PUT.rwav.wav',
+    BABY_DAISY_TURBO: '/SFX/BabyDaisy/VO_BDS_DSH3.rwav.wav',
+    BABY_DAISY_DAMAGE: '/SFX/BabyDaisy/VO_BDS_DMG_L2.rwav.wav',
+    BABY_DAISY_SELECT: '/SFX/BabyDaisy/Baby_Daisy_Select.wav',
+
+    BABY_PEACH_WIN: '/SFX/BabyPeach/VO_BPC_GOL_GOD_END.rwav.wav',
+    BABY_PEACH_LOSE: '/SFX/BabyPeach/VO_BPC_GOL_BAD_END.rwav.wav',
+    BABY_PEACH_ITEM: '/SFX/BabyPeach/VO_BPC_ITM_PUT.rwav.wav',
+    BABY_PEACH_TURBO: '/SFX/BabyPeach/VO_BPC_DSH3.rwav.wav',
+    BABY_PEACH_DAMAGE: '/SFX/BabyPeach/VO_BPC_DMG_L2.rwav.wav',
+    BABY_PEACH_SELECT: '/SFX/BabyPeach/Baby_Peach_Select.wav',
+
+    BIRDO_WIN: '/SFX/Birdo/VO_CA_GOL_GOD_END.rwav.wav',
+    BIRDO_LOSE: '/SFX/Birdo/VO_CA_GOL_BAD_END.rwav.wav',
+    BIRDO_ITEM: '/SFX/Birdo/VO_CA_ITM_PUT.rwav.wav',
+    BIRDO_TURBO: '/SFX/Birdo/VO_CA_DSH3.rwav.wav',
+    BIRDO_DAMAGE: '/SFX/Birdo/VO_CA_DMG_L2.rwav.wav',
+    BIRDO_SELECT: '/SFX/Birdo/Birdo_Select.wav',
+
+    BOWSER_WIN: '/SFX/Bowser/VO_KP_GOL_GOD_END.rwav.wav',
+    BOWSER_LOSE: '/SFX/Bowser/VO_KP_GOL_BAD_END.rwav.wav',
+    BOWSER_ITEM: '/SFX/Bowser/VO_KP_ITM_PUT.rwav.wav',
+    BOWSER_TURBO: '/SFX/Bowser/VO_KP_DSH3.rwav.wav',
+    BOWSER_DAMAGE: '/SFX/Bowser/VO_KP_DMG_L2.rwav.wav',
+    BOWSER_SELECT: '/SFX/Bowser/Bowser_Select.wav',
+
+    BOWSER_JR_WIN: '/SFX/BowserJr/VO_JR_GOL_GOD_END.rwav.wav',
+    BOWSER_JR_LOSE: '/SFX/BowserJr/VO_JR_GOL_BAD_END.rwav.wav',
+    BOWSER_JR_ITEM: '/SFX/BowserJr/VO_JR_ITM_PUT.rwav.wav',
+    BOWSER_JR_TURBO: '/SFX/BowserJr/VO_JR_DSH3.rwav.wav',
+    BOWSER_JR_DAMAGE: '/SFX/BowserJr/VO_JR_DMG_L2.rwav.wav',
+    BOWSER_JR_SELECT: '/SFX/BowserJr/Bowser_Jr_Select.wav',
+
+    DAISY_WIN: '/SFX/Daisy/VO_DS_GOL_GOD_END.rwav.wav',
+    DAISY_LOSE: '/SFX/Daisy/VO_DS_GOL_BAD_END.rwav.wav',
+    DAISY_ITEM: '/SFX/Daisy/VO_DS_ITM_PUT.rwav.wav',
+    DAISY_TURBO: '/SFX/Daisy/VO_DS_DSH3.rwav.wav',
+    DAISY_DAMAGE: '/SFX/Daisy/VO_DS_DMG_L2.rwav.wav',
+    DAISY_SELECT: '/SFX/Daisy/Daisy_Select.wav',
+
+    DIDDY_KONG_WIN: '/SFX/DiddyKong/VO_DD_GOL_GOD_END.rwav.wav',
+    DIDDY_KONG_LOSE: '/SFX/DiddyKong/VO_DD_GOL_BAD_END.rwav.wav',
+    DIDDY_KONG_ITEM: '/SFX/DiddyKong/VO_DD_ITM_PUT.rwav.wav',
+    DIDDY_KONG_TURBO: '/SFX/DiddyKong/VO_DD_DSH3.rwav.wav',
+    DIDDY_KONG_DAMAGE: '/SFX/DiddyKong/VO_DD_DMG_L2.rwav.wav',
+    DIDDY_KONG_SELECT: '/SFX/DiddyKong/Diddy_Kong_Select.wav',
+
+    DONKEY_KONG_WIN: '/SFX/DonkeyKong/VO_DK_GOL_GOD_END.rwav.wav',
+    DONKEY_KONG_LOSE: '/SFX/DonkeyKong/VO_DK_GOL_BAD_END.rwav.wav',
+    DONKEY_KONG_ITEM: '/SFX/DonkeyKong/VO_DK_ITM_PUT.rwav.wav',
+    DONKEY_KONG_TURBO: '/SFX/DonkeyKong/VO_DK_DSH3.rwav.wav',
+    DONKEY_KONG_DAMAGE: '/SFX/DonkeyKong/VO_DK_DMG_L2.rwav.wav',
+    DONKEY_KONG_SELECT: '/SFX/DonkeyKong/Donkey_Kong_Select.wav',
+
+    DRY_BONES_WIN: '/SFX/DryBones/VO_DB_GOL_GOD_END.rwav.wav',
+    DRY_BONES_LOSE: '/SFX/DryBones/VO_DB_GOL_BAD_END.rwav.wav',
+    DRY_BONES_ITEM: '/SFX/DryBones/VO_DB_ITM_PUT.rwav.wav',
+    DRY_BONES_TURBO: '/SFX/DryBones/VO_DB_DSH3.rwav.wav',
+    DRY_BONES_DAMAGE: '/SFX/DryBones/VO_DB_DMG_L2.rwav.wav',
+    DRY_BONES_SELECT: '/SFX/DryBones/Dry_Bones_Select.wav',
+
+    DRY_BOWSER_WIN: '/SFX/DryBowser/VO_KDB_GOL_GOD_END.rwav.wav',
+    DRY_BOWSER_LOSE: '/SFX/DryBowser/VO_KDB_GOL_BAD_END.rwav.wav',
+    DRY_BOWSER_ITEM: '/SFX/DryBowser/VO_KDB_ITM_PUT.rwav.wav',
+    DRY_BOWSER_TURBO: '/SFX/DryBowser/VO_KDB_DSH3.rwav.wav',
+    DRY_BOWSER_DAMAGE: '/SFX/DryBowser/VO_KDB_DMG_L2.rwav.wav',
+    DRY_BOWSER_SELECT: '/SFX/DryBowser/Dry_Bowser_Select.wav',
+
+    FUNKY_KONG_WIN: '/SFX/FunkyKong/VO_FK_GOL_GOD_END.rwav.wav',
+    FUNKY_KONG_LOSE: '/SFX/FunkyKong/VO_FK_GOL_BAD_END.rwav.wav',
+    FUNKY_KONG_ITEM: '/SFX/FunkyKong/VO_FK_ITM_PUT.rwav.wav',
+    FUNKY_KONG_TURBO: '/SFX/FunkyKong/VO_FK_DSH3.rwav.wav',
+    FUNKY_KONG_DAMAGE: '/SFX/FunkyKong/VO_FK_DMG_L2.rwav.wav',
+    FUNKY_KONG_SELECT: '/SFX/FunkyKong/Funky_Kong_Select.wav',
+
+    KING_BOO_WIN: '/SFX/KingBoo/VO_KB_GOL_GOD_END.rwav.wav',
+    KING_BOO_LOSE: '/SFX/KingBoo/VO_KB_GOL_BAD_END.rwav.wav',
+    KING_BOO_ITEM: '/SFX/KingBoo/VO_KB_ITM_PUT.rwav.wav',
+    KING_BOO_TURBO: '/SFX/KingBoo/VO_KB_DSH3.rwav.wav',
+    KING_BOO_DAMAGE: '/SFX/KingBoo/VO_KB_DMG_L2.rwav.wav',
+    KING_BOO_SELECT: '/SFX/KingBoo/King_Boo_Select.wav',
+
+    KOOPA_WIN: '/SFX/KoopaTroopa/VO_KT_GOL_GOD_END.rwav.wav',
+    KOOPA_LOSE: '/SFX/KoopaTroopa/VO_KT_GOL_BAD_END.rwav.wav',
+    KOOPA_ITEM: '/SFX/KoopaTroopa/VO_KT_ITM_PUT.rwav.wav',
+    KOOPA_TURBO: '/SFX/KoopaTroopa/VO_KT_DSH3.rwav.wav',
+    KOOPA_DAMAGE: '/SFX/KoopaTroopa/VO_KT_DMG_L2.rwav.wav',
+    KOOPA_SELECT: '/SFX/KoopaTroopa/Koopa_Troopa_Select.wav',
+
+    LUIGI_WIN: '/SFX/Luigi/VO_LG_GOL_GOD_END.rwav.wav',
+    LUIGI_LOSE: '/SFX/Luigi/VO_LG_GOL_BAD_END.rwav.wav',
+    LUIGI_ITEM: '/SFX/Luigi/VO_LG_ITM_PUT.rwav.wav',
+    LUIGI_TURBO: '/SFX/Luigi/VO_LG_DSH3.rwav.wav',
+    LUIGI_DAMAGE: '/SFX/Luigi/VO_LG_DMG_L2.rwav.wav',
+    LUIGI_SELECT: '/SFX/Luigi/Luigi_Select.wav',
+
+    MARIO_WIN: '/SFX/Mario/VO_MR_GOL_GOD_END.rwav.wav',
+    MARIO_LOSE: '/SFX/Mario/VO_MR_GOL_BAD_END.rwav.wav',
+    MARIO_ITEM: '/SFX/Mario/VO_MR_ITM_PUT.rwav.wav',
+    MARIO_TURBO: '/SFX/Mario/VO_MR_DSH3.rwav.wav',
+    MARIO_DAMAGE: '/SFX/Mario/VO_MR_DMG_L2.rwav.wav',
+    MARIO_SELECT: '/SFX/Mario/Mario_Select.wav',
+
+    PEACH_WIN: '/SFX/Peach/VO_PC_GOL_GOD_END.rwav.wav',
+    PEACH_LOSE: '/SFX/Peach/VO_PC_GOL_BAD_END.rwav.wav',
+    PEACH_ITEM: '/SFX/Peach/VO_PC_ITM_PUT.rwav.wav',
+    PEACH_TURBO: '/SFX/Peach/VO_PC_DSH3.rwav.wav',
+    PEACH_DAMAGE: '/SFX/Peach/VO_PC_DMG_L2.rwav.wav',
+    PEACH_SELECT: '/SFX/Peach/Peach_Select.wav',
+
+    ROSALINA_WIN: '/SFX/Rosalina/VO_RS_GOL_GOD_END.rwav.wav',
+    ROSALINA_LOSE: '/SFX/Rosalina/VO_RS_GOL_BAD_END.rwav.wav',
+    ROSALINA_ITEM: '/SFX/Rosalina/VO_RS_ITM_PUT.rwav.wav',
+    ROSALINA_TURBO: '/SFX/Rosalina/VO_RS_DSH3.rwav.wav',
+    ROSALINA_DAMAGE: '/SFX/Rosalina/VO_RS_DMG_L2.rwav.wav',
+    ROSALINA_SELECT: '/SFX/Rosalina/Rosalina_Select.wav',
+
+    TOAD_WIN: '/SFX/Toad/VO_KO_GOL_GOD_END.rwav.wav',
+    TOAD_LOSE: '/SFX/Toad/VO_KO_GOL_BAD_END.rwav.wav',
+    TOAD_ITEM: '/SFX/Toad/VO_KO_ITM_PUT.rwav.wav',
+    TOAD_TURBO: '/SFX/Toad/VO_KO_DSH3.rwav.wav',
+    TOAD_DAMAGE: '/SFX/Toad/VO_KO_DMG_L2.rwav.wav',
+    TOAD_SELECT: '/SFX/Toad/Toad_Select.wav',
+
+    TOADETTE_WIN: '/SFX/Toadette/VO_KK_GOL_GOD_END.rwav.wav',
+    TOADETTE_LOSE: '/SFX/Toadette/VO_KK_GOL_BAD_END.rwav.wav',
+    TOADETTE_ITEM: '/SFX/Toadette/VO_KK_ITM_PUT.rwav.wav',
+    TOADETTE_TURBO: '/SFX/Toadette/VO_KK_DSH3.rwav.wav',
+    TOADETTE_DAMAGE: '/SFX/Toadette/VO_KK_DMG_L2.rwav.wav',
+    TOADETTE_SELECT: '/SFX/Toadette/Toadette_Select.wav',
+
+    WARIO_WIN: '/SFX/Wario/VO_WR_GOL_GOD_END.rwav.wav',
+    WARIO_LOSE: '/SFX/Wario/VO_WR_GOL_BAD_END.rwav.wav',
+    WARIO_ITEM: '/SFX/Wario/VO_WR_ITM_PUT.rwav.wav',
+    WARIO_TURBO: '/SFX/Wario/VO_WR_DSH3.rwav.wav',
+    WARIO_DAMAGE: '/SFX/Wario/VO_WR_DMG_L2.rwav.wav',
+    WARIO_SELECT: '/SFX/Wario/Wario_Select.wav',
+
+    WALUIGI_WIN: '/SFX/Waluigi/VO_WL_GOL_GOD_END.rwav.wav',
+    WALUIGI_LOSE: '/SFX/Waluigi/VO_WL_GOL_BAD_END.rwav.wav',
+    WALUIGI_ITEM: '/SFX/Waluigi/VO_WL_ITM_PUT.rwav.wav',
+    WALUIGI_TURBO: '/SFX/Waluigi/VO_WL_DSH3.rwav.wav',
+    WALUIGI_DAMAGE: '/SFX/Waluigi/VO_WL_DMG_L2.rwav.wav',
+    WALUIGI_SELECT: '/SFX/Waluigi/Waluigi_Select.wav',
+
+    YOSHI_WIN: '/SFX/Yoshi/VO_YS_GOL_GOD_END.rwav.wav',
+    YOSHI_LOSE: '/SFX/Yoshi/VO_YS_GOL_BAD_END.rwav.wav',
+    YOSHI_ITEM: '/SFX/Yoshi/VO_YS_ITM_PUT.rwav.wav',
+    YOSHI_TURBO: '/SFX/Yoshi/VO_YS_DSH3.rwav.wav',
+    YOSHI_DAMAGE: '/SFX/Yoshi/VO_YS_DMG_L2.rwav.wav',
+    YOSHI_SELECT: '/SFX/Yoshi/Yoshi_Select.wav',
+
+
 
 };
