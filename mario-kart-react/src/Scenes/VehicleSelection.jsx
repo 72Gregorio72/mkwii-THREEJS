@@ -4,7 +4,7 @@ import { Environment, Center, Html, OrbitControls } from '@react-three/drei'
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { VEHICLE_DATABASE } from '../components/Data'
-import { useAudio } from '../audio/AudioManager.jsx'
+import { AUDIO_SFX, useAudio } from '../audio/AudioManager.jsx'
 
 // --- COMPONENTE BARRA STATISTICHE ---
 const StatBar = ({ label, value }) => (
@@ -61,7 +61,7 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
 
 export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedVehicle }) {
 
-    const { changeTrack } = useAudio();
+    const { changeTrack, playSfx } = useAudio();
     useEffect(() => {
       changeTrack('KART_SELECT');
     }, []);
@@ -233,7 +233,12 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
                                 <div 
                                     key={index} 
                                     style={styles.gridItem(isActive, isEmpty)}
-                                    onClick={() => !isEmpty && setLocalSelection(veh)}
+                                    onClick={() => {
+                                        if (!isEmpty) {
+                                            setLocalSelection(veh);
+                                            playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
+                                        }
+                                    }}
                                 >
                                     {!isEmpty && (
                                         <img 
@@ -275,7 +280,7 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
                 </button>
                 <button 
                     style={{...styles.button, background: '#00aeff', color: 'white'}}
-                    onClick={handleConfirm}
+                    onClick={() => { handleConfirm(); playSfx(AUDIO_SFX.SELECT_IN_MENU, 10); }}
                 >
                     OK
                 </button>

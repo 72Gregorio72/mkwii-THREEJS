@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Tracks } from '../components/Data'
-import { useAudio } from '../audio/AudioManager.jsx'
+import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 
 export function TrackSelection({ setMenuState, setSelectedTrack }) {
-    const { changeTrack } = useAudio();
+    const { changeTrack , playSfx} = useAudio();
     useEffect(() => {
       changeTrack('COURSE_SELECT', false);
     }, []);
@@ -109,7 +109,10 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
                             <div 
                                 key={index} 
                                 style={styles.card(isActive)} // Ora funziona perché card è una funzione
-                                onClick={() => setLocalSelection(track)}
+                                onClick={() => {
+                                    setLocalSelection(track);
+                                    playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
+                                }}
                                 onDoubleClick={handleConfirm}
                             >
                                 <div style={{
@@ -136,7 +139,7 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
                 </button>
                 <button 
                     style={{...styles.button, background: '#00aeff', color: 'white'}}
-                    onClick={handleConfirm}
+                    onClick={() => { handleConfirm(); playSfx(AUDIO_SFX.START_RACE, 10); }}
                     disabled={!localSelection}
                 >
                     Start Race

@@ -813,6 +813,9 @@ export const AUDIO_SFX = {
     RED_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_RED.wav',
     TURBO_DRIFT: '/SFX/drift/SE_VCL_DASH.wav',
     NORMAL_DRIFT: '/SFX/drift/SE_VCL_SLIP_ASPHALT.wav',
+    MOVE_IN_MENU: '/SFX/UI/SE_UI_BIN_IN.wav',
+    SELECT_IN_MENU: '/SFX/UI/SE_UI_RADIO_IN.wav',
+    START_RACE: '/SFX/UI/SE_UI_RACE_OK.wav',
     
     BABY_MARIO_WIN: '/SFX/BabyMario/VO_BMR_GOL_GOD_END.rwav.wav',
     BABY_MARIO_LOSE: '/SFX/BabyMario/VO_BMR_GOL_BAD_END.rwav.wav',
@@ -981,7 +984,5 @@ export const AUDIO_SFX = {
     YOSHI_TURBO: '/SFX/Yoshi/VO_YS_DSH3.rwav.wav',
     YOSHI_DAMAGE: '/SFX/Yoshi/VO_YS_DMG_L2.rwav.wav',
     YOSHI_SELECT: '/SFX/Yoshi/Yoshi_Select.wav',
-
-
 
 };

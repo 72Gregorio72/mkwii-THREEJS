@@ -4,7 +4,7 @@ import { Environment, Center } from '@react-three/drei'
 import { RacerModel } from '../models/RacerModel'
 import { Suspense } from 'react'
 import { OrbitControls } from '@react-three/drei'
-import { useAudio } from '../audio/AudioManager.jsx'
+import { AUDIO_SFX , useAudio } from '../audio/AudioManager.jsx'
 
 export function CharacterSelection({ 
     setMenuState, 
@@ -17,7 +17,7 @@ export function CharacterSelection({
     changeTrack('CHARACTER_SELECT');
   }, []);
 
-
+  const { playSfx } = useAudio();
   const [localSelection, setLocalSelection] = useState(availableCharacters[0])
 
   const totalSlots = 24
@@ -27,7 +27,10 @@ export function CharacterSelection({
 
   const handleConfirm = () => {
     setSelectedCharacter(localSelection)
-    setMenuState(1)
+    playSfx(AUDIO_SFX[localSelection.select_sfx], 0.5);
+    setTimeout(() => {
+      setMenuState(1)
+    }, 2000); // 2 seconds delay
   }
 
   const styles = {
@@ -163,7 +166,12 @@ export function CharacterSelection({
                         <div 
                             key={index} 
                             style={styles.gridItem(isActive, isEmpty)}
-                            onClick={() => !isEmpty && setLocalSelection(char)}
+                            onClick={() => {
+                                if (!isEmpty) {
+                                    setLocalSelection(char);
+                                    playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
+                                }
+                            }}
                         >
                             {!isEmpty && (
                             <img 
@@ -197,7 +205,7 @@ export function CharacterSelection({
             </button>
             <button 
                 style={{...styles.button, background: '#00aeff', color: 'white'}}
-                onClick={handleConfirm}
+                onClick={() => {handleConfirm(); playSfx(AUDIO_SFX.SELECT_IN_MENU, 10); }}
             >
                 OK
             </button>
