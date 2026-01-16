@@ -200,6 +200,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 ref={playerRef} // USA playerRef
                                 userData={{ type: 'racer', id: 'player' }} // FONDAMENTALE PER IL CHECKPOINT
                                 characterConfig={character.modelConfig}
+                                selectedCharacter={character}
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
                                 trackRef={trackRef} 
@@ -211,6 +212,7 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 ref={playerRef} // USA playerRef
                                 userData={{ type: 'racer', id: 'player' }} // FONDAMENTALE PER IL CHECKPOINT
                                 characterConfig={character.modelConfig}
+                                selectedCharacter={character}
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
                                 trackRef={trackRef}

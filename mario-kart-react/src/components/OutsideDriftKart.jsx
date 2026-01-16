@@ -226,7 +226,7 @@ const SpeedEffect = ({ boostTimeRef }) => {
 
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
-    characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
+    characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
     isRaceActive = true
   } = props;
@@ -247,6 +247,9 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     isBike: false, 
     isActive: isRaceActive && !isBot  // Attivo solo se la gara è attiva e non è un bot
   })
+
+  // Hook per riprodurre effetti sonori (turbo, etc.)
+  const { playSfx } = useAudio()
 
   // Coda collisioni (Sicurezza Thread)
   // --- SICUREZZA FISICA ---
@@ -339,6 +342,17 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     const durationMult = level === 2 ? 1.5 : 1.0
     boostTime.current = SETTINGS.boostDuration * durationMult
     pendingBoost.current = false
+
+    // Riproduci audio turbo (solo per il player)
+    if (!isBot) {
+      // Suono generico turbo drift
+      playSfx(AUDIO_SFX.TURBO_DRIFT, 2.0);
+      
+      // Suono vocale del personaggio (se disponibile)
+      if (selectedCharacter?.turbo_sfx && AUDIO_SFX[selectedCharacter.turbo_sfx]) {
+        playSfx(AUDIO_SFX[selectedCharacter.turbo_sfx], 0.6);
+      }
+    }
   }
 
   useFrame((state, delta) => {

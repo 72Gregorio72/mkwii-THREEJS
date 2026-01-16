@@ -672,12 +672,13 @@ export const AUDIO_SFX = {
     BIKE_LOOP: '/SFX/bike/BIKE_LOOP.wav',
     BLUE_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_BLUE.wav',
     RED_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_RED.wav',
+    TURBO_DRIFT: '/SFX/drift/SE_VCL_DASH.wav',
 
     NORMAL_DRIFT: '/SFX/drift/SE_VCL_SLIP_ASPHALT.wav',
     BABY_MARIO_WIN: '/SFX/babyMario/VO_BMR_GOL_GOD_END.rwav.wav',
     BABY_MARIO_LOSE: '/SFX/babyMario/VO_BMR_GOL_BAD_END.rwav.wav',
-    BABY_MARIO_ITEM: '/SFX/babyMario/VO_BMR_ITM_GET.rwav.wav',
-    BABY_MARIO_TURBO: '/SFX/babyMario/BO_BMR_DSH3.rwav.wav',
+    BABY_MARIO_ITEM: '/SFX/babyMario/VO_BMR_ITM_PUT.rwav.wav',
+    BABY_MARIO_TURBO: '/SFX/babyMario/VO_BMR_DSH3.rwav.wav',
     BABY_MARIO_DAMAGE: '/SFX/babyMario/VO_BMR_DMG_L2.rwav.wav',
 
 };
