@@ -21,6 +21,7 @@ import { BlueShell } from '../Items/BlueShell.jsx'
 import { BobOmb } from '../Items/BobOmb.jsx'
 import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx';
 import { Light } from 'three/src/Three.Core.js'
+import { GameHUD } from '../ui/GameHUD.jsx';
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -252,6 +253,14 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                   Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
             </div>
         </div>
+
+		<GameHUD 
+			lap={uiLap} 
+			totalLaps={TOTAL_LAPS} 
+			rank={playerRank} 
+		/>
+
+
         <Canvas>
 				<LightningAtmosphere />
 				<Stats />

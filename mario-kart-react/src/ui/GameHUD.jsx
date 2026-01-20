@@ -1,30 +1,57 @@
 import React, { useEffect, useState } from 'react';
-import { ITEMS } from '../components/PowerupHandler';
+import { ITEMS } from '../Items/PowerupHandler';
 
-// Mappa gli Enum ai percorsi dei file che vedo nel tuo screenshot
+// Mappa gli Enum ai percorsi dei file
 const ITEM_SPRITES = {
   [ITEMS.NONE]: null,
   [ITEMS.MUSHROOM]: '/itemSprites/Mushroom.png',
   [ITEMS.TRIPLE_MUSHROOM]: '/itemSprites/TripleMushroom.png',
   [ITEMS.GOLDEN_MUSHROOM]: '/itemSprites/GoldenMushroom.png',
   [ITEMS.BANANA]: '/itemSprites/Banana.png',
-  [ITEMS.TRIPLE_BANANA]: '/itemSprites/TripleBanana.png', // Se hai lo sprite
+  [ITEMS.TRIPLE_BANANA]: '/itemSprites/TripleBanana.png',
   [ITEMS.GREEN_SHELL]: '/itemSprites/GreenShell.png',
-  [ITEMS.TRIPLE_GREEN_SHELL]: '/itemSprites/TripleGreenShell.png', // Se hai lo sprite
+  [ITEMS.TRIPLE_GREEN_SHELL]: '/itemSprites/TripleGreenShell.png',
   [ITEMS.RED_SHELL]: '/itemSprites/RedShell.png',
-  [ITEMS.TRIPLE_RED_SHELL]: '/itemSprites/TripleRedShell.png', // Se hai lo sprite
-  [ITEMS.BLUE_SHELL]: '/itemSprites/BlueShell.png', // Nello screen si chiama BlueShell.png
+  [ITEMS.TRIPLE_RED_SHELL]: '/itemSprites/TripleRedShell.png',
+  [ITEMS.BLUE_SHELL]: '/itemSprites/BlueShell.png',
   [ITEMS.BOB_OMB]: '/itemSprites/Bobomb.png',
   [ITEMS.STAR]: '/itemSprites/Star.png',
   [ITEMS.MEGA_MUSHROOM]: '/itemSprites/MegaMushroom.png',
   [ITEMS.LIGHTNING]: '/itemSprites/Lightning.png',
 };
 
-export const GameHUD = ({ currentItem, lap, totalLaps, rank, speed, tripleCount }) => {
+export const GameHUD = ({ lap, totalLaps, rank }) => {
   
-  // Animazione semplice quando cambia l'oggetto (Pop effect)
+  // --- STATI LOCALI PER DATI AD ALTA FREQUENZA ---
+  const [speed, setSpeed] = useState(0);
+  const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
   const [animClass, setAnimClass] = useState('');
 
+  // --- ASCOLTATORE EVENTI (Comunicazione Kart -> HUD) ---
+  useEffect(() => {
+    const handleHudUpdate = (e) => {
+        if (!e.detail) return;
+
+        const { speed: rawSpeed, item: newItem } = e.detail;
+        
+        // 1. Aggiorna velocità (con fattore scala visivo 1.5x)
+        setSpeed(Math.abs(Math.round(rawSpeed * 1.5)));
+
+        // 2. Aggiorna oggetto solo se è cambiato (per evitare re-render inutili)
+        setCurrentItem((prev) => {
+            if (prev !== newItem) return newItem;
+            return prev;
+        });
+    };
+
+    // Aggiungi listener
+    window.addEventListener('hud-update', handleHudUpdate);
+
+    // Rimuovi listener quando il componente si smonta
+    return () => window.removeEventListener('hud-update', handleHudUpdate);
+  }, []);
+
+  // --- ANIMAZIONE POP OGGETTO ---
   useEffect(() => {
     if (currentItem !== ITEMS.NONE) {
       setAnimClass('pop-in');
@@ -41,7 +68,7 @@ export const GameHUD = ({ currentItem, lap, totalLaps, rank, speed, tripleCount 
       
       {/* --- TOP LEFT: ITEM BOX --- */}
       <div style={styles.itemBoxContainer}>
-        {/* Sfondo del box oggetto (stile MKWii con sfumatura) */}
+        {/* Sfondo del box oggetto */}
         <div style={styles.itemBoxBg}></div>
         
         {/* Sprite dell'oggetto */}
@@ -53,11 +80,6 @@ export const GameHUD = ({ currentItem, lap, totalLaps, rank, speed, tripleCount 
             style={styles.itemImage} 
           />
         )}
-
-        {/* Contatore per oggetti tripli (opzionale, stile MKWii lo mostra solo con gli oggetti orbitanti, ma utile per debug) */}
-        {/* {(currentItem === ITEMS.TRIPLE_MUSHROOM && tripleCount > 0) && (
-             <div style={styles.counter}>x{tripleCount}</div>
-        )} */}
       </div>
 
       {/* --- TOP RIGHT: TIME / LAP --- */}
@@ -66,9 +88,10 @@ export const GameHUD = ({ currentItem, lap, totalLaps, rank, speed, tripleCount 
             <span style={styles.labelText}>LAP</span>
             <span style={styles.valueText}>{lap} / {totalLaps}</span>
         </div>
+        {/* Timer Placeholder - Puoi collegarlo allo stesso modo se vuoi */}
         <div style={styles.labelValue}>
             <span style={styles.labelText}>TIME</span>
-            <span style={styles.valueText}>00:00:00</span> {/* Qui puoi collegare il timer reale */}
+            <span style={styles.valueText}>00:00:00</span> 
         </div>
       </div>
 
@@ -80,11 +103,11 @@ export const GameHUD = ({ currentItem, lap, totalLaps, rank, speed, tripleCount 
 
       {/* --- BOTTOM RIGHT: SPEEDOMETER --- */}
       <div style={styles.speedContainer}>
-        <span style={styles.speedValue}>{Math.round(speed)}</span>
+        <span style={styles.speedValue}>{speed}</span>
         <span style={styles.speedUnit}>km/h</span>
       </div>
 
-      {/* Stili CSS in-line per semplicità, ma meglio metterli in un .css */}
+      {/* Stili CSS Animazione */}
       <style>{`
         .pop-in { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop {
@@ -107,12 +130,13 @@ const styles = {
   container: {
     position: 'absolute',
     top: 0, left: 0,
-    width: '100vw', height: '100vh',
-    pointerEvents: 'none',
-    fontFamily: '"Arial Black", Gadget, sans-serif', // Font "Cicciotto"
+    width: '100%', height: '100%',
+    pointerEvents: 'none', // IMPORTANTE: lascia passare i click al gioco sotto
+    fontFamily: '"Arial Black", Gadget, sans-serif',
     fontStyle: 'italic',
     userSelect: 'none',
     overflow: 'hidden',
+    zIndex: 10 // Assicura che stia sopra al Canvas
   },
   // ITEM BOX STYLE
   itemBoxContainer: {
@@ -130,7 +154,7 @@ const styles = {
     borderRadius: '20px',
     backgroundColor: 'rgba(0,0,0,0.2)',
     boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)',
-    transform: 'skewX(-10deg)', // Piega tipica MK
+    transform: 'skewX(-10deg)',
   },
   itemImage: {
     width: '90%',
@@ -161,7 +185,7 @@ const styles = {
   rankContainer: {
     position: 'absolute',
     bottom: '40px', left: '30px',
-    color: '#E0E0E0', // Argento/Bianco per posizioni normali, Oro per 1st
+    color: '#E0E0E0',
     textShadow: '4px 4px 0 #000, -1px -1px 0 #000',
     lineHeight: '0.8'
   },
@@ -171,7 +195,6 @@ const styles = {
     background: 'linear-gradient(to bottom, #fff 0%, #ccc 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
-    // Fallback shadow hack per text-fill-color
     filter: 'drop-shadow(4px 4px 0px black)' 
   },
   rankSmall: {

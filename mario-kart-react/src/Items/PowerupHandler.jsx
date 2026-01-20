@@ -14,8 +14,8 @@ export const ITEMS = {
   STAR: 'STAR',
   MEGA_MUSHROOM: 'MEGA_MUSHROOM',
   LIGHTNING: 'LIGHTNING',
-  TRIPLE_MUSHROOM: 'TRIPLE_MUSHROOM', // Già presente
-  GOLDEN_MUSHROOM: 'GOLDEN_MUSHROOM', // <--- NUOVO
+  TRIPLE_MUSHROOM: 'TRIPLE_MUSHROOM',
+  GOLDEN_MUSHROOM: 'GOLDEN_MUSHROOM',
 };
 
 export const usePowerupHandler = ({ 
@@ -47,9 +47,6 @@ export const usePowerupHandler = ({
 
   // Funzione di debug per testare
   const pickupItem = () => {
-    // ESEMPIO: Alterna o forza un oggetto per test
-    // setCurrentItem(ITEMS.TRIPLE_MUSHROOM);
-    // setTripleCount(3); // Importante resettare il contatore
     
     setCurrentItem(ITEMS.TRIPLE_MUSHROOM);
     console.log("Oggetto raccolto: GOLDEN MUSHROOM");

@@ -13,12 +13,11 @@ import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
 import { useBotAI } from '../Bot/UseBotAI'
 import { useKartAudio } from '../hooks/useKartAudio'
-import { usePowerupHandler } from './PowerupHandler';
+import { usePowerupHandler } from '../Items/PowerupHandler.jsx';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { SkeletonUtils } from 'three-stdlib'
 
 import { useBulletBill } from '../Items/BulletBill'; 
-import { GameHUD } from '../ui/GameHUD.jsx';
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
@@ -559,6 +558,15 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         speedUiRef.current.style.transform = isOver || isBulletBill ? `scale(1.1)` : `scale(1)`
     }
 
+	if (!isBot) {
+         window.dispatchEvent(new CustomEvent('hud-update', {
+             detail: {
+                 speed: speed.current, // Passiamo la velocità raw
+                 item: currentItem     // Passiamo l'item corrente
+             }
+         }));
+     }
+
 	if (isBulletBill)
 		console.log(`BULLET BILL VELOCITÀ: ${Math.abs(Math.round(speed.current * 1.5))} km/h`);
 
@@ -910,12 +918,14 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const handleGroundExit = () => { isGrounded.current = false; }
 
   return (
-    // USA rb QUI, non 'ref'
-    <RigidBody 
+    <>
+
+      {/* --- INIZIO FISICA --- */}
+      <RigidBody 
         ref={rb} 
         position={START_POS} 
         rotation={START_ROT}
-        mass={isBulletBill ? 1000 : 100} // Aumenta massa se Bill
+        mass={isBulletBill ? 1000 : 100}
         linearDamping={2}
         angularDamping={2} 
         type="dynamic" 
@@ -926,75 +936,65 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         lockRotations={true}
         restitution={0}
         restitutionCombine="min" 
-        onCollisionEnter={handleCollisionEnter} // Gestione Smash Bill
-    >
-      <BallCollider 
-          args={[PHYSICS_RADIUS]} 
-          position={[0, 0, 0]} 
-          friction={0.0}
-          frictionCombine="min"
-          restitution={0}
-          restitutionCombine="min" 
-      />
-
-      <CylinderCollider 
-         args={[0.2, 0.5]} 
-         position={[0, -PHYSICS_RADIUS + 0.2, 0]} 
-         sensor={true} 
-         onIntersectionEnter={handleGroundEnter}
-         onIntersectionExit={handleGroundExit}
-      />
-
-      {!isBot && <SpeedEffect boostTimeRef={boostTime} isBulletBill={isBulletBill} />}
-      
-      {!isBot && (
-        <Html fullscreen style={{ pointerEvents: 'none', zIndex: 10 }}>
-            <GameHUD 
-                currentItem={currentItem}
-                tripleCount={tripleCount} // Passiamo il conteggio triplo
-                lap={1}                   // Qui dovresti passare la prop lap reale
-                totalLaps={3}             // Qui il totale
-                rank={rank}               // La tua posizione
-                speed={Math.abs(Math.round(speed.current * 1.5))} // Velocità scalata
-            />
-        </Html>
-      )}
-
-      {/* --- GRUPPO 1: KART NORMALE --- */}
-      <group ref={visualGroupRef} visible={!isBulletBill} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-          <group position={vehicleConfig.vehicleOffset}>
-              <VehicleModel 
-                vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
-                position={[0, 0, 0]} steer={modelSteer} drift={driftDirection.current} speed={speed.current} isBike={true}
-              />
-              <group rotation={[0, Math.PI, 0]}>
-                <RacerModel 
-                    isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
-                    steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
-                    key={vehicleConfig.name + "_racer"}
-                />
-              </group>
-          </group>    
-          
-          {!isBot && (
-              <>
-                  <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
-                  <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
-              </>
-          )}
-      </group>
-
-      <group 
-          ref={billVisualsRef} 
-          visible={isBulletBill} 
-          scale={[2.5, 2.5, 2.5]} 
-          position={[0, -PHYSICS_RADIUS + 0.8, 0]} 
+        onCollisionEnter={handleCollisionEnter}
       >
-           <group rotation={[0, Math.PI, 0]} > 
-               <primitive object={billScene} />
-           </group>
-      </group>
+        <BallCollider 
+            args={[PHYSICS_RADIUS]} 
+            position={[0, 0, 0]} 
+            friction={0.0}
+            frictionCombine="min"
+            restitution={0}
+            restitutionCombine="min" 
+        />
 
-    </RigidBody>
+        <CylinderCollider 
+           args={[0.2, 0.5]} 
+           position={[0, -PHYSICS_RADIUS + 0.2, 0]} 
+           sensor={true} 
+           onIntersectionEnter={handleGroundEnter}
+           onIntersectionExit={handleGroundExit}
+        />
+
+        {!isBot && <SpeedEffect boostTimeRef={boostTime} isBulletBill={isBulletBill} />}
+        
+        {/* --- NOTA: Ho rimosso <Html> da qui dentro --- */}
+
+        {/* --- GRUPPO 1: KART NORMALE --- */}
+        <group ref={visualGroupRef} visible={!isBulletBill} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
+            <group position={vehicleConfig.vehicleOffset}>
+                <VehicleModel 
+                  vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
+                  position={[0, 0, 0]} steer={modelSteer} drift={driftDirection.current} speed={speed.current} isBike={true}
+                />
+                <group rotation={[0, Math.PI, 0]}>
+                  <RacerModel 
+                      isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
+                      steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
+                      key={vehicleConfig.name + "_racer"}
+                  />
+                </group>
+            </group>    
+            
+            {!isBot && (
+                <>
+                    <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
+                    <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
+                </>
+            )}
+        </group>
+
+        <group 
+            ref={billVisualsRef} 
+            visible={isBulletBill} 
+            scale={[2.5, 2.5, 2.5]} 
+            position={[0, -PHYSICS_RADIUS + 0.8, 0]} 
+        >
+             <group rotation={[0, Math.PI, 0]} > 
+                 <primitive object={billScene} />
+             </group>
+        </group>
+
+      </RigidBody>
+    </>
   )
 });
