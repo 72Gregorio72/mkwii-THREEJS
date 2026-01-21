@@ -32,6 +32,7 @@ export const Tracks = {
 		startPos: [9, 12, 98],
 		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
 		road: './Tracks/DaisyCircuit/DaisyCircuit_road.glb',
+		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
 		maxCheckpoints: 3,
         soundtrack: 'RACE_DAISY_CIRCUIT'
 	},

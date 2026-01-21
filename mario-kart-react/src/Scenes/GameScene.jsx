@@ -22,9 +22,23 @@ import { BobOmb } from '../Items/BobOmb.jsx'
 import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx';
 import { Light } from 'three/src/Three.Core.js'
 import { GameHUD } from '../ui/GameHUD.jsx';
+import { ItemBoxesMap } from '../Items/ItemBoxes.jsx';
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
+
+function WaypointVisualizer({ points, color = 'red' }) {
+	return (
+		<group>	
+			{points.map((p, index) => (
+				<mesh key={index} position={[p.x, p.y + 0.1, p.z]}>
+					<sphereGeometry args={[0.2, 8, 8]} />
+					<meshStandardMaterial color={color} />
+				</mesh>
+			))}
+		</group>
+	);
+}
 
 // Funzione helper per calcolare la griglia di partenza
 // index 0 = Player, index 1..11 = Bots
@@ -350,6 +364,11 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                     <group ref={trackRef}>
                         <SmartMap modelPath={mapPath} scale={1} />
                     </group>
+
+					<ItemBoxesMap 
+						mapModelPath={selectedTrack.itemBoxes}
+						triggerName="Cube"
+					/>
 					<RoadWalls 
 						modelPath={selectedTrack.road}
 						wallHeight={10}
