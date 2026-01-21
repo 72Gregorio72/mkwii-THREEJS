@@ -4,9 +4,20 @@ import { useGLTF, Clone } from '@react-three/drei' // Clone è utile per istanze
 import { RigidBody } from '@react-three/rapier'
 import { useFrame } from '@react-three/fiber'
 
-// --- COMPONENTE SINGOLO ITEM BOX ---
+function giveItemToPlayer(other) {
+    const userData = other.rigidBodyObject?.userData;
+
+    if (userData && userData.type === 'racer') {
+        const racerId = userData.id;
+        console.log(`📦 BOX PRESO DA: ${racerId}`);
+
+        window.dispatchEvent(new CustomEvent('item-collected', {
+            detail: { racerId: racerId }
+        }));
+    }
+}
+
 function SingleItemBox({ position, rotation }) {
-    // Carichiamo il modello dell'Item Box
     const { scene } = useGLTF('/items/ItemBox.glb')
     
     // Stato per sapere se è attivo (visibile) o preso
@@ -19,8 +30,8 @@ function SingleItemBox({ position, rotation }) {
     // Logica di collisione
     const handleIntersection = ({ other }) => {
         if (!isActive) return;
-
-        console.log("ItemBox preso!")
+		// Qui potremmo aggiungere logica per dare un oggetto al giocatore
+		giveItemToPlayer(other);
         setIsActive(false) 
 
         setTimeout(() => {
@@ -65,23 +76,14 @@ export function ItemBoxesMap({ mapModelPath, triggerName = "Cube" }) {
         
         console.group("--- DEBUG ITEM BOXES ---");
         console.log(`Cercando oggetti che contengono: "${triggerName}"`);
-        
-        // Aggiorna le matrici per essere sicuri che le posizioni globali siano corrette
         scene.updateMatrixWorld(true);
 
         let objectsFound = 0;
 
         scene.traverse((child) => {
-            // Stampa ogni singolo oggetto trovato nella scena per controllare i nomi
-            // Togli il commento qui sotto se la console è troppo piena, ma è utile per la prima volta
-            // console.log("Oggetto scansionato:", child.name, "| Tipo:", child.type);
 
             if (child.isMesh) {
-                // Controllo se il nome include la stringa (ignorando maiuscole/minuscole per sicurezza)
                 if (child.name.toLowerCase().includes(triggerName.toLowerCase())) {
-                    
-                    console.log(`✅ TROVATO SPAWN: ${child.name}`);
-                    
                     const position = new THREE.Vector3();
                     const quaternion = new THREE.Quaternion();
                     const rotation = new THREE.Euler();
@@ -90,9 +92,6 @@ export function ItemBoxesMap({ mapModelPath, triggerName = "Cube" }) {
                     child.getWorldPosition(position);
                     child.getWorldQuaternion(quaternion);
                     rotation.setFromQuaternion(quaternion);
-
-                    console.log(`   -> Posizione: x:${position.x.toFixed(2)}, y:${position.y.toFixed(2)}, z:${position.z.toFixed(2)}`);
-
                     spawns.push({
                         position: [position.x, position.y, position.z],
                         rotation: [rotation.x, rotation.y, rotation.z]
@@ -104,10 +103,6 @@ export function ItemBoxesMap({ mapModelPath, triggerName = "Cube" }) {
         });
 
         console.log(`Totale Item trovati: ${objectsFound}`);
-        if (objectsFound === 0) {
-            console.warn("⚠️ NESSUN OGGETTO TROVATO! Controlla i nomi in Blender.");
-            console.warn("Suggerimento: Controlla che gli oggetti non siano dentro una Collection esclusa o nascosta.");
-        }
         console.groupEnd();
 
         return spawns
@@ -122,15 +117,6 @@ export function ItemBoxesMap({ mapModelPath, triggerName = "Cube" }) {
                     rotation={data.rotation} 
                 />
             ))}
-            
-            {/* DEBUG VISIVO: Se non vedi le scatole, decommenta questo per vedere se almeno le sfere rosse appaiono */}
-            {/* {itemSpawns.map((data, index) => (
-                <mesh key={`debug-${index}`} position={data.position}>
-                    <sphereGeometry args={[1, 16, 16]} />
-                    <meshBasicMaterial color="red" wireframe />
-                </mesh>
-            ))} 
-            */}
         </>
     )
 }

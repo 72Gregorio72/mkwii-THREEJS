@@ -430,14 +430,25 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   // Esposizione Metodi: Usiamo 'ref' esterno, ma chiamiamo metodi su 'rb' interno
   useImperativeHandle(ref, () => ({
-      translation: () => rb.current?.translation(),
-      rotation: () => rb.current?.rotation(),
-      linvel: () => rb.current?.linvel(),
-      triggerBulletBill: () => activateBulletBill()
-  }));
+    translation: () => rb.current?.translation() || { x: 0, y: 0, z: 0 },
+    rotation: () => rb.current?.rotation() || { x: 0, y: 0, z: 0, w: 1 },
+    linvel: () => rb.current?.linvel() || { x: 0, y: 0, z: 0 },
+    triggerBulletBill: () => activateBulletBill(),
+    resetPosition: (pos, rot) => {
+        if(rb.current) {
+            rb.current.setTranslation({x: pos[0], y: pos[1], z: pos[2]}, true);
+            rb.current.setLinvel({x: 0, y: 0, z: 0}, true);
+            rb.current.setAngvel({x: 0, y: 0, z: 0}, true);
+            if(rot) {
+                const q = new Quaternion().setFromEuler(new Euler(...rot));
+                rb.current.setRotation(q, true);
+            }
+        }
+    }
+}));
 
   // --- INTEGRATION POWERUP ---
-  const { currentItem, handleItemInput, tripleCount } = usePowerupHandler({
+  const { currentItem, handleItemInput, tripleCount, triggerItemRoulette } = usePowerupHandler({
     boostTime: boostTime, 
     speed: speed,        
     SETTINGS: SETTINGS,    
@@ -550,19 +561,30 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     
     // Aggiorna UI
     if (!isBot && speedUiRef.current) {
-        // Se siamo Bill, la velocità è alta (es. 85), calcoliamo display
-        const displaySpeed = isBulletBill ? 120 : Math.abs(Math.round(speed.current * 1.5));
-        speedUiRef.current.innerText = `${displaySpeed} km/h`
+        // FIX: Usa (speed.current || 0) per evitare calcoli su valori nulli/NaN
+        const currentSpd = speed.current || 0;
+        
+        const displaySpeed = isBulletBill ? 120 : Math.abs(Math.round(currentSpd * 1.5));
+        
+        // Ulteriore sicurezza: se displaySpeed è ancora NaN (es. calcoli strani), forza "0"
+        const finalDisplay = isNaN(displaySpeed) ? 0 : displaySpeed.toString();
+
+        speedUiRef.current.innerText = `${finalDisplay} km/h`;
         const isOver = displaySpeed > SETTINGS.maxSpeed + 5
         speedUiRef.current.style.color = isBulletBill ? '#ff0000' : (isOver ? '#ff3300' : 'white')
         speedUiRef.current.style.transform = isOver || isBulletBill ? `scale(1.1)` : `scale(1)`
     }
 
 	if (!isBot) {
+         let safeSpeed = speed.current;
+         if (isNaN(safeSpeed) || !isFinite(safeSpeed)) {
+             safeSpeed = 0;
+         }
+
          window.dispatchEvent(new CustomEvent('hud-update', {
              detail: {
-                 speed: speed.current, // Passiamo la velocità raw
-                 item: currentItem     // Passiamo l'item corrente
+                 speed: safeSpeed,
+                 item: currentItem     
              }
          }));
      }
@@ -916,6 +938,21 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   }
 
   const handleGroundExit = () => { isGrounded.current = false; }
+
+  useEffect(() => {
+    const handleItemCollected = (e) => {
+        if (e.detail.racerId === racerId) {
+            if (triggerItemRoulette) {
+                triggerItemRoulette(rank);
+            } else {
+                console.warn("Manca la funzione triggerItemRoulette in usePowerupHandler!");
+            }
+        }
+    };
+
+    window.addEventListener('item-collected', handleItemCollected);
+    return () => window.removeEventListener('item-collected', handleItemCollected);
+  }, [racerId, isBulletBill, triggerItemRoulette]);
 
   return (
     <>
