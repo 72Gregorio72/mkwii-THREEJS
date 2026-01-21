@@ -61,8 +61,10 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
 
 export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedVehicle }) {
 
+    const { playSfx } = useAudio();
+
     const availableIDs = selectedCharacter.veichles || []; 
-    
+
     const availableVehicles = availableIDs.map(id => ({
         id: id,
         ...((VEHICLE_DATABASE[id]) || VEHICLE_DATABASE['DEFAULT'])

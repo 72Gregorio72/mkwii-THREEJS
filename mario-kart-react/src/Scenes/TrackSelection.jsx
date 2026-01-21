@@ -3,11 +3,7 @@ import { Tracks } from '../components/Data'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 
 export function TrackSelection({ setMenuState, setSelectedTrack }) {
-    const { changeTrack , playSfx} = useAudio();
-    useEffect(() => {
-      changeTrack('COURSE_SELECT', 5000);
-    }, [changeTrack]);
-
+    const { playSfx } = useAudio();
 
     const tracksList = Object.entries(Tracks).map(([name, data]) => ({
         name,
