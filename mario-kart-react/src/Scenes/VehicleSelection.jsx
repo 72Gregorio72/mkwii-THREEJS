@@ -44,7 +44,7 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
                 steer={0} drift={0} speed={5}
                 isBike={vehicleData.isBike}
             />
-            
+
             {/* IL PILOTA */}
             <RacerModel 
                 isInMenu={false}
@@ -60,11 +60,6 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
 }
 
 export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedVehicle }) {
-
-    const { changeTrack, playSfx } = useAudio();
-    useEffect(() => {
-      changeTrack('KART_SELECT');
-    }, []);
 
     const availableIDs = selectedCharacter.veichles || []; 
     

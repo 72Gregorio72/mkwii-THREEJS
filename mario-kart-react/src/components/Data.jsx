@@ -792,8 +792,7 @@ export const VEHICLE_DATABASE = {
 export const AUDIO_TRACKS = {
     MENU: '/soundTracks/TITLE_SCREEN.mp3', // title screen music
     LOBBY_MUSIC: '/soundTracks/SET_UP.mp3', // lobby music
-    CHARACTER_SELECT: '/soundTracks/CHARACTER_SELECT_SCREEN.mp3', // character select music
-    KART_SELECT: '/soundTracks/KART_SELECT_SCREEN.mp3', // kart select music
+    CHARACTER_KART_SELECT: '/soundTracks/CHARACTER_KART_SELECT_SCREEN.mp3', // kart e character select music
     COURSE_SELECT: '/soundTracks/COURSE_SELECTION.mp3', // course select music
     RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
     RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
