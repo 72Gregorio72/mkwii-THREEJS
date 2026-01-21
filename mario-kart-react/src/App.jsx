@@ -5,9 +5,10 @@ import { VehicleSelection } from './Scenes/VehicleSelection'
 import { TrackSelection } from './Scenes/TrackSelection'
 import { GameScene } from './Scenes/GameScene' // Import the new component
 import { AudioProvider } from './audio/AudioManager'
+import { socket } from './multiplayer/socket.js';
 
 export default function App() {
-
+	
     const [MenuState, setMenuState] = useState(-1)
     
     // State for selections
@@ -50,7 +51,8 @@ export default function App() {
 				)}
 
         	    {MenuState === 3 && (
-					<GameScene 
+					<GameScene
+						socket={socket}
 						character={SelectedCharacter}
 						vehicle={SelectedVehicle}
 
