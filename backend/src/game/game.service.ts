@@ -5,7 +5,11 @@ export interface Player {
   x: number;
   y: number;
   z: number;
-  rotation: number;
+ rotation: { x: number, y: number, z: number, w: number }; 
+  charId?: string;
+  vehicleId?: string;
+  steer?: number;
+  drift?: number;
 }
 
 @Injectable()
@@ -19,7 +23,14 @@ export class GameService {
   }
 
   updatePlayer(id: string, data: Partial<Player>) {
-    const existing = this.players.get(id) || { id, x:0, y:0, z:0, rotation:0 };
+   const existing = this.players.get(id) || { 
+      id, 
+      x: 0, 
+      y: 0, 
+      z: 0, 
+      rotation: { x: 0, y: 0, z: 0, w: 1 } 
+    };
+    
     this.players.set(id, { ...existing, ...data });
   }
 

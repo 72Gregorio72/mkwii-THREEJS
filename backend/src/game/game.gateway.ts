@@ -43,7 +43,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       x: 0, 
       y: 0, 
       z: 0,
-      rotation: 0 // Track rotation too!
+      rotation: { x: 0, y: 0, z: 0, w: 1 } // Track rotation too!
     });
   }
 
@@ -58,10 +58,21 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   // 4. Receive Position Updates from Clients
   @SubscribeMessage('move_kart')
-  handleMove(client: Socket, payload: { x: number, y: number, z: number, rotation: number }) {
+  handleMove(client: Socket, payload: { x: number, y: number, z: number, rotation: any, steer: any, drift: any }) {
     // The client tells us where they are. 
     // Ideally, the server should calculate physics, but for a simple project, 
     // trusting the client position is fine.
     this.gameService.updatePlayer(client.id, payload);
+  }
+
+  @SubscribeMessage('set_details')
+  handleSetDetails(client: Socket, payload: { charId: string, vehicleId: string }) {
+    console.log(`Player ${client.id} selected: ${payload.charId} / ${payload.vehicleId}`);
+    
+    // Save these IDs into the player's state
+    this.gameService.updatePlayer(client.id, {
+      charId: payload.charId,
+      vehicleId: payload.vehicleId
+    });
   }
 }

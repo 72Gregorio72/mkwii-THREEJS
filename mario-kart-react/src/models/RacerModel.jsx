@@ -104,7 +104,6 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
 
   // Gestione Animazioni
   useEffect(() => {
-      if (isRemote) return;
 
       let targetAnim = 'idle';
       if (isKart && vehicleConfig) targetAnim = vehicleConfig.animationType || 'kart';
@@ -115,7 +114,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
           if (name === targetAnim) action.reset().fadeIn(0.2).play().setLoop(LoopRepeat);
           else action.fadeOut(0.2);
       });
-  }, [vehicleConfig, isKart, actions, names]);
+  }, [vehicleConfig?.animationType, isKart, actions, names]);
 
   useEffect(() => {
       clone.traverse(o => { 

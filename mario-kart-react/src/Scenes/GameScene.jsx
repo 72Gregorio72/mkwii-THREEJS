@@ -24,6 +24,8 @@ import { Light } from 'three/src/Three.Core.js'
 import { GameHUD } from '../ui/GameHUD.jsx';
 import { NetworkManager } from '../multiplayer/NetworkManager.jsx'
 import { RemoteOpponent } from '../multiplayer/RemoteOpponent.jsx'
+import { VEHICLE_DATABASE, Characters } from '../components/Data.jsx'
+import { RacerModel } from '../models/RacerModel.jsx'
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -279,15 +281,27 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                     )}
 
                     {/* ✅ ADDED: RENDER OPPONENTS (Visuals) */}
-                    {opponents.map((playerData) => (
-                        <RemoteOpponent 
+                    {opponents.map((playerData) => {
+
+                        if (!playerData.vehicleId) {
+                                console.warn(`⚠️ Opponent ${playerData.id} has NO Vehicle ID!`);
+                        }
+
+                        const remoteChar = Characters.find(c => c.id === playerData.charId) || character; // Fallback to local if not found
+                        const remoteVehicleConfig = VEHICLE_DATABASE[playerData.vehicleId];
+
+                        const remoteVehicle = remoteVehicleConfig ? { 
+                            id: playerData.vehicleId, 
+                            ...remoteVehicleConfig 
+                        } : vehicle;
+
+                        return <RemoteOpponent 
                             key={playerData.id} 
                             data={playerData}
-                            // Currently using local player config as placeholder for opponent visuals
-                            character={character} 
-                            vehicle={vehicle}
+                            character={remoteChar} 
+                            vehicle={remoteVehicle}
                         />
-                    ))}
+                    })}
 
                     {/* PLAYER */}
                     <group position={[0, 10, 0]} > 

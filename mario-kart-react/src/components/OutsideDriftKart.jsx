@@ -433,7 +433,18 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       translation: () => rb.current?.translation(),
       rotation: () => rb.current?.rotation(),
       linvel: () => rb.current?.linvel(),
-      triggerBulletBill: () => activateBulletBill()
+      triggerBulletBill: () => activateBulletBill(),
+        // ✅ FIX: Calculate steer from controls, because 'modelSteer' is local to render loop
+      getInputState: () => {
+          const controls = activeControls.current;
+          // Replicate logic: Left = 1, Right = -1
+          const currentSteer = (controls.left ? 1 : 0) + (controls.right ? -1 : 0);
+          
+          return {
+              steer: currentSteer, 
+              drift: driftDirection.current // This ref exists in your code, so it's safe
+          };
+      }
   }));
 
   // --- INTEGRATION POWERUP ---
