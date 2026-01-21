@@ -1,9 +1,10 @@
-import React, { useState, useRef, Suspense } from 'react'
+import React, { useState, useRef, Suspense, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, Center, Html, OrbitControls } from '@react-three/drei'
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { VEHICLE_DATABASE } from '../components/Data'
+import { useAudio } from '../audio/AudioManager.jsx'
 
 // --- COMPONENTE BARRA STATISTICHE ---
 const StatBar = ({ label, value }) => (
@@ -59,6 +60,12 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
 }
 
 export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedVehicle }) {
+
+    const { changeTrack } = useAudio();
+    useEffect(() => {
+      changeTrack('KART_SELECT');
+    }, []);
+
     const availableIDs = selectedCharacter.veichles || []; 
     
     const availableVehicles = availableIDs.map(id => ({

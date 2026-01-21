@@ -23,15 +23,26 @@ export const Tracks = {
 		preview: './TrackPreviews/LuigiCircuit.png',
 		startPos: [-200, 10, 270],
 		checkpoints: './Tracks/LuigiCircuit/LuigiCircuit_checkpoints.glb',
-		maxCheckpoints: 1
+		maxCheckpoints: 1,
+        soundtrack: 'RACE_LUIGI_CIRCUIT'
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
 		preview: './TrackPreviews/DaisyCircuit.png',
 		startPos: [9, 12, 98],
 		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
-		maxCheckpoints: 3
+		road: './Tracks/DaisyCircuit/DaisyCircuit_road.glb',
+		maxCheckpoints: 3,
+        soundtrack: 'RACE_DAISY_CIRCUIT'
 	},
+	'Coconut Mall': {
+		file: './Tracks/CoconutMall/CoconutMall.glb',
+		preview: './TrackPreviews/CoconutMall.png',
+		startPos: [-15, 5, -50],
+		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
+		maxCheckpoints: 5,
+        soundtrack: 'RACE_COCONUT_MALL'
+	}
 }
 
 export const Characters = [
@@ -42,7 +53,12 @@ export const Characters = [
         sprite: './sprites/BabyMario.png', 
         modelConfig: { file: '/riggedCharacters/BabyMario_Skeleton.glb', scale: 0.8, bodyNode: 'baby_mario_body' },
         veichles: SMALL_VEHICLES,
-        stats: { speed: '0', acceleration: '1', weight: '0', handling: '1', traction: '1', drift: '0', offroad: '0' }
+        stats: { speed: '0', acceleration: '1', weight: '0', handling: '1', traction: '1', drift: '0', offroad: '0' },
+        win_sfx: 'BABY_MARIO_WIN',
+        lose_sfx: 'BABY_MARIO_LOSE',
+        item_sfx: 'BABY_MARIO_ITEM',
+        turbo_sfx: 'BABY_MARIO_TURBO',
+        dmg_sfx: 'BABY_MARIO_DAMAGE'
     },
     { 
         id: 'baby_luigi',
@@ -629,4 +645,39 @@ export const VEHICLE_DATABASE = {
         handPos: [0.2, 0.5, 0.3],
 		vehicleOffset: [0, 0, 0]
     }
+};
+
+// ============================================
+// COSTANTI: Tracce audio disponibili
+// ============================================
+export const AUDIO_TRACKS = {
+    MENU: '/soundTracks/TITLE_SCREEN.mp3', // title screen music
+    LOBBY_MUSIC: '/soundTracks/SET_UP.mp3', // lobby music
+    CHARACTER_SELECT: '/soundTracks/CHARACTER_SELECT_SCREEN.mp3', // character select music
+    KART_SELECT: '/soundTracks/KART_SELECT_SCREEN.mp3', // kart select music
+    COURSE_SELECT: '/soundTracks/COURSE_SELECTION.mp3', // course select music
+    RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
+    RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
+    RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
+};
+
+export const AUDIO_SFX = {
+    KART_IDLE: '/SFX/kart/KART_IDLE.wav', // idle sound
+    KART_GAS: '/SFX/kart/KART_GAS.wav', // gas sound
+    KART_DOWNSHIFT: '/SFX/kart/KART_DOWN.wav', // downshift sound
+    KART_LOOP: '/SFX/kart/KART_LOOP.wav', // loop sound
+    BIKE_IDLE: '/SFX/bike/BIKE_IDLE.wav',
+    BIKE_GAS: '/SFX/bike/BIKE_GAS.wav',
+    BIKE_DOWNSHIFT: '/SFX/bike/BIKE_DOWN.wav',
+    BIKE_LOOP: '/SFX/bike/BIKE_LOOP.wav',
+    BLUE_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_BLUE.wav',
+    RED_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_RED.wav',
+
+    NORMAL_DRIFT: '/SFX/drift/SE_VCL_SLIP_ASPHALT.wav',
+    BABY_MARIO_WIN: '/SFX/babyMario/VO_BMR_GOL_GOD_END.rwav.wav',
+    BABY_MARIO_LOSE: '/SFX/babyMario/VO_BMR_GOL_BAD_END.rwav.wav',
+    BABY_MARIO_ITEM: '/SFX/babyMario/VO_BMR_ITM_GET.rwav.wav',
+    BABY_MARIO_TURBO: '/SFX/babyMario/BO_BMR_DSH3.rwav.wav',
+    BABY_MARIO_DAMAGE: '/SFX/babyMario/VO_BMR_DMG_L2.rwav.wav',
+
 };

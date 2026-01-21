@@ -1,253 +1,430 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useRef, useCallback, useMemo	, useEffect, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
-import { Environment, PerspectiveCamera, useGLTF } from '@react-three/drei'
-
-import { io } from 'socket.io-client';
-
+import { Physics } from '@react-three/rapier'
+import { Environment, PerspectiveCamera, Stats } from '@react-three/drei'
 import { SmartMap } from '../Tracks/SmartMap'
 import { OutsideDriftKart } from '../components/OutsideDriftKart'
 import { InsideDriftBike } from '../components/InsideDriftBike'
-import { RemoteOpponent } from '../components/RemoteOpponent';
+import trackWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit.json'
+import leftWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left.json'
+import rightWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right.json'
+import trackWaypoints1 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit1.json'
+import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
+import { CheckpointSystem } from '../Race/CheckPointManager.jsx'
+import { RaceManager } from '../Race/RaceManager.jsx'
+import { useAudio } from '../audio/AudioManager.jsx'
+import { RoadWalls } from '../Tracks/RoadWalls.jsx'
+import { Banana } from '../Items/Banana';
+import { GreenShell } from '../Items/GreenShell';
+import { RedShell } from '../Items/RedShell';
+import { BlueShell } from '../Items/BlueShell.jsx'
+import { BobOmb } from '../Items/BobOmb.jsx'
+import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx';
+import { Light } from 'three/src/Three.Core.js'
+import { GameHUD } from '../ui/GameHUD.jsx';
 
 const TOTAL_LAPS = 3;
+const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
+
+// Funzione helper per calcolare la griglia di partenza
+// index 0 = Player, index 1..11 = Bots
+function getGridPosition(startPos, index) {
+    const ROW_DIST = 3.5; // Distanza tra le file (profondità)
+    const COL_DIST = 2.5; // Distanza laterale
+    
+    // Calcoliamo la fila e se è destra/sinistra
+    const row = Math.floor(index / 2);
+    const isRight = index % 2 !== 0; 
+    
+    // Offset
+    const xOffset = isRight ? COL_DIST : -COL_DIST;
+    const zOffset = row * -ROW_DIST; // Vanno indietro rispetto alla start_pos
+    
+    return [
+        startPos[0] + xOffset,
+        startPos[1], // Y rimane uguale
+        startPos[2] + zOffset // Z va indietro
+    ];
+}
+
 
 /**
  * Componente che gestisce i Box Collider dei Checkpoint
  * Carica il GLB, e per ogni oggetto crea un'area sensibile (Sensor)
  */
-function CheckpointSystem({ url, onCheckpointTrigger }) {
-    const { scene } = useGLTF(url);
-
-    const sensors = useMemo(() => {
-        const boxes = [];
-        console.log("📂 INIZIO ANALISI GLB CHECKPOINT:", url);
-        
-        scene.traverse((child) => {
-            // Logga ogni singolo oggetto trovato nel file
-            if (child.isMesh) {
-                const rawName = child.name;
-                // Pulisce il nome: tiene solo i numeri. Es: "Cube.001" -> "001" -> 1
-                const numberOnly = rawName.replace(/[^0-9]/g, ''); 
-                const id = parseInt(numberOnly);
-
-                console.log(`   Found Mesh: "${rawName}" -> ID estratto: ${id}`);
-                
-                if (!isNaN(id)) {
-                    boxes.push({
-                        id: id,
-                        position: child.position,
-                        rotation: child.rotation,
-                        scale: child.scale,
-                        geometry: child.geometry
-                    });
-                } else {
-                    console.warn(`   ⚠️ IGNORATO: "${rawName}" non contiene numeri validi.`);
-                }
-            }
-        });
-
-        console.log(`✅ TOTALE SENSORI CREATI: ${boxes.length}`);
-        // Ordiniamo per sicurezza (1, 2, 3...)
-        return boxes.sort((a, b) => a.id - b.id);
-    }, [scene, url]);
-
-    return (
-        <group>
-            {sensors.map((box, index) => (
-                <RigidBody
-					key={index} 
-					type="fixed" 
-					colliders="trimesh" // Assicurati che sia 'cuboid' o 'trimesh'
-					sensor={true} 
-					position={box.position}
-					rotation={box.rotation}
-					scale={box.scale}
-					onIntersectionEnter={(payload) => {
-						// --- DEBUG TOTALE ---
-						// Stampiamo chiunque entri, così capiamo se il sensore funziona
-						console.log("💥 QUALCOSA HA TOCCATO IL CHECKPOINT", box.id);
-						console.log("   --> Oggetto:", payload.other.rigidBodyObject?.name);
-
-						// Se l'oggetto si chiama "kart" (come abbiamo impostato sopra), conta il punto
-						if (payload.other.rigidBodyObject?.name === 'kart') {
-							console.log("✅ È IL KART! VALIDO!");
-							onCheckpointTrigger(box.id);
-						}
-						
-						// ALTERNATIVA DI SICUREZZA: 
-						// Se non leggi il nome, scommenta la riga sotto per accettare TUTTO per ora:
-						// onCheckpointTrigger(box.id);
-					}}
-				>
-                    {/* Visualizzazione DEBUG: Cubo semitrasparente Rosso */}
-                    <mesh geometry={box.geometry}>
-						<meshBasicMaterial visible={false} />
-                    </mesh>
-                </RigidBody>
-            ))}
-        </group>
-    );
-}
-
-
 export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack, start_pos, maxCheckpoints, selectedTrack }) {
-    
+
+    // --- REFS DATI ---
+    const { initialRacersData, initialPositions } = useMemo(() => {
+        const data = {
+            player: { id: 'player', lap: 1, nextCP: 1, score: 0 }
+        };
+        const positions = [{ id: 'player', position: 1 }];
+        const bots = [];
+
+        for (let i = 0; i < BOT_COUNT; i++) {
+            const botId = `bot_${i}`;
+            data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0 };
+            positions.push({ id: botId, position: i + 2 });
+            bots.push({ id: botId, index: i });
+        }
+
+        return { initialRacersData: data, initialPositions: positions, botsArray: bots };
+    }, []);
+
+	const [bananas, setBananas] = useState([]);
+
+	const [shells, setShells] = useState([]);
+
+	const [redShells, setRedShells] = useState([]);
+
+	const [blueShells, setBlueShells] = useState([]);
+
+	const [bobOmbs, setBobOmbs] = useState([]);
+
+	const handleSpawnBanana = (position, velocity) => {
+        const newBanana = {
+            id: Date.now() + Math.random(),
+            position: position,
+            velocity: velocity
+        };
+        setBananas((prev) => [...prev, newBanana]);
+    };
+
+	const handleSpawnBobOmb = (position, velocity) => {
+		const newBomb = {
+			id: Date.now() + Math.random(),
+			position: position,
+			velocity: velocity
+		};
+		setBobOmbs((prev) => [...prev, newBomb]);
+	};
+
+	const destroyBobOmb = (id) => {
+		setBobOmbs((prev) => prev.filter(b => b.id !== id));
+	};
+
+	const handleSpawnBlueShell = (position, velocity) => {
+		const newBlueShell = {
+			id: Date.now() + Math.random(),
+			position: position,
+			velocity: velocity
+		};
+		setBlueShells((prev) => [...prev, newBlueShell]);
+	}
+
+	const handleDestroyBlueShell = (id) => {
+		setBlueShells((prev) => prev.filter(s => s.id !== id));
+	};
+
+	const handleSpawnGreenShell = (position, velocity) => {
+        const newShell = {
+            id: Date.now() + Math.random(),
+            position: position,
+            velocity: velocity
+        };
+        setShells((prev) => [...prev, newShell]);
+    };
+
+	const handleSpawnRedShell = (position, velocity) => {
+		const newShell = {
+			id: Date.now() + Math.random(),
+			position: position,
+			velocity: velocity
+		};
+		setRedShells((prev) => [...prev, newShell]);
+	};
+
+	const handleRemoveRedShell = (id) => {
+		setRedShells((prev) => prev.filter(s => s.id !== id));
+	};
+
+	const handleRemoveShell = (id) => {
+        setShells((prev) => prev.filter(s => s.id !== id));
+    };
+
+    // --- REFS FISICI ---
+    const [positions, setPositions] = useState(initialPositions);
+    const [uiLap, setUiLap] = useState(1);
+
+    const { changeTrack } = useAudio();
+    useEffect(() => {
+      changeTrack(selectedTrack.soundtrack, false);
+    }, []);
+
+
     // --- STATO GARA ---
     const [lap, setLap] = useState(1);
     const [nextCheck, setNextCheck] = useState(1); 
     const [finished, setFinished] = useState(false);
-
-    // --- NEW: SOCKET STATE ---
-    const socketRef = useRef(null);
-    const [otherPlayers, setOtherPlayers] = useState({});
+    const [raceExited, setRaceExited] = useState(false);  // Stato per quando l'utente esce dalla gara
 
     // --- REFS ---
-    const lastCheckTime = useRef(0);
-    const trackRef = useRef(); // Serve ancora per la pista fisica (SmartMap)
+    const racersData = useRef(initialRacersData);
+    const trackRef = useRef();
+
+        // Controllo sicurezza
+	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
+		if (!racerId || !racersData.current[racerId]) return;
+
+		const racer = racersData.current[racerId];
+		
+		if (hitIndex === racer.nextCP && hitIndex !== 0) {
+			racer.nextCP += 1;
+		} 
+		else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
+			racer.lap += 1;
+			racer.nextCP = 1;
+			if (racerId === 'player') {
+				if (racer.lap > TOTAL_LAPS) setFinished(true);
+				else setUiLap(racer.lap);
+			}
+		}
+	}, [maxCheckpoints]);
+
+    const playerRank = positions.find(p => p.id === 'player')?.position || 1;
+
+	const checkpointPositionsRef = useRef({});
+
+	const playerRef = useRef();
+
+    const botRefs = useRef({});
+    
+    // Inizializza i ref per tutti i 11 bot
+	for (let i = 0; i < BOT_COUNT; i++) {
+		if (!botRefs.current[`bot_${i}`]) {
+			botRefs.current[`bot_${i}`] = React.createRef();
+		}
+    }
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
-    const isBike = vehicle.isBike;
 
-    // --- NEW: CONNECT TO BACKEND ---
-    useEffect(() => {
-        // 1. Connect (Replace localhost:3000 with your actual backend URL)
-        socketRef.current = io('https://10.12.1.8:3000');
+    // Funzione per gestire l'uscita dalla gara
+    const handleExitRace = useCallback(() => {
+        setRaceExited(true);  // Ferma immediatamente tutti gli SFX
+        // Piccolo delay per assicurarsi che gli audio si fermino prima di cambiare scena
+        setTimeout(() => {
+            onBack();
+        }, 50);
+    }, [onBack]);
+
+	
+	const targets = useMemo(() => {
+        const list = [];
+        // Aggiungi Player
+        if (playerRef) list.push({ id: 'player', ref: playerRef });
         
-        socketRef.current.on('connect', () => {
-            console.log("🟢 Connected to Backend with ID:", socketRef.current.id);
-        });
-
-        // 2. Listen for World Updates (Positions of other players)
-        socketRef.current.on('world_update', (serverPlayers) => {
-            const myId = socketRef.current.id;
-            const opponents = { ...serverPlayers };
-            
-            // Remove ourselves so we don't render a ghost of our own kart
-            delete opponents[myId];
-
-            setOtherPlayers(opponents);
-            console.log("👥 Other Players to render:", Object.keys(opponents).length);
-            
-        });
-
-        // Cleanup on unmount
-        return () => {
-            socketRef.current.disconnect();
-        };
-    }, []);
-
-    // --- NEW: SEND FUNCTION ---
-    // Pass this function to your Kart/Bike component
-    const handleMyMovement = (transform) => {
-        if (socketRef.current && !finished) {
-            socketRef.current.emit('move_kart', transform);
+        // Aggiungi Bots
+        for (let i = 0; i < BOT_COUNT; i++) {
+            const id = `bot_${i}`;
+            if (botRefs.current[id]) {
+                list.push({ id: id, ref: botRefs.current[id] });
+            }
         }
-    };
+        return list;
+    }, [playerRef]);
 
-    // --- LOGICA GIRI ---
-    const handleCheckpoint = useCallback((hitIndex) => {
-        if (finished) return;
+    // Calcola se la gara è attiva (non finita e non uscito)
+    const isRaceActive = !finished && !raceExited;
 
-        const now = Date.now();
-        if (now - lastCheckTime.current < 500) return;
-
-        console.log(`🏁 CHECKPOINT TOCCATO -> ID: ${hitIndex} | Atteso: ${nextCheck}`);
-
-        // CASO 1: Checkpoint Intermedio Corretto
-        if (hitIndex === nextCheck && hitIndex !== 0) {
-            console.log("✅ Checkpoint Valido!");
-            setNextCheck(prev => prev + 1);
-            lastCheckTime.current = now; 
-        } else if (hitIndex === 0 && nextCheck > maxCheckpoints) {
-            console.log("🏆 GIRO COMPLETATO!");
-            
-            setLap(prevLap => {
-                const newLap = prevLap + 1;
-                if (newLap > TOTAL_LAPS) {
-                    setFinished(true);
-                    return prevLap; 
-                }
-                return newLap;
-            });
-
-            setNextCheck(1); 
-            lastCheckTime.current = now; 
-        }
-    }, [finished, nextCheck, maxCheckpoints]);
+	const blueShellTargets = useMemo(() => {
+        return targets.map(t => {
+            // Trova la posizione in classifica per questo ID
+            const rankInfo = positions.find(p => p.id === t.id);
+            return {
+                id: t.id,
+                ref: t.ref,
+                rank: rankInfo ? rankInfo.position : 99 // Se non trova rank, metti ultimo
+            };
+        });
+    }, [targets, positions]);
 
     return (
-        <div style={{ width: '100vw', height: '100vh' }}>
+        <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
             {/* UI HUD */}
             <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white', fontFamily: 'sans-serif', textShadow: '2px 2px 0 #000' }}>
-                <button onClick={onBack} style={{marginBottom: 10, cursor: 'pointer'}}>Exit Race</button>
+                <button onClick={handleExitRace} style={{marginBottom: 10, cursor: 'pointer'}}>Exit Race</button>
+                <h1 style={{ margin: 0 }}>Pos: {playerRank} / 2</h1>
                 <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
                     {finished ? <span style={{color: '#ffdd00'}}>FINISH!</span> : `Lap ${lap} / ${TOTAL_LAPS}`}
                 </div>
-                <div style={{ fontSize: '14px', opacity: 0.7 }}>
-                      Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
-                </div>
+                <h2 style={{ margin: 0 }}>Lap: {uiLap}</h2>
+            <div style={{ fontSize: '14px', opacity: 0.7 }}>
+                  Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
             </div>
+        </div>
 
-            <Canvas>
+		<GameHUD 
+			lap={uiLap} 
+			totalLaps={TOTAL_LAPS} 
+			rank={playerRank} 
+		/>
+
+
+        <Canvas>
+				<LightningAtmosphere />
+				<Stats />
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
                 <Environment preset="city" />
 
-                <Physics debug={true}> {/* Metti debug={true} per vedere i box collider verdi/rossi */}
+				{/* <WaypointVisualizer points={trackWaypoints} color="blue" />
+				<WaypointVisualizer points={leftWaypoints} color="green" />
+				<WaypointVisualizer points={rightWaypoints} color="red" />
+				<WaypointVisualizer points={trackWaypoints1} color="yellow" />
+				<WaypointVisualizer points={trackWaypoints2} color="orange" />
+				 */}
+
+                <Physics debug={false}>
+
+					<Suspense fallback={null}>
+						{bananas.map((b) => (
+							<Banana 
+								key={b.id} 
+								position={b.position} 
+								initVelocity={b.velocity}
+							/>
+						))}
+					</Suspense>
+
+					<Suspense fallback={null}>
+						{shells.map((s) => (
+							<GreenShell 
+								key={s.id} 
+								position={s.position} 
+								initVelocity={s.velocity}
+								onDestroy={() => handleRemoveShell(s.id)} // Pulizia memoria
+							/>
+						))}
+					</Suspense>
+
+					<Suspense fallback={null}>
+						{bobOmbs.map((b) => (
+							<BobOmb
+								key={b.id}
+								position={b.position}
+								initVelocity={b.velocity}
+								onDestroy={() => destroyBobOmb(b.id)}
+							/>
+						))}
+					</Suspense>
+
+					<Suspense fallback={null}>
+						{redShells.map((s) => (
+							<RedShell 
+								key={s.id} 
+								position={s.position} 
+								initVelocity={s.velocity}
+								waypoints={trackWaypoints} // <--- Passiamo i Waypoints centrali
+								targets={targets}          // <--- Passiamo la lista dei bersagli
+								ownerId={s.ownerId}        // <--- Chi l'ha lanciato
+								onDestroy={() => handleRemoveRedShell(s.id)} 
+							/>
+						))}
+					</Suspense>
+
+					<Suspense fallback={null}>
+						{blueShells.map((s) => (
+							<BlueShell 
+								key={s.id}
+								position={s.position} // <--- FONDAMENTALE: Mancava la posizione di spawn!
+								waypoints={trackWaypoints}
+								// Usiamo la nuova variabile calcolata sopra
+								targets={blueShellTargets} 
+								onDestroy={() => handleDestroyBlueShell(s.id)}
+							/>
+						))}
+					</Suspense>
                     
-                    {/* 1. LA PISTA (Solida) */}
+                    <RaceManager 
+                        racersData={racersData}
+                        finished={finished}
+                        setPositions={setPositions}
+                        positions={positions}
+						playerRef={playerRef}
+						botRefs={botRefs}
+                        trackPath={trackWaypoints}
+                    />
+                    
                     <group ref={trackRef}>
                         <SmartMap modelPath={mapPath} scale={1} />
                     </group>
-
-                    {/* 2. I CHECKPOINT (Sensori Invisibili) */}
-                    {/* Sostituiamo il <Gltf> statico con il nostro sistema intelligente */}
+					<RoadWalls 
+						modelPath={selectedTrack.road}
+						wallHeight={10}
+						thresholdAngle={20}
+						debug={true}
+					/>
                     {checkpointPath && (
                         <CheckpointSystem 
                             url={checkpointPath} 
-                            onCheckpointTrigger={handleCheckpoint} 
+                            onSystemReady={(posMap) => {
+                                checkpointPositionsRef.current = posMap;
+                            }}
+                            onCheckpointTrigger={(index, racerId) => {
+                                handleCheckpointTrigger(index, racerId); 
+                            }} 
                         />
                     )}
-                
-                    {/* 3. NEW: REMOTE OPPONENTS */}
-                    {/* Render opponents received from backend */}
-                    {Object.entries(otherPlayers).map(([id, data]) => (
-                        <RemoteOpponent 
-                            key={id}
-                            id={id}
-                            data={data}
-                            vehicleConfig={vehicle} // Assuming everyone uses same models for now
-                            characterConfig={character.modelConfig}
-                        />
-                    ))}
 
-                    {/* 3. I VEICOLI */}
-                    {/* Nota: Non serve più passare handleCheckpoint al veicolo, perché ora è il box che rileva il veicolo, non viceversa */}
-                    <group position={[0, 10, 0]}>
-                        {isBike ? (
+                    {/* PLAYER */}
+                    <group position={[0, 10, 0]} > 
+                        {vehicle.isBike ? (
                             <InsideDriftBike 
+                                ref={playerRef} // USA playerRef
+                                userData={{ type: 'racer', id: 'player' }} // FONDAMENTALE PER IL CHECKPOINT
                                 characterConfig={character.modelConfig}
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
-                                // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI (se hai rimosso il raycast)
                                 trackRef={trackRef} 
-                                onPositionUpdate = {handleMyMovement}
+                                // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI (se hai rimosso il raycast)
+                                isRaceActive={isRaceActive}
                             />
                         ) : (
                             <OutsideDriftKart 
+                                ref={playerRef} // USA playerRef
+                                userData={{ type: 'racer', id: 'player' }} // FONDAMENTALE PER IL CHECKPOINT
                                 characterConfig={character.modelConfig}
                                 vehicleConfig={vehicle} 
                                 START_POS={start_pos}
-                                // onCheckpoint={handleCheckpoint} <--- NON SERVE PIU' QUI
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
-                                onPositionUpdate = {handleMyMovement}
-
+                                START_ROT={[0, 90, 0]}
+                                isRaceActive={isRaceActive}
+								onSpawnBanana={handleSpawnBanana}
+								onSpawnGreenShell={handleSpawnGreenShell}
+								onSpawnRedShell={handleSpawnRedShell}
+								onSpawnBlueShell={handleSpawnBlueShell}
+								onSpawnBomb={handleSpawnBobOmb}
+								waypoints={trackWaypoints}
+    							rank={playerRank}
                             />
                         )}
                     </group>
+
+                    {Array.from({ length: BOT_COUNT }, (_, i) => {
+						const botId = `bot_${i}`;
+						const gridPos = getGridPosition(start_pos, i + 1); // +1 perché player è index 0
+						
+						return (
+							<group key={botId} position={[0, 10, 0]}> 
+								<OutsideDriftKart 
+									ref={botRefs.current[botId]}
+									userData={{ type: 'racer', id: botId }}
+									characterConfig={character.modelConfig} 
+									vehicleConfig={vehicle} 
+									START_POS={gridPos}
+									trackRef={trackRef} 
+									trackConfig={selectedTrack} 
+									isBot={true}
+									paths={[trackWaypoints, trackWaypoints1, trackWaypoints2, leftWaypoints, rightWaypoints]} 
+									START_ROT={[0, 90, 0]}
+									onCheckpoint={(idx) => handleCheckpointTrigger(idx, botId)}
+								/> 
+							</group>
+						);
+					})}
                 </Physics>
             </Canvas>
         </div>
