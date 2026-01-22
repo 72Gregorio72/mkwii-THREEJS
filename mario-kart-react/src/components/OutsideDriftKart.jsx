@@ -242,10 +242,12 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const botControls = useBotAI({ isBot, rigidBody, paths }) // Assicurati di usare la versione ottimizzata di useBotAI
   const activeControls = isBot ? botControls : humanControls
   
-  // Hook per gestire gli SFX del kart (solo per il player, non per i bot)
-  const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
+  // Hook per gestire gli SFX del kart (ora attivo anche per i bot con volume dinamico)
+  const { updateAudio, startIdleAudio, stopAllAudio, setVolume } = useKartAudio({ 
     isBike: false, 
-    isActive: isRaceActive && !isBot  // Attivo solo se la gara è attiva e non è un bot
+    isActive: isRaceActive,  // Attivo per tutti
+    isBot: isBot,            // Passa il flag bot per volume ridotto di default
+    baseVolume: isBot ? 0.05 : 0.9  // Bot partono con volume minimo, aggiornato in base alla distanza
   })
 
   // Hook per riprodurre effetti sonori (turbo, etc.)
@@ -311,23 +313,25 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
   })
 
-  // Avvia l'audio IDLE quando la gara inizia (solo per il player)
+  // Avvia l'audio IDLE quando la gara inizia (per tutti, player e bot)
   useEffect(() => {
-    if (isRaceActive && !isBot) {
+    if (isRaceActive) {
       // Piccolo delay per assicurarsi che l'audio context sia pronto
+      // Per i bot delay minimo per non interferire con la logica audio
+      const delay = isBot ? 100 : 100;
       const timeout = setTimeout(() => {
         startIdleAudio();
-      }, 100);
+      }, delay);
       return () => clearTimeout(timeout);
     }
   }, [isRaceActive, isBot, startIdleAudio]);
 
   // Ferma tutti i suoni quando si esce dalla gara
   useEffect(() => {
-    if (!isRaceActive && !isBot) {
+    if (!isRaceActive) {
       stopAllAudio();
     }
-  }, [isRaceActive, isBot, stopAllAudio]);
+  }, [isRaceActive, stopAllAudio]);
 
   const performHop = () => {
     if (isJumping.current) return
@@ -424,11 +428,29 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     }
 
     // UPDATE SPARKS (SOLO PLAYER)
-    if (!isBot) {
-        updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
-        // Aggiorna audio SFX (motore + drift sounds)
-        const isDrifting = driftDirection.current !== 0;
-        updateAudio(speed.current, forward, driftLevel.current, isDrifting);
+    updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
+    
+    // --- AUDIO UPDATE (Player E Bot con volume dinamico) ---
+    const isDriftingNow = driftDirection.current !== 0;
+    
+    if (isBot) {
+      // Calcola distanza dalla camera (player)
+      const distanceToCamera = currentPosition.current.distanceTo(state.camera.position);
+      const maxHearingDistance = 60;  // Distanza massima per sentire i bot
+      const minHearingDistance = 5;   // Sotto questa distanza, volume massimo
+      
+      // Volume inversamente proporzionale alla distanza (con curva smooth)
+      const normalizedDist = Math.max(0, Math.min(1, (distanceToCamera - minHearingDistance) / (maxHearingDistance - minHearingDistance)));
+      const volumeFactor = Math.pow(1 - normalizedDist, 1.5); // Curva più naturale
+      const botVolume = distanceToCamera < maxHearingDistance ? Math.max(0.05, volumeFactor * 0.4) : 0;  // Max 40% volume per bot
+      
+      setVolume(botVolume);
+      // Bot: passa true se sta accelerando E ha velocità
+      // Questo triggera la transizione idle -> gas -> loop
+      updateAudio(speed.current, forward, 0, false);
+    } else {
+      // Player: volume pieno con tutti gli effetti
+      updateAudio(speed.current, forward, driftLevel.current, isDriftingNow);
     }
 
     // --- Fisica Motore ---

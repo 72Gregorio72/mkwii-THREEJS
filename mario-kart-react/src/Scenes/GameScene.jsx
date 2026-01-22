@@ -67,10 +67,10 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     const [positions, setPositions] = useState(initialPositions);
     const [uiLap, setUiLap] = useState(1);
 
-    const { changeTrack } = useAudio();
-    useEffect(() => {
-      changeTrack(selectedTrack.soundtrack, false);
-    }, []);
+    // const { changeTrack } = useAudio();
+    // useEffect(() => {
+    //   changeTrack(selectedTrack.soundtrack, 10);
+    // }, []);
 
 
     // --- STATO GARA ---
