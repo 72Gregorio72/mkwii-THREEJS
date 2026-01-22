@@ -1,26 +1,38 @@
-import React, { useRef, useState, useMemo, forwardRef, useEffect } from 'react'
+import React, { useRef, useState, useMemo, forwardRef, useEffect, useImperativeHandle } from 'react'
 import { useFrame, useThree, createPortal } from '@react-three/fiber'
 import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier'
 import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three'
 import * as THREE from 'three'
-import { Html } from '@react-three/drei'
+import { Html, useGLTF } from '@react-three/drei'
 import gsap from 'gsap'
 
 // --- IMPORTS CUSTOM ---
-// Assicurati che i percorsi siano corretti rispetto alla tua struttura cartelle
 import { useControls as useGameControls } from '../hooks/useControls' 
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
 import { useBotAI } from '../Bot/UseBotAI'
 import { useKartAudio } from '../hooks/useKartAudio'
-import { usePowerupHandler } from './PowerupHandler';
+import { usePowerupHandler } from '../Items/PowerupHandler.jsx';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { SkeletonUtils } from 'three-stdlib'
 
+import { useBulletBill } from '../Items/BulletBill'; 
 
 // --- 1. COSTANTI E SETTINGS ---
 const KART_SIZE = 1 
 const PHYSICS_RADIUS = 1 
+
+const STAR_DURATION = 10000; // 10 secondi
+const STAR_SPEED_BOOST = 1.15;
+
+const MEGA_DURATION = 12000; // Dura un po' più della stella
+const MEGA_SCALE = 2.5;      // Diventa 2.5 volte più grande
+const MEGA_SPEED_BOOST = 1.15;
+
+const SMALL_DURATION = 10000; // Rimani piccolo per 10 secondi
+const SMALL_SCALE = 0.5;      // Diventi la metà
+const SMALL_SPEED_PENALTY = 0.6;
 
 const cBlue = new THREE.Color(0x00BFFF); // Blu drift (azzurro)
 const cOrange = new THREE.Color(0xF24807); // Arancione/giallo per drift potente 
@@ -109,12 +121,9 @@ const DriftParticles = React.forwardRef((props, ref) => {
   return (<group ref={ref} visible={false}><points ref={points}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={data.positions} itemSize={3} /></bufferGeometry><pointsMaterial map={texture} size={0.8} color={0x00BFFF} transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation={true} vertexColors={false} /></points></group>);
 });
 
-// Ottimizzazione colore: evita traverse inutili
 function updateSparksColor(level, leftRef, rightRef) {
     if (!leftRef || !rightRef) return;
     const show = level > 0;
-    
-    // Se lo stato di visibilità non cambia e sono nascoste, esci subito
     if (leftRef.visible === show && rightRef.visible === show && !show) return;
 
     if (leftRef.visible !== show) leftRef.visible = show;
@@ -124,7 +133,6 @@ function updateSparksColor(level, leftRef, rightRef) {
     const targetColor = level === 2 ? cOrange : cBlue;
     const applyColor = (obj) => {
         if(!obj) return;
-        // Accesso diretto al figlio points se esiste
         const pointChild = obj.children[0]; 
         if (pointChild && pointChild.material && pointChild.material.color.isColor) {
              // Usa copy() per impostare il colore direttamente invece di lerp lento
@@ -136,11 +144,10 @@ function updateSparksColor(level, leftRef, rightRef) {
 
 const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group position={position} ref={ref}>{children}</group>))
 
-// --- 4. COMPONENTE PRINCIPALE ---
-// --- SPEED LINES EFFECT TUNED (WIDER CENTER & FEWER LINES) ---
-const SpeedEffect = ({ boostTimeRef }) => {
+// --- 4. SPEED LINES EFFECT ---
+const SpeedEffect = ({ boostTimeRef, isBulletBill }) => {
   const meshRef = useRef()
-  const count = 20 // RIDOTTO: Da 30 a 20 linee per pulizia
+  const count = 20 
   const { camera, scene } = useThree()
   
   const dummy = useMemo(() => new THREE.Object3D(), [])
@@ -149,11 +156,7 @@ const SpeedEffect = ({ boostTimeRef }) => {
     const temp = []
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2
-      
-      // FIX POSIZIONE: Raggio AUMENTATO (da 5 a 10)
-      // Questo crea un "buco" centrale molto più largo
       const radius = 10.0 + Math.random() * 6.0 
-      
       const z = -20 - Math.random() * 30 
       const speed = 2.0 + Math.random() * 1.5 
       temp.push({ angle, radius, z, speed })
@@ -164,7 +167,8 @@ const SpeedEffect = ({ boostTimeRef }) => {
   useFrame((state, delta) => {
     if (!meshRef.current) return
 
-    const isBoosting = boostTimeRef.current > 0
+    // Attivo anche se è Bullet Bill
+    const isBoosting = boostTimeRef.current > 0 || isBulletBill
     const targetOpacity = isBoosting ? 0.35 : 0 
     
     meshRef.current.material.opacity = MathUtils.lerp(
@@ -182,7 +186,6 @@ const SpeedEffect = ({ boostTimeRef }) => {
 
     lines.forEach((line, i) => {
         line.z += line.speed * 120 * delta 
-        
         if (line.z > 5) line.z = -40 
 
         dummy.position.set(
@@ -190,15 +193,10 @@ const SpeedEffect = ({ boostTimeRef }) => {
             Math.sin(line.angle) * line.radius, 
             line.z                              
         )
-        
         dummy.rotation.set(0, 0, line.angle) 
-        
-        // Spessore dinamico
         const depthFactor = MathUtils.mapLinear(line.z, -40, 0, 1.0, 6.0)
         const thickness = Math.max(1.0, depthFactor)
-
         dummy.scale.set(1, thickness, 1) 
-
         dummy.updateMatrix()
         meshRef.current.setMatrixAt(i, dummy.matrix)
     })
@@ -222,30 +220,154 @@ const SpeedEffect = ({ boostTimeRef }) => {
   )
 }
 
-// --- 5. COMPONENTE PRINCIPALE COMPLETO ---
-
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true
+    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb
   } = props;
   
-  const { scene } = useThree()
+//   const { scene } = useThree()
   const { world, rapier } = useRapier()
   
-  const internalRef = useRef(null)
-  const rigidBody = ref || internalRef
+  // FIX CRITICO: Usa SEMPRE un ref interno distinto da quello esterno per evitare loop infiniti
+  const rb = useRef(null) 
   
+  // Caricamento modello Bullet Bill
+  const { scene } = useGLTF('/items/BulletBill.glb');
+
+  const isStarActive = useRef(false);
+  const starTimer = useRef(null);
+  const originalMaterials = useRef(new Map()); // Per salvare i colori originali
+
+  const isMegaActive = useRef(false);
+  const megaTimer = useRef(null);
+
+  const isSmall = useRef(false);
+  const smallTimer = useRef(null);
+
+  const activateMega = () => {
+      isMegaActive.current = true;
+      console.log("Attivazione MEGA FUNGOasdasd!");
+      if (rb.current) {
+          rb.current.setAdditionalMass(500, true); // Diventa pesantissimo
+      }
+
+      // Timer per disattivare
+      if (megaTimer.current) clearTimeout(megaTimer.current);
+      megaTimer.current = setTimeout(() => {
+          deactivateMega();
+      }, MEGA_DURATION);
+  };
+
+  const deactivateMega = () => {
+      isMegaActive.current = false;
+      
+      // Reset Massa
+      if (rb.current) {
+          rb.current.setAdditionalMass(0, true);
+      }
+  };
+
+
+  const activateLightning = () => {
+      isSmall.current = true;
+
+      if (smallTimer.current) clearTimeout(smallTimer.current);
+      smallTimer.current = setTimeout(() => {
+          deactivateLightning();
+      }, SMALL_DURATION);
+  };
+
+  const deactivateLightning = () => {
+      isSmall.current = false;
+  };
+
+  const activateStar = () => {
+      if (isStarActive.current) return; // Se è già attiva, ignora o resetta timer
+      
+      isStarActive.current = true;
+      
+      // Salva i materiali originali se non l'hai già fatto (per ripristinare il colore dopo)
+      // Nota: Questo è un approccio semplificato. Se i modelli cambiano, va gestito meglio.
+      if (visualGroupRef.current) {
+          visualGroupRef.current.traverse((child) => {
+              if (child.isMesh && child.material) {
+                  // Salviamo il colore originale usando l'UUID della mesh come chiave
+                  if (!originalMaterials.current.has(child.uuid)) {
+                      originalMaterials.current.set(child.uuid, child.material.color.clone());
+                  }
+              }
+          });
+      }
+
+      // Timer per disattivare
+      if (starTimer.current) clearTimeout(starTimer.current);
+      starTimer.current = setTimeout(() => {
+          deactivateStar();
+      }, STAR_DURATION);
+  };
+
+  useEffect(() => {
+    // Aspettiamo un attimo che il modello sia montato
+    if (visualGroupRef.current) {
+        visualGroupRef.current.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // CLONA IL MATERIALE!
+                // Ora questo kart ha la sua copia personale del materiale.
+                // Modificare questo non influenzerà gli altri.
+                child.material = child.material.clone();
+            }
+        });
+    }
+  }, []);
+
+  const deactivateStar = () => {
+      isStarActive.current = false;
+      
+      // Ripristina colori originali
+      if (visualGroupRef.current) {
+          visualGroupRef.current.traverse((child) => {
+              if (child.isMesh && child.material && originalMaterials.current.has(child.uuid)) {
+                  child.material.color.copy(originalMaterials.current.get(child.uuid));
+                  child.material.emissive.setHex(0x000000); // Spegni l'emissive
+              }
+          });
+      }
+  };
+  
+  const billScene = useMemo(() => {
+    // 1. Clona usando SkeletonUtils (fondamentale per SkinnedMesh)
+    const clonedScene = SkeletonUtils.clone(scene);
+    
+    // 2. Attraversa il modello per assicurarsi che sia sempre renderizzato
+    clonedScene.traverse((object) => {
+      if (object.isMesh) {
+        // Disabilita il culling: il modello viene renderizzato anche se Three.js pensa sia fuori schermo
+        // Spesso il bounding box si rompe col clone, causando la sparizione.
+        object.frustumCulled = false; 
+        
+        // Assicuriamoci che materiali e ombre siano attivi
+        object.castShadow = true;
+        object.receiveShadow = true;
+      }
+    });
+    
+    return clonedScene;
+  }, [scene]);
+
+  const billVisualsRef = useRef();
+
   // Controls
+  // Passiamo 'rb' (il ref fisico vero) al bot
   const humanControls = useGameControls() 
-  const botControls = useBotAI({ isBot, rigidBody, paths }) // Assicurati di usare la versione ottimizzata di useBotAI
+  const botControls = useBotAI({ isBot, rigidBody: rb, paths }) 
   const activeControls = isBot ? botControls : humanControls
   
-  // Hook per gestire gli SFX del kart (ora attivo anche per i bot con volume dinamico)
+  // Hook per gestire gli SFX del kart (solo per il player, non per i bot)
   const { updateAudio, startIdleAudio, stopAllAudio, setVolume } = useKartAudio({ 
     isBike: false, 
-    isActive: isRaceActive,  // Attivo per tutti
+    isActive: isRaceActive && !isBot,
     isBot: isBot,            // Passa il flag bot per volume ridotto di default
     baseVolume: isBot ? 0.05 : 0.9  // Bot partono con volume minimo, aggiornato in base alla distanza
   })
@@ -253,9 +375,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   // Hook per riprodurre effetti sonori (turbo, etc.)
   const { playSfx } = useAudio()
 
-  // Coda collisioni (Sicurezza Thread)
-  // --- SICUREZZA FISICA ---
-  
+  // Coda collisioni
   const collisionQueue = useRef([]) 
 
   const camConfig = { distance: 7.2, height: 2.3, lookAtHeight: 1.0, stiffness: 0.2, fovBase: 53, fovMax: 55 }
@@ -288,19 +408,13 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const backRight = useRef()
   const leftSparksRef = useRef()
   const rightSparksRef = useRef()
-  
-  // Ref per ottimizzazione FPS (Time Slicing Raycasts)
-  const frameCounter = useRef(Math.floor(Math.random() * 3)); 
 
-  // --- INTEGRATION POWERUP ---
-  const { currentItem, handleItemInput, pickupItem } = usePowerupHandler({
-    boostTime: boostTime, 
-    speed: speed,        
-    SETTINGS: SETTINGS    
-  });
-  
+  const isSpinning = useRef(false); 
+  const spinTimer = useRef(0);
+  const frameCounter = useRef(Math.floor(Math.random() * 3)); 
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)
   const racerId = userData?.id || (isBot ? "bot" : "player");
+  
 
   // Vettori riutilizzabili
   const v = useMemo(() => ({
@@ -309,11 +423,79 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       rayDir: new Vector3()
   }), [])
 
+  // --- LOGICA BULLET BILL ---
+  const { isBulletBill, activateBulletBill } = useBulletBill({
+      rb: rb, 
+      waypoints: waypoints, 
+      currentRank: rank || 8,
+      onEnd: () => {
+         if(rb.current) rb.current.setLinvel({x:0, y:0, z:0}, true);
+      }
+  });
+
+  // Esposizione Metodi: Usiamo 'ref' esterno, ma chiamiamo metodi su 'rb' interno
+  useImperativeHandle(ref, () => ({
+    translation: () => rb.current?.translation() || { x: 0, y: 0, z: 0 },
+    rotation: () => rb.current?.rotation() || { x: 0, y: 0, z: 0, w: 1 },
+    linvel: () => rb.current?.linvel() || { x: 0, y: 0, z: 0 },
+    triggerBulletBill: () => activateBulletBill(),
+    resetPosition: (pos, rot) => {
+        if(rb.current) {
+            rb.current.setTranslation({x: pos[0], y: pos[1], z: pos[2]}, true);
+            rb.current.setLinvel({x: 0, y: 0, z: 0}, true);
+            rb.current.setAngvel({x: 0, y: 0, z: 0}, true);
+            if(rot) {
+                const q = new Quaternion().setFromEuler(new Euler(...rot));
+                rb.current.setRotation(q, true);
+            }
+        }
+    }
+}));
+
+  // --- INTEGRATION POWERUP ---
+  const { currentItem, handleItemInput, tripleCount, triggerItemRoulette } = usePowerupHandler({
+    boostTime: boostTime, 
+    speed: speed,        
+    SETTINGS: SETTINGS,    
+    position: currentPosition,
+    rotation: rotation,
+    onSpawnBanana: onSpawnBanana,
+	onSpawnBomb: onSpawnBomb,
+    onSpawnGreenShell: onSpawnGreenShell,
+    onSpawnRedShell: onSpawnRedShell,
+    onSpawnBlueShell: onSpawnBlueShell,
+	onActivateStar: activateStar,
+	activateMega: activateMega,
+	racerId: racerId,
+    kartRef: rb,
+    onActivateBulletBill: activateBulletBill 
+  });
+  
+  // Gestione Eventi Colpo
+  useEffect(() => {
+    const handleBananaHit = (e) => {
+        const victimId = e.detail?.victimId;
+        // Se siamo Bullet Bill siamo invincibili, ignoriamo il colpo
+        if (isBulletBill || isStarActive.current || isMegaActive.current) return;
+
+        if (victimId === racerId && !isSpinning.current) { 
+            console.log(`${racerId} colpito! Spin out!`);
+            isSpinning.current = true;
+            spinTimer.current = 0.45; 
+            speed.current = 0; 
+            driftLevel.current = 0;
+            boostTime.current = 0;
+        }
+    };
+    window.addEventListener('banana-hit', handleBananaHit);
+    return () => window.removeEventListener('banana-hit', handleBananaHit);
+  }, [racerId, isBot, isBulletBill]); 
+
   const { checkSurface } = useHitboxHandler({
     speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
   })
 
-  // Avvia l'audio IDLE quando la gara inizia (per tutti, player e bot)
+  // Audio Lifecycle
   useEffect(() => {
     if (isRaceActive) {
       // Piccolo delay per assicurarsi che l'audio context sia pronto
@@ -326,7 +508,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     }
   }, [isRaceActive, isBot, startIdleAudio]);
 
-  // Ferma tutti i suoni quando si esce dalla gara
   useEffect(() => {
     if (!isRaceActive) {
       stopAllAudio();
@@ -359,73 +540,201 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     }
   }
 
-  useFrame((state, delta) => {
-    if (!rigidBody.current) return;
+  // --- GESTIONE COLLISIONI FISICHE (RigidBody) ---
+  const handleCollisionEnter = (payload) => {
+      // Se siamo Bill, distruggiamo chi tocchiamo
+      if (isBulletBill) {
+          const targetObj = payload.other.rigidBodyObject;
+          const targetName = targetObj?.name || "";
+          if (targetName.startsWith('bot') || targetName === 'player') {
+              console.log(`BULLET BILL SMASH: ${targetName}`);
+              window.dispatchEvent(new CustomEvent('banana-hit', { 
+                  detail: { victimId: targetName } 
+              }));
+          }
+      }
+	  if (isStarActive.current || isMegaActive.current) {
+          const targetObj = payload.other.rigidBodyObject;
+          const targetName = targetObj?.name || "";
+          
+          // Se tocchiamo un bot o un player
+          if (targetName.startsWith('bot') || targetName === 'player') {
+              console.log(`STAR SMASH: ${targetName}`);
+              
+              // Applica effetto sonoro colpo (opzionale)
+              
+              // Invia evento danno
+              window.dispatchEvent(new CustomEvent('banana-hit', { 
+                  detail: { victimId: targetName, type: 'star_hit' } 
+              }));
+              
+              // Opzionale: Dai una spinta fisica via al nemico
+              // payload.other.rigidBody.applyImpulse({x:0, y:10, z:0}, true);
+          }
+      }
+  };
 
-    // --- 0. GESTIONE COLLISIONI SICURA ---
-    // 1. Processa la coda delle collisioni
+  useFrame((state, delta) => {
+    if (!rb.current) return;
+
+    // Aggiorna posizione corrente per la camera e logica
+    const rbPos = rb.current.translation();
+    const rbVel = rb.current.linvel();
+    currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
+    
+    // Aggiorna UI
+    if (!isBot && speedUiRef.current) {
+        // FIX: Usa (speed.current || 0) per evitare calcoli su valori nulli/NaN
+        const currentSpd = speed.current || 0;
+        
+        const displaySpeed = isBulletBill ? 120 : Math.abs(Math.round(currentSpd * 1.5));
+        
+        // Ulteriore sicurezza: se displaySpeed è ancora NaN (es. calcoli strani), forza "0"
+        const finalDisplay = isNaN(displaySpeed) ? 0 : displaySpeed.toString();
+
+        speedUiRef.current.innerText = `${finalDisplay} km/h`;
+        const isOver = displaySpeed > SETTINGS.maxSpeed + 5
+        speedUiRef.current.style.color = isBulletBill ? '#ff0000' : (isOver ? '#ff3300' : 'white')
+        speedUiRef.current.style.transform = isOver || isBulletBill ? `scale(1.1)` : `scale(1)`
+    }
+
+	if (!isBot) {
+         let safeSpeed = speed.current;
+         if (isNaN(safeSpeed) || !isFinite(safeSpeed)) {
+             safeSpeed = 0;
+         }
+
+         window.dispatchEvent(new CustomEvent('hud-update', {
+             detail: {
+                 speed: safeSpeed,
+                 item: currentItem     
+             }
+         }));
+     }
+
+	if (isBulletBill)
+		console.log(`BULLET BILL VELOCITÀ: ${Math.abs(Math.round(speed.current * 1.5))} km/h`);
+
+	if (isStarActive.current && visualGroupRef.current) {
+        // Velocità cambio colore
+        const time = state.clock.elapsedTime * 5; 
+        
+        // Calcola colore arcobaleno (HSL)
+        const rainbowColor = new Color().setHSL((time % 1), 1.0, 0.5); 
+        
+        visualGroupRef.current.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // 1. Emissive alto per farla brillare
+                child.material.emissive.copy(rainbowColor);
+                child.material.emissiveIntensity = 0.08; 
+            }
+        });
+    }
+
+	if (visualGroupRef.current) {
+        let targetScale = KART_SIZE;
+
+        if (isMegaActive.current) {
+            targetScale = KART_SIZE * MEGA_SCALE; // 2.5
+        } else if (isSmall.current) {
+			targetScale = KART_SIZE * SMALL_SCALE; // 0.5
+		}
+        
+        // Interpolazione fluida
+        const currentScale = visualGroupRef.current.scale.x;
+        const smoothScale = MathUtils.lerp(currentScale, targetScale, delta * 5);
+        
+        visualGroupRef.current.scale.set(smoothScale, smoothScale, smoothScale);
+    }
+
+    // --- 0. COLLISIONI GROUND (Coda) ---
     if (collisionQueue.current.length > 0) {
         collisionQueue.current.forEach((obj) => { if (obj) checkSurface(obj); });
         collisionQueue.current = [];
-        collisionQueue.current.forEach((obj) => {
-            if (obj) checkSurface(obj);
-        });
+        collisionQueue.current.forEach((obj) => { if (obj) checkSurface(obj); });
         collisionQueue.current = []; 
     }
 
-    // --- UI Update (Solo Player) ---
-    if (!isBot && speedUiRef.current) {
-        const kmh = Math.abs(Math.round(speed.current * 1.5)) 
-        speedUiRef.current.innerText = `${kmh} km/h`
-        const isOver = speed.current > SETTINGS.maxSpeed + 5
-        speedUiRef.current.style.color = isOver ? '#ff3300' : 'white'
-        speedUiRef.current.style.transform = isOver ? `scale(1.1)` : `scale(1)`
-    }
-
-    // --- Input & Stati ---
-    const rbPos = rigidBody.current.translation();
-    const rbVel = rigidBody.current.linvel();
-    currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
-    
-    // Estrai input
+    // Input Controllo
     const { forward, backward, left, right, drift, item } = activeControls.current
-
-    // Gestione Oggetti
     handleItemInput(item);
+
+    // -----------------------------------------------------------
+    // --- LOGICA BIFORCATA: BULLET BILL vs GUIDA NORMALE ---
+    // -----------------------------------------------------------
     
-    // --- Logica Drift & Boost ---
-    if (!drift) {
-        driftHopLocked.current = false; driftEngageWindow.current = false 
-        if (driftDirection.current !== 0) {
-            if (driftLevel.current > 0) {
-                if (isGrounded.current) activateBoost(driftLevel.current);
-                else pendingBoost.current = true;
+    if (isBulletBill) {
+        // A. BULLET BILL MODE
+        const velLen = Math.sqrt(rbVel.x**2 + rbVel.z**2);
+        speed.current = velLen;
+        
+        if (velLen > 1.0) {
+            // Calcola l'angolo di movimento basato sulla velocità
+            // Nota: Math.PI serve se il modello "guarda indietro" di default, altrimenti rimuovilo
+            const moveAngle = Math.atan2(rbVel.x, rbVel.z) + Math.PI;
+            
+            // Aggiorniamo la ref di rotazione per la camera
+            rotation.current = moveAngle;
+
+            // --- FIX: Ruotiamo fisicamente il RigidBody ---
+            // Creiamo un quaternione target basato sulla direzione
+            const targetQ = new Quaternion().setFromEuler(new Euler(0, moveAngle, 0));
+            
+            // Otteniamo la rotazione corrente e facciamo un slerp (interpolazione) morbido
+            const currentQ = new Quaternion().copy(rb.current.rotation());
+            currentQ.slerp(targetQ, 10 * delta);
+            
+            // Applichiamo la rotazione al corpo fisico
+            rb.current.setRotation(currentQ, true);
+        }
+
+        smoothedY.current = rbPos.y;
+        driftLevel.current = 0;
+        driftDirection.current = 0;
+        
+        // Rimuoviamo la logica billVisualsRef qui, non serve più ruotare il figlio dinamicamente
+        
+    } else {
+        // B. GUIDA NORMALE (Standard Kart Physics)
+        
+        if (isSpinning.current) {
+            spinTimer.current -= delta;
+            if (spinTimer.current <= 0) isSpinning.current = false;
+        }
+
+        // Drift Logic
+        if (!drift) {
+            driftHopLocked.current = false; driftEngageWindow.current = false 
+            if (driftDirection.current !== 0) {
+                if (driftLevel.current > 0) {
+                    if (isGrounded.current) activateBoost(driftLevel.current);
+                    else pendingBoost.current = true;
+                }
+                driftDirection.current = 0; driftTime.current = 0; driftLevel.current = 0;
             }
-            driftDirection.current = 0; driftTime.current = 0; driftLevel.current = 0;
+        } else {
+            if (isGrounded.current && !isJumping.current && driftDirection.current === 0) driftEngageWindow.current = false;
         }
-    } else {
-        if (isGrounded.current && !isJumping.current && driftDirection.current === 0) driftEngageWindow.current = false;
-    }
-    if (drift && !driftHopLocked.current && isGrounded.current && !isJumping.current) {
-        driftHopLocked.current = true; driftEngageWindow.current = true; 
-        performHop();
-        rigidBody.current.setLinvel({ x: rbVel.x, y: SETTINGS.jumpForce, z: rbVel.z }, true);
-    }
-    if (drift) {
-        if (driftDirection.current === 0 && driftEngageWindow.current) {
-            const rightVector = new Vector3(1, 0, 0).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-            if (left) { driftDirection.current = 1; driftVector.current.add(rightVector.multiplyScalar(SETTINGS.slideOutForce)) } 
-            else if (right) { driftDirection.current = -1; driftVector.current.add(rightVector.multiplyScalar(-SETTINGS.slideOutForce)) }
+        if (drift && !driftHopLocked.current && isGrounded.current && !isJumping.current) {
+            driftHopLocked.current = true; driftEngageWindow.current = true; 
+            performHop();
+            rb.current.setLinvel({ x: rbVel.x, y: SETTINGS.jumpForce, z: rbVel.z }, true);
         }
-        if (driftDirection.current !== 0 && isGrounded.current) {
-             driftTime.current += delta;
-             if (driftTime.current > SETTINGS.driftLevel2Time) driftLevel.current = 2;
-             else if (driftTime.current > SETTINGS.driftLevel1Time) driftLevel.current = 1;
-             else driftLevel.current = 0;
+        if (drift) {
+            if (driftDirection.current === 0 && driftEngageWindow.current) {
+                const rightVector = new Vector3(1, 0, 0).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+                if (left) { driftDirection.current = 1; driftVector.current.add(rightVector.multiplyScalar(SETTINGS.slideOutForce)) } 
+                else if (right) { driftDirection.current = -1; driftVector.current.add(rightVector.multiplyScalar(-SETTINGS.slideOutForce)) }
+            }
+            if (driftDirection.current !== 0 && isGrounded.current) {
+                driftTime.current += delta;
+                if (driftTime.current > SETTINGS.driftLevel2Time) driftLevel.current = 2;
+                else if (driftTime.current > SETTINGS.driftLevel1Time) driftLevel.current = 1;
+                else driftLevel.current = 0;
+            }
+        } else {
+            if (pendingBoost.current && isGrounded.current) activateBoost(1);
         }
-    } else {
-        if (pendingBoost.current && isGrounded.current) activateBoost(1);
-    }
 
     // UPDATE SPARKS (SOLO PLAYER)
     updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
@@ -453,145 +762,211 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       updateAudio(speed.current, forward, driftLevel.current, isDriftingNow);
     }
 
-    // --- Fisica Motore ---
-    const isBoosting = boostTime.current > 0
-    if (isBoosting) boostTime.current -= 1
-    const isDrifting = driftDirection.current !== 0
-    let currentSpeedLimit = SETTINGS.maxSpeed
-    if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
-    else if (isDrifting) currentSpeedLimit += 5 
-    
-    let targetSpeed = 0
-    if (forward) targetSpeed = currentSpeedLimit
-    if (backward) targetSpeed = -currentSpeedLimit * 0.5
-    
-    const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
-    if (forward && !isBoosting && isOverspeeding) {
-        speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
-    } else {
-        let currentAccel = SETTINGS.acceleration
-        if (isBoosting) currentAccel *= 2.5
-        else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
-        speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
-    }
+        // Calcolo Velocità
+        const isBoosting = boostTime.current > 0
+        if (isBoosting) boostTime.current -= 1
+        const isDrifting = driftDirection.current !== 0
+        let currentSpeedLimit = SETTINGS.maxSpeed
+        if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
+        else if (isDrifting) currentSpeedLimit += 5 
 
-    // --- Sterzo ---
-    let turnFactor = 0
-    if (isDrifting) {
-        const isLeftDrift = driftDirection.current === 1
-        if (isLeftDrift) turnFactor = left ? SETTINGS.driftTurnSpeed * 1.5 : (right ? SETTINGS.driftTurnSpeed * 0.1 : SETTINGS.driftTurnSpeed)
-        else turnFactor = right ? -SETTINGS.driftTurnSpeed * 1.5 : (left ? -SETTINGS.driftTurnSpeed * 0.1 : -SETTINGS.driftTurnSpeed)
-    } else {
-        if (Math.abs(speed.current) > 1.0) {
-            const reverseFactor = speed.current < 0 ? -1 : 1
-            if (left) turnFactor = SETTINGS.turnSpeed * reverseFactor
-            if (right) turnFactor = -SETTINGS.turnSpeed * reverseFactor
+		if (isStarActive.current) {
+			currentSpeedLimit *= STAR_SPEED_BOOST; // Aumenta max speed (es. 40 -> 56)
+		} else if (isMegaActive.current) {
+			currentSpeedLimit *= MEGA_SPEED_BOOST; // Aumenta max speed (es. 40 -> 60)
+		} else if (isSmall.current) {
+			currentSpeedLimit *= SMALL_SPEED_PENALTY; // Diminuisci max speed (es. 40 -> 30)
+		}
+        
+        let targetSpeed = 0
+        if (forward) targetSpeed = currentSpeedLimit
+        if (backward) targetSpeed = -currentSpeedLimit * 0.5
+        
+		if (!isStarActive.current) {
+			const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
+			if (forward && !isBoosting && isOverspeeding) {
+				speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
+			} else {
+				let currentAccel = SETTINGS.acceleration
+				if (isBoosting) currentAccel *= 2.5
+				if (isStarActive.current) currentAccel *= 2;
+				else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
+				speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
+			}
+		} else {
+			// Se Star attivo, accelera sempre verso il targetSpeed senza limiti
+			let currentAccel = SETTINGS.acceleration * 3.0; 
+			if (!forward && !backward) currentAccel = SETTINGS.deceleration; 
+			speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta);
+		}
+
+        // Sterzo e Rotazione
+        let turnFactor = 0
+        if (isDrifting) {
+            const isLeftDrift = driftDirection.current === 1
+            if (isLeftDrift) turnFactor = left ? SETTINGS.driftTurnSpeed * 1.5 : (right ? SETTINGS.driftTurnSpeed * 0.1 : SETTINGS.driftTurnSpeed)
+            else turnFactor = right ? -SETTINGS.driftTurnSpeed * 1.5 : (left ? -SETTINGS.driftTurnSpeed * 0.1 : -SETTINGS.driftTurnSpeed)
+        } else {
+            if (Math.abs(speed.current) > 1.0) {
+                const reverseFactor = speed.current < 0 ? -1 : 1
+                if (left) turnFactor = SETTINGS.turnSpeed * reverseFactor
+                if (right) turnFactor = -SETTINGS.turnSpeed * reverseFactor
+            }
+        }
+        rotation.current += turnFactor * delta
+        const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
+        const driftGrip = isDrifting ? SETTINGS.driftGrip : 0.15
+        const airControl = isGrounded.current ? 1 : 0.5 
+        driftVector.current.lerp(forwardVector, driftGrip * 60 * delta * airControl)
+        const finalVelocity = driftVector.current.clone().multiplyScalar(speed.current)
+
+        // Raycast Anti-Wall & Gravity
+        frameCounter.current++;
+        let isHittingVerticalWall = false
+        if (world && rapier && (!isBot || frameCounter.current % 2 === 0)) {
+            v.forwardGlobal.set(0, 0, -1).applyAxisAngle(new Vector3(0,1,0), rotation.current).normalize()
+            v.rayOrigin.copy(currentPosition.current).add(new Vector3(0, 0.5, 0))
+            const ray = new rapier.Ray(v.rayOrigin, v.forwardGlobal)
+            const hit = world.castRay(ray, PHYSICS_RADIUS + 1.0, true) 
+            if (hit && hit.normal && Math.abs(hit.normal.y) < 0.3) {
+                isHittingVerticalWall = true
+            }
+        }
+
+        let newY = rbVel.y
+        const gravity = 25 * delta;
+        if (!isGrounded.current && !isJumping.current) {
+            newY -= gravity
+            rb.current.applyImpulse({ x: 0, y: -2000000.0 * delta, z: 0 }, true) 
+        } 
+        else if (isJumping.current) {
+            newY -= 15 * delta 
+        }
+
+        if (isHittingVerticalWall && newY > 0 && !isJumping.current) {
+            newY = 0 
+        }
+        
+        // Applica Fisica Standard
+        rb.current.setLinvel({ x: finalVelocity.x, y: newY, z: finalVelocity.z }, true)
+        const q = new Quaternion()
+        q.setFromEuler(new Euler(0, rotation.current, 0))
+        rb.current.setRotation(q, true)
+        rb.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
+
+        // Visual Smoothing (Solo Kart)
+        const yDiff = Math.abs(rbPos.y - smoothedY.current);
+        const smoothFactor = yDiff < 0.15 ? 5.0 : 40.0; 
+        smoothedY.current = MathUtils.damp(smoothedY.current, rbPos.y, smoothFactor, delta);
+        const visualLocalY = (smoothedY.current - rbPos.y) - PHYSICS_RADIUS + jumpOffset.current.y;
+
+        if (visualGroupRef.current) {
+            const driftTilt = isDrifting ? (driftDirection.current * 0.15) : 0;
+            if (isSpinning.current) {
+                visualGroupRef.current.rotation.y -= 25 * delta; 
+                isSpinning.current = spinTimer.current > 0;
+            } else {
+                visualGroupRef.current.rotation.y = MathUtils.lerp(visualGroupRef.current.rotation.y, 0, 10 * delta);
+            }
+            visualGroupRef.current.position.y = visualLocalY;
+            visualGroupRef.current.rotation.z = MathUtils.lerp(visualGroupRef.current.rotation.z, driftTilt, 0.1);
         }
     }
-    rotation.current += turnFactor * delta
-    const forwardVector = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-    const driftGrip = isDrifting ? SETTINGS.driftGrip : 0.15
-    const airControl = isGrounded.current ? 1 : 0.5 
-    driftVector.current.lerp(forwardVector, driftGrip * 60 * delta * airControl)
-    const finalVelocity = driftVector.current.clone().multiplyScalar(speed.current)
 
-
-    // -----------------------------------------------------------------------------------
-    // --- FISICA ANTI-WALL CLIMBING & DOWNFORCE (OTTIMIZZATA) ---
-    // -----------------------------------------------------------------------------------
-    
-    // Esegui il raycast del muro solo 1 volta ogni 2 frame per i bot
-    frameCounter.current++;
-    let isHittingVerticalWall = false
-    
-    // Skip raycast se bot e frame pari
-    if (world && rapier && (!isBot || frameCounter.current % 2 === 0)) {
-        v.forwardGlobal.set(0, 0, -1).applyAxisAngle(new Vector3(0,1,0), rotation.current).normalize()
-        v.rayOrigin.copy(currentPosition.current).add(new Vector3(0, 0.5, 0))
-        const ray = new rapier.Ray(v.rayOrigin, v.forwardGlobal)
-        const hit = world.castRay(ray, PHYSICS_RADIUS + 1.0, true) 
-        if (hit && hit.normal && Math.abs(hit.normal.y) < 0.3) {
-            isHittingVerticalWall = true
-        }
-    }
-
-    // Gravità custom
-    let newY = rbVel.y
-    const gravity = 25 * delta;
-
-    if (!isGrounded.current && !isJumping.current) {
-        newY -= gravity
-        // Downforce: spingi giù il kart per non farlo volare su rampe lievi
-        // NOTA: Usa un valore elevato * delta per consistenza frame-rate
-        rigidBody.current.applyImpulse({ x: 0, y: -2000000.0 * delta, z: 0 }, true) 
-    } 
-    else if (isJumping.current) {
-        newY -= 15 * delta 
-    }
-
-    if (isHittingVerticalWall && newY > 0 && !isJumping.current) {
-        newY = 0 // Blocca ascesa sui muri
-    }
-    
-    // Applica velocità
-    rigidBody.current.setLinvel({ x: finalVelocity.x, y: newY, z: finalVelocity.z }, true)
-
-    // Applica rotazione
-    const q = new Quaternion()
-    q.setFromEuler(new Euler(0, rotation.current, 0))
-    rigidBody.current.setRotation(q, true)
-    rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
-
-    // --- VISUAL SMOOTHING ---
-    const yDiff = Math.abs(rbPos.y - smoothedY.current);
-    const smoothFactor = yDiff < 0.15 ? 5.0 : 40.0; 
-    smoothedY.current = MathUtils.damp(smoothedY.current, rbPos.y, smoothFactor, delta);
-    const visualLocalY = (smoothedY.current - rbPos.y) - PHYSICS_RADIUS + jumpOffset.current.y;
-
-    if (visualGroupRef.current) {
-        const driftTilt = isDrifting ? (driftDirection.current * 0.15) : 0;
-        visualGroupRef.current.position.y = visualLocalY;
-        visualGroupRef.current.rotation.z = MathUtils.lerp(visualGroupRef.current.rotation.z, driftTilt, 0.1);
-    }
-
-    // Camera Update (Solo Player)
+    // --- CAMERA UPDATE (Modificato) ---
     if (!isBot) {
-        const overSpeed = Math.max(0, speed.current - SETTINGS.maxSpeed)
+        const effSpeed = isBulletBill ? 100 : speed.current; 
+        const overSpeed = Math.max(0, effSpeed - SETTINGS.maxSpeed)
         const boostRange = SETTINGS.maxTurboLimit - SETTINGS.maxSpeed
         const boostRatio = Math.min(overSpeed / boostRange, 1)
         const dynamicDistance = camConfig.distance + (boostRatio) 
+        
+        const camRotRef = rotation.current;
+
         const idealOffset = new Vector3(0, camConfig.height, dynamicDistance)
-        idealOffset.applyAxisAngle(new Vector3(0, 1, 0), rotation.current)
-        const desiredCamPos = new Vector3().copy(currentPosition.current).add(idealOffset)
+        idealOffset.applyAxisAngle(new Vector3(0, 1, 0), camRotRef)
+
+        // FIX: Creiamo un vettore base che usa X e Z fisici, ma Y FLUIDA (smoothedY)
+        // Aggiungiamo un piccolo offset (+0.5) se la camera sembra troppo bassa
+        const smoothedBasePos = new Vector3(
+            currentPosition.current.x, 
+            smoothedY.current, // <--- QUESTA È LA CHIAVE: Usa la Y interpolata, non fisica
+            currentPosition.current.z
+        );
+
+        const desiredCamPos = new Vector3().copy(smoothedBasePos).add(idealOffset)
+        
         state.camera.position.lerp(desiredCamPos, camConfig.stiffness)
+
+        // FIX: Anche il punto che guardiamo (LookAt) deve usare la Y fluida
         const targetLookAt = new Vector3(
-            currentPosition.current.x, currentPosition.current.y + camConfig.lookAtHeight, currentPosition.current.z
+            currentPosition.current.x, 
+            smoothedY.current + camConfig.lookAtHeight, // <--- Anche qui
+            currentPosition.current.z
         )
+        
         cameraTarget.current.lerp(targetLookAt, camConfig.stiffness * 1.5)
         state.camera.lookAt(cameraTarget.current)
         state.camera.updateProjectionMatrix()
     }
+
+	const currentY = rb.current.translation().y;
+    if (currentY < -5) { // -5 o un valore sicuramente sotto la pista
+        console.warn(`${racerId} fell through world, resetting!`);
+        // Riporta il kart in alto nel punto in cui si trova
+        rb.current.setTranslation({ x: rbPos.x, y: START_POS[1] + 2, z: rbPos.z }, true);
+        rb.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    }
   })
+
+  useEffect(() => {
+    const handleLightningStrike = (e) => {
+        const attackerId = e.detail?.attackerId;
+
+        if (attackerId === racerId) {
+            console.log("Ho lanciato io il fulmine, sono salvo.");
+            return; 
+        }
+
+        if (isBulletBill || isStarActive.current || isMegaActive.current) {
+            console.log("Schivato fulmine grazie all'invincibilità!");
+            return;
+        }
+        const delay = Math.random() * 500;
+
+        setTimeout(() => {
+            if (!rb.current) return;
+
+            console.log(`${racerId} colpito dal FULMINE di ${attackerId}!`);
+
+            isSpinning.current = true;
+            spinTimer.current = 1.0; 
+            speed.current = 0;       
+
+            const curVel = rb.current.linvel();
+            rb.current.setLinvel({ x: curVel.x * 0.5, y: Math.max(0, curVel.y), z: curVel.z * 0.5 }, true);
+
+            activateLightning();
+
+        }, delay);
+    };
+
+    window.addEventListener('lightning-strike', handleLightningStrike);
+    return () => window.removeEventListener('lightning-strike', handleLightningStrike);
+  }, [racerId, isBulletBill]); // Dipendenze importanti
 
   // Visual Steering
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)
 
-  // --- Handlers Sensore Terra ---
-  // --- GESTORE COLLISIONI SICURO ---
-  // Handlers
+  // Handlers Sensore Terra
   const handleGroundEnter = (payload) => {
      const rootObj = payload.other.rigidBodyObject;
      if (!rootObj) return;
-
      const name = rootObj.name;
      if (name === 'player' || name.startsWith('bot')) return; 
-     
      isGrounded.current = true;
-     
      let foundName = '';
      let curr = rootObj;
-
-     // Cerca solo per 3 livelli di profondità per performance
      for (let i = 0; i < 3; i++) {
         if (!curr) break;
         const n = curr.name || '';
@@ -601,97 +976,69 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         curr = curr.parent;
      }
      if (foundName) collisionQueue.current.push({ name: foundName });
-
-     if (foundName) {
-        collisionQueue.current.push({ name: foundName });
-     }
   }
 
   const handleGroundExit = () => { isGrounded.current = false; }
 
+  useEffect(() => {
+    const handleItemCollected = (e) => {
+        if (e.detail.racerId === racerId) {
+            if (triggerItemRoulette) {
+                triggerItemRoulette(rank);
+            } else {
+                console.warn("Manca la funzione triggerItemRoulette in usePowerupHandler!");
+            }
+        }
+    };
+
+    window.addEventListener('item-collected', handleItemCollected);
+    return () => window.removeEventListener('item-collected', handleItemCollected);
+  }, [racerId, isBulletBill, triggerItemRoulette]);
+
   return (
-    <RigidBody 
-        ref={rigidBody} 
+    <>
+
+      {/* --- INIZIO FISICA --- */}
+      <RigidBody 
+        ref={rb} 
         position={START_POS} 
         rotation={START_ROT}
-        mass={100} 
+        mass={isBulletBill ? 1000 : 100}
         linearDamping={2}
         angularDamping={2} 
         type="dynamic" 
         ccd={true} 
         name={racerId} 
-        userData={{ 
-            type: 'racer', 
-            id: racerId
-        }}
+        userData={{ type: 'racer', id: racerId }}
         colliders={false} 
         lockRotations={true}
         restitution={0}
         restitutionCombine="min" 
-    >
-      {/* 1. SFERA FISICA */}
-      <BallCollider 
-          args={[PHYSICS_RADIUS]} 
-          position={[0, 0, 0]} 
-          friction={0.0}
-          frictionCombine="min"
-          restitution={0}
-          restitutionCombine="min" 
-      />
+        onCollisionEnter={handleCollisionEnter}
+      >
+        <BallCollider 
+            args={[PHYSICS_RADIUS]} 
+            position={[0, 0, 0]} 
+            friction={0.0}
+            frictionCombine="min"
+            restitution={0}
+            restitutionCombine="min" 
+        />
 
-      {/* 2. PARAURTI CILINDRICO (Anti-Climb Bumper) */}
-      {/* <CylinderCollider 
-          args={[0.5, PHYSICS_RADIUS + 0.1]} 
-          position={[0, -0.1, 0]} 
-          friction={0.0}
-          frictionCombine="min"
-          restitution={0}
-          restitutionCombine="min" 
-      /> */}
+        <CylinderCollider 
+           args={[0.2, 0.5]} 
+           position={[0, -PHYSICS_RADIUS + 0.2, 0]} 
+           sensor={true} 
+           onIntersectionEnter={handleGroundEnter}
+           onIntersectionExit={handleGroundExit}
+        />
 
-      {/* 3. SENSORE TERRA (Logic Only) */}
-      {/* 2. SENSORE TERRA */}
-      <CylinderCollider 
-         args={[0.2, 0.5]} 
-         position={[0, -PHYSICS_RADIUS + 0.2, 0]} 
-         sensor={true} 
-         onIntersectionEnter={handleGroundEnter}
-         onIntersectionExit={handleGroundExit}
-      />
+        {!isBot && <SpeedEffect boostTimeRef={boostTime} isBulletBill={isBulletBill} />}
+        
+        {/* --- NOTA: Ho rimosso <Html> da qui dentro --- */}
 
-      {/* Renderizza SpeedEffect solo per il player umano */}
-      {!isBot && <SpeedEffect boostTimeRef={boostTime} />}
-      
-      {/* UI PER PLAYER */}
-      {!isBot && (
-        <Html fullscreen style={{ pointerEvents: 'none' }}>
-            <div style={{ position: 'absolute', top: '40px', right: '40px', color: 'white', fontFamily:'sans-serif', fontWeight:'bold', fontSize: '40px', display: 'flex', flexDirection:'column', alignItems:'flex-end' }}>
-                <span ref={speedUiRef}>0 km/h</span>
-                <div style={{fontSize:'24px', color: '#FFD700', marginTop: 10}}>
-                   ITEM: {currentItem}
-                </div>
-                <div style={{fontSize:'14px', opacity:0.7, marginTop:5}}>SPACE TO HOP/DRIFT | E to ITEM</div>
-            </div>
-        </Html>
-      )}
-
-      {/* GRUPPO VISUALE */}
-      <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
-          <group position={vehicleConfig.vehicleOffset}>
-              <VehicleModel 
-              vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
-              position={[0, 0, 0]} steer={modelSteer} drift={driftDirection.current} speed={speed.current} isBike={true}
-              />
-              <group rotation={[0, Math.PI, 0]}>
-              <RacerModel 
-                  isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
-                  steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
-                  key={vehicleConfig.name + "_racer"}
-              />
-              </group>
-          </group>    
-          <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
-          <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
+        {/* --- GRUPPO 1: KART NORMALE --- */}
+        <group ref={visualGroupRef} visible={!isBulletBill} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>
             <group position={vehicleConfig.vehicleOffset}>
                 <VehicleModel 
                   vehicleConfig={vehicleConfig.modelConfig} scale={1.4} rotation={[0, Math.PI, 0]} 
@@ -701,19 +1048,31 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
                   <RacerModel 
                       isInMenu={false} scale={1.5} characterConfig={characterConfig} vehicleConfig={vehicleConfig} 
                       steer={modelSteer} drift={driftDirection.current} speed={speed.current} isKart={true}
-                    key={vehicleConfig.name + "_racer"}
+                      key={vehicleConfig.name + "_racer"}
                   />
                 </group>
             </group>    
             
-            {/* RENDERIZZA PARTICELLE SOLO SE NON È UN BOT (FPS BOOST) */}
             {!isBot && (
                 <>
                     <WheelPosition position={[-0.6, 0, 0.8]} ref={backLeft}><DriftParticles ref={leftSparksRef} count={45} /></WheelPosition>
                     <WheelPosition position={[0.6, 0, 0.8]} ref={backRight}><DriftParticles ref={rightSparksRef} count={45} /></WheelPosition>
                 </>
             )}
-      </group>
-    </RigidBody>
+        </group>
+
+        <group 
+            ref={billVisualsRef} 
+            visible={isBulletBill} 
+            scale={[2.5, 2.5, 2.5]} 
+            position={[0, -PHYSICS_RADIUS + 0.8, 0]} 
+        >
+             <group rotation={[0, Math.PI, 0]} > 
+                 <primitive object={billScene} />
+             </group>
+        </group>
+
+      </RigidBody>
+    </>
   )
 });
