@@ -224,7 +224,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb
+    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onHitOpponent
   } = props;
   
 //   const { scene } = useThree()
@@ -450,6 +450,13 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
             }
         }
     },
+    getEffectState: () => ({
+        isBulletBill: isBulletBill,          // From useBulletBill hook
+        isStar: isStarActive.current,        // From Ref
+        isMega: isMegaActive.current,        // From Ref
+        isSmall: isSmall.current,            // From Ref
+        isSpinning: isSpinning.current       // Useful for syncing spin-outs
+    }),
     getInputState: () => {
           const controls = activeControls.current;
           // Replicate logic: Left = 1, Right = -1
@@ -552,32 +559,70 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   // --- GESTIONE COLLISIONI FISICHE (RigidBody) ---
   const handleCollisionEnter = (payload) => {
+
+    // COLLISION
+    const otherObj = payload.other.rigidBodyObject;
+    const otherData = otherObj?.userData;
+
+    if (otherData && otherData.type === 'opponent') {
+        const effects = otherData.effects || {};
+
+        // Se l'avversario è Bullet Bill, Stella o Mega Fungo
+        if (effects.isBulletBill || effects.isStar || effects.isMega) {
+            
+            // Se io sono invincibile, ignora
+            if (isBulletBill || isStarActive.current || isMegaActive.current) {
+                return;
+            }
+
+            console.log(`COLPITO DA EFFETTO NEMICO: ${otherData.id}`);
+
+            // 3. Applica la penalità (Spin Out)
+            if (!isSpinning.current) {
+               isSpinning.current = true;
+               spinTimer.current = 0.45; 
+               speed.current = 0; 
+               driftLevel.current = 0;
+               boostTime.current = 0;
+            }
+            return; // Esci per evitare altre logiche di collisione standard
+        }
+    }
       // Se siamo Bill, distruggiamo chi tocchiamo
       if (isBulletBill) {
           const targetObj = payload.other.rigidBodyObject;
           const targetName = targetObj?.name || "";
-          if (targetName.startsWith('bot') || targetName === 'player') {
+          const otherData = targetObj?.userData;
+
+          if (targetName.startsWith('bot') || targetName === 'player'
+                || (otherData && otherData.type === 'opponent')) {
               console.log(`BULLET BILL SMASH: ${targetName}`);
               window.dispatchEvent(new CustomEvent('banana-hit', { 
                   detail: { victimId: targetName } 
               }));
+              if (otherData && otherData.type === 'opponent' && onHitOpponent) {
+                onHitOpponent(otherData.id); 
+            }
           }
       }
+
 	  if (isStarActive.current || isMegaActive.current) {
           const targetObj = payload.other.rigidBodyObject;
           const targetName = targetObj?.name || "";
+          const otherData = targetObj?.userData;
           
           // Se tocchiamo un bot o un player
-          if (targetName.startsWith('bot') || targetName === 'player') {
+          if (targetName.startsWith('bot') || targetName === 'player'
+        || (otherData && otherData.type === 'opponent')) {
               console.log(`STAR SMASH: ${targetName}`);
-              
-              // Applica effetto sonoro colpo (opzionale)
               
               // Invia evento danno
               window.dispatchEvent(new CustomEvent('banana-hit', { 
                   detail: { victimId: targetName, type: 'star_hit' } 
               }));
-              
+              if (otherData && otherData.type === 'opponent' && onHitOpponent) {
+                onHitOpponent(otherData.id);
+              }
               // Opzionale: Dai una spinta fisica via al nemico
               // payload.other.rigidBody.applyImpulse({x:0, y:10, z:0}, true);
           }

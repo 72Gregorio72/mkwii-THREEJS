@@ -5,11 +5,11 @@ import fs from 'fs'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      'three': path.resolve('./node_modules/three')
-    }
-  },
+  // resolve: {
+  //   alias: {
+  //     'three': path.resolve('./node_modules/three')
+  //   }
+  // },
   server: {
     host: true,      // <--- Aggiungi questo: permette l'accesso da fuori il container
     strictPort: true,

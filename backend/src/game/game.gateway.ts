@@ -57,14 +57,25 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   // 4. Receive Position Updates from Clients
-  @SubscribeMessage('move_kart')
-  handleMove(client: Socket, payload: { x: number, y: number, z: number, rotation: any, steer: any, drift: any }) {
-    // The client tells us where they are. 
-    // Ideally, the server should calculate physics, but for a simple project, 
-    // trusting the client position is fine.
+@SubscribeMessage('move_kart')
+  handleMove(client: Socket, payload: { 
+      x: number, 
+      y: number, 
+      z: number, 
+      rotation: any, 
+      steer: number, 
+      drift: number,
+      effects: {
+          isBulletBill: boolean, 
+          isStar: boolean, 
+          isMega: boolean, 
+          isSmall: boolean,
+          isSpinning: boolean
+      }
+  }) {
     this.gameService.updatePlayer(client.id, payload);
   }
-
+  // to set the vehicle and the racer of the opponents
   @SubscribeMessage('set_details')
   handleSetDetails(client: Socket, payload: { charId: string, vehicleId: string }) {
     console.log(`Player ${client.id} selected: ${payload.charId} / ${payload.vehicleId}`);
@@ -73,6 +84,20 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.gameService.updatePlayer(client.id, {
       charId: payload.charId,
       vehicleId: payload.vehicleId
+    });
+  }
+
+  @SubscribeMessage('player_hit')
+  handlePlayerHit(client: Socket, payload: { victimId: string, type: string }) {
+    console.log(`Hit Event: ${client.id} hit ${payload.victimId} with ${payload.type}`);
+
+    // Broadcast this event to EVERYONE (including the victim).
+    // The Frontend will check "if (victimId === myId)" to trigger the spin-out.
+    // The Frontend will check "if (victimId === remoteOpponentId)" to show visual spin.
+    this.server.emit('banana-hit', { 
+      attackerId: client.id,
+      victimId: payload.victimId,
+      type: payload.type 
     });
   }
 }
