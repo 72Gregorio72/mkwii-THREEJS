@@ -1,0 +1,122 @@
+import React, { useMemo, useState, useRef } from 'react'
+import * as THREE from 'three'
+import { useGLTF, Clone } from '@react-three/drei' // Clone è utile per istanze multiple
+import { RigidBody } from '@react-three/rapier'
+import { useFrame } from '@react-three/fiber'
+
+function giveItemToPlayer(other) {
+    const userData = other.rigidBodyObject?.userData;
+
+    if (userData && userData.type === 'racer') {
+        const racerId = userData.id;
+        console.log(`📦 BOX PRESO DA: ${racerId}`);
+
+        window.dispatchEvent(new CustomEvent('item-collected', {
+            detail: { racerId: racerId }
+        }));
+    }
+}
+
+function SingleItemBox({ position, rotation }) {
+    const { scene } = useGLTF('/items/ItemBox.glb')
+    
+    // Stato per sapere se è attivo (visibile) o preso
+    const [isActive, setIsActive] = useState(true)
+    const [scale, setScale] = useState(new THREE.Vector3(1, 1, 1))
+    
+    // Riferimento per l'animazione
+    const meshRef = useRef()
+
+    // Logica di collisione
+    const handleIntersection = ({ other }) => {
+        if (!isActive) return;
+		// Qui potremmo aggiungere logica per dare un oggetto al giocatore
+		giveItemToPlayer(other);
+        setIsActive(false) 
+
+        setTimeout(() => {
+            setIsActive(true)
+        }, 2000)
+    }
+
+    useFrame((state, delta) => {
+        if (!meshRef.current) return;
+
+        // 1. Animazione Rotazione costante (stile Mario Kart)
+        meshRef.current.rotation.y += delta * 2;
+
+        // 2. Animazione Rimpicciolimento / Ingrandimento
+        const targetScale = isActive ? 1 : 0;
+        
+        // Usiamo lerp per un'animazione fluida verso il target (0 o 1)
+        meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 10)
+    })
+
+    return (
+        <RigidBody 
+            type="fixed" 
+            colliders="hull" // Usa la forma del modello come collider
+            sensor // Importante: non sbatte, ma rileva il passaggio
+            onIntersectionEnter={handleIntersection}
+            position={position}
+            rotation={rotation}
+        >
+            <group ref={meshRef}>
+                 <Clone object={scene} />
+            </group>
+        </RigidBody>
+    )
+}
+
+export function ItemBoxesMap({ mapModelPath, triggerName = "Cube" }) {
+    const { scene } = useGLTF(mapModelPath)
+
+    const itemSpawns = useMemo(() => {
+        const spawns = []
+        
+        console.group("--- DEBUG ITEM BOXES ---");
+        console.log(`Cercando oggetti che contengono: "${triggerName}"`);
+        scene.updateMatrixWorld(true);
+
+        let objectsFound = 0;
+
+        scene.traverse((child) => {
+
+            if (child.isMesh) {
+                if (child.name.toLowerCase().includes(triggerName.toLowerCase())) {
+                    const position = new THREE.Vector3();
+                    const quaternion = new THREE.Quaternion();
+                    const rotation = new THREE.Euler();
+
+                    // Ottieni posizione/rotazione assolute nel mondo
+                    child.getWorldPosition(position);
+                    child.getWorldQuaternion(quaternion);
+                    rotation.setFromQuaternion(quaternion);
+                    spawns.push({
+                        position: [position.x, position.y, position.z],
+                        rotation: [rotation.x, rotation.y, rotation.z]
+                    });
+                    
+                    objectsFound++;
+                }
+            }
+        });
+
+        console.log(`Totale Item trovati: ${objectsFound}`);
+        console.groupEnd();
+
+        return spawns
+    }, [scene, triggerName])
+
+    return (
+        <>
+            {itemSpawns.map((data, index) => (
+                <SingleItemBox 
+                    key={index} 
+                    position={data.position} 
+                    rotation={data.rotation} 
+                />
+            ))}
+        </>
+    )
+}

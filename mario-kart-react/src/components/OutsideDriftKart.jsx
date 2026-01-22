@@ -222,7 +222,7 @@ const SpeedEffect = ({ boostTimeRef, isBulletBill }) => {
 
 export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
-    characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
+    characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
     isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb
   } = props;
@@ -364,11 +364,16 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const botControls = useBotAI({ isBot, rigidBody: rb, paths }) 
   const activeControls = isBot ? botControls : humanControls
   
-  // Audio
-  const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
+  // Hook per gestire gli SFX del kart (solo per il player, non per i bot)
+  const { updateAudio, startIdleAudio, stopAllAudio, setVolume } = useKartAudio({ 
     isBike: false, 
-    isActive: isRaceActive && !isBot  
+    isActive: isRaceActive && !isBot,
+    isBot: isBot,            // Passa il flag bot per volume ridotto di default
+    baseVolume: isBot ? 0.05 : 0.9  // Bot partono con volume minimo, aggiornato in base alla distanza
   })
+
+  // Hook per riprodurre effetti sonori (turbo, etc.)
+  const { playSfx } = useAudio()
 
   // Coda collisioni
   const collisionQueue = useRef([]) 
@@ -430,12 +435,22 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   // Esposizione Metodi: Usiamo 'ref' esterno, ma chiamiamo metodi su 'rb' interno
   useImperativeHandle(ref, () => ({
-      translation: () => rb.current?.translation(),
-      rotation: () => rb.current?.rotation(),
-      linvel: () => rb.current?.linvel(),
-      triggerBulletBill: () => activateBulletBill(),
-        // ✅ FIX: Calculate steer from controls, because 'modelSteer' is local to render loop
-      getInputState: () => {
+    translation: () => rb.current?.translation() || { x: 0, y: 0, z: 0 },
+    rotation: () => rb.current?.rotation() || { x: 0, y: 0, z: 0, w: 1 },
+    linvel: () => rb.current?.linvel() || { x: 0, y: 0, z: 0 },
+    triggerBulletBill: () => activateBulletBill(),
+    resetPosition: (pos, rot) => {
+        if(rb.current) {
+            rb.current.setTranslation({x: pos[0], y: pos[1], z: pos[2]}, true);
+            rb.current.setLinvel({x: 0, y: 0, z: 0}, true);
+            rb.current.setAngvel({x: 0, y: 0, z: 0}, true);
+            if(rot) {
+                const q = new Quaternion().setFromEuler(new Euler(...rot));
+                rb.current.setRotation(q, true);
+            }
+        }
+    },
+    getInputState: () => {
           const controls = activeControls.current;
           // Replicate logic: Left = 1, Right = -1
           const currentSteer = (controls.left ? 1 : 0) + (controls.right ? -1 : 0);
@@ -448,7 +463,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   }));
 
   // --- INTEGRATION POWERUP ---
-  const { currentItem, handleItemInput, tripleCount } = usePowerupHandler({
+  const { currentItem, handleItemInput, tripleCount, triggerItemRoulette } = usePowerupHandler({
     boostTime: boostTime, 
     speed: speed,        
     SETTINGS: SETTINGS,    
@@ -492,15 +507,22 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   // Audio Lifecycle
   useEffect(() => {
-    if (isRaceActive && !isBot) {
-      const timeout = setTimeout(() => { startIdleAudio(); }, 100);
+    if (isRaceActive) {
+      // Piccolo delay per assicurarsi che l'audio context sia pronto
+      // Per i bot delay minimo per non interferire con la logica audio
+      const delay = isBot ? 100 : 100;
+      const timeout = setTimeout(() => {
+        startIdleAudio();
+      }, delay);
       return () => clearTimeout(timeout);
     }
   }, [isRaceActive, isBot, startIdleAudio]);
 
   useEffect(() => {
-    if (!isRaceActive && !isBot) { stopAllAudio(); }
-  }, [isRaceActive, isBot, stopAllAudio]);
+    if (!isRaceActive) {
+      stopAllAudio();
+    }
+  }, [isRaceActive, stopAllAudio]);
 
   const performHop = () => {
     if (isJumping.current) return
@@ -515,6 +537,17 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     const durationMult = level === 2 ? 1.5 : 1.0
     boostTime.current = SETTINGS.boostDuration * durationMult
     pendingBoost.current = false
+
+    // Riproduci audio turbo (solo per il player)
+    if (!isBot) {
+      // Suono generico turbo drift
+      playSfx(AUDIO_SFX.TURBO_DRIFT, 2.0);
+      
+      // Suono vocale del personaggio (se disponibile)
+      if (selectedCharacter?.turbo_sfx && AUDIO_SFX[selectedCharacter.turbo_sfx]) {
+        playSfx(AUDIO_SFX[selectedCharacter.turbo_sfx], 0.6);
+      }
+    }
   }
 
   // --- GESTIONE COLLISIONI FISICHE (RigidBody) ---
@@ -561,19 +594,30 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     
     // Aggiorna UI
     if (!isBot && speedUiRef.current) {
-        // Se siamo Bill, la velocità è alta (es. 85), calcoliamo display
-        const displaySpeed = isBulletBill ? 120 : Math.abs(Math.round(speed.current * 1.5));
-        speedUiRef.current.innerText = `${displaySpeed} km/h`
+        // FIX: Usa (speed.current || 0) per evitare calcoli su valori nulli/NaN
+        const currentSpd = speed.current || 0;
+        
+        const displaySpeed = isBulletBill ? 120 : Math.abs(Math.round(currentSpd * 1.5));
+        
+        // Ulteriore sicurezza: se displaySpeed è ancora NaN (es. calcoli strani), forza "0"
+        const finalDisplay = isNaN(displaySpeed) ? 0 : displaySpeed.toString();
+
+        speedUiRef.current.innerText = `${finalDisplay} km/h`;
         const isOver = displaySpeed > SETTINGS.maxSpeed + 5
         speedUiRef.current.style.color = isBulletBill ? '#ff0000' : (isOver ? '#ff3300' : 'white')
         speedUiRef.current.style.transform = isOver || isBulletBill ? `scale(1.1)` : `scale(1)`
     }
 
 	if (!isBot) {
+         let safeSpeed = speed.current;
+         if (isNaN(safeSpeed) || !isFinite(safeSpeed)) {
+             safeSpeed = 0;
+         }
+
          window.dispatchEvent(new CustomEvent('hud-update', {
              detail: {
-                 speed: speed.current, // Passiamo la velocità raw
-                 item: currentItem     // Passiamo l'item corrente
+                 speed: safeSpeed,
+                 item: currentItem     
              }
          }));
      }
@@ -703,11 +747,29 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         }
 
     // UPDATE SPARKS (SOLO PLAYER)
-    if (!isBot) {
-        updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
-        // Aggiorna audio SFX (motore + drift sounds)
-        const isDrifting = driftDirection.current !== 0;
-        updateAudio(speed.current, forward, driftLevel.current, isDrifting);
+    updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
+    
+    // --- AUDIO UPDATE (Player E Bot con volume dinamico) ---
+    const isDriftingNow = driftDirection.current !== 0;
+    
+    if (isBot) {
+      // Calcola distanza dalla camera (player)
+      const distanceToCamera = currentPosition.current.distanceTo(state.camera.position);
+      const maxHearingDistance = 60;  // Distanza massima per sentire i bot
+      const minHearingDistance = 5;   // Sotto questa distanza, volume massimo
+      
+      // Volume inversamente proporzionale alla distanza (con curva smooth)
+      const normalizedDist = Math.max(0, Math.min(1, (distanceToCamera - minHearingDistance) / (maxHearingDistance - minHearingDistance)));
+      const volumeFactor = Math.pow(1 - normalizedDist, 1.5); // Curva più naturale
+      const botVolume = distanceToCamera < maxHearingDistance ? Math.max(0.05, volumeFactor * 0.4) : 0;  // Max 40% volume per bot
+      
+      setVolume(botVolume);
+      // Bot: passa true se sta accelerando E ha velocità
+      // Questo triggera la transizione idle -> gas -> loop
+      updateAudio(speed.current, forward, 0, false);
+    } else {
+      // Player: volume pieno con tutti gli effetti
+      updateAudio(speed.current, forward, driftLevel.current, isDriftingNow);
     }
 
         // Calcolo Velocità
@@ -927,6 +989,21 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   }
 
   const handleGroundExit = () => { isGrounded.current = false; }
+
+  useEffect(() => {
+    const handleItemCollected = (e) => {
+        if (e.detail.racerId === racerId) {
+            if (triggerItemRoulette) {
+                triggerItemRoulette(rank);
+            } else {
+                console.warn("Manca la funzione triggerItemRoulette in usePowerupHandler!");
+            }
+        }
+    };
+
+    window.addEventListener('item-collected', handleItemCollected);
+    return () => window.removeEventListener('item-collected', handleItemCollected);
+  }, [racerId, isBulletBill, triggerItemRoulette]);
 
   return (
     <>

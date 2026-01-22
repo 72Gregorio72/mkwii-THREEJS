@@ -18,6 +18,42 @@ export const ITEMS = {
   GOLDEN_MUSHROOM: 'GOLDEN_MUSHROOM',
 };
 
+const ITEM_WEIGHTS = {
+    1:  { [ITEMS.BANANA]: 50, [ITEMS.GREEN_SHELL]: 40, [ITEMS.MUSHROOM]: 10 },
+    2:  { [ITEMS.BANANA]: 25, [ITEMS.GREEN_SHELL]: 30, [ITEMS.RED_SHELL]: 25, [ITEMS.MUSHROOM]: 20 },
+    3:  { [ITEMS.BANANA]: 10, [ITEMS.GREEN_SHELL]: 20, [ITEMS.RED_SHELL]: 30, [ITEMS.MUSHROOM]: 30, [ITEMS.BOB_OMB]: 10 },
+    4:  { [ITEMS.MUSHROOM]: 40, [ITEMS.RED_SHELL]: 20, [ITEMS.TRIPLE_MUSHROOM]: 10, [ITEMS.BOB_OMB]: 15, [ITEMS.GREEN_SHELL]: 15 },
+    5:  { [ITEMS.MUSHROOM]: 30, [ITEMS.RED_SHELL]: 15, [ITEMS.TRIPLE_MUSHROOM]: 20, [ITEMS.BOB_OMB]: 15, [ITEMS.STAR]: 10, [ITEMS.MEGA_MUSHROOM]: 10 },
+    6:  { [ITEMS.TRIPLE_MUSHROOM]: 25, [ITEMS.STAR]: 15, [ITEMS.MEGA_MUSHROOM]: 15, [ITEMS.GOLDEN_MUSHROOM]: 10, [ITEMS.RED_SHELL]: 15, [ITEMS.BOB_OMB]: 10, [ITEMS.BLUE_SHELL]: 10 },
+    7:  { [ITEMS.TRIPLE_MUSHROOM]: 30, [ITEMS.STAR]: 20, [ITEMS.GOLDEN_MUSHROOM]: 20, [ITEMS.MEGA_MUSHROOM]: 15, [ITEMS.LIGHTNING]: 5, [ITEMS.BLUE_SHELL]: 10 },
+    8:  { [ITEMS.STAR]: 20, [ITEMS.GOLDEN_MUSHROOM]: 25, [ITEMS.MEGA_MUSHROOM]: 15, [ITEMS.TRIPLE_MUSHROOM]: 20, [ITEMS.LIGHTNING]: 10, [ITEMS.BULLET_BILL]: 5, [ITEMS.BLUE_SHELL]: 5 },
+    9:  { [ITEMS.STAR]: 20, [ITEMS.GOLDEN_MUSHROOM]: 30, [ITEMS.BULLET_BILL]: 15, [ITEMS.LIGHTNING]: 15, [ITEMS.MEGA_MUSHROOM]: 10, [ITEMS.BLUE_SHELL]: 10 },
+    10: { [ITEMS.GOLDEN_MUSHROOM]: 35, [ITEMS.BULLET_BILL]: 20, [ITEMS.STAR]: 20, [ITEMS.LIGHTNING]: 15, [ITEMS.MEGA_MUSHROOM]: 10 },
+    11: { [ITEMS.GOLDEN_MUSHROOM]: 30, [ITEMS.BULLET_BILL]: 30, [ITEMS.STAR]: 20, [ITEMS.LIGHTNING]: 15, [ITEMS.BLUE_SHELL]: 5 },
+    12: { [ITEMS.BULLET_BILL]: 40, [ITEMS.GOLDEN_MUSHROOM]: 20, [ITEMS.STAR]: 15, [ITEMS.LIGHTNING]: 15, [ITEMS.BLUE_SHELL]: 10 }
+};
+
+const getItemBasedOnRank = (currentRank) => {
+    const rankKey = Math.min(Math.max(Math.round(currentRank), 1), 12);
+    const pool = ITEM_WEIGHTS[rankKey] || ITEM_WEIGHTS[6];
+
+    let totalWeight = 0;
+    for (const item in pool) {
+        totalWeight += pool[item];
+    }
+
+    let randomValue = Math.random() * totalWeight;
+
+    for (const item in pool) {
+        randomValue -= pool[item];
+        if (randomValue <= 0) {
+            return item;
+        }
+    }
+    
+    return ITEMS.MUSHROOM;
+};
+
 export const usePowerupHandler = ({ 
   boostTime, 
   speed,     
@@ -36,19 +72,47 @@ export const usePowerupHandler = ({
   onActivateLightning,
   racerId,
 }) => {
+
+	
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
+	const [isRoulette, setIsRoulette] = useState(false);
+
+	const triggerItemRoulette = (rank = 6) => {
+        
+        if (currentItem !== ITEMS.NONE || isRoulette) {
+			console.log("Roulette oggetti già in corso o oggetto già posseduto, oggetto: ", currentItem	);
+            return;
+        }
+
+        console.log(`Roulette avviata per Rank: ${rank}`);
+        setIsRoulette(true);
+
+        setTimeout(() => {
+            const selectedItem = getItemBasedOnRank(rank);
+            
+            console.log(`Oggetto selezionato (Rank ${rank}):`, selectedItem);
+
+            setCurrentItem(selectedItem);
+            setIsRoulette(false);
+            
+            if (selectedItem === ITEMS.TRIPLE_MUSHROOM) setTripleCount(3);
+            if (selectedItem === ITEMS.GOLDEN_MUSHROOM) setIsGoldenActive(false);
+			if (selectedItem === ITEMS.MUSHROOM) setTripleCount(1);
+            
+            window.dispatchEvent(new CustomEvent('hud-update', { 
+                detail: { item: selectedItem } 
+            }));
+        }, 3000); 
+    };
   const isItemKeyPressed = useRef(false);
 
-  // --- STATI PER TRIPLO E GOLDEN ---
   const [tripleCount, setTripleCount] = useState(3);
   const [isGoldenActive, setIsGoldenActive] = useState(false);
   const goldenTimerRef = useRef(null);
 
-  // Funzione di debug per testare
   const pickupItem = () => {
     
-    setCurrentItem(ITEMS.TRIPLE_MUSHROOM);
     console.log("Oggetto raccolto: GOLDEN MUSHROOM");
   };
 
@@ -272,6 +336,7 @@ export const usePowerupHandler = ({
     currentItem,
     pickupItem, // Usa setRandomItem logicamente quando integri le scatole
     handleItemInput,
-    tripleCount 
+    tripleCount,
+	triggerItemRoulette
   };
 };
