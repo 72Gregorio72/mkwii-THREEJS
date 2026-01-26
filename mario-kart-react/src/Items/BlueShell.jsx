@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF , PositionalAudio} from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, BallCollider, CylinderCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { MathUtils } from 'three';
+import { AUDIO_SFX } from '../components/Data';
 
 // --- CONFIGURAZIONE ---
 const SHELL_SPEED = 90;
@@ -30,6 +31,11 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
         });
         return c;
     }, [scene]);
+
+    // Riferimenti Audio
+    const chaseAudioRef = useRef();
+    const lockingAudioRef = useRef();
+    const explosionAudioRef = useRef();
 
     const rb = useRef();
     const meshGroupRef = useRef();
@@ -166,6 +172,7 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
         }
         else if (phase === 'LOCKING') {
             if (!activeLeader) { setPhase('CHASING'); return; }
+            if (lockingAudioRef.current) lockingAudioRef.current.play();
             hoverTimer.current += delta;
             v.targetSpot.set(v.leaderPos.x, v.leaderPos.y + 7, v.leaderPos.z);
             v.dir.subVectors(v.targetSpot, v.pos);
@@ -173,6 +180,8 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
             if (hoverTimer.current > HOVER_TIME) setPhase('DIVING');
         }
         else if (phase === 'DIVING') {
+            if (explosionAudioRef.current)
+                explosionAudioRef.current.play();
             rb.current.setLinvel({ x: 0, y: -180, z: 0 }, true);
         }
     });
@@ -225,6 +234,25 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
             ccd={true}
             userData={{ type: 'item', subtype: 'blue_shell' }}
         >
+            <PositionalAudio
+                ref={chaseAudioRef}
+                url={AUDIO_SFX.BLUE_SHELL_LOOP}
+                distance={10}
+                loop={true}
+                autoplay={true}
+            />
+            <PositionalAudio
+                ref={lockingAudioRef}
+                url={AUDIO_SFX.BLUE_SHELL_ABOVE}
+                distance={10}
+                loop={true}
+            />
+            <PositionalAudio
+                ref={explosionAudioRef}
+                url={AUDIO_SFX.BLUE_SHELL_EXPLODE}
+                distance={15}
+                loop={false}
+            />
              {/* A. COLLIDER FISICI (Disattivati durante l'esplosione per non interferire) */}
              {!isExploding && (
                 <>

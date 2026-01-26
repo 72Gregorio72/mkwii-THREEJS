@@ -3,7 +3,7 @@ import { useFrame, useThree, createPortal } from '@react-three/fiber'
 import { RigidBody, BallCollider, CylinderCollider, useRapier } from '@react-three/rapier'
 import { Vector3, MathUtils, Quaternion, Euler, Color } from 'three'
 import * as THREE from 'three'
-import { Html, useGLTF } from '@react-three/drei'
+import { Html, useGLTF , PositionalAudio } from '@react-three/drei'
 import gsap from 'gsap'
 
 // --- IMPORTS CUSTOM ---
@@ -12,9 +12,9 @@ import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
 import { useBotAI } from '../Bot/UseBotAI'
-import { useKartAudio } from '../hooks/useKartAudio'
 import { usePowerupHandler } from '../Items/PowerupHandler.jsx';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { usePositionalKartAudio } from '../hooks/usePositionalKartAudio';
 import { SkeletonUtils } from 'three-stdlib'
 
 import { useBulletBill } from '../Items/BulletBill'; 
@@ -232,7 +232,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   
   // FIX CRITICO: Usa SEMPRE un ref interno distinto da quello esterno per evitare loop infiniti
   const rb = useRef(null) 
-  
+
   // Caricamento modello Bullet Bill
   const { scene } = useGLTF('/items/BulletBill.glb');
 
@@ -246,9 +246,24 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const isSmall = useRef(false);
   const smallTimer = useRef(null);
 
+  // Refs audio SFX
+  const BananaHitAudioRef = useRef();
+  const starStateAudioRef = useRef();
+  const thunderLoopAudioRef = useRef();
+  const thunderSmallAudioRef = useRef();
+  const thunderBigAudioRef = useRef();
+  const megaMushroomStateAudioRef = useRef();
+  const megaMushroomShrinkAudioRef = useRef();
+  const megaMushroomUseAudioRef = useRef();
+
+
   const activateMega = () => {
       isMegaActive.current = true;
       console.log("Attivazione MEGA FUNGOasdasd!");
+      if (megaMushroomUseAudioRef.current && megaMushroomStateAudioRef.current) {
+        megaMushroomUseAudioRef.current.play();
+        megaMushroomStateAudioRef.current.play();
+      }
       if (rb.current) {
           rb.current.setAdditionalMass(500, true); // Diventa pesantissimo
       }
@@ -263,6 +278,13 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const deactivateMega = () => {
       isMegaActive.current = false;
       
+      if (megaMushroomStateAudioRef.current) {
+            megaMushroomStateAudioRef.current.stop();
+      }
+
+      if (megaMushroomShrinkAudioRef.current) {
+          megaMushroomShrinkAudioRef.current.play();
+      }
       // Reset Massa
       if (rb.current) {
           rb.current.setAdditionalMass(0, true);
@@ -272,6 +294,17 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   const activateLightning = () => {
       isSmall.current = true;
+      
+      // THUNDER_SMALL_STATE: quando diventi piccolo
+      if (thunderSmallAudioRef.current) {
+          thunderSmallAudioRef.current.currentTime = 0;
+          thunderSmallAudioRef.current.play();
+      }
+      // THUNDER_LOOP: loop mentre sei piccolo
+      if (thunderLoopAudioRef.current) {
+          thunderLoopAudioRef.current.currentTime = 0;
+          thunderLoopAudioRef.current.play();
+      }
 
       if (smallTimer.current) clearTimeout(smallTimer.current);
       smallTimer.current = setTimeout(() => {
@@ -281,12 +314,24 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   const deactivateLightning = () => {
       isSmall.current = false;
+      
+      // Ferma THUNDER_LOOP
+      if (thunderLoopAudioRef.current) {
+          thunderLoopAudioRef.current.pause();
+          thunderLoopAudioRef.current.currentTime = 0;
+      }
+      // THUNDER_BIG_STATE: quando torni grande
+      if (thunderBigAudioRef.current) {
+          thunderBigAudioRef.current.currentTime = 0;
+          thunderBigAudioRef.current.play();
+      }
   };
 
   const activateStar = () => {
       if (isStarActive.current) return; // Se è già attiva, ignora o resetta timer
       
       isStarActive.current = true;
+      if (starStateAudioRef.current) starStateAudioRef.current.play();
       
       // Salva i materiali originali se non l'hai già fatto (per ripristinare il colore dopo)
       // Nota: Questo è un approccio semplificato. Se i modelli cambiano, va gestito meglio.
@@ -334,6 +379,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
               }
           });
       }
+      if (starStateAudioRef.current) starStateAudioRef.current.stop();
   };
   
   const billScene = useMemo(() => {
@@ -363,17 +409,26 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const humanControls = useGameControls() 
   const botControls = useBotAI({ isBot, rigidBody: rb, paths }) 
   const activeControls = isBot ? botControls : humanControls
-  
-  // Hook per gestire gli SFX del kart (solo per il player, non per i bot)
-  const { updateAudio, startIdleAudio, stopAllAudio, setVolume } = useKartAudio({ 
-    isBike: false, 
-    isActive: isRaceActive && !isBot,
-    isBot: isBot,            // Passa il flag bot per volume ridotto di default
-    baseVolume: isBot ? 0.05 : 0.9  // Bot partono con volume minimo, aggiornato in base alla distanza
-  })
 
   // Hook per riprodurre effetti sonori (turbo, etc.)
   const { playSfx } = useAudio()
+
+  // Ref e state per il gruppo audio 3D
+  const audioGroupRef = useRef(null);
+  const [audioGroupMounted, setAudioGroupMounted] = useState(false);
+
+  // Hook per audio 3D spaziale del motore
+  const { updateAudio: updateEngineAudio, startIdleAudio, stopAllAudio } = usePositionalKartAudio({
+    isBike: false,
+    isActive: isRaceActive,
+    kartObject: audioGroupMounted ? audioGroupRef.current : null,
+    spatialConfig: {
+      refDistance: 8,       // Distanza a cui il volume è al 100%
+      maxDistance: 100,     // Distanza massima di ascolto
+      rolloffFactor: 1.2,   // Attenuazione graduale
+      volume: isBot ? 0.5 : 0.9  // Bot più silenziosi
+    }
+  });
 
   // Coda collisioni
   const collisionQueue = useRef([]) 
@@ -424,7 +479,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   }), [])
 
   // --- LOGICA BULLET BILL ---
-  const { isBulletBill, activateBulletBill } = useBulletBill({
+  const { isBulletBill, activateBulletBill, bulletBillAudioRefs } = useBulletBill({
       rb: rb, 
       waypoints: waypoints, 
       currentRank: rank || 8,
@@ -453,6 +508,9 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 }));
 
   // --- INTEGRATION POWERUP ---
+  // isLocalPlayer: true solo se questo kart è quello del giocatore locale (non bot, non player remoto in multiplayer)
+  const isLocalPlayer = !isBot && racerId === 'player';
+  
   const { currentItem, handleItemInput, tripleCount, triggerItemRoulette } = usePowerupHandler({
     boostTime: boostTime, 
     speed: speed,        
@@ -467,6 +525,8 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 	onActivateStar: activateStar,
 	activateMega: activateMega,
 	racerId: racerId,
+    selectedCharacter: selectedCharacter,
+    isLocalPlayer: isLocalPlayer, // Solo il player locale sente l'audio della roulette
     kartRef: rb,
     onActivateBulletBill: activateBulletBill 
   });
@@ -479,6 +539,8 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         if (isBulletBill || isStarActive.current || isMegaActive.current) return;
 
         if (victimId === racerId && !isSpinning.current) { 
+            if (BananaHitAudioRef)
+                BananaHitAudioRef.current.play();
             console.log(`${racerId} colpito! Spin out!`);
             isSpinning.current = true;
             spinTimer.current = 0.45; 
@@ -495,19 +557,17 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
   })
 
-  // Audio Lifecycle
+  // Audio Lifecycle: avvia idle quando la gara inizia
   useEffect(() => {
-    if (isRaceActive) {
-      // Piccolo delay per assicurarsi che l'audio context sia pronto
-      // Per i bot delay minimo per non interferire con la logica audio
-      const delay = isBot ? 100 : 100;
+    if (isRaceActive && audioGroupRef.current) {
       const timeout = setTimeout(() => {
         startIdleAudio();
-      }, delay);
+      }, 200); // Piccolo delay per assicurarsi che tutto sia inizializzato
       return () => clearTimeout(timeout);
     }
-  }, [isRaceActive, isBot, startIdleAudio]);
+  }, [isRaceActive, startIdleAudio]);
 
+  // Ferma audio quando la gara finisce
   useEffect(() => {
     if (!isRaceActive) {
       stopAllAudio();
@@ -738,29 +798,10 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
     // UPDATE SPARKS (SOLO PLAYER)
     updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
-    
-    // --- AUDIO UPDATE (Player E Bot con volume dinamico) ---
+
+    // UPDATE AUDIO 3D (Motore)
     const isDriftingNow = driftDirection.current !== 0;
-    
-    if (isBot) {
-      // Calcola distanza dalla camera (player)
-      const distanceToCamera = currentPosition.current.distanceTo(state.camera.position);
-      const maxHearingDistance = 60;  // Distanza massima per sentire i bot
-      const minHearingDistance = 5;   // Sotto questa distanza, volume massimo
-      
-      // Volume inversamente proporzionale alla distanza (con curva smooth)
-      const normalizedDist = Math.max(0, Math.min(1, (distanceToCamera - minHearingDistance) / (maxHearingDistance - minHearingDistance)));
-      const volumeFactor = Math.pow(1 - normalizedDist, 1.5); // Curva più naturale
-      const botVolume = distanceToCamera < maxHearingDistance ? Math.max(0.05, volumeFactor * 0.4) : 0;  // Max 40% volume per bot
-      
-      setVolume(botVolume);
-      // Bot: passa true se sta accelerando E ha velocità
-      // Questo triggera la transizione idle -> gas -> loop
-      updateAudio(speed.current, forward, 0, false);
-    } else {
-      // Player: volume pieno con tutti gli effetti
-      updateAudio(speed.current, forward, driftLevel.current, isDriftingNow);
-    }
+    updateEngineAudio(speed.current, forward, isDriftingNow);
 
         // Calcolo Velocità
         const isBoosting = boostTime.current > 0
@@ -1032,10 +1073,80 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
            onIntersectionEnter={handleGroundEnter}
            onIntersectionExit={handleGroundExit}
         />
+        <PositionalAudio
+            ref={BananaHitAudioRef}
+            url={AUDIO_SFX.KART_SPIN}
+            distance={10}
+            loop={false}
+        />
+        <PositionalAudio
+            ref={bulletBillAudioRefs.onAudioRef}
+            url={AUDIO_SFX.BULLET_BILL_START}
+            distance={7}
+            loop={false}
+        />
+        <PositionalAudio
+            ref={bulletBillAudioRefs.engineAudioRef}
+            url={AUDIO_SFX.BULLET_BILL_STATE}
+            distance={7}
+            loop={false}
+        />
+        <PositionalAudio
+            ref={bulletBillAudioRefs.offAudioRef}
+            url={AUDIO_SFX.BULLET_BILL_OFF}
+            distance={7}
+            loop={false}
+        />
+        <PositionalAudio
+            ref={starStateAudioRef}
+            url={AUDIO_SFX.STAR_LOOP}
+            distance={17}
+            loop={true}
+        />
+        <PositionalAudio
+            ref={thunderLoopAudioRef}
+            url={AUDIO_SFX.THUNDER_LOOP}
+            distance={15}
+            loop={true}
+        />
+        <PositionalAudio
+            ref={thunderSmallAudioRef}
+            url={AUDIO_SFX.THUNDER_SMALL_STATE}
+            distance={15}
+            loop={false}
+        />
+        <PositionalAudio
+            ref={thunderBigAudioRef}
+            url={AUDIO_SFX.THUNDER_BIG_STATE}
+            distance={15}
+            loop={false}
+        />
+        <PositionalAudio
+            ref={megaMushroomStateAudioRef}
+            url={AUDIO_SFX.BIG_MUSHROOM_STATE}
+            distance={17}
+            loop={true}
+        />
+        <PositionalAudio
+            ref={megaMushroomShrinkAudioRef}
+            url={AUDIO_SFX.BIG_MUSHROOM_OFF}
+            distance={17}
+            loop={false}
+        />
+        <PositionalAudio
+            ref={megaMushroomUseAudioRef}
+            url={AUDIO_SFX.BIG_MUSHROOM_USE}
+            distance={17}
+            loop={false}
+        />
 
         {!isBot && <SpeedEffect boostTimeRef={boostTime} isBulletBill={isBulletBill} />}
         
-        {/* --- NOTA: Ho rimosso <Html> da qui dentro --- */}
+        {/* --- GRUPPO AUDIO 3D: L'audio viene attaccato a questo gruppo --- */}
+        <group ref={(node) => {
+          audioGroupRef.current = node;
+          if (node && !audioGroupMounted) setAudioGroupMounted(true);
+        }} />
 
         {/* --- GRUPPO 1: KART NORMALE --- */}
         <group ref={visualGroupRef} visible={!isBulletBill} position={[0, -PHYSICS_RADIUS, 0]} scale={[KART_SIZE, KART_SIZE, KART_SIZE]}>

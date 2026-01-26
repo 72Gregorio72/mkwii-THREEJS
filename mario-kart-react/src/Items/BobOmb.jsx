@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF, PositionalAudio } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, BallCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib'; 
+import { AUDIO_SFX } from '../components/Data'; 
 
 const EXPLOSION_RADIUS = 6;
 const FUSE_TIME = 2000;
@@ -25,7 +26,10 @@ export const BobOmb = memo(function BobOmb({ position, initVelocity = [0, 0, 0],
     }, [scene]);
 
     const rb = useRef();
-    
+
+    const ThrowAudioRef = useRef();
+    const ExplosionAudioRef = useRef();
+
     // Stati locali
     const [isLanded, setIsLanded] = useState(false);
     const [isExploding, setIsExploding] = useState(false);
@@ -43,6 +47,8 @@ export const BobOmb = memo(function BobOmb({ position, initVelocity = [0, 0, 0],
                 true
             );
         }
+        if (ThrowAudioRef)
+            ThrowAudioRef.current.play();
     }, []); // <--- Le parentesi vuote sono fondamentali!
 
     // --- GESTIONE FISICA ---
@@ -70,6 +76,8 @@ export const BobOmb = memo(function BobOmb({ position, initVelocity = [0, 0, 0],
     const triggerExplosion = () => {
         if (isExploding || isFinished) return;
         setIsExploding(true);
+        if (ExplosionAudioRef)
+            ExplosionAudioRef.current.play();
         console.log("--- BOOM! ---");
 
         setTimeout(() => {
@@ -135,6 +143,18 @@ export const BobOmb = memo(function BobOmb({ position, initVelocity = [0, 0, 0],
             onCollisionEnter={handleCollisionEnter}
             userData={{ type: 'item', subtype: 'bobomb' }}
         >
+            <PositionalAudio
+                ref={ThrowAudioRef}
+                url={AUDIO_SFX.BANANA_THROW}
+                distance={5}
+                loop={false}
+            />
+            <PositionalAudio
+                ref={ExplosionAudioRef}
+                url={AUDIO_SFX.BOB_OMB_EXPLODE}
+                distance={10}
+                loop={false}
+            />
             {!isExploding && (
                 <BallCollider 
                     args={[0.4]} 
