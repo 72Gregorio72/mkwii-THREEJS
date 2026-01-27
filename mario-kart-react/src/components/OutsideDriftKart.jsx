@@ -148,6 +148,7 @@ const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group 
 const SpeedEffect = ({ boostTimeRef, isBulletBill }) => {
   const meshRef = useRef()
   const count = 20 
+  const rb = useRef(null);
   const { camera, scene } = useThree()
   
   const dummy = useMemo(() => new THREE.Object3D(), [])
@@ -224,8 +225,9 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb
-  } = props;
+    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, gameState,
+	positions, botRefs,
+} = props;
   
 //   const { scene } = useThree()
   const { world, rapier } = useRapier()
@@ -358,20 +360,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   const billVisualsRef = useRef();
 
-  // Controls
-  // Passiamo 'rb' (il ref fisico vero) al bot
-  const humanControls = useGameControls() 
-  const botControls = useBotAI({ isBot, rigidBody: rb, paths }) 
-  const activeControls = isBot ? botControls : humanControls
-  
-  // Audio
-  const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
-    isBike: false, 
-    isActive: isRaceActive && !isBot  
-  })
-
-  // Coda collisioni
-  const collisionQueue = useRef([]) 
 
   const camConfig = { distance: 7.2, height: 2.3, lookAtHeight: 1.0, stiffness: 0.2, fovBase: 53, fovMax: 55 }
   const initialRotationY = START_ROT ? START_ROT[1] : 0
@@ -391,12 +379,14 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const driftLevel = useRef(0)
   const prevDriftLevel = useRef(0)  // Per tracciare i cambi di livello drift (audio)
   const pendingBoost = useRef(false)
-  const boostTime = useRef(0)
   const driftHopLocked = useRef(false)
   const driftEngageWindow = useRef(false) 
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
-  
+
+  const boostTime = useRef(0);
+
+
   // Refs visuali
   const visualGroupRef = useRef() 
   const backLeft = useRef()
@@ -409,14 +399,19 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const frameCounter = useRef(Math.floor(Math.random() * 3)); 
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)
   const racerId = userData?.id || (isBot ? "bot" : "player");
-  
 
-  // Vettori riutilizzabili
-  const v = useMemo(() => ({
-      forwardGlobal: new Vector3(),
-      rayOrigin: new Vector3(),
-      rayDir: new Vector3()
-  }), [])
+  const humanControls = useGameControls() 
+
+  
+  // Audio
+  const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
+    isBike: false, 
+    isActive: isRaceActive && !isBot  
+  })
+
+  // Coda collisioni
+  const collisionQueue = useRef([]) 
+
 
   // --- LOGICA BULLET BILL ---
   const { isBulletBill, activateBulletBill } = useBulletBill({
@@ -427,26 +422,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
          if(rb.current) rb.current.setLinvel({x:0, y:0, z:0}, true);
       }
   });
-
-  // Esposizione Metodi: Usiamo 'ref' esterno, ma chiamiamo metodi su 'rb' interno
-  useImperativeHandle(ref, () => ({
-    translation: () => rb.current?.translation() || { x: 0, y: 0, z: 0 },
-    rotation: () => rb.current?.rotation() || { x: 0, y: 0, z: 0, w: 1 },
-    linvel: () => rb.current?.linvel() || { x: 0, y: 0, z: 0 },
-    triggerBulletBill: () => activateBulletBill(),
-    resetPosition: (pos, rot) => {
-        if(rb.current) {
-            rb.current.setTranslation({x: pos[0], y: pos[1], z: pos[2]}, true);
-            rb.current.setLinvel({x: 0, y: 0, z: 0}, true);
-            rb.current.setAngvel({x: 0, y: 0, z: 0}, true);
-            if(rot) {
-                const q = new Quaternion().setFromEuler(new Euler(...rot));
-                rb.current.setRotation(q, true);
-            }
-        }
-    }
-}));
-
   // --- INTEGRATION POWERUP ---
   const { currentItem, handleItemInput, tripleCount, triggerItemRoulette } = usePowerupHandler({
     boostTime: boostTime, 
@@ -465,6 +440,47 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     kartRef: rb,
     onActivateBulletBill: activateBulletBill 
   });
+
+  const botControls = useBotAI({ 
+		isBot, 
+		rigidBody: rb, 
+		paths,
+		currentItem: currentItem,
+		triggerItemInput: handleItemInput
+	});
+  
+  const activeControls = isBot ? botControls : humanControls
+
+  // Vettori riutilizzabili
+  const v = useMemo(() => ({
+      forwardGlobal: new Vector3(),
+      rayOrigin: new Vector3(),
+      rayDir: new Vector3()
+  }), [])
+
+
+  // Controls
+  // Passiamo 'rb' (il ref fisico vero) al bot
+
+  // Esposizione Metodi: Usiamo 'ref' esterno, ma chiamiamo metodi su 'rb' interno
+  useImperativeHandle(ref, () => ({
+    translation: () => rb.current?.translation() || { x: 0, y: 0, z: 0 },
+    rotation: () => rb.current?.rotation() || { x: 0, y: 0, z: 0, w: 1 },
+    linvel: () => rb.current?.linvel() || { x: 0, y: 0, z: 0 },
+    triggerBulletBill: () => activateBulletBill(),
+	triggerItemRoulette: (currentRank) => triggerItemRoulette(currentRank),
+    resetPosition: (pos, rot) => {
+        if(rb.current) {
+            rb.current.setTranslation({x: pos[0], y: pos[1], z: pos[2]}, true);
+            rb.current.setLinvel({x: 0, y: 0, z: 0}, true);
+            rb.current.setAngvel({x: 0, y: 0, z: 0}, true);
+            if(rot) {
+                const q = new Quaternion().setFromEuler(new Euler(...rot));
+                rb.current.setRotation(q, true);
+            }
+        }
+    }
+}));
   
   // Gestione Eventi Colpo
   useEffect(() => {
@@ -553,6 +569,15 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   useFrame((state, delta) => {
     if (!rb.current) return;
+
+	if (!rb.current || gameState !== 'RACING') {
+        // Forza la velocità a 0 finché non finisce il countdown
+        if(gameState === 'COUNTDOWN') {
+            rb.current.setLinvel({x:0, y: rb.current.linvel().y, z:0}, true);
+            speed.current = 0;
+        }
+        return; 
+    }
 
     // Aggiorna posizione corrente per la camera e logica
     const rbPos = rb.current.translation();
@@ -819,6 +844,22 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         smoothedY.current = MathUtils.damp(smoothedY.current, rbPos.y, smoothFactor, delta);
         const visualLocalY = (smoothedY.current - rbPos.y) - PHYSICS_RADIUS + jumpOffset.current.y;
 
+		const smoothingSpeed = isGrounded.current ? 12.0 : 5.0; 
+
+		smoothedY.current = MathUtils.damp(
+			smoothedY.current, 
+			rbPos.y, 
+			smoothingSpeed, 
+			delta
+		);
+
+		// Applica la posizione smussata solo al gruppo visuale, non al corpo fisico
+		if (visualGroupRef.current) {
+			// Calcoliamo l'offset rispetto alla posizione fisica reale
+			const visualLocalY = (smoothedY.current - rbPos.y) - PHYSICS_RADIUS + jumpOffset.current.y;
+			visualGroupRef.current.position.y = visualLocalY;
+		}
+
         if (visualGroupRef.current) {
             const driftTilt = isDrifting ? (driftDirection.current * 0.15) : 0;
             if (isSpinning.current) {
@@ -939,25 +980,8 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   const handleGroundExit = () => { isGrounded.current = false; }
 
-  useEffect(() => {
-    const handleItemCollected = (e) => {
-        if (e.detail.racerId === racerId) {
-            if (triggerItemRoulette) {
-                triggerItemRoulette(rank);
-            } else {
-                console.warn("Manca la funzione triggerItemRoulette in usePowerupHandler!");
-            }
-        }
-    };
-
-    window.addEventListener('item-collected', handleItemCollected);
-    return () => window.removeEventListener('item-collected', handleItemCollected);
-  }, [racerId, isBulletBill, triggerItemRoulette]);
-
   return (
     <>
-
-      {/* --- INIZIO FISICA --- */}
       <RigidBody 
         ref={rb} 
         position={START_POS} 

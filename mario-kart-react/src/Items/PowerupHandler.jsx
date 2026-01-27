@@ -79,32 +79,39 @@ export const usePowerupHandler = ({
 	const [isRoulette, setIsRoulette] = useState(false);
 
 	const triggerItemRoulette = (rank = 6) => {
-        
-        if (currentItem !== ITEMS.NONE || isRoulette) {
-			console.log("Roulette oggetti già in corso o oggetto già posseduto, oggetto: ", currentItem	);
-            return;
-        }
+		if (currentItem !== ITEMS.NONE || isRoulette) return;
 
-        console.log(`Roulette avviata per Rank: ${rank}`);
-        setIsRoulette(true);
+		setIsRoulette(true);
+		
+		// Lista di tutti gli item possibili per l'animazione visiva
+		const allItems = Object.keys(ITEMS).filter(item => item !== 'NONE');
+		
+		// Effetto visivo: cambia l'icona ogni 100ms
+		let rouletteInterval = setInterval(() => {
+			const randomVisualItem = allItems[Math.floor(Math.random() * allItems.length)];
+			window.dispatchEvent(new CustomEvent('hud-update', { 
+				detail: { item: randomVisualItem, isSpinning: true, targetRacerId: racerId } 
+			}));
+		}, 100);
 
-        setTimeout(() => {
-            const selectedItem = getItemBasedOnRank(rank);
-            
-            console.log(`Oggetto selezionato (Rank ${rank}):`, selectedItem);
-
-            setCurrentItem(selectedItem);
-            setIsRoulette(false);
-            
-            if (selectedItem === ITEMS.TRIPLE_MUSHROOM) setTripleCount(3);
-            if (selectedItem === ITEMS.GOLDEN_MUSHROOM) setIsGoldenActive(false);
+		setTimeout(() => {
+			clearInterval(rouletteInterval); // Ferma lo scrolling
+			const selectedItem = getItemBasedOnRank(rank);
+			
+			setIsRoulette(false);
+			setCurrentItem(selectedItem);
+			
+			// Logica specifica per i consumabili (Triple, Golden, etc.)
+			if (selectedItem === ITEMS.TRIPLE_MUSHROOM) setTripleCount(3);
+			if (selectedItem === ITEMS.GOLDEN_MUSHROOM) setIsGoldenActive(false);
 			if (selectedItem === ITEMS.MUSHROOM) setTripleCount(1);
-            
-            window.dispatchEvent(new CustomEvent('hud-update', { 
-                detail: { item: selectedItem } 
-            }));
-        }, 3000); 
-    };
+			// Invia l'oggetto definitivo
+			window.dispatchEvent(new CustomEvent('hud-update', { 
+				detail: { item: selectedItem, isSpinning: false, targetRacerId: racerId } 
+				
+			}));
+		}, 3000); 
+	};
   const isItemKeyPressed = useRef(false);
 
   const [tripleCount, setTripleCount] = useState(3);
@@ -302,20 +309,20 @@ export const usePowerupHandler = ({
   };
 
   const handleItemInput = (inputActive) => {
+    // Se il bot (o l'umano) preme il tasto
     if (inputActive && !isItemKeyPressed.current) {
-      isItemKeyPressed.current = true;
-      
-      if (currentItem !== ITEMS.NONE) {
-        activateItem();
-      } else {
-        pickupItem();
-      }
+        isItemKeyPressed.current = true;
+        
+        if (currentItem !== ITEMS.NONE) {
+            activateItem(); // Esegue lo switch e usa l'oggetto
+        }
     }
 
+    // Fondamentale: resetta il flag quando l'input torna false
     if (!inputActive) {
-      isItemKeyPressed.current = false;
+        isItemKeyPressed.current = false;
     }
-  };
+};
 
   // Cleanup del timer se il componente viene smontato
   useEffect(() => {

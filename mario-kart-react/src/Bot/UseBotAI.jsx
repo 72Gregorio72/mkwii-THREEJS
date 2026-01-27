@@ -13,12 +13,16 @@ const AI_CONFIG = {
   rayLength: 5.0,
   stuckTime: 1.5,
   debugEnabled: false,
-  logicUpdateRate: 4 
+  logicUpdateRate: 4,
+  itemUseChance: 1,
+  minDistanceToAttack: 20,
 }
 
-export function useBotAI({ isBot, rigidBody, paths }) {
+export function useBotAI({ isBot, rigidBody, paths, currentItem, triggerItemInput }) {
   const { world, rapier } = useRapier()
   const { scene } = useThree()
+
+  const itemDecisionTimer = useRef(0);
 
   const controls = useRef({ 
     forward: false, backward: false, left: false, right: false, drift: false 
@@ -75,8 +79,6 @@ export function useBotAI({ isBot, rigidBody, paths }) {
     
     let closestDist = Infinity
     let closestIndex = 0
-    // Simple search optimization: Check closer range if huge path? 
-    // For init, full loop is fine (done once).
     for (let i = 0; i < currentPath.length; i++) {
         const dx = currentPath[i].x - rbPos.x
         const dz = currentPath[i].z - rbPos.z
@@ -92,7 +94,30 @@ export function useBotAI({ isBot, rigidBody, paths }) {
   }, [paths])
 
   useFrame((state, delta) => {
-    if (!isBot || !rigidBody.current || !paths || paths.length === 0) return
+    if (!isBot || !rigidBody.current || !paths || paths.length === 0) return;
+
+    // --- LOGICA DECISIONALE ITEM ---
+    // Usiamo il timer per non spammare il check ogni frame
+    itemDecisionTimer.current += delta;
+    
+    if (itemDecisionTimer.current > 0.5) { // Controlla ogni mezzo secondo
+        itemDecisionTimer.current = 0;
+
+        if (currentItem && currentItem !== 'NONE') {
+            // Probabilità di usare l'oggetto (es. 20% di chance ogni check)
+            const shouldUse = Math.random() < 0.2; 
+            
+            if (shouldUse) {
+                // Attiviamo l'input
+                triggerItemInput(true);
+                
+                // Rilasciamo l'input dopo un breve delay per simulare la pressione
+                setTimeout(() => {
+                    triggerItemInput(false);
+                }, 150);
+            }
+        }
+    }
 
     // --- AGGIORNAMENTO FISICA DI BASE (SEMPRE ESEGUITO) ---
     const currentPath = paths[activePathIndex.current]
@@ -256,9 +281,9 @@ export function useBotAI({ isBot, rigidBody, paths }) {
         cachedLogic.current.isStuck = false;
     }
 
-    // Debug arrows updates (only update position when logic runs)
-    if (AI_CONFIG.debugEnabled) {
-         // ... (Logic for debug visual update)
+    if (controls.current.item && triggerItemInput) {
+        triggerItemInput(true);
+        setTimeout(() => { controls.current.item = false; }, 100);
     }
   })
 

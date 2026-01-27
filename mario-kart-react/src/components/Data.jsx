@@ -194,7 +194,7 @@ export const Characters = [
         id: 'wario',
         name: 'Wario', 
         sprite: './sprites/Wario.png', 
-        modelConfig: { file: '/riggedCharacters/Wario_Skeleton.glb', scale: 0.8, bodyNode: 'wario_body' },
+        modelConfig: { file: '/riggedCharacters/Wario_Skeleton.glb', scale: 0.7, bodyNode: 'wario_body' },
         veichles: LARGE_VEHICLES,
         stats: { speed: '0', acceleration: '1', weight: '2', handling: '0', traction: '1', drift: '1', offroad: '1' }
     },
@@ -202,7 +202,7 @@ export const Characters = [
         id: 'waluigi',
         name: 'Waluigi', 
         sprite: './sprites/Waluigi.png', 
-        modelConfig: { file: '/riggedCharacters/Waluigi_Skeleton.glb', scale: 0.8, bodyNode: 'waluigi_body' },
+        modelConfig: { file: '/riggedCharacters/Waluigi_Skeleton.glb', scale: 0.7, bodyNode: 'waluigi_body' },
         veichles: LARGE_VEHICLES,
         stats: { speed: '1', acceleration: '2', weight: '2', handling: '0', traction: '0', drift: '2', offroad: '1' }
     },
@@ -210,7 +210,7 @@ export const Characters = [
         id: 'donkey_kong',
         name: 'Donkey Kong', 
         sprite: './sprites/DonkeyKong.png', 
-        modelConfig: { file: '/riggedCharacters/DonkeyKong_Skeleton.glb', scale: 0.8, bodyNode: 'donkey_kong_body' },
+        modelConfig: { file: '/riggedCharacters/DonkeyKong_Skeleton.glb', scale: 0.7, bodyNode: 'donkey_kong_body' },
         veichles: LARGE_VEHICLES,
         stats: { speed: '0', acceleration: '1', weight: '2', handling: '1', traction: '0', drift: '1', offroad: '1' }
     },
@@ -218,7 +218,7 @@ export const Characters = [
         id: 'bowser',
         name: 'Bowser', 
         sprite: './sprites/Bowser.png', 
-        modelConfig: { file: '/riggedCharacters/Bowser_Skeleton.glb', scale: 0.8, bodyNode: 'bowser_body' },
+        modelConfig: { file: '/riggedCharacters/Bowser_Skeleton.glb', scale: 0.7, bodyNode: 'bowser_body' },
         veichles: LARGE_VEHICLES,
         stats: { speed: '2', acceleration: '0', weight: '3', handling: '0', traction: '0', drift: '1', offroad: '0' }
     },
@@ -228,7 +228,7 @@ export const Characters = [
         id: 'king_boo',
         name: 'King Boo', 
         sprite: './sprites/KingBoo.png', 
-        modelConfig: { file: '/riggedCharacters/KingBoo_Skeleton.glb', scale: 0.8, bodyNode: 'king_boo_body' },
+        modelConfig: { file: '/riggedCharacters/KingBoo_Skeleton.glb', scale: 0.7, bodyNode: 'king_boo_body' },
         veichles: LARGE_VEHICLES,
         stats: { speed: '0', acceleration: '0', weight: '1', handling: '2', traction: '0', drift: '0', offroad: '1' }
     },
@@ -236,7 +236,7 @@ export const Characters = [
         id: 'rosalina',
         name: 'Rosalina', 
         sprite: './sprites/Rosalina.png', 
-        modelConfig: { file: '/riggedCharacters/Rosalina_Skeleton.glb', scale: 0.8, bodyNode: 'rosalina_body' },
+        modelConfig: { file: '/riggedCharacters/Rosalina_Skeleton.glb', scale: 0.7, bodyNode: 'rosalina_body' },
         veichles: LARGE_VEHICLES,
         stats: { speed: '1', acceleration: '0', weight: '1', handling: '1', traction: '0', drift: '1', offroad: '0' }
     },
@@ -244,7 +244,7 @@ export const Characters = [
         id: 'funky_kong',
         name: 'Funky Kong', 
         sprite: './sprites/FunkyKong.png', 
-        modelConfig: { file: '/riggedCharacters/FunkyKong_Skeleton.glb', scale: 0.8, bodyNode: 'funky_body' },
+        modelConfig: { file: '/riggedCharacters/FunkyKong_Skeleton.glb', scale: 0.7, bodyNode: 'funky_body' },
         veichles: LARGE_VEHICLES,
         stats: { speed: '2', acceleration: '0', weight: '0', handling: '0', traction: '0', drift: '0', offroad: '1' }
     },
@@ -252,7 +252,7 @@ export const Characters = [
         id: 'dry_bowser',
         name: 'Dry Bowser', 
         sprite: './sprites/DryBowser.png', 
-        modelConfig: { file: '/riggedCharacters/DryBowser_Skeleton.glb', scale: 0.8, bodyNode: 'dry_bowser_body' },
+        modelConfig: { file: '/riggedCharacters/DryBowser_Skeleton.glb', scale: 0.7, bodyNode: 'dry_bowser_body' },
         veichles: LARGE_VEHICLES,
         stats: { speed: '0', acceleration: '0', weight: '2', handling: '0', traction: '0', drift: '0', offroad: '2' }
     }
@@ -278,7 +278,7 @@ export const VEHICLE_DATABASE = {
     'StandardBikeS': { 
         name: 'Standard Bike S', isBike: true, driftType: 'outside',
         stats: { speed: 30, weight: 15, accel: 65, handling: 65, drift: 55, offroad: 50 }, 
-        modelConfig: { file: '/Vehicles/StandardBikeM.glb', scale: 0.006 },
+        modelConfig: { file: '/Vehicles/StandardBikeM.glb', scale: 0.008 },
         riderOffset: [-0.04, 0.04, -0.17],
 		riderRotation: [0.80, 0.00, 0.00],
 		handPos: [0.22, 0.65, 0.40],
@@ -516,7 +516,7 @@ export const VEHICLE_DATABASE = {
     'StandardKartL': { 
         name: 'Standard Kart L', isBike: false, driftType: 'outside',
         stats: { speed: 60, weight: 70, accel: 40, handling: 40, drift: 50, offroad: 40 }, 
-        modelConfig: { file: '/Vehicles/StandardKartM.glb', scale: 0.013 },
+        modelConfig: { file: '/Vehicles/StandardKartM.glb', scale: 0.008 },
         riderOffset: [-0.06, -0.47, 0.20],
 		riderRotation: [0.00, 0.00, 0.00],
 		handPos: [0.25, 0.28, 0.45],
@@ -526,7 +526,7 @@ export const VEHICLE_DATABASE = {
     'StandardBikeL': { 
         name: 'Standard Bike L', isBike: true, driftType: 'outside',
         stats: { speed: 60, weight: 65, accel: 45, handling: 45, drift: 50, offroad: 40 }, 
-        modelConfig: { file: '/Vehicles/StandardBikeM.glb', scale: 0.013 },
+        modelConfig: { file: '/Vehicles/StandardBikeM.glb', scale: 0.008 },
         riderOffset: [-0.04, -0.10, -0.60],
 		riderRotation: [0.80, 0.00, 0.00],
 		handPos: [0.30, 0.60, 0.50],

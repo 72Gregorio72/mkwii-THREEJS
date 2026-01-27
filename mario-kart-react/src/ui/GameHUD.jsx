@@ -22,35 +22,39 @@ const ITEM_SPRITES = {
 };
 
 // 1. FIX: Added default values to props to prevent undefined startup
-export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1 }) => {
+export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player" }) => {
   
   const [speed, setSpeed] = useState(0);
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
   const [animClass, setAnimClass] = useState('');
 
+  const [isSpinning, setIsSpinning] = useState(false);
+  
+
   useEffect(() => {
     const handleHudUpdate = (e) => {
         if (!e.detail) return;
 
-        const { speed: rawSpeed, item: newItem } = e.detail;
-        
-        // 2. FIX: Sanitize the speed input. If physics sends NaN, we force 0.
-        let safeSpeed = Number(rawSpeed);
-        if (isNaN(safeSpeed) || !isFinite(safeSpeed)) {
-            safeSpeed = 0;
+        if (e.detail.targetRacerId && e.detail.targetRacerId !== playerId) {
+            return; 
         }
 
-        setSpeed(Math.abs(Math.round(safeSpeed * 1.5)));
+        const { speed: rawSpeed, item: newItem, isSpinning: spinning } = e.detail;
+        
+        if (rawSpeed !== undefined) {
+            let safeSpeed = Number(rawSpeed);
+            setSpeed(Math.abs(Math.round((isNaN(safeSpeed) ? 0 : safeSpeed) * 1.5)));
+        }
 
-        setCurrentItem((prev) => {
-            if (prev !== newItem) return newItem;
-            return prev;
-        });
+        if (newItem !== undefined) {
+            setCurrentItem(newItem);
+            setIsSpinning(spinning || false);
+        }
     };
 
     window.addEventListener('hud-update', handleHudUpdate);
     return () => window.removeEventListener('hud-update', handleHudUpdate);
-  }, []);
+  }, [playerId]);
 
   useEffect(() => {
     if (currentItem !== ITEMS.NONE) {
@@ -61,6 +65,9 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1 }) => {
   }, [currentItem]);
 
   const itemImage = ITEM_SPRITES[currentItem];
+
+  const finalItemAnim = (!isSpinning && currentItem !== ITEMS.NONE) ? 'pop-in' : '';
+	const spinningAnim = isSpinning ? 'roulette-blur' : '';
 
   // 3. FIX: Helper to render numbers safely in JSX
   const safeRender = (val) => {
@@ -76,12 +83,15 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1 }) => {
         <div style={styles.itemBoxBg}></div>
         {itemImage && (
           <img 
-            src={itemImage} 
-            alt="Item" 
-            className={animClass}
-            style={styles.itemImage} 
-          />
-        )}
+			src={itemImage} 
+			alt="Item" 
+			className={`${finalItemAnim} ${spinningAnim}`}
+			style={{
+				...styles.itemImage,
+				filter: isSpinning ? 'blur(2px) brightness(1.2)' : styles.itemImage.filter
+			}} 
+			/>
+		)}
       </div>
 
       {/* --- TOP RIGHT: TIME / LAP --- */}
@@ -99,9 +109,11 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1 }) => {
 
       {/* --- BOTTOM LEFT: RANK --- */}
       <div style={styles.rankContainer}>
-        {/* Safe Render applied here */}
-        <span style={styles.rankBig}>{safeRender(rank)}</span>
-        <span style={styles.rankSmall}>{getOrdinal(safeRender(rank))}</span>
+		<img 	
+			src={`/RankSprites/rank${safeRender(rank)}.png`} 
+			alt={`Rank ${rank}`}
+			style={{ width: '120px', height: 'auto', filter: 'drop-shadow(4px 4px 0px black)' }}
+		/>
       </div>
 
       {/* --- BOTTOM RIGHT: SPEEDOMETER --- */}
@@ -197,7 +209,7 @@ const styles = {
     background: 'linear-gradient(to bottom, #fff 0%, #ccc 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
-    filter: 'drop-shadow(4px 4px 0px black)' 
+    filter: 'drop-shadow(4px 4px 0px black)'
   },
   rankSmall: {
     fontSize: '40px',

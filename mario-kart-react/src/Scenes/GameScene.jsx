@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect, Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, Stats, useGLTF } from '@react-three/drei'
 import * as THREE from 'three' // Import necessario per Euler/Quaternion
@@ -29,6 +29,7 @@ import leftWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left.json'
 import rightWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right.json'
 import trackWaypoints1 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit1.json'
 import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
+import { gsap } from 'gsap'
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -62,6 +63,46 @@ function getGridPosition(startPos, index) {
         startPos[1], 
         startPos[2] + zOffset 
     ];
+}
+
+function CinematicCamera({ gameState, playerStartPos, playerStartRot }) {
+    const { camera } = useThree();
+
+    useFrame((state, delta) => {
+        if (gameState === 'INTRO') {
+            // Panoramica aerea che ruota lentamente
+            camera.position.lerp(new THREE.Vector3(60, 100, 60), delta * 0.5);
+            camera.lookAt(0, 0, 0);
+        } else if (gameState === 'COUNTDOWN') {
+            // Calcola la posizione "Dietro il Player" basata sulla rotazione iniziale
+            // Creiamo un offset standard (es: 8 unità indietro, 3 unità in alto)
+            const offset = new THREE.Vector3(0, 3, -8); 
+            
+            // Applichiamo la rotazione del player all'offset
+            const euler = new THREE.Euler(playerStartRot[0], playerStartRot[1] - Math.PI, playerStartRot[2]);
+            offset.applyEuler(euler);
+
+            // Posizione target della camera
+            const targetPos = new THREE.Vector3(
+                playerStartPos[0] + offset.x,
+                playerStartPos[1] + offset.y,
+                playerStartPos[2] + offset.z
+            );
+
+            // Transizione fluida verso il retro del player
+            camera.position.lerp(targetPos, delta * 4);
+            
+            // Guarda un punto leggermente sopra il player
+            const lookAtTarget = new THREE.Vector3(
+                playerStartPos[0],
+                playerStartPos[1] + 1.5,
+                playerStartPos[2]
+            );
+            camera.lookAt(lookAtTarget);
+        }
+    });
+
+    return null;
 }
 
 // --- NUOVO HOOK: CARICAMENTO GRIGLIA DAL GLB ---
@@ -103,6 +144,15 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     // Se selectedTrack.gridpos esiste, carica da lì. Altrimenti useremo il fallback.
     const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
 
+	const [gameState, setGameState] = useState('INTRO'); // 'INTRO', 'COUNTDOWN', 'RACING'
+	const [countdown, setCountdown] = useState(null);
+    const [finished, setFinished] = useState(false);
+    const [raceExited, setRaceExited] = useState(false);
+
+	// Calcola se la gara è effettivamente attiva per il movimento
+	const isRaceActive = gameState === 'RACING' && !finished && !raceExited;
+	const isControlDisabled = gameState !== 'RACING';
+
     // --- REFS DATI GARA ---
     const { initialRacersData, initialPositions } = useMemo(() => {
         const data = {
@@ -120,6 +170,81 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 
         return { initialRacersData: data, initialPositions: positions, botsArray: bots };
     }, []);
+
+	const introPlayed = useRef(false);
+	const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
+
+    const [positions, setPositions] = useState(initialPositions);
+    const playerRank = positions.find(p => p.id === 'player')?.position || 1;
+
+	useEffect(() => {
+        const handleItemCollected = (e) => {
+            const { racerId } = e.detail;
+            
+            if (racerId === 'player') {
+                playerRef.current?.triggerItemRoulette(playerRank);
+            } else if (racerId.startsWith('bot_')) {
+                // Trova il bot specifico e attiva la roulette basata sulla sua posizione attuale
+                const botRankInfo = positions.find(p => p.id === racerId);
+                const botRank = botRankInfo ? botRankInfo.position : 6;
+                botRefs.current[racerId].current?.triggerItemRoulette(botRank);
+            }
+        };
+
+        window.addEventListener('item-collected', handleItemCollected);
+        return () => window.removeEventListener('item-collected', handleItemCollected);
+    }, [playerRank, positions]);
+
+	useEffect(() => {
+		if (introPlayed.current) return;
+			introPlayed.current = true;
+
+			// 1. Setup Camera iniziale (Molto in alto per lo Zoom Out)
+			// Supponiamo che il centro della mappa sia [0,0,0]
+			// const cam = state.camera; // Dovrai passarlo tramite un componente o ref
+
+			// Fase 1: Zoom out panoramico
+			gsap.fromTo(cameraTarget.current, 
+				{ x: 0, y: 0, z: 0 }, 
+				{ x: 0, y: 5, z: 0, duration: 4 }
+			);
+
+			// Fase 2: Transizione al Player e poi Countdown
+			const timeline = gsap.timeline({
+				onComplete: () => startCountdown()
+			});
+
+			// Animazione "volo" dalla mappa al player
+			timeline.to(cameraTarget.current, {
+				x: playerStartPos[0],
+				y: playerStartPos[1] + 2,
+				z: playerStartPos[2],
+				duration: 3,
+				ease: "power2.inOut",
+				delay: 1
+			});
+	}, []);
+
+	const startCountdown = () => {
+		setGameState('COUNTDOWN');
+		let timer = 3;
+		setCountdown(timer);
+
+		const interval = setInterval(() => {
+			timer -= 1;
+			if (timer > 0) {
+				setCountdown(timer);
+				// Qui potresti triggerare l'audio SFX_COUNTDOWN
+			} else if (timer === 0) {
+				setCountdown('START!');
+				setGameState('RACING');
+				// SFX_RACE_START
+			} else {
+				setCountdown(null);
+				clearInterval(interval);
+			}
+		}, 1000);
+	};
 
     // --- GESTIONE ITEMS ---
     const [bananas, setBananas] = useState([]);
@@ -149,7 +274,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     const handleRemoveShell = (id) => setShells((prev) => prev.filter(s => s.id !== id));
 
     // --- STATI UI E AUDIO ---
-    const [positions, setPositions] = useState(initialPositions);
     const [uiLap, setUiLap] = useState(1);
 
     const { changeTrack } = useAudio();
@@ -162,8 +286,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
     // --- STATO GARA ---
     const [lap, setLap] = useState(1);
     const [nextCheck, setNextCheck] = useState(1); 
-    const [finished, setFinished] = useState(false);
-    const [raceExited, setRaceExited] = useState(false);
 
     // --- REFS ---
     const racersData = useRef(initialRacersData);
@@ -198,7 +320,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
         }
     }, [maxCheckpoints]);
 
-    const playerRank = positions.find(p => p.id === 'player')?.position || 1;
 
     // Gestione Uscita
     const handleExitRace = useCallback(() => {
@@ -232,8 +353,6 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
 
-    const isRaceActive = !finished && !raceExited;
-
     // --- DETERMINA POSIZIONE PLAYER ---
     // start_1 corrisponde al Player (griglia 1)
     const playerStartPos = gridPositions[12] || start_pos; 
@@ -242,22 +361,32 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
 
     return (
         <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-            {/* UI HUD */}
-            <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white', fontFamily: 'sans-serif', textShadow: '2px 2px 0 #000' }}>
-                <button onClick={handleExitRace} style={{marginBottom: 10, cursor: 'pointer'}}>Exit Race</button>
-                <h1 style={{ margin: 0 }}>Pos: {playerRank} / 12</h1>
-                <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
-                    {finished ? <span style={{color: '#ffdd00'}}>FINISH!</span> : `Lap ${lap} / ${TOTAL_LAPS}`}
-                </div>
-                <h2 style={{ margin: 0 }}>Lap: {uiLap}</h2>
-                <div style={{ fontSize: '14px', opacity: 0.7 }}>
-                      Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
-                </div>
-            </div>
 
             <GameHUD lap={uiLap} totalLaps={TOTAL_LAPS} rank={playerRank} />
 
+			{countdown && (
+				<div style={{
+					position: 'absolute',
+					top: '50%',
+					left: '50%',
+					transform: 'translate(-50%, -50%)',
+					fontSize: '120px',
+					fontWeight: '900',
+					color: countdown === 'START!' ? '#00ff00' : '#ffff00',
+					textShadow: '5px 5px 0px #000',
+					zIndex: 1000,
+					fontFamily: 'Arial Black, sans-serif'
+				}}>
+					{countdown}
+				</div>
+			)}
+
             <Canvas>
+				<CinematicCamera 
+					gameState={gameState} 
+					playerStartPos={playerStartPos} 
+					playerStartRot={playerStartRot} 
+				/>
                 <LightningAtmosphere />
                 <Stats />
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
@@ -317,7 +446,10 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                 ref={playerRef} 
                                 userData={{ type: 'racer', id: 'player' }}
                                 characterConfig={character.modelConfig}
+								botRefs={botRefs}
+								gameState={gameState}
                                 vehicleConfig={vehicle} 
+								positions={positions}
                                 START_POS={playerStartPos}
                                 START_ROT={playerStartRot} // Usa rotazione GLB
                                 trackRef={trackRef}
@@ -337,10 +469,8 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                     {/* BOTS */}
                     {Array.from({ length: BOT_COUNT }, (_, i) => {
                         const botId = `bot_${i}`;
-                        // Mappatura: i=0 (Bot 1) -> start_2, i=1 -> start_3...
                         const gridIndex = i; 
                         
-                        // Cerca posizione/rotazione nel GLB. Se manca, usa fallback matematico.
                         const botPos = gridPositions[gridIndex] || getGridPosition(start_pos, 12);
                         const botRot = gridRotations[gridIndex] || [0, Math.PI / 2, 0];
 
@@ -350,9 +480,11 @@ export function GameScene({ character, vehicle, mapPath, checkpointPath, onBack,
                                     ref={botRefs.current[botId]}
                                     userData={{ type: 'racer', id: botId }}
                                     characterConfig={character.modelConfig} 
+									gameState={gameState}
                                     vehicleConfig={vehicle} 
                                     START_POS={botPos}
-                                    START_ROT={botRot} // Usa rotazione GLB
+                                    START_ROT={botRot}
+									positions={positions}
                                     trackRef={trackRef} 
                                     trackConfig={selectedTrack} 
                                     isBot={true}
