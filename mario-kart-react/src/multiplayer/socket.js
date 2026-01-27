@@ -14,6 +14,7 @@ console.log('Connecting to Server at:', SERVER_URL);
 // 3. Connect
 export const socket = io(SERVER_URL, {
     transports: ['websocket'],
-    secure: true, 
+	upgrade: false,
+    secure: true,
     rejectUnauthorized: false
 });

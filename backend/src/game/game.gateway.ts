@@ -8,9 +8,22 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
+import { getLocalIpAddress } from 'src/utils';
+
+const myIP = getLocalIpAddress();
 
 @WebSocketGateway({
-  cors: { origin: '*' } // Allow React frontend to connect
+  cors: {
+    // 1. STRICT ORIGIN: list the exact frontend URL.
+    // Wildcards ('*') are forbidden when credentials are true.
+    origin: ['https://127.0.0.1:3000', `https://${myIP}:5173`], 
+    
+    // 2. CREDENTIALS: Required for cookies/sticky sessions
+    credentials: true, 
+  },
+  // 3. TRANSPORTS: 'polling' is useful as a fallback if WS fails initially,
+  // but strictly 'websocket' is fine if the client is configured to match.
+  transports: ['websocket', 'polling'] 
 })
 export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   
@@ -29,7 +42,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // Emit 'world_update' to EVERYONE connected
       // The frontend will listen for this event to render opponent karts
       this.server.emit('world_update', gameState);
-    }, 66); 
+    }, 33); 
   }
 
   // 2. Handle New Connections
@@ -53,7 +66,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.gameService.removePlayer(client.id);
     
     // Optional: Tell frontend specifically to remove this mesh immediately
-    this.server.emit('player_disconnected', client.id); 
+    //this.server.emit('player_disconnected', client.id); 
   }
 
   // 4. Receive Position Updates from Clients
