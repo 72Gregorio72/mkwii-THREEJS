@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect } from 'react';
 
-export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle }) => {
+export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems }) => {
     
     // 2. Tell the server who we are when we join/load
     useEffect(() => {
@@ -49,14 +49,26 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
     // 4. RECEIVE: Listen for other players 
     useEffect(() => {
         if (!socket) return;
-        socket.on('world_update', (serverPlayers) => {
-            const others = serverPlayers.filter(p => p.id !== socket.id);
-            setOpponents(others);
-        });
-        return () => {
-            socket.off('world_update');
-        };
-    }, [socket, setOpponents]);
+
+        socket.on('world_update', (data) => {
+			// Prima: data era l'array dei player
+			// Ora: data è { players: [...], items: [...] }
+			
+			const serverPlayers = data.players || [];
+			const others = serverPlayers.map(p => ({
+				...p,
+				isMe: p.id === socket.id
+			}));
+			setOpponents(others);
+
+			// Setta gli oggetti se presenti
+			if (data.items) {
+				setItems(data.items);
+			}
+		});
+
+        return () => socket.off('world_update');
+    }, [socket, setOpponents, setItems]);
 
     useEffect(() => {
             if (!socket) return;
@@ -70,20 +82,17 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
             };
 
             // Handler 2: Lightning (Global Effect)
-            const handleLightningStrike = (payload) => {
-                console.log("Socket received LIGHTNING:", payload);
-                window.dispatchEvent(new CustomEvent('lightning-strike', {
-                    detail: payload
-                }));
-            };
+            socket.on('lightning-strike', (payload) => {
+				console.log("Fulmine ricevuto dal server!");
+				// Dispatch a window per il player locale
+				window.dispatchEvent(new CustomEvent('lightning-strike', { detail: payload }));
+			});
 
             // Bind specific listeners
             socket.on('banana-hit', handleBananaHit);
-            socket.on('lightning-strike', handleLightningStrike);
 
             return () => {
                 socket.off('banana-hit', handleBananaHit);
-                socket.off('lightning-strike', handleLightningStrike);
             };
         }, [socket]);
 
