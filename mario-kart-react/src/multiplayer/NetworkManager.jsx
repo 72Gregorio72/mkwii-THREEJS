@@ -1,8 +1,9 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Html } from '@react-three/drei';
 
-export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems }) => {
-    
+export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef }) => {
+    const [ping, setPing] = useState(0);
     // 2. Tell the server who we are when we join/load
     useEffect(() => {
         if (!socket || !character || !vehicle) return;
@@ -13,88 +14,98 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
         });
     }, [socket, character, vehicle]);
 
-    // 3. SEND: Update server with my position every frame
-    useFrame(({ clock }) => {
-        if (!playerRef.current || !socket) return;
+    const lastSendTime = useRef(0);
 
-        // Recupera dati fisici
-        const pos = playerRef.current.translation(); 
-        const rot = playerRef.current.rotation(); 
-        
-        // Recupera input (Sterzo/Drift)
-        const inputState = playerRef.current.getInputState 
-            ? playerRef.current.getInputState() 
-            : { steer: 0, drift: 0 };
-
-        // --- NEW: Recupera effetti (Bullet Bill, Star, etc.) ---
-        // Assicurati che OutsideDriftKart abbia esposto questa funzione!
-        const effectState = playerRef.current.getEffectState
-            ? playerRef.current.getEffectState()
-            : { isBulletBill: false, isStar: false, isMega: false, isSmall: false, isSpinning: false };
-
-        if (pos && rot) {
-            socket.emit('move_kart', {
-                x: pos.x, 
-                y: pos.y, 
-                z: pos.z,
-                rotation: rot,
-                steer: inputState.steer,
-                drift: inputState.drift,
-                // Invia l'oggetto effetti intero
-                effects: effectState 
-            });
-        }
-    });
-
-    // 4. RECEIVE: Listen for other players 
-    useEffect(() => {
+	useEffect(() => {
         if (!socket) return;
 
-        socket.on('world_update', (data) => {
-			// Prima: data era l'array dei player
-			// Ora: data è { players: [...], items: [...] }
-			
-			const serverPlayers = data.players || [];
-			const others = serverPlayers.map(p => ({
-				...p,
-				isMe: p.id === socket.id
-			}));
-			setOpponents(others);
+        const interval = setInterval(() => {
+            const start = Date.now();
+            socket.emit('ping');
+            
+            socket.once('pong', () => {
+                setPing(Date.now() - start);
+            });
+        }, 2000); // Misura ogni 2 secondi per non intasare
 
-			// Setta gli oggetti se presenti
-			if (data.items) {
-				setItems(data.items);
-			}
+        return () => {
+            clearInterval(interval);
+            socket.off('pong');
+        };
+    }, [socket]);
+
+	// --- NetworkManager.jsx ---
+	useFrame(({ clock }) => {
+		if (!playerRef.current || !socket) return;
+
+		const now = clock.getElapsedTime();
+		// Invio a 30Hz è perfetto per un gioco di corse
+		if (now - lastSendTime.current < 0.033) return; 
+		lastSendTime.current = now;
+
+		// PRENDI I DATI REALI DALLA FISICA LOCALE (L'AUTORITÀ)
+		const pos = playerRef.current.translation(); 
+		const rot = playerRef.current.rotation();
+		
+		const inputState = playerRef.current.getInputState?.() || { steer: 0, drift: 0 };
+		const effectState = playerRef.current.getEffectState?.() || { isBulletBill: false };
+
+		// IL CLIENT È SOVRANO: Manda la sua verità al server
+		socket.emit('move_kart', {
+			x: pos.x, 
+			y: pos.y, 
+			z: pos.z,
+			rotation: rot, // Assicurati che sia l'oggetto {x,y,z,w}
+			steer: inputState.steer,
+			drift: inputState.drift,
+			effects: effectState,
 		});
+	});
 
-        return () => socket.off('world_update');
-    }, [socket, setOpponents, setItems]);
+	// --- NetworkManager.jsx ---
+	useEffect(() => {
+		if (!socket) return;
 
-    useEffect(() => {
-            if (!socket) return;
+		const onWorldUpdate = (data) => {
+			const allPlayers = data.players || [];
+			const others = allPlayers.filter(p => p.id !== socket.id);
 
-            // Handler 1: Standard Hits (Banana, Shells, etc.)
-            const handleBananaHit = (payload) => {
-                console.log("Socket received HIT:", payload);
-                window.dispatchEvent(new CustomEvent('banana-hit', { 
-                    detail: payload 
-                }));
-            };
-
-            // Handler 2: Lightning (Global Effect)
-            socket.on('lightning-strike', (payload) => {
-				console.log("Fulmine ricevuto dal server!");
-				// Dispatch a window per il player locale
-				window.dispatchEvent(new CustomEvent('lightning-strike', { detail: payload }));
+			// 1. Aggiorna il REF (Dati per il movimento fluido senza re-render)
+			others.forEach(p => {
+				opponentsDataRef.current[p.id] = p;
 			});
 
-            // Bind specific listeners
-            socket.on('banana-hit', handleBananaHit);
+			// 2. Aggiorna lo STATO (Solo per dire a React QUALI componenti RemoteOpponent montare)
+			// Usiamo un set di ID per evitare re-render inutili se i dati cambiano ma i giocatori sono gli stessi
+			setOpponents(prev => {
+				const newIds = others.map(o => o.id).join(',');
+				const prevIds = prev.map(o => o.id).join(',');
+				if (newIds === prevIds) return prev; // Se i giocatori sono gli stessi, non aggiornare lo stato
+				return others;
+			});
 
-            return () => {
-                socket.off('banana-hit', handleBananaHit);
-            };
-        }, [socket]);
+			if (data.items) setItems(data.items);
+		};
 
-    return null;
+		socket.on('world_update', onWorldUpdate);
+		return () => socket.off('world_update', onWorldUpdate);
+	}, [socket, setOpponents, setItems, opponentsDataRef]);
+
+    return (
+        <Html fullscreen style={{ pointerEvents: 'none' }}>
+            <div style={{
+                position: 'absolute',
+                bottom: '20px',
+                right: '20px',
+                color: ping > 100 ? '#ff4444' : '#00ff00',
+                fontFamily: 'monospace',
+                fontSize: '14px',
+                background: 'rgba(0,0,0,0.5)',
+                padding: '5px 10px',
+                borderRadius: '5px'
+            }}>
+                PING: {ping}ms
+            </div>
+        </Html>
+    );
 };

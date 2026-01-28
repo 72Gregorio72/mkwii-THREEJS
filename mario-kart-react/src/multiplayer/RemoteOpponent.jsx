@@ -11,10 +11,10 @@ import { VehicleModel } from '../models/VehicleModel.jsx';
 
 const PHYSICS_RADIUS = 1; 
 
-export const RemoteOpponent = ({ data, character, vehicle, userData }) => {
+export const RemoteOpponent = ({ playerId, opponentsDataRef, character, vehicle, userData, data }) => {
     const racerId = userData?.id || "player";
     const rb = useRef();
-    const visualGroupRef = useRef(); 
+    const visualGroupRef = useRef();
     
     // Visual State Refs
     const isHitRef = useRef(false);
@@ -34,6 +34,80 @@ export const RemoteOpponent = ({ data, character, vehicle, userData }) => {
         });
         return clone;
     }, [billScene]);
+
+	// Aggiungi questo ref per gestire la coda dei messaggi
+const renderBuffer = useRef([]);
+
+// Quando ricevi nuovi dati (tramite useEffect o prop), aggiungili al buffer
+	useEffect(() => {
+		renderBuffer.current.push({
+			t: Date.now(),
+			pos: new Vector3(data.x, data.y, data.z),
+			rot: new Quaternion(
+				data.rotation?.x ?? 0, 
+				data.rotation?.y ?? 0, 
+				data.rotation?.z ?? 0, 
+				data.rotation?.w ?? 1
+			)
+		});
+		
+		// Mantieni il buffer corto (ultimi 10 pacchetti)
+		if (renderBuffer.current.length > 10) renderBuffer.current.shift();
+	}, [data]);
+
+	// Aggiungi questi ref all'inizio del componente
+	const INTERPOLATION_DELAY = 100; // ms di ritardo per assorbire i lag di rete
+
+	useEffect(() => {
+		// Inseriamo il pacchetto nel buffer con il timestamp di ricezione
+		renderBuffer.current.push({
+			t: Date.now(),
+			pos: [data.x, data.y, data.z],
+			rot: [
+				data.rotation?.x ?? 0,
+				data.rotation?.y ?? 0,
+				data.rotation?.z ?? 0,
+				data.rotation?.w ?? 1
+			]
+		});
+		// Pulizia buffer vecchio
+		if (renderBuffer.current.length > 20) renderBuffer.current.shift();
+	}, [data]);
+
+	useFrame((state, delta) => {
+		if (!rb.current || renderBuffer.current.length < 2) return;
+
+		const now = Date.now();
+		const renderTime = now - INTERPOLATION_DELAY;
+
+		// 1. Trova i due pacchetti tra cui interpolare
+		let i = 0;
+		for (; i < renderBuffer.current.length - 1; i++) {
+			if (renderBuffer.current[i + 1].t > renderTime) break;
+		}
+
+		const b0 = renderBuffer.current[i];
+		const b1 = renderBuffer.current[i + 1];
+
+		if (b0 && b1 && b1.t !== b0.t) {
+			// 2. Calcola il fattore di interpolazione (0 a 1)
+			const alpha = (renderTime - b0.t) / (b1.t - b0.t);
+
+			// Interpolazione Posizione
+			const interpX = MathUtils.lerp(b0.pos[0], b1.pos[0], alpha);
+			const interpY = MathUtils.lerp(b0.pos[1], b1.pos[1], alpha);
+			const interpZ = MathUtils.lerp(b0.pos[2], b1.pos[2], alpha);
+
+			// Interpolazione Rotazione
+			const q0 = new Quaternion(...b0.rot);
+			const q1 = new Quaternion(...b1.rot);
+			q0.slerp(q1, alpha);
+
+			// 3. Applica i dati (usa setNextKinematic per Rapier)
+			rb.current.setNextKinematicTranslation({ x: interpX, y: interpY, z: interpZ });
+			rb.current.setNextKinematicRotation(q0);
+		}
+	});
 
     // Destructure effects
     const { isBulletBill, isStar, isMega } = data.effects || {};
@@ -115,26 +189,47 @@ export const RemoteOpponent = ({ data, character, vehicle, userData }) => {
 
 
     useFrame((state, delta) => {
-        if (!rb.current) return;
+        // LEGGIAMO I DATI DIRETTAMENTE DAL REF
+        const serverData = opponentsDataRef.current[playerId];
+        if (!serverData || !rb.current) return;
 
-        // ... [PHYSICS INTERPOLATION CODE REMAINS THE SAME] ...
-        const targetPos = new Vector3(data.x, data.y, data.z);
-        const targetRot = new Quaternion(
-            data.rotation?.x ?? 0, data.rotation?.y ?? 0, data.rotation?.z ?? 0, data.rotation?.w ?? 1
-        );
+        // Aggiungiamo i dati al buffer di interpolazione
+        renderBuffer.current.push({
+            t: Date.now(),
+            pos: [serverData.x, serverData.y, serverData.z],
+            rot: [
+                serverData.rotation?.x ?? 0,
+                serverData.rotation?.y ?? 0,
+                serverData.rotation?.z ?? 0,
+                serverData.rotation?.w ?? 1
+            ]
+        });
 
-        const currentPos = rb.current.translation();
-        const currentRot = rb.current.rotation();
-        
-        const lerpedX = MathUtils.lerp(currentPos.x, targetPos.x, delta * 15);
-        const lerpedY = MathUtils.lerp(currentPos.y, targetPos.y, delta * 15);
-        const lerpedZ = MathUtils.lerp(currentPos.z, targetPos.z, delta * 15);
-        
-        const curQ = new Quaternion(currentRot.x, currentRot.y, currentRot.z, currentRot.w);
-        curQ.slerp(targetRot, delta * 15);
-        
-        rb.current.setNextKinematicTranslation({ x: lerpedX, y: lerpedY, z: lerpedZ });
-        rb.current.setNextKinematicRotation(curQ);
+        if (renderBuffer.current.length > 20) renderBuffer.current.shift();
+        if (renderBuffer.current.length < 2) return;
+
+        // --- LOGICA DI INTERPOLAZIONE (già presente nel tuo codice) ---
+        const now = Date.now();
+        const renderTime = now - INTERPOLATION_DELAY;
+        let i = 0;
+        for (; i < renderBuffer.current.length - 1; i++) {
+            if (renderBuffer.current[i + 1].t > renderTime) break;
+        }
+        const b0 = renderBuffer.current[i];
+        const b1 = renderBuffer.current[i + 1];
+
+        if (b0 && b1 && b1.t !== b0.t) {
+            const alpha = (renderTime - b0.t) / (b1.t - b0.t);
+            const interpX = MathUtils.lerp(b0.pos[0], b1.pos[0], alpha);
+            const interpY = MathUtils.lerp(b0.pos[1], b1.pos[1], alpha);
+            const interpZ = MathUtils.lerp(b0.pos[2], b1.pos[2], alpha);
+            const q0 = new Quaternion(...b0.rot);
+            const q1 = new Quaternion(...b1.rot);
+            q0.slerp(q1, alpha);
+
+            rb.current.setNextKinematicTranslation({ x: interpX, y: interpY, z: interpZ });
+            rb.current.setNextKinematicRotation(q0);
+        }
 
         // --- B. VISUAL EFFECTS ---
         if (visualGroupRef.current) {

@@ -132,19 +132,16 @@ export const usePowerupHandler = ({
   const [tripleCount, setTripleCount] = useState(3);
   const [isGoldenActive, setIsGoldenActive] = useState(false);
   const goldenTimerRef = useRef(null);
-  const lastMushroomAudioTime = useRef(0); // Timestamp ultima riproduzione audio mushroom
+  const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
     setCurrentItem(ITEMS.RED_SHELL);
-    console.log("Oggetto raccolto: GREEN SHELL");
+    console.log("Oggetto raccolto: RED SHELL");
   };
-
-  // --- LOGICA FUNGHI ---
 
   const useMushroom = () => {
     if (!boostTime) return;
 
-    // Riproduci audio solo se sono passati almeno 300ms dall'ultimo
     const now = Date.now();
     if (now - lastMushroomAudioTime.current > 1000) {
       playSfx(AUDIO_SFX.TURBO_DRIFT, 2.0);
@@ -156,14 +153,12 @@ export const usePowerupHandler = ({
     
     boostTime.current = SETTINGS.boostDuration * 2.0;
     
-    // Spinta sulla velocità
     if (speed && speed.current < SETTINGS.maxSpeed) {
       speed.current = MathUtils.lerp(speed.current, SETTINGS.maxSpeed + 25, 0.5);
     }
     console.log("Fungo utilizzato!");
   };
 
-  // 1. TRIPLO FUNGO
   const useTripleMushroom = () => {
       useMushroom(); // Usa un fungo
       

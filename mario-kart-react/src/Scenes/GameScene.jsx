@@ -291,6 +291,8 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const playerRef = useRef(); 
     const botRefs = useRef({});
 
+	const opponentsDataRef = useRef({});
+
     // Inizializza refs per i bot
     for (let i = 0; i < BOT_COUNT; i++) {
         if (!botRefs.current[`bot_${i}`]) {
@@ -466,9 +468,11 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                     character={character} 
                     vehicle={vehicle} 
 					setItems={setNetworkItems}
+					opponentsDataRef={opponentsDataRef}
+					gameState={gameState}
                 />
 
-                <Physics debug={true}>
+                <Physics debug={false}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
@@ -490,7 +494,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 								case 'green_shell': 
 									return <GreenShell key={item.id} {...commonProps} />;
 								case 'red_shell': 
-									return <RedShell key={item.id} {...commonProps} targets={targets} />;
+									return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={trackWaypoints} />;
 								case 'bomb': 
 									return <BobOmb key={item.id} {...commonProps} />;
 								// Aggiungi qui altri casi se necessario
@@ -529,19 +533,15 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 
                     {/* OPPONENTI REMOTI (Multiplayer) */}
                     {opponents.map((playerData) => {
-						if (playerData.id === socket.id) return null;
-
-						const remoteChar = Characters.find(c => c.id === playerData.charId) || character;
-						const remoteVehicleConfig = VEHICLE_DATABASE[playerData.vehicleId];
-						const remoteVehicle = remoteVehicleConfig ? { id: playerData.vehicleId, ...remoteVehicleConfig } : vehicle;
-
 						return (
 							<RemoteOpponent 
 								key={playerData.id} 
-								data={playerData}
-								character={remoteChar} 
-								vehicle={remoteVehicle}
+								playerId={playerData.id} // Passa l'ID
+								opponentsDataRef={opponentsDataRef} // Passa il Ref globale
+								character={Characters.find(c => c.id === playerData.charId) || character} 
+								vehicle={VEHICLE_DATABASE[playerData.vehicleId] || vehicle}
 								userData={{ type: 'opponent', id: playerData.id }} 
+								data={playerData}
 							/>
 						);
 					})}

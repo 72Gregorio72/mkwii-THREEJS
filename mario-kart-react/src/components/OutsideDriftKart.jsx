@@ -221,7 +221,7 @@ const SpeedEffect = ({ boostTimeRef, isBulletBill }) => {
   )
 }
 
-export const OutsideDriftKart = forwardRef((props, ref) => {
+export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const { 
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
@@ -1257,4 +1257,4 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       </RigidBody>
     </>
   )
-});
+}));
