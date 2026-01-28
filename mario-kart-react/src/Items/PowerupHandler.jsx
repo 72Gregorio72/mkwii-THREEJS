@@ -1,6 +1,8 @@
 // PowerupHandler.js
 import { useState, useRef, useEffect } from 'react';
 import { MathUtils } from 'three';
+import { AUDIO_SFX } from '../components/Data';
+import { useAudio } from '../audio/AudioManager';
 
 export const ITEMS = {
   NONE: 'NONE',
@@ -71,12 +73,22 @@ export const usePowerupHandler = ({
   activateMega,
   onActivateLightning,
   racerId,
+  selectedCharacter,
+  isLocalPlayer = false, // true solo per il player locale che gioca su questo client
 }) => {
-
-	
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
 	const [isRoulette, setIsRoulette] = useState(false);
+  const rouletteAudioRef = useRef(null);
+  const decideAudioRef = useRef(null);
+
+  useEffect(() => {
+    if (!isLocalPlayer) return; // Solo il player locale riproduce audio
+    rouletteAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_DECIDE);
+    rouletteAudioRef.current.volume = 0.7;
+    decideAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_ROLL);
+    decideAudioRef.current.volume = 0.8;
+  }, [isLocalPlayer]);
 
 	const triggerItemRoulette = (rank = 6) => {
         
@@ -87,6 +99,12 @@ export const usePowerupHandler = ({
 
         console.log(`Roulette avviata per Rank: ${rank}`);
         setIsRoulette(true);
+        
+        // Riproduci il suono della roulette (non posizionale) - SOLO per player locale
+        if (isLocalPlayer && rouletteAudioRef.current) {
+          rouletteAudioRef.current.currentTime = 0;
+          rouletteAudioRef.current.play().catch(err => console.log('Errore audio roulette:', err));
+        }
 
         setTimeout(() => {
             const selectedItem = getItemBasedOnRank(rank);
@@ -95,6 +113,12 @@ export const usePowerupHandler = ({
 
             setCurrentItem(selectedItem);
             setIsRoulette(false);
+            
+            // Riproduci il suono di decisione item - SOLO per player locale
+            if (isLocalPlayer && decideAudioRef.current) {
+              decideAudioRef.current.currentTime = 0;
+              decideAudioRef.current.play().catch(err => console.log('Errore audio decide:', err));
+            }
             
             if (selectedItem === ITEMS.TRIPLE_MUSHROOM) setTripleCount(3);
             if (selectedItem === ITEMS.GOLDEN_MUSHROOM) setIsGoldenActive(false);
@@ -107,9 +131,12 @@ export const usePowerupHandler = ({
     };
   const isItemKeyPressed = useRef(false);
 
+  const { playSfx } = useAudio()
+
   const [tripleCount, setTripleCount] = useState(3);
   const [isGoldenActive, setIsGoldenActive] = useState(false);
   const goldenTimerRef = useRef(null);
+  const lastMushroomAudioTime = useRef(0); // Timestamp ultima riproduzione audio mushroom
 
   const pickupItem = () => {
     setCurrentItem(ITEMS.LIGHTNING);
@@ -120,7 +147,17 @@ export const usePowerupHandler = ({
 
   const useMushroom = () => {
     if (!boostTime) return;
-    // Boost istantaneo
+
+    // Riproduci audio solo se sono passati almeno 300ms dall'ultimo
+    const now = Date.now();
+    if (now - lastMushroomAudioTime.current > 1000) {
+      playSfx(AUDIO_SFX.TURBO_DRIFT, 2.0);
+      if (selectedCharacter?.turbo_sfx && AUDIO_SFX[selectedCharacter.turbo_sfx]) {
+        playSfx(AUDIO_SFX[selectedCharacter.turbo_sfx], 0.6);
+      }
+      lastMushroomAudioTime.current = now;
+    }
+    
     boostTime.current = SETTINGS.boostDuration * 2.0;
     
     // Spinta sulla velocità
@@ -166,7 +203,9 @@ export const usePowerupHandler = ({
   // --- ALTRI ITEM ---
 
   const useLightning = () => {
-      console.log("KABOOM! Fulmine attivato!");
+      console.log("KABOOM! Fulmine attivato !");
+      // THUNDER_USE: lo sentono tutti
+      playSfx(AUDIO_SFX.THUNDER_USE, 1.0);
       window.dispatchEvent(new CustomEvent('lightning-strike', { 
           detail: { attackerId: racerId } 
       }));

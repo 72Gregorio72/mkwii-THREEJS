@@ -1,12 +1,15 @@
-import React, { useState, useRef, memo } from 'react';
+import React, { useState, useRef, memo, useEffect } from 'react';
 import { useGLTF, Clone } from '@react-three/drei';
 import { RigidBody, CylinderCollider } from '@react-three/rapier';
+import { AUDIO_SFX } from '../components/Data';
+import { PositionalAudio } from '@react-three/drei';
 
 export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0] }) {
     const { scene } = useGLTF('/items/Banana.glb');
     const rb = useRef();
     const [isLanded, setIsLanded] = useState(false);
-    
+    const AudioRef = useRef();
+    const GroundAudioRef = useRef();
     // Stato per far sparire la banana dopo che è stata colpita
     const [isVisible, setIsVisible] = useState(true);
 
@@ -14,7 +17,10 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0] 
         if (isLanded) return;
         const targetName = payload.other.rigidBodyObject?.name || "";
         if (targetName.includes("player") || targetName.includes("bot")) return;
+        if (GroundAudioRef)
+            GroundAudioRef.current.play();
         setIsLanded(true);
+        
     };
 
     const handleIntersectionEnter = (payload) => {
@@ -60,7 +66,19 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0] 
                 onIntersectionEnter={handleIntersectionEnter}
                 position={[0, 0.4, 0]} 
             /> 
-
+            <PositionalAudio
+                ref={AudioRef}
+                url={AUDIO_SFX.BANANA_THROW}
+                distance={7}
+                loop={false}
+                autoplay={true}
+            />
+            <PositionalAudio
+                ref={GroundAudioRef}
+                url={AUDIO_SFX.BANANA_GROUND}
+                distance={5}
+                loop={false}
+            />
             <group scale={[0.015, 0.015, 0.015]} position={[0, 0, 0]}> 
                  <Clone object={scene} /> 
             </group>

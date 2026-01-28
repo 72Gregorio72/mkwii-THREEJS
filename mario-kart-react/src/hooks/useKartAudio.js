@@ -379,8 +379,6 @@ export const useKartAudio = ({ isBike = false, isActive = true, isBot = false, b
 
     // Se lo stato non è cambiato, non fare nulla (per il motore)
     if (targetState !== currentStateRef.current) {
-      console.log('[Audio] State change:', currentStateRef.current, '->', targetState, 'speed:', absSpeed, 'isAccel:', isAccelerating);
-      
       // Ferma l'audio corrente
       const stopCurrent = () => {
         switch (currentStateRef.current) {

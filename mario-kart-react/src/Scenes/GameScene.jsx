@@ -25,6 +25,7 @@ import { GreenShell } from '../Items/GreenShell';
 import { RedShell } from '../Items/RedShell';
 import { BlueShell } from '../Items/BlueShell.jsx'
 import { BobOmb } from '../Items/BobOmb.jsx'
+import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
 
 // --- IMPORTS WAYPOINTS ---
 import trackWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit.json'
@@ -275,7 +276,10 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
             {/* HUD PRINCIPALE */}
             <GameHUD lap={uiLap} totalLaps={TOTAL_LAPS} rank={playerRank} />
 
-            <Canvas shadows dpr={[1, 2]}>
+            <Canvas>
+                {/* Audio 3D Listener - DEVE essere prima di qualsiasi kart */}
+                <AudioListenerComponent />
+                
                 <LightningAtmosphere />
                 <Stats />
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />

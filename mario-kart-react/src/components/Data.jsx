@@ -806,6 +806,7 @@ export const AUDIO_SFX = {
     KART_GAS: '/SFX/kart/KART_GAS.wav', // gas sound
     KART_DOWNSHIFT: '/SFX/kart/KART_DOWN.wav', // downshift sound
     KART_LOOP: '/SFX/kart/KART_LOOP.wav', // loop sound
+    KART_SPIN: '/SFX/kart/KART_SPIN.wav', // spin sound
     BIKE_IDLE: '/SFX/bike/BIKE_IDLE.wav',
     BIKE_GAS: '/SFX/bike/BIKE_GAS.wav',
     BIKE_DOWNSHIFT: '/SFX/bike/BIKE_DOWN.wav',
@@ -986,4 +987,38 @@ export const AUDIO_SFX = {
     YOSHI_DAMAGE: '/SFX/Yoshi/VO_YS_DMG_L2.rwav.wav',
     YOSHI_SELECT: '/SFX/Yoshi/Yoshi_Select.wav',
 
+    THREE_SHELLS: '/SFX/red_greenShell/SE_ITM_KAME_EQUIP_3.wav', 
+    TWO_SHELLS: '/SFX/red_greenShell/SE_ITM_KAME_EQUIP_2.wav',
+    ONE_SHELL: '/SFX/red_greenShell/SE_ITM_KAME_EQUIP_1.wav',
+    G_R_SHELL_HIT: '/SFX/red_greenShell/SE_ITM_KAME_HANSHA.wav',
+    RED_SHELL_MOVE: '/SFX/red_greenShell/SE_ITM_KAME_R_MOVE.wav',
+    GREEN_SHELL_MOVE: '/SFX/red_greenShell/SE_ITM_KAME_G_MOVE.wav',
+
+    STAR_LOOP: '/SFX/star/SE_ITM_STAR_STATE.wav',
+
+    THUNDER_USE: '/SFX/thunder/SE_ITM_THNDR_USE.wav',
+    THUNDER_LOOP: '/SFX/thunder/SE_ITM_THNDR_STATE.wav',
+    THUNDER_SMALL_STATE: '/SFX/thunder/SE_ITM_THNDR_SMALL.wav',
+    THUNDER_BIG_STATE: '/SFX/thunder/SE_ITM_THNDR_BIG.wav',
+
+    ITEM_BOX_BREAK: '/SFX/itemBox/SE_ITM_BOX_BRK.wav',
+    ITEM_BOX_ROLL: '/SFX/itemBox/SE_RC_ITEM_DECIDE.wav',
+    ITEM_BOX_DECIDE: '/SFX/itemBox/SE_RC_ITEM_ROULETTE.wav',
+
+    BULLET_BILL_STATE: '/SFX/bulletBill/SE_ITM_KILLER_FLY.wav',
+    BULLET_BILL_START: '/SFX/bulletBill/SE_ITM_KILLER_ON.wav',
+    BULLET_BILL_OFF: '/SFX/bulletBill/SE_ITM_KILLER_OFF.wav',
+
+    BOB_OMB_EXPLODE: '/SFX/bob-omb/SE_ITM_BOMB_EXPLODE.wav',
+
+    BLUE_SHELL_LOOP: '/SFX/blueShell/SE_ITM_HANE_FLY.wav',
+    BLUE_SHELL_EXPLODE: '/SFX/blueShell/SE_ITM_HANE_EXPLODE.wav',
+    BLUE_SHELL_ABOVE: '/SFX/blueShell/SE_ITM_HANE_NEAR.wav',
+
+    BIG_MUSHROOM_USE: '/SFX/bigMushroom/SE_ITM_BIG_KINOKO_USE.wav',
+    BIG_MUSHROOM_STATE: '/SFX/bigMushroom/SE_ITM_BIG_KINOKO_STATE.wav',
+    BIG_MUSHROOM_OFF: '/SFX/bigMushroom/SE_ITM_BIG_KINOKO_RET.wav',
+
+    BANANA_THROW: '/SFX/banana/SE_ITM_BANANA_BOMB_FLY.wav',
+    BANANA_GROUND: '/SFX/banana/SE_ITM_BANANA_GND.wav',
 };

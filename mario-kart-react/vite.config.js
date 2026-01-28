@@ -5,11 +5,11 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      'three': path.resolve('./node_modules/three')
-    }
-  },
+  // resolve: {
+  //   alias: {
+  //     'three': path.resolve('./node_modules/three') ??????
+  //   }
+  // },
   server: {
     host: true,
     strictPort: true,
