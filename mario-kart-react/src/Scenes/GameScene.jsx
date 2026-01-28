@@ -74,7 +74,7 @@ function getGridPosition(startPos, index) {
 function CinematicCamera({ gameState, playerStartPos, playerStartRot }) {
     const { camera } = useThree();
 
-    useFrame((state, delta) => {
+    useFrame((_state, delta) => {
         if (gameState === 'INTRO') {
             // Panoramica aerea che ruota lentamente
             camera.position.lerp(new THREE.Vector3(60, 100, 60), delta * 0.5);
@@ -227,67 +227,30 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 			});
 	}, []);
 
-	const startCountdown = () => {
-		setGameState('COUNTDOWN');
-		let timer = 3;
-		setCountdown(timer);
+    const startCountdown = () => {
+        setGameState('COUNTDOWN');
+        let timer = 3;
+        setCountdown(timer);
 
-		const interval = setInterval(() => {
-			timer -= 1;
-			if (timer > 0) {
-				setCountdown(timer);
-				// Qui potresti triggerare l'audio SFX_COUNTDOWN
-			} else if (timer === 0) {
-				setCountdown('START!');
-				setGameState('RACING');
-				// SFX_RACE_START
-			} else {
-				setCountdown(null);
-				clearInterval(interval);
-			}
-		}, 1000);
-	};
+        const interval = setInterval(() => {
+            timer -= 1;
+            if (timer > 0) {
+                setCountdown(timer);
+                // Qui potresti triggerare l'audio SFX_COUNTDOWN
+            } else if (timer === 0) {
+                setCountdown('START!');
+                setGameState('RACING');
+                // SFX_RACE_START
+            } else {
+                setCountdown(null);
+                clearInterval(interval);
+            }
+        }, 1000);
+    };
 
     // 3. REFS & STATE
-    // --- GESTIONE ITEMS ---
-    const [bananas, setBananas] = useState([]);
-    const [shells, setShells] = useState([]);
-    const [redShells, setRedShells] = useState([]);
-    const [blueShells, setBlueShells] = useState([]);
-    const [bobOmbs, setBobOmbs] = useState([]);
-
-    const handleSpawnBanana = (position, velocity) => {
-        setBananas((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity }]);
-    };
-    const handleSpawnBobOmb = (position, velocity) => {
-        setBobOmbs((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity }]);
-    };
-    const destroyBobOmb = (id) => setBobOmbs((prev) => prev.filter(b => b.id !== id));
-    const handleSpawnBlueShell = (position, velocity) => {
-        setBlueShells((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity }]);
-    }
-    const handleDestroyBlueShell = (id) => setBlueShells((prev) => prev.filter(s => s.id !== id));
-    const handleSpawnGreenShell = (position, velocity) => {
-        setShells((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity }]);
-    };
-    const handleSpawnRedShell = (position, velocity) => {
-        setRedShells((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity }]);
-    };
-    const handleRemoveRedShell = (id) => setRedShells((prev) => prev.filter(s => s.id !== id));
-    const handleRemoveShell = (id) => setShells((prev) => prev.filter(s => s.id !== id));
-
     // --- STATI UI E AUDIO ---
     const [uiLap, setUiLap] = useState(1);
-
-    const { changeTrack } = useAudio();
-    useEffect(() => {
-      if (selectedTrack?.soundtrack) {
-          changeTrack(selectedTrack.soundtrack, false);
-      }
-    }, [selectedTrack]);
-
-    // --- STATO GARA ---
-    const [lap, setLap] = useState(1);
     const [nextCheck, setNextCheck] = useState(1); 
 
     // --- REFS ---
@@ -306,11 +269,6 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 
     // Stati Variabili
     const [opponents, setOpponents] = useState([]);
-    const [positions, setPositions] = useState(initialPositions);
-    const [uiLap, setUiLap] = useState(1);
-    const [nextCheck, setNextCheck] = useState(1); 
-    const [finished, setFinished] = useState(false);
-    const [raceExited, setRaceExited] = useState(false); 
 
     // 4. GESTIONE ITEMS
     const [bananas, setBananas] = useState([]);
@@ -360,12 +318,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const { changeTrack } = useAudio();
     useEffect(() => {
         if(selectedTrack?.soundtrack) changeTrack(selectedTrack.soundtrack, false);
-    }, [selectedTrack]);
-
-    const handleExitRace = useCallback(() => {
-        setRaceExited(true);
-        setTimeout(() => { onBack(); }, 50);
-    }, [onBack]);
+    }, [selectedTrack, changeTrack]);
 
     // Checkpoint Trigger
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
@@ -423,18 +376,10 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         });
     }, [targets, positions]);
 
-    const playerRank = positions.find(p => p.id === 'player')?.position || 1;
-    const isRaceActive = !finished && !raceExited;
-
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
 
-    // --- POSIZIONAMENTO START ---
-    // Assumiamo che start_12 sia il player (ultima posizione in griglia da 12)
-    // Se non esiste nel GLB, usiamo il fallback getGridPosition index 11 (0-based)
-    const playerStartPos = gridPositions[12] || getGridPosition(start_pos, 11); 
-
     // --- DETERMINA POSIZIONE PLAYER ---
-    // start_1 corrisponde al Player (griglia 1)
+    // start_12 corrisponde al Player (griglia 12)
     const playerStartPos = gridPositions[12] || start_pos; 
     // Se c'è rotazione nel GLB usala, altrimenti ruota 90° su Y come default
     const playerStartRot = gridRotations[12] || [0, Math.PI / 2, 0]; 

@@ -225,11 +225,9 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onActivateLightning, onHitOpponent
-  } = props;
-    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, gameState,
+    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onActivateLightning, onHitOpponent, gameState,
 	positions, botRefs,
-} = props;
+  } = props;
   
 //   const { scene } = useThree()
   const { world, rapier } = useRapier()
@@ -411,7 +409,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   // Controls
   // Passiamo 'rb' (il ref fisico vero) al bot
   const humanControls = useGameControls() 
-  const botControls = useBotAI({ isBot, rigidBody: rb, paths }) 
   const activeControls = isBot ? botControls : humanControls
 
   // Hook per riprodurre effetti sonori (turbo, etc.)
@@ -476,18 +473,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)
   const racerId = userData?.id || (isBot ? "bot" : "player");
 
-  const humanControls = useGameControls() 
-
-  
-  // Audio
-  const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
-    isBike: false, 
-    isActive: isRaceActive && !isBot  
-  })
-
-  // Coda collisioni
-  const collisionQueue = useRef([]) 
-
 
   // --- LOGICA BULLET BILL ---
   const { isBulletBill, activateBulletBill, bulletBillAudioRefs } = useBulletBill({
@@ -498,7 +483,9 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
          if(rb.current) rb.current.setLinvel({x:0, y:0, z:0}, true);
       }
   });
-  // --- INTEGRATION POWERUP ---
+
+    const isLocalPlayer = !isBot && racerId === 'player';
+  
   const { currentItem, handleItemInput, tripleCount, triggerItemRoulette } = usePowerupHandler({
     boostTime: boostTime, 
     speed: speed,        
@@ -512,7 +499,10 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     onSpawnBlueShell: onSpawnBlueShell,
 	onActivateStar: activateStar,
 	activateMega: activateMega,
+    useLightning: onActivateLightning,
 	racerId: racerId,
+    selectedCharacter: selectedCharacter,
+    isLocalPlayer: isLocalPlayer, // Solo il player locale sente l'audio della roulette
     kartRef: rb,
     onActivateBulletBill: activateBulletBill 
   });
@@ -524,8 +514,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 		currentItem: currentItem,
 		triggerItemInput: handleItemInput
 	});
-  
-  const activeControls = isBot ? botControls : humanControls
 
   // Vettori riutilizzabili
   const v = useMemo(() => ({
@@ -574,33 +562,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
           };
       }
   }));
-
-  // --- INTEGRATION POWERUP ---
-  // isLocalPlayer: true solo se questo kart è quello del giocatore locale (non bot, non player remoto in multiplayer)
-  const isLocalPlayer = !isBot && racerId === 'player';
-  
-  const { currentItem, handleItemInput, tripleCount, triggerItemRoulette } = usePowerupHandler({
-    boostTime: boostTime, 
-    speed: speed,        
-    SETTINGS: SETTINGS,    
-    position: currentPosition,
-    rotation: rotation,
-    onSpawnBanana: onSpawnBanana,
-	onSpawnBomb: onSpawnBomb,
-    onSpawnGreenShell: onSpawnGreenShell,
-    onSpawnRedShell: onSpawnRedShell,
-    onSpawnBlueShell: onSpawnBlueShell,
-	onActivateStar: activateStar,
-	activateMega: activateMega,
-    useLightning: onActivateLightning,
-	racerId: racerId,
-    selectedCharacter: selectedCharacter,
-    isLocalPlayer: isLocalPlayer, // Solo il player locale sente l'audio della roulette
-    kartRef: rb,
-    onActivateBulletBill: activateBulletBill 
-  });
-    }
-}));
   
   // Gestione Eventi Colpo
   useEffect(() => {
