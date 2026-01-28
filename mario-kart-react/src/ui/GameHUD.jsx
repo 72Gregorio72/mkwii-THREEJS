@@ -20,28 +20,36 @@ const ITEM_SPRITES = {
   [ITEMS.LIGHTNING]: '/itemSprites/Lightning.png',
 };
 
-export const GameHUD = ({ lap, totalLaps, rank }) => {
+// 1. FIX: Added default values to props to prevent undefined startup
+export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player" }) => {
   
   // --- STATI LOCALI PER DATI AD ALTA FREQUENZA ---
   const [speed, setSpeed] = useState(0);
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
   const [animClass, setAnimClass] = useState('');
 
-  // --- ASCOLTATORE EVENTI (Comunicazione Kart -> HUD) ---
+  const [isSpinning, setIsSpinning] = useState(false);
+  
+
   useEffect(() => {
     const handleHudUpdate = (e) => {
         if (!e.detail) return;
 
-        const { speed: rawSpeed, item: newItem } = e.detail;
-        
-        // 1. Aggiorna velocità (con fattore scala visivo 1.5x)
-        setSpeed(Math.abs(Math.round(rawSpeed * 1.5)));
+        if (e.detail.targetRacerId && e.detail.targetRacerId !== playerId) {
+            return; 
+        }
 
-        // 2. Aggiorna oggetto solo se è cambiato (per evitare re-render inutili)
-        setCurrentItem((prev) => {
-            if (prev !== newItem) return newItem;
-            return prev;
-        });
+        const { speed: rawSpeed, item: newItem, isSpinning: spinning } = e.detail;
+        
+        if (rawSpeed !== undefined) {
+            let safeSpeed = Number(rawSpeed);
+            setSpeed(Math.abs(Math.round((isNaN(safeSpeed) ? 0 : safeSpeed) * 1.5)));
+        }
+
+        if (newItem !== undefined) {
+            setCurrentItem(newItem);
+            setIsSpinning(spinning || false);
+        }
     };
 
     // Aggiungi listener
@@ -49,7 +57,7 @@ export const GameHUD = ({ lap, totalLaps, rank }) => {
 
     // Rimuovi listener quando il componente si smonta
     return () => window.removeEventListener('hud-update', handleHudUpdate);
-  }, []);
+  }, [playerId]);
 
   // --- ANIMAZIONE POP OGGETTO ---
   useEffect(() => {
@@ -63,6 +71,15 @@ export const GameHUD = ({ lap, totalLaps, rank }) => {
   // Determina quale immagine mostrare
   const itemImage = ITEM_SPRITES[currentItem];
 
+  const finalItemAnim = (!isSpinning && currentItem !== ITEMS.NONE) ? 'pop-in' : '';
+	const spinningAnim = isSpinning ? 'roulette-blur' : '';
+
+  // 3. FIX: Helper to render numbers safely in JSX
+  const safeRender = (val) => {
+      if (isNaN(val) || val === null || val === undefined) return 0;
+      return val;
+  };
+
   return (
     <div style={styles.container}>
       
@@ -74,12 +91,15 @@ export const GameHUD = ({ lap, totalLaps, rank }) => {
         {/* Sprite dell'oggetto */}
         {itemImage && (
           <img 
-            src={itemImage} 
-            alt="Item" 
-            className={animClass}
-            style={styles.itemImage} 
-          />
-        )}
+			src={itemImage} 
+			alt="Item" 
+			className={`${finalItemAnim} ${spinningAnim}`}
+			style={{
+				...styles.itemImage,
+				filter: isSpinning ? 'blur(2px) brightness(1.2)' : styles.itemImage.filter
+			}} 
+			/>
+		)}
       </div>
 
       {/* --- TOP RIGHT: TIME / LAP --- */}
@@ -97,8 +117,11 @@ export const GameHUD = ({ lap, totalLaps, rank }) => {
 
       {/* --- BOTTOM LEFT: RANK --- */}
       <div style={styles.rankContainer}>
-        <span style={styles.rankBig}>{rank}</span>
-        <span style={styles.rankSmall}>{getOrdinal(rank)}</span>
+		<img 	
+			src={`/RankSprites/rank${safeRender(rank)}.png`} 
+			alt={`Rank ${rank}`}
+			style={{ width: '120px', height: 'auto', filter: 'drop-shadow(4px 4px 0px black)' }}
+		/>
       </div>
 
       {/* --- BOTTOM RIGHT: SPEEDOMETER --- */}
@@ -195,7 +218,7 @@ const styles = {
     background: 'linear-gradient(to bottom, #fff 0%, #ccc 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
-    filter: 'drop-shadow(4px 4px 0px black)' 
+    filter: 'drop-shadow(4px 4px 0px black)'
   },
   rankSmall: {
     fontSize: '40px',

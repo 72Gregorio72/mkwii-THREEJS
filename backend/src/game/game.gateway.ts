@@ -42,7 +42,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // Emit 'world_update' to EVERYONE connected
       // The frontend will listen for this event to render opponent karts
       this.server.emit('world_update', gameState);
-    }, 1000 / 33); 
+    }, 1000 / 1); 
   }
 
   // 2. Handle New Connections

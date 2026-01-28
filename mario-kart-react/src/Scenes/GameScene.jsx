@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect, Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, Stats, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
@@ -33,6 +33,7 @@ import leftWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left.json'
 import rightWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right.json'
 import trackWaypoints1 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit1.json'
 import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
+import { gsap } from 'gsap'
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -70,6 +71,46 @@ function getGridPosition(startPos, index) {
     ];
 }
 
+function CinematicCamera({ gameState, playerStartPos, playerStartRot }) {
+    const { camera } = useThree();
+
+    useFrame((_state, delta) => {
+        if (gameState === 'INTRO') {
+            // Panoramica aerea che ruota lentamente
+            camera.position.lerp(new THREE.Vector3(60, 100, 60), delta * 0.5);
+            camera.lookAt(0, 0, 0);
+        } else if (gameState === 'COUNTDOWN') {
+            // Calcola la posizione "Dietro il Player" basata sulla rotazione iniziale
+            // Creiamo un offset standard (es: 8 unità indietro, 3 unità in alto)
+            const offset = new THREE.Vector3(0, 3, -8); 
+            
+            // Applichiamo la rotazione del player all'offset
+            const euler = new THREE.Euler(playerStartRot[0], playerStartRot[1] - Math.PI, playerStartRot[2]);
+            offset.applyEuler(euler);
+
+            // Posizione target della camera
+            const targetPos = new THREE.Vector3(
+                playerStartPos[0] + offset.x,
+                playerStartPos[1] + offset.y,
+                playerStartPos[2] + offset.z
+            );
+
+            // Transizione fluida verso il retro del player
+            camera.position.lerp(targetPos, delta * 4);
+            
+            // Guarda un punto leggermente sopra il player
+            const lookAtTarget = new THREE.Vector3(
+                playerStartPos[0],
+                playerStartPos[1] + 1.5,
+                playerStartPos[2]
+            );
+            camera.lookAt(lookAtTarget);
+        }
+    });
+
+    return null;
+}
+
 // Hook per estrarre posizioni e rotazioni dai nodi "start_X" del GLB
 function useGridPositions(url) {
     const { scene } = useGLTF(url || ""); // Gestione caso url nullo
@@ -105,6 +146,15 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
 
+	const [gameState, setGameState] = useState('INTRO'); // 'INTRO', 'COUNTDOWN', 'RACING'
+	const [countdown, setCountdown] = useState(null);
+    const [finished, setFinished] = useState(false);
+    const [raceExited, setRaceExited] = useState(false);
+
+	// Calcola se la gara è effettivamente attiva per il movimento
+	const isRaceActive = gameState === 'RACING' && !finished && !raceExited;
+	const isControlDisabled = gameState !== 'RACING';
+
     // 2. SETUP STATI GARA
     const { initialRacersData, initialPositions } = useMemo(() => {
         const data = {
@@ -123,7 +173,87 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         return { initialRacersData: data, initialPositions: positions, botsArray: bots };
     }, []);
 
+	const introPlayed = useRef(false);
+	const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
+
+    const [positions, setPositions] = useState(initialPositions);
+    const playerRank = positions.find(p => p.id === 'player')?.position || 1;
+
+	useEffect(() => {
+        const handleItemCollected = (e) => {
+            const { racerId } = e.detail;
+            
+            if (racerId === 'player') {
+                playerRef.current?.triggerItemRoulette(playerRank);
+            } else if (racerId.startsWith('bot_')) {
+                // Trova il bot specifico e attiva la roulette basata sulla sua posizione attuale
+                const botRankInfo = positions.find(p => p.id === racerId);
+                const botRank = botRankInfo ? botRankInfo.position : 6;
+                botRefs.current[racerId].current?.triggerItemRoulette(botRank);
+            }
+        };
+
+        window.addEventListener('item-collected', handleItemCollected);
+        return () => window.removeEventListener('item-collected', handleItemCollected);
+    }, [playerRank, positions]);
+
+	useEffect(() => {
+		if (introPlayed.current) return;
+			introPlayed.current = true;
+
+			// 1. Setup Camera iniziale (Molto in alto per lo Zoom Out)
+			// Supponiamo che il centro della mappa sia [0,0,0]
+			// const cam = state.camera; // Dovrai passarlo tramite un componente o ref
+
+			// Fase 1: Zoom out panoramico
+			gsap.fromTo(cameraTarget.current, 
+				{ x: 0, y: 0, z: 0 }, 
+				{ x: 0, y: 5, z: 0, duration: 4 }
+			);
+
+			// Fase 2: Transizione al Player e poi Countdown
+			const timeline = gsap.timeline({
+				onComplete: () => startCountdown()
+			});
+
+			// Animazione "volo" dalla mappa al player
+			timeline.to(cameraTarget.current, {
+				x: playerStartPos[0],
+				y: playerStartPos[1] + 2,
+				z: playerStartPos[2],
+				duration: 3,
+				ease: "power2.inOut",
+				delay: 1
+			});
+	}, []);
+
+    const startCountdown = () => {
+        setGameState('COUNTDOWN');
+        let timer = 3;
+        setCountdown(timer);
+
+        const interval = setInterval(() => {
+            timer -= 1;
+            if (timer > 0) {
+                setCountdown(timer);
+                // Qui potresti triggerare l'audio SFX_COUNTDOWN
+            } else if (timer === 0) {
+                setCountdown('START!');
+                setGameState('RACING');
+                // SFX_RACE_START
+            } else {
+                setCountdown(null);
+                clearInterval(interval);
+            }
+        }, 1000);
+    };
+
     // 3. REFS & STATE
+    // --- STATI UI E AUDIO ---
+    const [uiLap, setUiLap] = useState(1);
+    const [nextCheck, setNextCheck] = useState(1); 
+
+    // --- REFS ---
     const racersData = useRef(initialRacersData);
     const trackRef = useRef();
     const checkpointPositionsRef = useRef({});
@@ -139,11 +269,6 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 
     // Stati Variabili
     const [opponents, setOpponents] = useState([]);
-    const [positions, setPositions] = useState(initialPositions);
-    const [uiLap, setUiLap] = useState(1);
-    const [nextCheck, setNextCheck] = useState(1); 
-    const [finished, setFinished] = useState(false);
-    const [raceExited, setRaceExited] = useState(false); 
 
     // 4. GESTIONE ITEMS
     const [bananas, setBananas] = useState([]);
@@ -193,12 +318,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const { changeTrack } = useAudio();
     useEffect(() => {
         if(selectedTrack?.soundtrack) changeTrack(selectedTrack.soundtrack, false);
-    }, [selectedTrack]);
-
-    const handleExitRace = useCallback(() => {
-        setRaceExited(true);
-        setTimeout(() => { onBack(); }, 50);
-    }, [onBack]);
+    }, [selectedTrack, changeTrack]);
 
     // Checkpoint Trigger
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
@@ -224,6 +344,14 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     }, [maxCheckpoints]);
 
     // Calcolo Targets per Gusci (Red/Blue)
+
+    // Gestione Uscita
+    const handleExitRace = useCallback(() => {
+        setRaceExited(true);
+        setTimeout(() => { onBack(); }, 50);
+    }, [onBack]);
+    
+    // Liste Bersagli (per Gusci Rossi/Blu)
     const targets = useMemo(() => {
         const list = [];
         if (playerRef.current) list.push({ id: 'player', ref: playerRef });
@@ -248,15 +376,12 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         });
     }, [targets, positions]);
 
-    const playerRank = positions.find(p => p.id === 'player')?.position || 1;
-    const isRaceActive = !finished && !raceExited;
-
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
 
-    // --- POSIZIONAMENTO START ---
-    // Assumiamo che start_12 sia il player (ultima posizione in griglia da 12)
-    // Se non esiste nel GLB, usiamo il fallback getGridPosition index 11 (0-based)
-    const playerStartPos = gridPositions[12] || getGridPosition(start_pos, 11); 
+    // --- DETERMINA POSIZIONE PLAYER ---
+    // start_12 corrisponde al Player (griglia 12)
+    const playerStartPos = gridPositions[12] || start_pos; 
+    // Se c'è rotazione nel GLB usala, altrimenti ruota 90° su Y come default
     const playerStartRot = gridRotations[12] || [0, Math.PI / 2, 0]; 
 
     return (
@@ -276,10 +401,32 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
             {/* HUD PRINCIPALE */}
             <GameHUD lap={uiLap} totalLaps={TOTAL_LAPS} rank={playerRank} />
 
+			{countdown && (
+				<div style={{
+					position: 'absolute',
+					top: '50%',
+					left: '50%',
+					transform: 'translate(-50%, -50%)',
+					fontSize: '120px',
+					fontWeight: '900',
+					color: countdown === 'START!' ? '#00ff00' : '#ffff00',
+					textShadow: '5px 5px 0px #000',
+					zIndex: 1000,
+					fontFamily: 'Arial Black, sans-serif'
+				}}>
+					{countdown}
+				</div>
+			)}
+
             <Canvas>
                 {/* Audio 3D Listener - DEVE essere prima di qualsiasi kart */}
                 <AudioListenerComponent />
                 
+				<CinematicCamera 
+					gameState={gameState} 
+					playerStartPos={playerStartPos} 
+					playerStartRot={playerStartRot} 
+				/>
                 <LightningAtmosphere />
                 <Stats />
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
@@ -372,7 +519,10 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                                 userData={{ type: 'racer', id: 'player' }}
                                 characterConfig={character.modelConfig}
                                 selectedCharacter={character}
+								botRefs={botRefs}
+								gameState={gameState}
                                 vehicleConfig={vehicle} 
+								positions={positions}
                                 START_POS={playerStartPos}
                                 START_ROT={playerStartRot}
                                 trackRef={trackRef}
@@ -399,8 +549,10 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                         // Mappatura: Bot 0 -> start_1, Bot 1 -> start_2, etc. (o logica inversa)
                         // Qui assumo che i Bot riempiano le posizioni da 1 a 11.
                         const gridIndex = i + 1; 
+                        const gridIndex = i; 
                         
                         const botPos = gridPositions[gridIndex] || getGridPosition(start_pos, i);
+                        const botPos = gridPositions[gridIndex] || getGridPosition(start_pos, 12);
                         const botRot = gridRotations[gridIndex] || [0, Math.PI / 2, 0];
 
                         return (
@@ -409,9 +561,12 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                                     ref={botRefs.current[botId]}
                                     userData={{ type: 'racer', id: botId }}
                                     characterConfig={character.modelConfig} 
+									gameState={gameState}
                                     vehicleConfig={vehicle} 
                                     START_POS={botPos}
                                     START_ROT={botRot}
+                                    START_ROT={botRot}
+									positions={positions}
                                     trackRef={trackRef} 
                                     trackConfig={selectedTrack} 
                                     isBot={true}
