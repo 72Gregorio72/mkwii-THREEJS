@@ -4,7 +4,7 @@ import { useGLTF } from '@react-three/drei'
 import { SkeletonUtils } from 'three-stdlib'
 import { MathUtils, DoubleSide } from 'three'
 
-export function VehicleModel({ vehicleConfig, steer, speed = 10, drift, isBike, debug, ...props }) {
+export function VehicleModel({ vehicleConfig, steer, speed = 10, drift, isBike, debug, isRemote, ...props }) {
   const { scene } = useGLTF(vehicleConfig.file)
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
   const { nodes, materials } = useGraph(clone)
@@ -66,6 +66,7 @@ export function VehicleModel({ vehicleConfig, steer, speed = 10, drift, isBike, 
 
   // 4. Animazione Frame (Sterzata Ruote & Rotazione)
   useFrame((state, delta) => {
+    if (isRemote) return;
     // A. Sterzata Ruote Anteriori (Sull'asse Y)
     // Moltiplichiamo steer per 0.5 o 0.8 per limitare l'angolo
     const steerAngle = steer * 0.5;

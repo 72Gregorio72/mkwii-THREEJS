@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, memo, useMemo } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF, PositionalAudio } from '@react-three/drei';
 import { useFrame, useGraph } from '@react-three/fiber';
 import { RigidBody, BallCollider, CylinderCollider } from '@react-three/rapier';
 import { SkeletonUtils } from 'three-stdlib'; // Importante: clona correttamente geometrie e materiali
+import { AUDIO_SFX } from '../components/Data';
 
 export const GreenShell = memo(function GreenShell({ position, initVelocity, onDestroy }) {
     // 1. Carica il modello base
@@ -17,9 +18,16 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
 
     const rb = useRef();
     const meshRef = useRef();
+    const audioRef = useRef(); // Ref per l'audio di movimento (loop)
+    const impactAudioRef = useRef(); // Ref per l'audio di impatto (one-shot)
     const [isActive, setIsActive] = useState(true);
 
     useEffect(() => {
+        // Fa partire l'audio appena il guscio viene creato
+        if (audioRef.current) {
+            audioRef.current.play();
+        }
+
         const timer = setTimeout(() => {
             setIsActive(false);
             if (onDestroy) onDestroy();
@@ -43,6 +51,12 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
 
     const handleImpact = (payload) => {
         if (!isActive) return;
+        
+        // Riproduci suono impatto
+        if (impactAudioRef.current) {
+            impactAudioRef.current.play();
+        }
+        
         const targetObj = payload.other.rigidBodyObject;
         const targetName = targetObj?.name || "";
 
@@ -78,6 +92,18 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
                 position={[0, 0.35, 0]} 
                 onCollisionEnter={handleImpact}
                 sensor={false} 
+            />
+            <PositionalAudio
+                ref={audioRef}
+                url={AUDIO_SFX.GREEN_SHELL_MOVE}
+                distance={5}
+                loop
+            />
+            <PositionalAudio
+                ref={impactAudioRef}
+                url={AUDIO_SFX.G_R_SHELL_HIT} // Cambia con un SFX di impatto appropriato
+                distance={10}
+                loop={false}
             />
 
             {/* 4. Renderizzazione */}

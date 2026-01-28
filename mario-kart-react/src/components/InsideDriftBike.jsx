@@ -99,6 +99,7 @@ const DriftParticles = React.forwardRef((props, ref) => {
         if (pos[i * 3 + 1] < -0.2) { pos[i * 3 + 1] = -0.2; data.velocities[i * 3 + 1] *= -0.5; }
       }
     }
+
     points.current.geometry.attributes.position.needsUpdate = true;
   });
   if (!texture) return null;

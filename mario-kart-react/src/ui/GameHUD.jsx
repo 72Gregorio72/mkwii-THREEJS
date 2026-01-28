@@ -18,12 +18,12 @@ const ITEM_SPRITES = {
   [ITEMS.STAR]: '/itemSprites/Star.png',
   [ITEMS.MEGA_MUSHROOM]: '/itemSprites/MegaMushroom.png',
   [ITEMS.LIGHTNING]: '/itemSprites/Lightning.png',
-  [ITEMS.BULLET_BILL]: '/itemSprites/BulletBill.png',
 };
 
 // 1. FIX: Added default values to props to prevent undefined startup
 export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player" }) => {
   
+  // --- STATI LOCALI PER DATI AD ALTA FREQUENZA ---
   const [speed, setSpeed] = useState(0);
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
   const [animClass, setAnimClass] = useState('');
@@ -52,10 +52,14 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player" 
         }
     };
 
+    // Aggiungi listener
     window.addEventListener('hud-update', handleHudUpdate);
+
+    // Rimuovi listener quando il componente si smonta
     return () => window.removeEventListener('hud-update', handleHudUpdate);
   }, [playerId]);
 
+  // --- ANIMAZIONE POP OGGETTO ---
   useEffect(() => {
     if (currentItem !== ITEMS.NONE) {
       setAnimClass('pop-in');
@@ -64,6 +68,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player" 
     }
   }, [currentItem]);
 
+  // Determina quale immagine mostrare
   const itemImage = ITEM_SPRITES[currentItem];
 
   const finalItemAnim = (!isSpinning && currentItem !== ITEMS.NONE) ? 'pop-in' : '';
@@ -80,7 +85,10 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player" 
       
       {/* --- TOP LEFT: ITEM BOX --- */}
       <div style={styles.itemBoxContainer}>
+        {/* Sfondo del box oggetto */}
         <div style={styles.itemBoxBg}></div>
+        
+        {/* Sprite dell'oggetto */}
         {itemImage && (
           <img 
 			src={itemImage} 
@@ -98,9 +106,9 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player" 
       <div style={styles.topRight}>
         <div style={styles.labelValue}>
             <span style={styles.labelText}>LAP</span>
-            {/* Safe Render applied here */}
-            <span style={styles.valueText}>{safeRender(lap)} / {safeRender(totalLaps)}</span>
+            <span style={styles.valueText}>{lap} / {totalLaps}</span>
         </div>
+        {/* Timer Placeholder - Puoi collegarlo allo stesso modo se vuoi */}
         <div style={styles.labelValue}>
             <span style={styles.labelText}>TIME</span>
             <span style={styles.valueText}>00:00:00</span> 
@@ -118,11 +126,11 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player" 
 
       {/* --- BOTTOM RIGHT: SPEEDOMETER --- */}
       <div style={styles.speedContainer}>
-        {/* Safe Render applied here */}
-        <span style={styles.speedValue}>{safeRender(speed)}</span>
+        <span style={styles.speedValue}>{speed}</span>
         <span style={styles.speedUnit}>km/h</span>
       </div>
 
+      {/* Stili CSS Animazione */}
       <style>{`
         .pop-in { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop {
@@ -134,10 +142,8 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player" 
   );
 };
 
+// Helper per 1st, 2nd, 3rd...
 function getOrdinal(n) {
-  // Extra safety for the ordinal function
-  if (isNaN(n)) return "th";
-  
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
@@ -148,13 +154,14 @@ const styles = {
     position: 'absolute',
     top: 0, left: 0,
     width: '100%', height: '100%',
-    pointerEvents: 'none',
+    pointerEvents: 'none', // IMPORTANTE: lascia passare i click al gioco sotto
     fontFamily: '"Arial Black", Gadget, sans-serif',
     fontStyle: 'italic',
     userSelect: 'none',
     overflow: 'hidden',
-    zIndex: 10
+    zIndex: 10 // Assicura che stia sopra al Canvas
   },
+  // ITEM BOX STYLE
   itemBoxContainer: {
     position: 'absolute',
     top: '30px', left: '30px',
@@ -179,11 +186,12 @@ const styles = {
     zIndex: 2,
     filter: 'drop-shadow(0px 0px 10px rgba(255,255,255,0.6))'
   },
+  // TOP RIGHT
   topRight: {
     position: 'absolute',
     top: '30px', right: '40px',
     textAlign: 'right',
-    color: '#FFD700',
+    color: '#FFD700', // Oro
     textShadow: '3px 3px 0 #000',
     display: 'flex', flexDirection: 'column', gap: '5px'
   },
@@ -196,6 +204,7 @@ const styles = {
   valueText: {
     fontSize: '36px', letterSpacing: '2px'
   },
+  // RANK
   rankContainer: {
     position: 'absolute',
     bottom: '40px', left: '30px',
@@ -215,6 +224,7 @@ const styles = {
     fontSize: '40px',
     marginLeft: '5px'
   },
+  // SPEED
   speedContainer: {
     position: 'absolute',
     bottom: '40px', right: '40px',

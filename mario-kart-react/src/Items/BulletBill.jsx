@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { PositionalAudio } from '@react-three/drei';
+import { AUDIO_SFX } from '../components/Data';
 
 const BILL_SPEED = 70; // Molto veloce
 const MIN_DURATION = 7.5;
@@ -10,6 +12,11 @@ const OVERTAKE_LIMIT = 5; // Termina dopo aver superato 5 avversari
 export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
     const [isActive, setIsActive] = useState(false);
     
+    // Reft per gli SFX
+    const engineAudioRef = useRef();
+    const onAudioRef = useRef();
+    const offAudioRef = useRef();
+
     // Refs per la logica
     const timer = useRef(0);
     const startRank = useRef(null); // Posizione al momento dell'attivazione
@@ -42,13 +49,19 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
             currentWpIndex.current = (closestIdx + 1) % waypoints.length;
         }
 
-        // Effetti sonori o particellari qui
+        if (onAudioRef.current) onAudioRef.current.play();
+        if (engineAudioRef.current) engineAudioRef.current.play();
         console.log("BULLET BILL ATTIVATO! Rank iniziale:", currentRank);
     };
 
     const deactivate = () => {
         setIsActive(false);
         if (onEnd) onEnd();
+        
+        if (engineAudioRef.current && engineAudioRef.current.isPlaying) {
+            engineAudioRef.current.stop();
+        }
+        if (offAudioRef.current) offAudioRef.current.play();
         console.log("BULLET BILL TERMINATO.");
     };
 
@@ -105,6 +118,11 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
 
     return { 
         isBulletBill: isActive, 
-        activateBulletBill: activate 
+        activateBulletBill: activate,
+        bulletBillAudioRefs: {
+            engineAudioRef,
+            onAudioRef,
+            offAudioRef
+        }
     };
 }

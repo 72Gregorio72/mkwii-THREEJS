@@ -15,12 +15,16 @@ import { AUDIO_SFX } from '../audio/AudioManager';
  * @param {Object} options
  * @param {boolean} options.isBike - true se è una moto, false se è un kart
  * @param {boolean} options.isActive - true se la gara è attiva (false = stop tutti i suoni)
+ * @param {boolean} options.isBot - true se è un bot (volume ridotto)
+ * @param {number} options.baseVolume - volume base (default 0.9 per player, ridotto per bot)
  */
-export const useKartAudio = ({ isBike = false, isActive = true }) => {
+export const useKartAudio = ({ isBike = false, isActive = true, isBot = false, baseVolume = null }) => {
   // Valori audio hardcoded (non possiamo usare useAudio dentro Canvas)
   const audioEnabled = true;
   const isMuted = false;
-  const sfxVolume = 0.9;
+  // Volume base: ridotto per i bot, pieno per il player
+  const defaultVolume = isBot ? 0.3 : 0.9;
+  const sfxVolume = useRef(baseVolume !== null ? baseVolume : defaultVolume);
   
   // Riferimenti agli elementi audio
   const gasAudioRef = useRef(null);
@@ -63,11 +67,40 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
   // Intervallo di controllo in ms
   const CHECK_INTERVAL = 16; // ~60fps per transizioni più fluide
 
+  // Funzione per aggiornare il volume dinamicamente (utile per i bot)
+  const setVolume = useCallback((newVolume) => {
+    sfxVolume.current = Math.max(0, Math.min(1, newVolume));
+    
+    // Aggiorna volume di tutti gli audio attivi
+    const volume = isMuted ? 0 : sfxVolume.current;
+    
+    if (gasAudioRef.current) {
+      gasAudioRef.current.volume = volume;
+    }
+    
+    // Aggiorna IDLE attivo
+    if (currentStateRef.current === 'idle') {
+      const activeIdle = activeIdleRef.current === 'A' ? idleAudioARef.current : idleAudioBRef.current;
+      if (activeIdle) activeIdle.volume = volume;
+    }
+    
+    // Aggiorna LOOP attivo
+    if (currentStateRef.current === 'loop') {
+      const activeLoop = activeLoopRef.current === 'A' ? loopAudioARef.current : loopAudioBRef.current;
+      if (activeLoop) activeLoop.volume = volume;
+    }
+    
+    // Aggiorna drift loop se attivo
+    if (driftLoopAudioRef.current) {
+      driftLoopAudioRef.current.volume = volume * 0.7;
+    }
+  }, [isMuted]);
+
   // Funzione generica per gestire il crossfade
   const startCrossfadeLoop = useCallback((audioARef, audioBRef, activeRef, intervalRef, stateName) => {
     if (!audioARef.current || !audioBRef.current) return;
     
-    const volume = isMuted ? 0 : sfxVolume;
+    const volume = isMuted ? 0 : sfxVolume.current;
     
     // Ferma qualsiasi crossfade precedente
     if (intervalRef.current) {
@@ -87,7 +120,7 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
         return;
       }
       
-      const currentVolume = isMuted ? 0 : sfxVolume;
+      const currentVolume = isMuted ? 0 : sfxVolume.current;
       const activeAudio = activeRef.current === 'A' ? audioARef.current : audioBRef.current;
       const nextAudio = activeRef.current === 'A' ? audioBRef.current : audioARef.current;
       
@@ -195,8 +228,10 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
     
     // Quando GAS finisce, passa automaticamente a LOOP
     const handleGasEnded = () => {
+      console.log('[Audio] GAS ended, isAccelerating:', isAcceleratingRef.current, 'currentState:', currentStateRef.current);
       if (currentStateRef.current === 'gas' && isAcceleratingRef.current) {
         currentStateRef.current = 'loop';
+        console.log('[Audio] Transitioning to LOOP');
         startLoopWithCrossfade();
       }
     };
@@ -231,9 +266,9 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
     };
   }, [audioFiles.idle, audioFiles.gas, audioFiles.loop, startLoopWithCrossfade]);
 
-  // Aggiorna il volume quando cambia
+  // Aggiorna il volume quando cambia isMuted
   useEffect(() => {
-    const volume = isMuted ? 0 : sfxVolume;
+    const volume = isMuted ? 0 : sfxVolume.current;
     
     if (gasAudioRef.current) {
       gasAudioRef.current.volume = volume;
@@ -254,7 +289,7 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
         activeLoop.volume = volume;
       }
     }
-  }, [sfxVolume, isMuted]);
+  }, [isMuted]);
 
   // Ferma tutti gli audio istantaneamente
   const stopAllAudio = useCallback(() => {
@@ -364,7 +399,7 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
 
       // Avvia il nuovo audio
       const playTarget = () => {
-        const volume = isMuted ? 0 : sfxVolume;
+        const volume = isMuted ? 0 : sfxVolume.current;
         
         switch (targetState) {
           case 'idle':
@@ -395,7 +430,7 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
         // Inizia il drift: avvia il suono loop
         const loopAudio = new Audio(AUDIO_SFX.NORMAL_DRIFT);
         loopAudio.loop = true;
-        loopAudio.volume = 0.7;  // Volume medio per il suono di sottofondo
+        loopAudio.volume = sfxVolume.current * 0.7;  // Volume proporzionale
         loopAudio.play().catch(() => {});
         driftLoopAudioRef.current = loopAudio;
       } else {
@@ -422,7 +457,7 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
       if (driftLevel > 0) {
         const soundFile = driftLevel === 1 ? AUDIO_SFX.BLUE_DRIFT : AUDIO_SFX.RED_DRIFT;
         const audio = new Audio(soundFile);
-        audio.volume = 1.0;  // Volume alto per il drift (più forte del motore)
+        audio.volume = sfxVolume.current;  // Volume proporzionale
         audio.play().catch(() => {});
         driftAudioRef.current = audio;
       }
@@ -430,7 +465,7 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
       prevDriftLevelRef.current = driftLevel;
     }
     
-  }, [audioEnabled, isActive, isMuted, sfxVolume, stopIdleCrossfade, stopLoopCrossfade, startIdleWithCrossfade, startLoopWithCrossfade]);
+  }, [audioEnabled, isActive, isMuted, stopIdleCrossfade, stopLoopCrossfade, startIdleWithCrossfade, startLoopWithCrossfade]);
 
   /**
    * Avvia l'audio IDLE iniziale
@@ -438,6 +473,11 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
    */
   const startIdleAudio = useCallback(() => {
     if (!audioEnabled || !isActive || isMuted) {
+      return;
+    }
+    
+    // Se siamo già in uno stato attivo (gas/loop), non resettare a idle
+    if (currentStateRef.current === 'gas' || currentStateRef.current === 'loop') {
       return;
     }
     
@@ -450,6 +490,7 @@ export const useKartAudio = ({ isBike = false, isActive = true }) => {
     updateAudio,
     stopAllAudio,
     startIdleAudio,
+    setVolume,
     currentState: currentStateRef,
   };
 };

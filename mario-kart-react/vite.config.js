@@ -3,19 +3,17 @@ import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      'three': path.resolve('./node_modules/three')
-    }
-  },
+  // resolve: {
+  //   alias: {
+  //     'three': path.resolve('./node_modules/three') ??????
+  //   }
+  // },
   server: {
-    host: true,      // <--- Aggiungi questo: permette l'accesso da fuori il container
+    host: true,
     strictPort: true,
     port: 5173,
-	// 2. Aggiungi la configurazione HTTPS qui
     https: {
       key: fs.readFileSync('./certs/key.pem'),  // Legge la chiave privata
       cert: fs.readFileSync('./certs/cert.pem'), // Legge il certificato pubblico

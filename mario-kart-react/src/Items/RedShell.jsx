@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF , PositionalAudio } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, BallCollider, CylinderCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
+import { AUDIO_SFX } from '../components/Data';
+
 
 const SHELL_SPEED = 65;
 const DETECTION_RADIUS = 40; // Distanza entro la quale aggancia il bersaglio
@@ -25,6 +27,8 @@ export const RedShell = memo(function RedShell({ position, initVelocity, waypoin
 
     const rb = useRef();
     const meshRef = useRef();
+    const audioRef = useRef();
+    const impactAudioRef = useRef();
     const [isActive, setIsActive] = useState(true);
     const [targetId, setTargetId] = useState(null); // ID del bersaglio agganciato
     
@@ -44,6 +48,9 @@ export const RedShell = memo(function RedShell({ position, initVelocity, waypoin
 
     // Timer di vita (leggermente meno del verde perché va veloce)
     useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.play();
+        }
         const timer = setTimeout(() => {
             setIsActive(false);
             if (onDestroy) onDestroy();
@@ -175,6 +182,8 @@ export const RedShell = memo(function RedShell({ position, initVelocity, waypoin
     });
 
     const handleImpact = (payload) => {
+        if (impactAudioRef.current)
+            impactAudioRef.current.play();
         if (!isActive) return;
         const targetObj = payload.other.rigidBodyObject;
         const hitName = targetObj?.name || "";
@@ -222,7 +231,18 @@ export const RedShell = memo(function RedShell({ position, initVelocity, waypoin
                 onCollisionEnter={handleImpact}
                 sensor={false} 
             />
-
+            <PositionalAudio
+                ref={impactAudioRef}
+                url={AUDIO_SFX.G_R_SHELL_HIT}
+                distance={5}
+                loop={false}
+            />
+            <PositionalAudio
+                ref={audioRef}
+                url={AUDIO_SFX.RED_SHELL_MOVE}
+                distance={5}
+                loop
+            />
             <group ref={meshRef} position={[0, -0.3, 0]} scale={[1.5, 1.5, 1.5]}>
                 <primitive object={clone} />
             </group>

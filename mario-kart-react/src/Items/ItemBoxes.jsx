@@ -1,8 +1,10 @@
 import React, { useMemo, useState, useRef } from 'react'
 import * as THREE from 'three'
-import { useGLTF, Clone } from '@react-three/drei' // Clone è utile per istanze multiple
+import { useGLTF, Clone, PositionalAudio } from '@react-three/drei';
 import { RigidBody } from '@react-three/rapier'
 import { useFrame } from '@react-three/fiber'
+import { AUDIO_SFX } from '../components/Data';
+
 
 function giveItemToPlayer(other) {
     const userData = other.rigidBodyObject?.userData;
@@ -24,6 +26,8 @@ function SingleItemBox({ position, rotation }) {
     const [isActive, setIsActive] = useState(true)
     const [scale, setScale] = useState(new THREE.Vector3(1, 1, 1))
     
+    const audioRef = useRef();
+
     // Riferimento per l'animazione
     const meshRef = useRef()
 
@@ -31,6 +35,9 @@ function SingleItemBox({ position, rotation }) {
     const handleIntersection = ({ other }) => {
         if (!isActive) return;
 		// Qui potremmo aggiungere logica per dare un oggetto al giocatore
+        if (audioRef.current) {
+            audioRef.current.play();
+        }
 		giveItemToPlayer(other);
         setIsActive(false) 
 
@@ -63,6 +70,12 @@ function SingleItemBox({ position, rotation }) {
         >
             <group ref={meshRef}>
                  <Clone object={scene} />
+                 <PositionalAudio
+                    ref={audioRef}
+                    url={AUDIO_SFX.ITEM_BOX_BREAK} // Suono della scatola che si rompe
+                    distance={5}  // Distanza a cui si sente al 100%
+                    loop={false}
+                 />
             </group>
         </RigidBody>
     )
