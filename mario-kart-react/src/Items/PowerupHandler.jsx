@@ -112,7 +112,7 @@ export const usePowerupHandler = ({
   const goldenTimerRef = useRef(null);
 
   const pickupItem = () => {
-    
+    setCurrentItem(ITEMS.LIGHTNING);
     console.log("Oggetto raccolto: GOLDEN MUSHROOM");
   };
 

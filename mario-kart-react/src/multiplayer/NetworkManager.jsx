@@ -59,23 +59,33 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
     }, [socket, setOpponents]);
 
     useEffect(() => {
-        if (!socket) return;
+            if (!socket) return;
 
-        const handleSocketHit = (payload) => {
-            console.log("Socket received hit:", payload);
-            
-            // Dispatch to Window so RemoteOpponent (Visuals) and Player (Physics) can hear it
-            window.dispatchEvent(new CustomEvent('banana-hit', { 
-                detail: payload 
-            }));
-        };
+            // Handler 1: Standard Hits (Banana, Shells, etc.)
+            const handleBananaHit = (payload) => {
+                console.log("Socket received HIT:", payload);
+                window.dispatchEvent(new CustomEvent('banana-hit', { 
+                    detail: payload 
+                }));
+            };
 
-        socket.on('banana-hit', handleSocketHit);
+            // Handler 2: Lightning (Global Effect)
+            const handleLightningStrike = (payload) => {
+                console.log("Socket received LIGHTNING:", payload);
+                window.dispatchEvent(new CustomEvent('lightning-strike', {
+                    detail: payload
+                }));
+            };
 
-        return () => {
-            socket.off('banana-hit', handleSocketHit);
-        };
-    }, [socket]);
+            // Bind specific listeners
+            socket.on('banana-hit', handleBananaHit);
+            socket.on('lightning-strike', handleLightningStrike);
+
+            return () => {
+                socket.off('banana-hit', handleBananaHit);
+                socket.off('lightning-strike', handleLightningStrike);
+            };
+        }, [socket]);
 
     return null;
 };

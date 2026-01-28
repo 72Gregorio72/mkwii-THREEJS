@@ -224,7 +224,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onHitOpponent
+    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onActivateLightning, onHitOpponent
   } = props;
   
 //   const { scene } = useThree()
@@ -483,6 +483,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     onSpawnBlueShell: onSpawnBlueShell,
 	onActivateStar: activateStar,
 	activateMega: activateMega,
+    useLightning: onActivateLightning,
 	racerId: racerId,
     kartRef: rb,
     onActivateBulletBill: activateBulletBill 
@@ -974,41 +975,27 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     }
   })
 
-  useEffect(() => {
-    const handleLightningStrike = (e) => {
-        const attackerId = e.detail?.attackerId;
+    useEffect(() => {
+        const handleLightningStrike = (e) => {
+            const attackerId = e.detail?.attackerId;
 
-        if (attackerId === racerId) {
-            console.log("Ho lanciato io il fulmine, sono salvo.");
-            return; 
-        }
+            // IMPORTANT: Ensure racerId matches what the server sends
+            if (attackerId === racerId) { 
+                console.log("Player is attacker, ignoring lightning.");
+                return; 
+            }
 
-        if (isBulletBill || isStarActive.current || isMegaActive.current) {
-            console.log("Schivato fulmine grazie all'invincibilità!");
-            return;
-        }
-        const delay = Math.random() * 500;
+            // Check Local Refs
+            if (isBulletBill || isStarActive.current || isMegaActive.current) {
+                console.log("Invincible locally, ignoring lightning.");
+                return;
+            }
 
-        setTimeout(() => {
-            if (!rb.current) return;
-
-            console.log(`${racerId} colpito dal FULMINE di ${attackerId}!`);
-
-            isSpinning.current = true;
-            spinTimer.current = 1.0; 
-            speed.current = 0;       
-
-            const curVel = rb.current.linvel();
-            rb.current.setLinvel({ x: curVel.x * 0.5, y: Math.max(0, curVel.y), z: curVel.z * 0.5 }, true);
-
-            activateLightning();
-
-        }, delay);
-    };
-
-    window.addEventListener('lightning-strike', handleLightningStrike);
-    return () => window.removeEventListener('lightning-strike', handleLightningStrike);
-  }, [racerId, isBulletBill]); // Dipendenze importanti
+            // ... apply hit ...
+        };
+        window.addEventListener('lightning-strike', handleLightningStrike);
+        return () => window.removeEventListener('lightning-strike', handleLightningStrike);
+    }, [racerId, isBulletBill]);
 
   // Visual Steering
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)

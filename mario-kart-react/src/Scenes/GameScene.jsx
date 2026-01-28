@@ -176,6 +176,18 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     }, []);
     const destroyBobOmb = useCallback((id) => setBobOmbs((prev) => prev.filter(b => b.id !== id)), []);
 
+    const handleActivateLightning = useCallback(() => {
+        console.log("⚡ Player used Lightning!");
+        
+        // 1. Emit to server so it can strike everyone else
+        if (socket) {
+            socket.emit('use_lightning', { 
+                attackerId: socket.id,
+            });
+        }
+
+    }, [socket]);
+
     // 5. AUDIO & LOGICA DI GIOCO
     const { changeTrack } = useAudio();
     useEffect(() => {
@@ -323,12 +335,15 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                         const remoteChar = Characters.find(c => c.id === playerData.charId) || character;
                         const remoteVehicleConfig = VEHICLE_DATABASE[playerData.vehicleId];
                         const remoteVehicle = remoteVehicleConfig ? { id: playerData.vehicleId, ...remoteVehicleConfig } : vehicle;
+                        
 
                         return <RemoteOpponent 
                             key={playerData.id} 
                             data={playerData}
                             character={remoteChar} 
                             vehicle={remoteVehicle}
+                            // FIX 1: ID must be the remote player's ID, not 'player'
+                            userData={{ type: 'opponent', id: playerData.id }} 
                         />
                     })}
 
@@ -366,6 +381,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                                 onSpawnRedShell={handleSpawnRedShell}
                                 onSpawnBlueShell={handleSpawnBlueShell}
                                 onSpawnBomb={handleSpawnBobOmb}
+                                onActivateLightning={handleActivateLightning}
                                 onHitOpponent={(victimId) => {
                                     socket.emit('player_hit', { victimId: victimId, type: 'bullet-bill' });
                                 }}

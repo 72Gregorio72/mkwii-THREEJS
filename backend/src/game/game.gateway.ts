@@ -42,7 +42,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // Emit 'world_update' to EVERYONE connected
       // The frontend will listen for this event to render opponent karts
       this.server.emit('world_update', gameState);
-    }, 33); 
+    }, 1000 / 33); 
   }
 
   // 2. Handle New Connections
@@ -105,12 +105,20 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     console.log(`Hit Event: ${client.id} hit ${payload.victimId} with ${payload.type}`);
 
     // Broadcast this event to EVERYONE (including the victim).
-    // The Frontend will check "if (victimId === myId)" to trigger the spin-out.
-    // The Frontend will check "if (victimId === remoteOpponentId)" to show visual spin.
     this.server.emit('banana-hit', { 
       attackerId: client.id,
       victimId: payload.victimId,
       type: payload.type 
+    });
+  }
+
+  @SubscribeMessage('use_lightning')
+  handleLightning(client: Socket, payload: { attackerId: string }) {
+    console.log(`⚡ Lightning used by ${payload.attackerId}`);
+    
+    // Broadcast to EVERYONE (RemoteOpponents needs to shrink, LocalPlayer needs to shrink)
+    this.server.emit('lightning-strike', { 
+      attackerId: payload.attackerId
     });
   }
 }
