@@ -32,18 +32,19 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   constructor(private readonly gameService: GameService) {}
 
-  // 1. The Heartbeat: This runs automatically when the Gateway starts
-  afterInit() {
-    // Run the loop at ~30 FPS (1000ms / 30 = ~33ms)
-    setInterval(() => {
-      // Get the current state of all players (positions, rotations)
-      const gameState = this.gameService.getWorldState();
+  private items = new Map<string, any>();
 
-      // Emit 'world_update' to EVERYONE connected
-      // The frontend will listen for this event to render opponent karts
-      this.server.emit('world_update', gameState);
-    }, 1000 / 1); 
-  }
+	// In your heartbeat (afterInit), include items in the world update
+	// or send a separate 'items_update'
+	afterInit() {
+		setInterval(() => {
+			const players = this.gameService.getWorldState();
+			const items = Array.from(this.items.values());
+			
+			// IMPORTANTE: Invia un oggetto che contiene ENTRAMBE le liste
+			this.server.emit('world_update', { players, items }); 
+		}, 1000 / 30); // 30 FPS is better for smooth item movement
+	}
 
   // 2. Handle New Connections
   handleConnection(client: Socket) {
@@ -113,12 +114,33 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('use_lightning')
-  handleLightning(client: Socket, payload: { attackerId: string }) {
-    console.log(`⚡ Lightning used by ${payload.attackerId}`);
-    
-    // Broadcast to EVERYONE (RemoteOpponents needs to shrink, LocalPlayer needs to shrink)
-    this.server.emit('lightning-strike', { 
-      attackerId: payload.attackerId
-    });
-  }
+	handleLightning(client: Socket, payload: { attackerId: string }) {
+	// Invia a TUTTI, incluso chi ha usato l'item
+	this.server.emit('lightning-strike', { 
+		attackerId: payload.attackerId // Fondamentale per filtrare
+	});
+	}
+
+	@SubscribeMessage('spawn_item')
+	handleSpawnItem(client: Socket, payload: any) {
+		const itemId = `item_${Date.now()}_${client.id}`;
+		const newItem = {
+			id: itemId,
+			ownerId: client.id,
+			type: payload.type,
+			position: payload.position, // [x, y, z]
+			velocity: payload.velocity, // [vx, vy, vz]
+			timestamp: Date.now(),
+		};
+		this.items.set(itemId, newItem);
+		this.server.emit('item_spawned', newItem);
+	}
+
+	@SubscribeMessage('remove_item')
+	handleRemoveItem(client: Socket, payload: { itemId: string }) {
+		if (this.items.has(payload.itemId)) {
+			this.items.delete(payload.itemId);
+			this.server.emit('item_removed', { itemId: payload.itemId });
+		}
+	}
 }

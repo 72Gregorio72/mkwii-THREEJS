@@ -48,14 +48,19 @@ export const RemoteOpponent = ({ data, character, vehicle, userData }) => {
     const smallTimer = useRef(null);
 
     const activateLightning = () => {
-      isSmall.current = true;
-      if (smallTimer.current) clearTimeout(smallTimer.current);
-      smallTimer.current = setTimeout(() => deactivateLightning, 10000);     
-    };
+	isSmall.current = true;
+	if (smallTimer.current) clearTimeout(smallTimer.current);
+	
+	// CORREZIONE: Chiama la funzione direttamente ()
+	smallTimer.current = setTimeout(() => {
+		deactivateLightning(); 
+	}, 10000);     
+	};
 
-    const deactivateLightning = () => {
-      isSmall.current = false;
-    };
+	const deactivateLightning = () => {
+	isSmall.current = false;
+	// Non serve resettare la scala qui, se ne occupa lo useFrame al prossimo frame
+	};
 
     // --- 1. HANDLE STANDARD HITS (Banana/Shell/Bomb) ---
     useEffect(() => {
@@ -83,36 +88,30 @@ export const RemoteOpponent = ({ data, character, vehicle, userData }) => {
 
     // --- 2. HANDLE LIGHTNING STRIKE ---
     useEffect(() => {
-        const handleLightningStrike = (e) => {
-            const attackerId = e.detail?.attackerId;
-            
-            // FIX: Access values from the Ref, not the props directly
-            // Also removed the .current error from previous code
-            const { isBulletBill, isStar, isMega } = latestEffects.current;
+		const handleLightningStrike = (e) => {
+			const attackerId = e.detail?.attackerId;
+			
+			// 1. Se questo avversario remoto è l'attaccante, NON deve rimpicciolirsi
+			if (data.id === attackerId) {
+				return;
+			}
 
-            if (isBulletBill || isStar || isMega) {
-                console.log(`Remote Opponent ${data.id} BLOCKING lightning (Invincible)`);
-                return;
-            }
-            
-            const delay = Math.random() * 500;
-    
-            setTimeout(() => {
-                if (!rb.current) return;
-    
-                console.log(`${data.id} hit by LIGHTNING from ${attackerId}`);
-    
-                isHitRef.current = true;
-                spinTimer.current = 1.0; 
-                activateLightning();
-    
-            }, delay);
-        };
-    
-        window.addEventListener('lightning-strike', handleLightningStrike);
-        return () => window.removeEventListener('lightning-strike', handleLightningStrike);
-        // FIX: Removed [data.id, isBulletBill...] dependency. This listener is now stable.
-    }, []); 
+			// 2. Controllo invincibilità (usando il Ref aggiornato)
+			const { isBulletBill, isStar, isMega } = latestEffects.current;
+			if (isBulletBill || isStar || isMega) return;
+
+			const delay = Math.random() * 400; // Delay per stile MK
+			setTimeout(() => {
+				if (!rb.current) return;
+				isHitRef.current = true;
+				spinTimer.current = 1.0; 
+				activateLightning();
+			}, delay);
+		};
+
+		window.addEventListener('lightning-strike', handleLightningStrike);
+		return () => window.removeEventListener('lightning-strike', handleLightningStrike);
+	}, [data.id]);
 
 
     useFrame((state, delta) => {
@@ -154,6 +153,7 @@ export const RemoteOpponent = ({ data, character, vehicle, userData }) => {
             let targetScale = 1;
             if (isMega) targetScale = 2.5;
             else if (isSmall.current) targetScale = 0.5;
+			else if (!isSmall.current && !isMega) targetScale = 1;
 
             const currentScale = visualGroupRef.current.scale.x;
             const smoothScale = MathUtils.lerp(currentScale, targetScale, delta * 5);

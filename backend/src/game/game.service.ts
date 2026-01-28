@@ -41,4 +41,21 @@ export class GameService {
   removePlayer(id: string) {
     this.players.delete(id);
   }
+
+  applyLightningEffect(attackerId: string) {
+	for (let playerId in this.players) {
+		if (playerId !== attackerId) {
+		this.players[playerId].effects.isSmall = true;
+		this.players[playerId].effects.isSpinning = true;
+
+		// Opzionale: il server può gestire il timer per farli tornare grandi
+		setTimeout(() => {
+			if (this.players[playerId]) this.players[playerId].effects.isSmall = false;
+		}, 10000); 
+		setTimeout(() => {
+			if (this.players[playerId]) this.players[playerId].effects.isSpinning = false;
+		}, 4500);
+	}
+	}
+}
 }

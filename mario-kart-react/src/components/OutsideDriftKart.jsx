@@ -225,8 +225,8 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const { 
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onActivateLightning, onHitOpponent, gameState,
-	positions, botRefs,
+    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onHitOpponent, gameState,
+	positions, botRefs, socket,
   } = props;
   
 //   const { scene } = useThree()
@@ -499,12 +499,12 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     onSpawnBlueShell: onSpawnBlueShell,
 	onActivateStar: activateStar,
 	activateMega: activateMega,
-    useLightning: onActivateLightning,
 	racerId: racerId,
     selectedCharacter: selectedCharacter,
     isLocalPlayer: isLocalPlayer, // Solo il player locale sente l'audio della roulette
     kartRef: rb,
-    onActivateBulletBill: activateBulletBill 
+    onActivateBulletBill: activateBulletBill,
+	socket: socket
   });
 
   const botControls = useBotAI({ 
@@ -1056,26 +1056,33 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   })
 
     useEffect(() => {
-        const handleLightningStrike = (e) => {
-            const attackerId = e.detail?.attackerId;
+		const handleLightningStrike = (e) => {
+			const attackerId = e.detail?.attackerId;
 
-            // IMPORTANT: Ensure racerId matches what the server sends
-            if (attackerId === racerId) { 
-                console.log("Player is attacker, ignoring lightning.");
-                return; 
-            }
+			// SE SONO IO CHE L'HO LANCIATO, IGNORO
+			if (attackerId === socket.id || attackerId === racerId) { 
+				return; 
+			}
 
-            // Check Local Refs
-            if (isBulletBill || isStarActive.current || isMegaActive.current) {
-                console.log("Invincible locally, ignoring lightning.");
-                return;
-            }
+			// SE SONO INVINCIBILE, IGNORO
+			if (isBulletBill || isStarActive.current || isMegaActive.current) {
+				return;
+			}
 
-            // ... apply hit ...
-        };
-        window.addEventListener('lightning-strike', handleLightningStrike);
-        return () => window.removeEventListener('lightning-strike', handleLightningStrike);
-    }, [racerId, isBulletBill]);
+			// 1. Rimpicciolisci
+			activateLightning();    
+
+			// 2. Effetto "Banana Hit" (Spin out e stop velocità)
+			if (!isSpinning.current) {
+				isSpinning.current = true;
+				spinTimer.current = 0.8; // Un po' più lungo per il fulmine
+				speed.current = 0;
+				if (BananaHitAudioRef.current) BananaHitAudioRef.current.play();
+			}
+		};
+		window.addEventListener('lightning-strike', handleLightningStrike);
+		return () => window.removeEventListener('lightning-strike', handleLightningStrike);
+	}, [racerId, isBulletBill, socket.id]);
 
   // Visual Steering
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)

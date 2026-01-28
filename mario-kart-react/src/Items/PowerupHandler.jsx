@@ -74,7 +74,8 @@ export const usePowerupHandler = ({
   onActivateLightning,
   racerId,
   selectedCharacter,
-  isLocalPlayer = false, // true solo per il player locale che gioca su questo client
+  isLocalPlayer = false,
+  socket,
 }) => {
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
@@ -134,8 +135,8 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0); // Timestamp ultima riproduzione audio mushroom
 
   const pickupItem = () => {
-    setCurrentItem(ITEMS.LIGHTNING);
-    console.log("Oggetto raccolto: GOLDEN MUSHROOM");
+    setCurrentItem(ITEMS.RED_SHELL);
+    console.log("Oggetto raccolto: GREEN SHELL");
   };
 
   // --- LOGICA FUNGHI ---
@@ -204,6 +205,11 @@ export const usePowerupHandler = ({
       window.dispatchEvent(new CustomEvent('lightning-strike', { 
           detail: { attackerId: racerId } 
       }));
+	  if (socket) {
+		socket.emit('use_lightning', { 
+			attackerId: socket.id,
+		});
+	}
       // Chi lancia non subisce effetti locali qui, solo invia evento
       setCurrentItem(ITEMS.NONE);
   };
@@ -229,11 +235,11 @@ export const usePowerupHandler = ({
     if (position && position.current && onSpawnBanana) {
         const currentPos = position.current;
         const currentRot = rotation.current; 
-        const offsetDistance = 2.0; 
+        const offsetDistance = 3.0; 
         const spawnX = currentPos.x + Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z + Math.cos(currentRot) * offsetDistance;
-        const spawnY = currentPos.y + 1.0;
-        const throwForce = 2;
+        const spawnY = currentPos.y - 0.5;
+        const throwForce = 0;
 
         onSpawnBanana([spawnX, spawnY, spawnZ], [Math.sin(currentRot) * throwForce, 0, Math.cos(currentRot) * throwForce]);
         console.log("Banana lanciata!");
@@ -297,8 +303,8 @@ export const usePowerupHandler = ({
         const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
         const spawnY = currentPos.y + 1.5; 
-        const throwForce = 50; 
-        const upForce = 15;
+        const throwForce = 30; 
+        const upForce = 8;
 
         onSpawnBomb([spawnX, spawnY, spawnZ], [-Math.sin(currentRot) * throwForce, upForce, -Math.cos(currentRot) * throwForce]);
     }
@@ -342,7 +348,9 @@ export const usePowerupHandler = ({
         
         if (currentItem !== ITEMS.NONE) {
             activateItem(); // Esegue lo switch e usa l'oggetto
-        }
+        } else {
+			pickupItem(); // Per ora simula la raccolta di un oggetto
+		}
     }
 
     // Fondamentale: resetta il flag quando l'input torna false
