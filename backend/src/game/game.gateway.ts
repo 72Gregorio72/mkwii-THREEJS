@@ -23,7 +23,7 @@ const myIP = getLocalIpAddress();
   },
   // 3. TRANSPORTS: 'polling' is useful as a fallback if WS fails initially,
   // but strictly 'websocket' is fine if the client is configured to match.
-  transports: ['websocket', 'polling'] 
+  transports: ['websocket'] 
 })
 export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   
@@ -41,9 +41,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 			const players = this.gameService.getWorldState();
 			const items = Array.from(this.items.values());
 			
-			// IMPORTANTE: Invia un oggetto che contiene ENTRAMBE le liste
 			this.server.emit('world_update', { players, items }); 
-		}, 1000 / 30); // 30 FPS is better for smooth item movement
+		}, 1000 / 15);
 	}
 
   // 2. Handle New Connections
@@ -71,24 +70,24 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   // 4. Receive Position Updates from Clients
-@SubscribeMessage('move_kart')
-  handleMove(client: Socket, payload: { 
-      x: number, 
-      y: number, 
-      z: number, 
-      rotation: any, 
-      steer: number, 
-      drift: number,
-      effects: {
-          isBulletBill: boolean, 
-          isStar: boolean, 
-          isMega: boolean, 
-          isSmall: boolean,
-          isSpinning: boolean
-      }
-  }) {
-    this.gameService.updatePlayer(client.id, payload);
-  }
+	@SubscribeMessage('move_kart')
+	handleMove(client: Socket, payload: { 
+		x: number, 
+		y: number, 
+		z: number, 
+		rotation: any, 
+		steer: number, 
+		drift: number,
+		effects: {
+			isBulletBill: boolean, 
+			isStar: boolean, 
+			isMega: boolean, 
+			isSmall: boolean,
+			isSpinning: boolean
+		},
+	}) {
+		this.gameService.updatePlayer(client.id, payload);
+	}
   // to set the vehicle and the racer of the opponents
   @SubscribeMessage('set_details')
   handleSetDetails(client: Socket, payload: { charId: string, vehicleId: string }) {
@@ -100,6 +99,11 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       vehicleId: payload.vehicleId
     });
   }
+
+  @SubscribeMessage('ping')
+	handlePing(client: Socket) {
+	client.emit('pong');
+	}
 
   @SubscribeMessage('player_hit')
   handlePlayerHit(client: Socket, payload: { victimId: string, type: string }) {
