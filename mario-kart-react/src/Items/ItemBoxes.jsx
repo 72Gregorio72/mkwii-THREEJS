@@ -36,6 +36,7 @@ function SingleItemBox({ position, rotation }) {
         if (!isActive) return;
 		// Qui potremmo aggiungere logica per dare un oggetto al giocatore
         if (audioRef.current) {
+            audioRef.current.setVolume(1.3);
             audioRef.current.play();
         }
 		giveItemToPlayer(other);
@@ -73,7 +74,7 @@ function SingleItemBox({ position, rotation }) {
                  <PositionalAudio
                     ref={audioRef}
                     url={AUDIO_SFX.ITEM_BOX_BREAK} // Suono della scatola che si rompe
-                    distance={5}  // Distanza a cui si sente al 100%
+                    distance={8}  // Distanza a cui si sente al 100%
                     loop={false}
                  />
             </group>

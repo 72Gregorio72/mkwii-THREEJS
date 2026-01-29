@@ -84,7 +84,8 @@ export const usePowerupHandler = ({
   const decideAudioRef = useRef(null);
 
   useEffect(() => {
-    if (!isLocalPlayer) return; // Solo il player locale riproduce audio
+    if (!isLocalPlayer) return;
+    console.log("PowerupHandler: inizializzando audio per roulette oggetti.");
     rouletteAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_DECIDE);
     rouletteAudioRef.current.volume = 0.7;
     decideAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_ROLL);
@@ -95,7 +96,9 @@ export const usePowerupHandler = ({
 		if (currentItem !== ITEMS.NONE || isRoulette) return;
 
 		setIsRoulette(true);
-		
+		if (rouletteAudioRef.current) {
+      rouletteAudioRef.current.play();
+    }
 		// Lista di tutti gli item possibili per l'animazione visiva
 		const allItems = Object.keys(ITEMS).filter(item => item !== 'NONE');
 		
@@ -111,6 +114,9 @@ export const usePowerupHandler = ({
 			clearInterval(rouletteInterval); // Ferma lo scrolling
 			const selectedItem = getItemBasedOnRank(rank);
 			
+      if (decideAudioRef.current) {
+        decideAudioRef.current.play();
+      }
 			setIsRoulette(false);
 			setCurrentItem(selectedItem);
 			
@@ -123,7 +129,7 @@ export const usePowerupHandler = ({
 				detail: { item: selectedItem, isSpinning: false, targetRacerId: racerId } 
 				
 			}));
-		}, 3000); 
+		}, 2135); 
 	};
   const isItemKeyPressed = useRef(false);
 

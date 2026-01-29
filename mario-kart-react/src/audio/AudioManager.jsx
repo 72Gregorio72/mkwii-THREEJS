@@ -29,6 +29,15 @@ export const AudioProvider = ({ children }) => {
   const fadeOutIntervalRef = useRef(null);
   const fadeInIntervalRef = useRef(null);
 
+  // REF: Per gestire il "ducking" del volume durante power items (Star, Bullet Bill, Mega Mushroom)
+  const duckingCountRef = useRef(0); // Contatore per gestire più effetti attivi contemporaneamente
+  const originalVolumeRef = useRef(null); // Volume originale prima del ducking
+  const duckFadeIntervalRef = useRef(null);
+
+  // REF: Per gestire il loop smooth della musica
+  const loopMonitorRef = useRef(null); // Monitor per il loop smooth
+  const audioContextRef = useRef(null); // Web Audio API context
+
   // ============================================
   // FUNZIONE: enableAudio()
   // ============================================
@@ -79,6 +88,48 @@ export const AudioProvider = ({ children }) => {
       console.warn("Errore setup SFX:", e);
     }
   }, [audioEnabled, isMuted, sfxVolume]);
+
+  // ============================================
+  // FUNZIONE: enableSmoothLoop()
+  // Gestisce il loop fluido della musica
+  // ============================================
+  const enableSmoothLoop = useCallback(() => {
+    if (!bgmRef.current) return;
+
+    // Pulizia monitor precedente
+    if (loopMonitorRef.current) clearInterval(loopMonitorRef.current);
+
+    const audio = bgmRef.current;
+    const duration = audio.duration;
+
+    if (isNaN(duration) || duration === 0) {
+      // Se la durata non è ancora caricata, riprova tra 500ms
+      setTimeout(() => enableSmoothLoop(), 500);
+      return;
+    }
+
+    // Monitora il progresso della riproduzione per gestire il loop in modo fluido
+    loopMonitorRef.current = setInterval(() => {
+      if (!audio) return;
+
+      // Se siamo molto vicini alla fine (ultimi 200ms), prepara il loop
+      if (audio.currentTime > duration - 0.2 && audio.currentTime < duration) {
+        // Reset fluido senza stacco
+        audio.currentTime = 0;
+      }
+    }, 100);
+  }, []);
+
+  // ============================================
+  // FUNZIONE: disableSmoothLoop()
+  // Disabilita il monitor del loop
+  // ============================================
+  const disableSmoothLoop = useCallback(() => {
+    if (loopMonitorRef.current) {
+      clearInterval(loopMonitorRef.current);
+      loopMonitorRef.current = null;
+    }
+  }, []);
 
   // ============================================
   // FUNZIONE: setMusic() - FIX BUG PRIMO AVVIO
@@ -132,6 +183,9 @@ export const AudioProvider = ({ children }) => {
       newAudio.volume = 0; 
       newAudio.play().catch(e => console.warn("Errore Play Music:", e));
 
+      // Abilita il loop smooth
+      enableSmoothLoop();
+
       if (targetVolume > 0) {
         const step = targetVolume / (fadeDuration / 50);
         fadeInIntervalRef.current = setInterval(() => {
@@ -150,7 +204,7 @@ export const AudioProvider = ({ children }) => {
       // enableAudio() chiamerà play() e il volume sarà già corretto.
       newAudio.volume = targetVolume;
     }
-  }, [audioEnabled, isMuted, musicVolume, musicPlaybackRate]);
+  }, [audioEnabled, isMuted, musicVolume, musicPlaybackRate, enableSmoothLoop]);
 
   // ============================================
   // ALTRE FUNZIONI
@@ -182,11 +236,17 @@ export const AudioProvider = ({ children }) => {
     // Pulisci i timer di fade se fermiamo tutto bruscamente
     if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
     if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
+    
+    // Disabilita il monitor del loop
+    disableSmoothLoop();
 
     if (bgmRef.current) {
+      bgmRef.current.playbackRate = 1.0;
       bgmRef.current.pause();
       bgmRef.current.currentTime = 0;
     }
+
+    setMusicPlaybackRate(1.0);
   };
 
   const setMusicSpeed = (speed = 1.0) => {
@@ -195,6 +255,96 @@ export const AudioProvider = ({ children }) => {
     }
     setMusicPlaybackRate(speed);
   };
+
+  // ============================================
+  // FUNZIONE: setMusicPitch()
+  // Aumenta il pitch della musica (usando playbackRate per simulare il pitch shift)
+  // ============================================
+  const setMusicPitch = useCallback((pitch = 1.0, speed = 1.0, fadeDuration = 500) => {
+    if (!bgmRef.current) return;
+
+    // Clamp i valori tra 0.5 e 2.0
+    const targetPlaybackRate = Math.max(0.5, Math.min(pitch * speed, 2.0));
+    
+    // Applica il cambio di pitch/velocità con fade se fadeDuration è specificato
+    if (fadeDuration > 0) {
+      const startRate = bgmRef.current.playbackRate;
+      const step = (targetPlaybackRate - startRate) / (fadeDuration / 30);
+      
+      const interval = setInterval(() => {
+        if (bgmRef.current) {
+          const newRate = bgmRef.current.playbackRate + step;
+          if ((step > 0 && newRate < targetPlaybackRate) || (step < 0 && newRate > targetPlaybackRate)) {
+            bgmRef.current.playbackRate = newRate;
+          } else {
+            bgmRef.current.playbackRate = targetPlaybackRate;
+            clearInterval(interval);
+          }
+        }
+      }, 30);
+    } else {
+      bgmRef.current.playbackRate = targetPlaybackRate;
+    }
+    
+    setMusicPlaybackRate(targetPlaybackRate);
+  }, []);
+
+  // ============================================
+  // FUNZIONE: duckMusicVolume()
+  // Abbassa il volume della musica durante effetti speciali (Star, Bullet Bill, Mega Mushroom)
+  // ============================================
+  const duckMusicVolume = useCallback((targetVolume = 0.05, fadeDuration = 300) => {
+    duckingCountRef.current += 1;
+    
+    // Se è il primo ducking, salva il volume originale
+    if (duckingCountRef.current === 1 && bgmRef.current) {
+      originalVolumeRef.current = bgmRef.current.volume;
+      
+      // Pulisci eventuali fade in corso
+      if (duckFadeIntervalRef.current) clearInterval(duckFadeIntervalRef.current);
+      
+      // Fade rapido verso il volume basso
+      const startVolume = bgmRef.current.volume;
+      const step = (startVolume - targetVolume) / (fadeDuration / 30);
+      
+      duckFadeIntervalRef.current = setInterval(() => {
+        if (bgmRef.current && bgmRef.current.volume > targetVolume + step) {
+          bgmRef.current.volume -= step;
+        } else {
+          if (bgmRef.current) bgmRef.current.volume = targetVolume;
+          clearInterval(duckFadeIntervalRef.current);
+        }
+      }, 30);
+    }
+  }, []);
+
+  // ============================================
+  // FUNZIONE: restoreMusicVolume()
+  // Ripristina il volume della musica dopo la fine degli effetti speciali
+  // ============================================
+  const restoreMusicVolume = useCallback((fadeDuration = 500) => {
+    duckingCountRef.current = Math.max(0, duckingCountRef.current - 1);
+    
+    // Ripristina solo quando tutti gli effetti sono terminati
+    if (duckingCountRef.current === 0 && bgmRef.current && originalVolumeRef.current !== null) {
+      // Pulisci eventuali fade in corso
+      if (duckFadeIntervalRef.current) clearInterval(duckFadeIntervalRef.current);
+      
+      const targetVolume = isMuted ? 0 : originalVolumeRef.current;
+      const startVolume = bgmRef.current.volume;
+      const step = (targetVolume - startVolume) / (fadeDuration / 30);
+      
+      duckFadeIntervalRef.current = setInterval(() => {
+        if (bgmRef.current && bgmRef.current.volume < targetVolume - Math.abs(step)) {
+          bgmRef.current.volume += step;
+        } else {
+          if (bgmRef.current) bgmRef.current.volume = targetVolume;
+          clearInterval(duckFadeIntervalRef.current);
+          originalVolumeRef.current = null;
+        }
+      }, 30);
+    }
+  }, [isMuted]);
 
   // ============================================
   // EFFETTI (useEffect)
@@ -239,7 +389,12 @@ export const AudioProvider = ({ children }) => {
     switchContext,
     stopMusic,
     setMusicSpeed,
+    setMusicPitch,
+    enableSmoothLoop,
+    disableSmoothLoop,
     changeTrack,
+    duckMusicVolume,
+    restoreMusicVolume,
   };
 
   return (

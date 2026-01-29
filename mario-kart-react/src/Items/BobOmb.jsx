@@ -41,7 +41,10 @@ export const BobOmb = memo(function BobOmb({ position, initVelocity = [0, 0, 0],
     const triggerExplosion = () => {
         if (isExploding || isFinished) return;
         setIsExploding(true);
-        if (ExplosionAudioRef.current) ExplosionAudioRef.current.play();
+        if (ExplosionAudioRef.current) {
+            ExplosionAudioRef.current.setVolume(2.0);
+            ExplosionAudioRef.current.play();
+        }
 
         setTimeout(() => {
             setIsFinished(true);

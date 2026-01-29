@@ -9,7 +9,7 @@ const MIN_DURATION = 7.5;
 const MAX_DURATION = 12.0;
 const OVERTAKE_LIMIT = 5; // Termina dopo aver superato 5 avversari
 
-export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
+export function useBulletBill({ rb, waypoints, currentRank, onEnd, duckMusicVolume, restoreMusicVolume }) {
     const [isActive, setIsActive] = useState(false);
     
     // Reft per gli SFX
@@ -47,8 +47,18 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
             currentWpIndex.current = (closestIdx + 1) % waypoints.length;
         }
 
-        if (onAudioRef.current) onAudioRef.current.play();
-        if (engineAudioRef.current) engineAudioRef.current.play();
+        if (onAudioRef.current) {
+            onAudioRef.current.setVolume(2.0);
+            onAudioRef.current.play();
+        }
+        if (engineAudioRef.current) {
+            engineAudioRef.current.setVolume(1.7);
+            engineAudioRef.current.play();
+        }
+        
+        // Abbassa il volume della musica di gioco durante il Bullet Bill
+        if (duckMusicVolume) duckMusicVolume();
+        
         console.log("BULLET BILL ATTIVATO! Rank iniziale:", currentRank);
     };
 
@@ -59,7 +69,14 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
         if (engineAudioRef.current && engineAudioRef.current.isPlaying) {
             engineAudioRef.current.stop();
         }
-        if (offAudioRef.current) offAudioRef.current.play();
+        if (offAudioRef.current) {
+            offAudioRef.current.setVolume(2.0);
+            offAudioRef.current.play();
+        }
+        
+        // Ripristina il volume della musica di gioco
+        if (restoreMusicVolume) restoreMusicVolume();
+        
         console.log("BULLET BILL TERMINATO.");
     };
 

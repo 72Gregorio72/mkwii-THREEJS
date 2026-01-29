@@ -807,17 +807,27 @@ export const AUDIO_SFX = {
     KART_DOWNSHIFT: '/SFX/kart/KART_DOWN.wav', // downshift sound
     KART_LOOP: '/SFX/kart/KART_LOOP.wav', // loop sound
     KART_SPIN: '/SFX/kart/KART_SPIN.wav', // spin sound
+
     BIKE_IDLE: '/SFX/bike/BIKE_IDLE.wav',
     BIKE_GAS: '/SFX/bike/BIKE_GAS.wav',
     BIKE_DOWNSHIFT: '/SFX/bike/BIKE_DOWN.wav',
     BIKE_LOOP: '/SFX/bike/BIKE_LOOP.wav',
+
     BLUE_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_BLUE.wav',
     RED_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_RED.wav',
     TURBO_DRIFT: '/SFX/drift/SE_VCL_DASH.wav',
     NORMAL_DRIFT: '/SFX/drift/SE_VCL_SLIP_ASPHALT.wav',
+
     MOVE_IN_MENU: '/SFX/UI/SE_UI_BIN_IN.wav',
     SELECT_IN_MENU: '/SFX/UI/SE_UI_RADIO_IN.wav',
     START_RACE: '/SFX/UI/SE_UI_RACE_OK.wav',
+
+    COUNTDOWN_RACE: '/SFX/race/321_RACE_COUNT.wav',
+    FINISH_COUNTDOWN: '/SFX/race/SE_RC_GO.wav',
+
+    FINAL_LAP: '/SFX/race/RACE_FINA_LAP.wav',
+    SECOND_LAP: '/SFX/race/RACE_SECOND_LAP.wav',
+    FINISH_RACE: '/SFX/race/RACE_GOAL.wav',
     
     BABY_MARIO_WIN: '/SFX/BabyMario/VO_BMR_GOL_GOD_END.rwav.wav',
     BABY_MARIO_LOSE: '/SFX/BabyMario/VO_BMR_GOL_BAD_END.rwav.wav',

@@ -10,7 +10,7 @@ import { OutsideDriftKart } from '../components/OutsideDriftKart'
 import { InsideDriftBike } from '../components/InsideDriftBike'
 import { CheckpointSystem } from '../Race/CheckPointManager.jsx'
 import { RaceManager } from '../Race/RaceManager.jsx'
-import { useAudio } from '../audio/AudioManager.jsx'
+import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 import { RoadWalls } from '../Tracks/RoadWalls.jsx'
 import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx'
 import { GameHUD } from '../ui/GameHUD.jsx'
@@ -141,7 +141,7 @@ function useGridPositions(url) {
 
 // --- MAIN COMPONENT ---
 
-export function GameScene({ socket, character, vehicle, mapPath, checkpointPath, onBack, start_pos, maxCheckpoints, selectedTrack }) {
+export function GameScene({ socket, character, vehicle, mapPath, checkpointPath, onBack, start_pos, maxCheckpoints, selectedTrack}) {
 
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
@@ -267,13 +267,15 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         setGameState('COUNTDOWN');
         let timer = 3;
         setCountdown(timer);
+        playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
 
         const interval = setInterval(() => {
             timer -= 1;
             if (timer > 0) {
                 setCountdown(timer);
-                // Qui potresti triggerare l'audio SFX_COUNTDOWN
+                playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
             } else if (timer === 0) {
+                playSfx(AUDIO_SFX.FINISH_COUNTDOWN, 5);
                 setCountdown('START!');
                 setGameState('RACING');
                 // SFX_RACE_START
@@ -346,10 +348,25 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const destroyBobOmb = useCallback((id) => setBobOmbs((prev) => prev.filter(b => b.id !== id)), []);
 
     // 5. AUDIO & LOGICA DI GIOCO
-    const { changeTrack } = useAudio();
+    const { changeTrack, playSfx, stopMusic, setMusicPitch, enableSmoothLoop } = useAudio();
     useEffect(() => {
-        if(selectedTrack?.soundtrack) changeTrack(selectedTrack.soundtrack, false);
-    }, [selectedTrack, changeTrack]);
+        if (gameState !== 'RACING' || finished) {
+            setMusicPitch(1.0, 1.0, 300);
+            stopMusic();
+            return;
+        }
+
+        stopMusic();
+        if (selectedTrack?.soundtrack) {
+            changeTrack(selectedTrack.soundtrack, false);
+            enableSmoothLoop();
+        }
+
+        return () => {
+            setMusicPitch(1.0, 1.0, 300);
+            stopMusic();
+        };
+    }, [selectedTrack, changeTrack, gameState, finished, stopMusic, enableSmoothLoop, setMusicPitch]);
 
     // Checkpoint Trigger
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
@@ -363,16 +380,24 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         } 
         else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
             racer.lap += 1;
+            if (racer.lap === 2) playSfx(AUDIO_SFX.SECOND_LAP, 3);
+            else if (racer.lap === 3) {
+                playSfx(AUDIO_SFX.FINAL_LAP, 3);
+                setMusicPitch(1.10, 1.10, 2000); // pitch 1.15x, speed 1.15x, fade 500ms
+            }
             racer.nextCP = 1;
             if (racerId === 'player') {
-                if (racer.lap > TOTAL_LAPS) setFinished(true);
-                else {
+                if (racer.lap > TOTAL_LAPS) {
+                    setFinished(true);
+                    playSfx(AUDIO_SFX.FINISH_RACE, 3);
+                    stopMusic();
+                } else {
                     setUiLap(racer.lap);
                     setNextCheck(1);
                 }
             }
         }
-    }, [maxCheckpoints]);
+    }, [maxCheckpoints, playSfx, setMusicPitch, stopMusic]);
 
     // Calcolo Targets per Gusci (Red/Blue)
 
