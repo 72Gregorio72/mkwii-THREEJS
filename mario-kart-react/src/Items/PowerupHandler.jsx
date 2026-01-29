@@ -74,7 +74,8 @@ export const usePowerupHandler = ({
   onActivateLightning,
   racerId,
   selectedCharacter,
-  isLocalPlayer = false, // true solo per il player locale che gioca su questo client
+  isLocalPlayer = false,
+  socket,
 }) => {
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
@@ -91,44 +92,39 @@ export const usePowerupHandler = ({
   }, [isLocalPlayer]);
 
 	const triggerItemRoulette = (rank = 6) => {
-        
-        if (currentItem !== ITEMS.NONE || isRoulette) {
-			console.log("Roulette oggetti già in corso o oggetto già posseduto, oggetto: ", currentItem	);
-            return;
-        }
+		if (currentItem !== ITEMS.NONE || isRoulette) return;
 
-        console.log(`Roulette avviata per Rank: ${rank}`);
-        setIsRoulette(true);
-        
-        // Riproduci il suono della roulette (non posizionale) - SOLO per player locale
-        if (isLocalPlayer && rouletteAudioRef.current) {
-          rouletteAudioRef.current.currentTime = 0;
-          rouletteAudioRef.current.play().catch(err => console.log('Errore audio roulette:', err));
-        }
+		setIsRoulette(true);
+		
+		// Lista di tutti gli item possibili per l'animazione visiva
+		const allItems = Object.keys(ITEMS).filter(item => item !== 'NONE');
+		
+		// Effetto visivo: cambia l'icona ogni 100ms
+		let rouletteInterval = setInterval(() => {
+			const randomVisualItem = allItems[Math.floor(Math.random() * allItems.length)];
+			window.dispatchEvent(new CustomEvent('hud-update', { 
+				detail: { item: randomVisualItem, isSpinning: true, targetRacerId: racerId } 
+			}));
+		}, 100);
 
-        setTimeout(() => {
-            const selectedItem = getItemBasedOnRank(rank);
-            
-            console.log(`Oggetto selezionato (Rank ${rank}):`, selectedItem);
-
-            setCurrentItem(selectedItem);
-            setIsRoulette(false);
-            
-            // Riproduci il suono di decisione item - SOLO per player locale
-            if (isLocalPlayer && decideAudioRef.current) {
-              decideAudioRef.current.currentTime = 0;
-              decideAudioRef.current.play().catch(err => console.log('Errore audio decide:', err));
-            }
-            
-            if (selectedItem === ITEMS.TRIPLE_MUSHROOM) setTripleCount(3);
-            if (selectedItem === ITEMS.GOLDEN_MUSHROOM) setIsGoldenActive(false);
+		setTimeout(() => {
+			clearInterval(rouletteInterval); // Ferma lo scrolling
+			const selectedItem = getItemBasedOnRank(rank);
+			
+			setIsRoulette(false);
+			setCurrentItem(selectedItem);
+			
+			// Logica specifica per i consumabili (Triple, Golden, etc.)
+			if (selectedItem === ITEMS.TRIPLE_MUSHROOM) setTripleCount(3);
+			if (selectedItem === ITEMS.GOLDEN_MUSHROOM) setIsGoldenActive(false);
 			if (selectedItem === ITEMS.MUSHROOM) setTripleCount(1);
-            
-            window.dispatchEvent(new CustomEvent('hud-update', { 
-                detail: { item: selectedItem } 
-            }));
-        }, 3000); 
-    };
+			// Invia l'oggetto definitivo
+			window.dispatchEvent(new CustomEvent('hud-update', { 
+				detail: { item: selectedItem, isSpinning: false, targetRacerId: racerId } 
+				
+			}));
+		}, 3000); 
+	};
   const isItemKeyPressed = useRef(false);
 
   const { playSfx } = useAudio()
@@ -136,19 +132,16 @@ export const usePowerupHandler = ({
   const [tripleCount, setTripleCount] = useState(3);
   const [isGoldenActive, setIsGoldenActive] = useState(false);
   const goldenTimerRef = useRef(null);
-  const lastMushroomAudioTime = useRef(0); // Timestamp ultima riproduzione audio mushroom
+  const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    
-    console.log("Oggetto raccolto: GOLDEN MUSHROOM");
+    setCurrentItem(ITEMS.RED_SHELL);
+    console.log("Oggetto raccolto: RED SHELL");
   };
-
-  // --- LOGICA FUNGHI ---
 
   const useMushroom = () => {
     if (!boostTime) return;
 
-    // Riproduci audio solo se sono passati almeno 300ms dall'ultimo
     const now = Date.now();
     if (now - lastMushroomAudioTime.current > 1000) {
       playSfx(AUDIO_SFX.TURBO_DRIFT, 2.0);
@@ -160,14 +153,12 @@ export const usePowerupHandler = ({
     
     boostTime.current = SETTINGS.boostDuration * 2.0;
     
-    // Spinta sulla velocità
     if (speed && speed.current < SETTINGS.maxSpeed) {
       speed.current = MathUtils.lerp(speed.current, SETTINGS.maxSpeed + 25, 0.5);
     }
     console.log("Fungo utilizzato!");
   };
 
-  // 1. TRIPLO FUNGO
   const useTripleMushroom = () => {
       useMushroom(); // Usa un fungo
       
@@ -209,6 +200,11 @@ export const usePowerupHandler = ({
       window.dispatchEvent(new CustomEvent('lightning-strike', { 
           detail: { attackerId: racerId } 
       }));
+	  if (socket) {
+		socket.emit('use_lightning', { 
+			attackerId: socket.id,
+		});
+	}
       // Chi lancia non subisce effetti locali qui, solo invia evento
       setCurrentItem(ITEMS.NONE);
   };
@@ -234,11 +230,11 @@ export const usePowerupHandler = ({
     if (position && position.current && onSpawnBanana) {
         const currentPos = position.current;
         const currentRot = rotation.current; 
-        const offsetDistance = 2.0; 
+        const offsetDistance = 3.0; 
         const spawnX = currentPos.x + Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z + Math.cos(currentRot) * offsetDistance;
-        const spawnY = currentPos.y + 1.0;
-        const throwForce = 2;
+        const spawnY = currentPos.y - 0.5;
+        const throwForce = 0;
 
         onSpawnBanana([spawnX, spawnY, spawnZ], [Math.sin(currentRot) * throwForce, 0, Math.cos(currentRot) * throwForce]);
         console.log("Banana lanciata!");
@@ -302,8 +298,8 @@ export const usePowerupHandler = ({
         const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
         const spawnY = currentPos.y + 1.5; 
-        const throwForce = 50; 
-        const upForce = 15;
+        const throwForce = 30; 
+        const upForce = 8;
 
         onSpawnBomb([spawnX, spawnY, spawnZ], [-Math.sin(currentRot) * throwForce, upForce, -Math.cos(currentRot) * throwForce]);
     }
@@ -341,20 +337,22 @@ export const usePowerupHandler = ({
   };
 
   const handleItemInput = (inputActive) => {
+    // Se il bot (o l'umano) preme il tasto
     if (inputActive && !isItemKeyPressed.current) {
-      isItemKeyPressed.current = true;
-      
-      if (currentItem !== ITEMS.NONE) {
-        activateItem();
-      } else {
-        pickupItem();
-      }
+        isItemKeyPressed.current = true;
+        
+        if (currentItem !== ITEMS.NONE) {
+            activateItem(); // Esegue lo switch e usa l'oggetto
+        } else {
+			pickupItem(); // Per ora simula la raccolta di un oggetto
+		}
     }
 
+    // Fondamentale: resetta il flag quando l'input torna false
     if (!inputActive) {
-      isItemKeyPressed.current = false;
+        isItemKeyPressed.current = false;
     }
-  };
+};
 
   // Cleanup del timer se il componente viene smontato
   useEffect(() => {

@@ -25,12 +25,12 @@ function retargetClip(originalClip) {
         if (boneName.includes(':')) boneName = boneName.split(':')[1];
         if (BONE_MAP[boneName]) track.name = `${BONE_MAP[boneName]}.${property}`;
         if (property === 'position' && boneName !== 'Hips' && BONE_MAP[boneName] !== 'skl_root') tracksToRemove.push(track);
-    });
+    }); 
     clip.tracks = clip.tracks.filter(t => !tracksToRemove.includes(t));
     return clip;
 }
 
-export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, drift, isKart = true, ...props }) {
+export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, drift, isKart = true, isRemote, ...props }) {
   const group = useRef()
   
   // Refs Ossa
@@ -104,6 +104,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
 
   // Gestione Animazioni
   useEffect(() => {
+
       let targetAnim = 'idle';
       if (isKart && vehicleConfig) targetAnim = vehicleConfig.animationType || 'kart';
 
@@ -113,7 +114,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
           if (name === targetAnim) action.reset().fadeIn(0.2).play().setLoop(LoopRepeat);
           else action.fadeOut(0.2);
       });
-  }, [vehicleConfig, isKart, actions, names]);
+  }, [vehicleConfig?.animationType, isKart, actions, names]);
 
   useEffect(() => {
       clone.traverse(o => { 
@@ -132,7 +133,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   // LOGICA PROCEDURALE
   // =====================================================================
   useFrame((state, delta) => {
-      if (!isKart || !group.current) return;
+      if (isRemote || !isKart || !group.current) return;
 
       const isBike = vehicleConfig?.isBike;
       
@@ -149,8 +150,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
       const poseZ = baseShoulderLift + liftFactor; 
       const poseY = 0.3; 
       const armStraighten = (hy > 0.6 || hz > 0.5) ? -0.4 : 0;
-      const steerInfluence = isBike ? steer * 0.3 : 0;
-
+      const steerInfluence = 0;
 
       if (leftArmRef.current && leftForeArmRef.current) {
           leftArmRef.current.rotation.z += poseZ; 

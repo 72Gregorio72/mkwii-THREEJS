@@ -148,6 +148,7 @@ const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group 
 const SpeedEffect = ({ boostTimeRef, isBulletBill }) => {
   const meshRef = useRef()
   const count = 20 
+  const rb = useRef(null);
   const { camera, scene } = useThree()
   
   const dummy = useMemo(() => new THREE.Object3D(), [])
@@ -220,11 +221,12 @@ const SpeedEffect = ({ boostTimeRef, isBulletBill }) => {
   )
 }
 
-export const OutsideDriftKart = forwardRef((props, ref) => {
+export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const { 
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
-    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb
+    isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onHitOpponent, gameState,
+	positions, botRefs, socket,
   } = props;
   
 //   const { scene } = useThree()
@@ -407,7 +409,6 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   // Controls
   // Passiamo 'rb' (il ref fisico vero) al bot
   const humanControls = useGameControls() 
-  const botControls = useBotAI({ isBot, rigidBody: rb, paths }) 
   const activeControls = isBot ? botControls : humanControls
 
   // Hook per riprodurre effetti sonori (turbo, etc.)
@@ -451,12 +452,14 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const driftLevel = useRef(0)
   const prevDriftLevel = useRef(0)  // Per tracciare i cambi di livello drift (audio)
   const pendingBoost = useRef(false)
-  const boostTime = useRef(0)
   const driftHopLocked = useRef(false)
   const driftEngageWindow = useRef(false) 
   const isJumping = useRef(false)
   const jumpOffset = useRef({ y: 0 }) 
-  
+
+  const boostTime = useRef(0);
+
+
   // Refs visuali
   const visualGroupRef = useRef() 
   const backLeft = useRef()
@@ -469,14 +472,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
   const frameCounter = useRef(Math.floor(Math.random() * 3)); 
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)
   const racerId = userData?.id || (isBot ? "bot" : "player");
-  
 
-  // Vettori riutilizzabili
-  const v = useMemo(() => ({
-      forwardGlobal: new Vector3(),
-      rayOrigin: new Vector3(),
-      rayDir: new Vector3()
-  }), [])
 
   // --- LOGICA BULLET BILL ---
   const { isBulletBill, activateBulletBill, bulletBillAudioRefs } = useBulletBill({
@@ -488,28 +484,7 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       }
   });
 
-  // Esposizione Metodi: Usiamo 'ref' esterno, ma chiamiamo metodi su 'rb' interno
-  useImperativeHandle(ref, () => ({
-    translation: () => rb.current?.translation() || { x: 0, y: 0, z: 0 },
-    rotation: () => rb.current?.rotation() || { x: 0, y: 0, z: 0, w: 1 },
-    linvel: () => rb.current?.linvel() || { x: 0, y: 0, z: 0 },
-    triggerBulletBill: () => activateBulletBill(),
-    resetPosition: (pos, rot) => {
-        if(rb.current) {
-            rb.current.setTranslation({x: pos[0], y: pos[1], z: pos[2]}, true);
-            rb.current.setLinvel({x: 0, y: 0, z: 0}, true);
-            rb.current.setAngvel({x: 0, y: 0, z: 0}, true);
-            if(rot) {
-                const q = new Quaternion().setFromEuler(new Euler(...rot));
-                rb.current.setRotation(q, true);
-            }
-        }
-    }
-}));
-
-  // --- INTEGRATION POWERUP ---
-  // isLocalPlayer: true solo se questo kart è quello del giocatore locale (non bot, non player remoto in multiplayer)
-  const isLocalPlayer = !isBot && racerId === 'player';
+    const isLocalPlayer = !isBot && racerId === 'player';
   
   const { currentItem, handleItemInput, tripleCount, triggerItemRoulette } = usePowerupHandler({
     boostTime: boostTime, 
@@ -528,8 +503,65 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     selectedCharacter: selectedCharacter,
     isLocalPlayer: isLocalPlayer, // Solo il player locale sente l'audio della roulette
     kartRef: rb,
-    onActivateBulletBill: activateBulletBill 
+    onActivateBulletBill: activateBulletBill,
+	socket: socket
   });
+
+  const botControls = useBotAI({ 
+		isBot, 
+		rigidBody: rb, 
+		paths,
+		currentItem: currentItem,
+		triggerItemInput: handleItemInput
+	});
+
+  // Vettori riutilizzabili
+  const v = useMemo(() => ({
+      forwardGlobal: new Vector3(),
+      rayOrigin: new Vector3(),
+      rayDir: new Vector3()
+  }), [])
+
+
+  // Controls
+  // Passiamo 'rb' (il ref fisico vero) al bot
+
+  // Esposizione Metodi: Usiamo 'ref' esterno, ma chiamiamo metodi su 'rb' interno
+  useImperativeHandle(ref, () => ({
+    translation: () => rb.current?.translation() || { x: 0, y: 0, z: 0 },
+    rotation: () => rb.current?.rotation() || { x: 0, y: 0, z: 0, w: 1 },
+    linvel: () => rb.current?.linvel() || { x: 0, y: 0, z: 0 },
+    triggerBulletBill: () => activateBulletBill(),
+	triggerItemRoulette: (currentRank) => triggerItemRoulette(currentRank),
+    resetPosition: (pos, rot) => {
+        if(rb.current) {
+            rb.current.setTranslation({x: pos[0], y: pos[1], z: pos[2]}, true);
+            rb.current.setLinvel({x: 0, y: 0, z: 0}, true);
+            rb.current.setAngvel({x: 0, y: 0, z: 0}, true);
+            if(rot) {
+                const q = new Quaternion().setFromEuler(new Euler(...rot));
+                rb.current.setRotation(q, true);
+            }
+        }
+    },
+    getEffectState: () => ({
+        isBulletBill: isBulletBill,          // From useBulletBill hook
+        isStar: isStarActive.current,        // From Ref
+        isMega: isMegaActive.current,        // From Ref
+        isSmall: isSmall.current,            // From Ref
+        isSpinning: isSpinning.current       // Useful for syncing spin-outs
+    }),
+    getInputState: () => {
+          const controls = activeControls.current;
+          // Replicate logic: Left = 1, Right = -1
+          const currentSteer = (controls.left ? 1 : 0) + (controls.right ? -1 : 0);
+          
+          return {
+              steer: currentSteer, 
+              drift: driftDirection.current // This ref exists in your code, so it's safe
+          };
+      }
+  }));
   
   // Gestione Eventi Colpo
   useEffect(() => {
@@ -602,32 +634,70 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   // --- GESTIONE COLLISIONI FISICHE (RigidBody) ---
   const handleCollisionEnter = (payload) => {
+
+    // COLLISION
+    const otherObj = payload.other.rigidBodyObject;
+    const otherData = otherObj?.userData;
+
+    if (otherData && otherData.type === 'opponent') {
+        const effects = otherData.effects || {};
+
+        // Se l'avversario è Bullet Bill, Stella o Mega Fungo
+        if (effects.isBulletBill || effects.isStar || effects.isMega) {
+            
+            // Se io sono invincibile, ignora
+            if (isBulletBill || isStarActive.current || isMegaActive.current) {
+                return;
+            }
+
+            console.log(`COLPITO DA EFFETTO NEMICO: ${otherData.id}`);
+
+            // 3. Applica la penalità (Spin Out)
+            if (!isSpinning.current) {
+               isSpinning.current = true;
+               spinTimer.current = 0.45; 
+               speed.current = 0; 
+               driftLevel.current = 0;
+               boostTime.current = 0;
+            }
+            return; // Esci per evitare altre logiche di collisione standard
+        }
+    }
       // Se siamo Bill, distruggiamo chi tocchiamo
       if (isBulletBill) {
           const targetObj = payload.other.rigidBodyObject;
           const targetName = targetObj?.name || "";
-          if (targetName.startsWith('bot') || targetName === 'player') {
+          const otherData = targetObj?.userData;
+
+          if (targetName.startsWith('bot') || targetName === 'player'
+                || (otherData && otherData.type === 'opponent')) {
               console.log(`BULLET BILL SMASH: ${targetName}`);
               window.dispatchEvent(new CustomEvent('banana-hit', { 
                   detail: { victimId: targetName } 
               }));
+              if (otherData && otherData.type === 'opponent' && onHitOpponent) {
+                onHitOpponent(otherData.id); 
+            }
           }
       }
+
 	  if (isStarActive.current || isMegaActive.current) {
           const targetObj = payload.other.rigidBodyObject;
           const targetName = targetObj?.name || "";
+          const otherData = targetObj?.userData;
           
           // Se tocchiamo un bot o un player
-          if (targetName.startsWith('bot') || targetName === 'player') {
+          if (targetName.startsWith('bot') || targetName === 'player'
+        || (otherData && otherData.type === 'opponent')) {
               console.log(`STAR SMASH: ${targetName}`);
-              
-              // Applica effetto sonoro colpo (opzionale)
               
               // Invia evento danno
               window.dispatchEvent(new CustomEvent('banana-hit', { 
                   detail: { victimId: targetName, type: 'star_hit' } 
               }));
-              
+              if (otherData && otherData.type === 'opponent' && onHitOpponent) {
+                onHitOpponent(otherData.id);
+              }
               // Opzionale: Dai una spinta fisica via al nemico
               // payload.other.rigidBody.applyImpulse({x:0, y:10, z:0}, true);
           }
@@ -636,6 +706,15 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   useFrame((state, delta) => {
     if (!rb.current) return;
+
+	if (!rb.current || gameState !== 'RACING') {
+        // Forza la velocità a 0 finché non finisce il countdown
+        if(gameState === 'COUNTDOWN') {
+            rb.current.setLinvel({x:0, y: rb.current.linvel().y, z:0}, true);
+            speed.current = 0;
+        }
+        return; 
+    }
 
     // Aggiorna posizione corrente per la camera e logica
     const rbPos = rb.current.translation();
@@ -901,6 +980,22 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
         smoothedY.current = MathUtils.damp(smoothedY.current, rbPos.y, smoothFactor, delta);
         const visualLocalY = (smoothedY.current - rbPos.y) - PHYSICS_RADIUS + jumpOffset.current.y;
 
+		const smoothingSpeed = isGrounded.current ? 12.0 : 5.0; 
+
+		smoothedY.current = MathUtils.damp(
+			smoothedY.current, 
+			rbPos.y, 
+			smoothingSpeed, 
+			delta
+		);
+
+		// Applica la posizione smussata solo al gruppo visuale, non al corpo fisico
+		if (visualGroupRef.current) {
+			// Calcoliamo l'offset rispetto alla posizione fisica reale
+			const visualLocalY = (smoothedY.current - rbPos.y) - PHYSICS_RADIUS + jumpOffset.current.y;
+			visualGroupRef.current.position.y = visualLocalY;
+		}
+
         if (visualGroupRef.current) {
             const driftTilt = isDrifting ? (driftDirection.current * 0.15) : 0;
             if (isSpinning.current) {
@@ -960,41 +1055,34 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
     }
   })
 
-  useEffect(() => {
-    const handleLightningStrike = (e) => {
-        const attackerId = e.detail?.attackerId;
+    useEffect(() => {
+		const handleLightningStrike = (e) => {
+			const attackerId = e.detail?.attackerId;
 
-        if (attackerId === racerId) {
-            console.log("Ho lanciato io il fulmine, sono salvo.");
-            return; 
-        }
+			// SE SONO IO CHE L'HO LANCIATO, IGNORO
+			if (attackerId === socket.id || attackerId === racerId) { 
+				return; 
+			}
 
-        if (isBulletBill || isStarActive.current || isMegaActive.current) {
-            console.log("Schivato fulmine grazie all'invincibilità!");
-            return;
-        }
-        const delay = Math.random() * 500;
+			// SE SONO INVINCIBILE, IGNORO
+			if (isBulletBill || isStarActive.current || isMegaActive.current) {
+				return;
+			}
 
-        setTimeout(() => {
-            if (!rb.current) return;
+			// 1. Rimpicciolisci
+			activateLightning();    
 
-            console.log(`${racerId} colpito dal FULMINE di ${attackerId}!`);
-
-            isSpinning.current = true;
-            spinTimer.current = 1.0; 
-            speed.current = 0;       
-
-            const curVel = rb.current.linvel();
-            rb.current.setLinvel({ x: curVel.x * 0.5, y: Math.max(0, curVel.y), z: curVel.z * 0.5 }, true);
-
-            activateLightning();
-
-        }, delay);
-    };
-
-    window.addEventListener('lightning-strike', handleLightningStrike);
-    return () => window.removeEventListener('lightning-strike', handleLightningStrike);
-  }, [racerId, isBulletBill]); // Dipendenze importanti
+			// 2. Effetto "Banana Hit" (Spin out e stop velocità)
+			if (!isSpinning.current) {
+				isSpinning.current = true;
+				spinTimer.current = 0.8; // Un po' più lungo per il fulmine
+				speed.current = 0;
+				if (BananaHitAudioRef.current) BananaHitAudioRef.current.play();
+			}
+		};
+		window.addEventListener('lightning-strike', handleLightningStrike);
+		return () => window.removeEventListener('lightning-strike', handleLightningStrike);
+	}, [racerId, isBulletBill, socket.id]);
 
   // Visual Steering
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)
@@ -1021,25 +1109,8 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
 
   const handleGroundExit = () => { isGrounded.current = false; }
 
-  useEffect(() => {
-    const handleItemCollected = (e) => {
-        if (e.detail.racerId === racerId) {
-            if (triggerItemRoulette) {
-                triggerItemRoulette(rank);
-            } else {
-                console.warn("Manca la funzione triggerItemRoulette in usePowerupHandler!");
-            }
-        }
-    };
-
-    window.addEventListener('item-collected', handleItemCollected);
-    return () => window.removeEventListener('item-collected', handleItemCollected);
-  }, [racerId, isBulletBill, triggerItemRoulette]);
-
   return (
     <>
-
-      {/* --- INIZIO FISICA --- */}
       <RigidBody 
         ref={rb} 
         position={START_POS} 
@@ -1186,4 +1257,4 @@ export const OutsideDriftKart = forwardRef((props, ref) => {
       </RigidBody>
     </>
   )
-});
+}));

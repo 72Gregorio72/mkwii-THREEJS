@@ -10,6 +10,8 @@ RUN npm install
 
 RUN npm install -g vite
 
+RUN npm install socket.io-client
+
 # Copiamo il resto del codice
 COPY . .
 

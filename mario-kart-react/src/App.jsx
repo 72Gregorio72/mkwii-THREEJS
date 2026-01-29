@@ -5,9 +5,10 @@ import { VehicleSelection } from './Scenes/VehicleSelection'
 import { TrackSelection } from './Scenes/TrackSelection'
 import { GameScene } from './Scenes/GameScene' // Import the new component
 import { AudioProvider } from './audio/AudioManager'
+import { socket } from './multiplayer/socket.js';
 
 export default function App() {
-
+	
     const [MenuState, setMenuState] = useState(-1)
     
     // State for selections
@@ -37,7 +38,6 @@ export default function App() {
         	        <VehicleSelection 
         	            setMenuState={setMenuState} 
         	            selectedCharacter={SelectedCharacter}
-        	            // Pass the setter so we save the vehicle
         	            setSelectedVehicle={setSelectedVehicle} 
         	        />
         	    )}
@@ -50,14 +50,15 @@ export default function App() {
 				)}
 
         	    {MenuState === 3 && (
-					<GameScene 
+					<GameScene
+						socket={socket}
 						character={SelectedCharacter}
 						vehicle={SelectedVehicle}
 
 						// Passiamo i dati dinamici dalla pista selezionata
 						mapPath={SelectedTrack.file} 
-						checkpointPath={SelectedTrack.checkpoints} // <--- NUOVO
-						maxCheckpoints={SelectedTrack.maxCheckpoints || 1} // <--- NUOVO
+						checkpointPath={SelectedTrack.checkpoints}
+						maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
 						start_pos={SelectedTrack.startPos}
 						selectedTrack={SelectedTrack}
 						onBack={() => setMenuState(0)}
