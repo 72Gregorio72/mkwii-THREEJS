@@ -234,25 +234,30 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     }, [playerRank, positions]);
 
 	useEffect(() => {
+		if (!socket) return;
+
+		const handleLeaderboard = (officialLeaderboard) => {
+			// officialLeaderboard è l'array [{id, position}, ...] inviato dal server
+			setPositions(officialLeaderboard);
+		};
+
+		socket.on('leaderboard_update', handleLeaderboard);
+		return () => socket.off('leaderboard_update', handleLeaderboard);
+	}, [socket]);
+
+	useEffect(() => {
 		if (introPlayed.current) return;
 			introPlayed.current = true;
 
-			// 1. Setup Camera iniziale (Molto in alto per lo Zoom Out)
-			// Supponiamo che il centro della mappa sia [0,0,0]
-			// const cam = state.camera; // Dovrai passarlo tramite un componente o ref
-
-			// Fase 1: Zoom out panoramico
 			gsap.fromTo(cameraTarget.current, 
 				{ x: 0, y: 0, z: 0 }, 
 				{ x: 0, y: 5, z: 0, duration: 4 }
 			);
 
-			// Fase 2: Transizione al Player e poi Countdown
 			const timeline = gsap.timeline({
 				onComplete: () => startCountdown()
 			});
 
-			// Animazione "volo" dalla mappa al player
 			timeline.to(cameraTarget.current, {
 				x: playerStartPos[0],
 				y: playerStartPos[1] + 2,
@@ -297,6 +302,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const checkpointPositionsRef = useRef({});
     const playerRef = useRef(); 
 	const botRefs = useRef({});
+	const onlinePlayersRef = useRef({});
 
 	const opponentsDataRef = useRef({});
 
@@ -307,8 +313,17 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         }
     }
 
+	useEffect(() => {
+		onlinePlayersRef.current = onlinePlayers.reduce((acc, player) => {
+			acc[player.id] = player;
+			return acc;
+		}, {});
+	}, [onlinePlayers]);
+
     // Stati Variabili
     const [opponents, setOpponents] = useState([]);
+
+	const remoteRefMap = useRef({});
 
     // 4. GESTIONE ITEMS
     const [bananas, setBananas] = useState([]);
@@ -317,9 +332,27 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const [blueShells, setBlueShells] = useState([]);
     const [bobOmbs, setBobOmbs] = useState([]);
 
-	
 	useEffect(() => {
-		setOnlinePlayers(opponents.map(opp => ({ id: opp.id })));
+		// Quando la lista degli avversari online cambia
+		opponents.forEach(opp => {
+			if (!racersData.current[opp.id]) {
+				racersData.current[opp.id] = { 
+					id: opp.id, 
+					lap: 1, 
+					nextCP: 1, 
+					score: 0,
+					isRemote: true 
+				};
+			}
+		});
+
+		// Opzionale: pulizia se un giocatore esce
+		const opponentIds = opponents.map(o => o.id);
+		Object.keys(racersData.current).forEach(id => {
+			if (id !== 'player' && !id.startsWith('bot_') && !opponentIds.includes(id)) {
+				delete racersData.current[id];
+			}
+		});
 	}, [opponents]);
 
     // Handlers Spawn
@@ -434,25 +467,11 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
 
-    // --- DETERMINA POSIZIONE PLAYER ---
-    // start_12 corrisponde al Player (griglia 12)
     const playerStartPos = gridPositions[12] || start_pos; 
-    // Se c'è rotazione nel GLB usala, altrimenti ruota 90° su Y come default
     const playerStartRot = gridRotations[12] || [0, Math.PI / 2, 0]; 
 
     return (
         <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-            
-            {/* UI HUD DI DEBUG / PAUSA */}
-            <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 100, color: 'white', fontFamily: 'sans-serif', textShadow: '2px 2px 0 #000' }}>
-                <button onClick={handleExitRace} style={{marginBottom: 10, cursor: 'pointer'}}>Exit Race</button>
-                <h1 style={{ margin: 0 }}>Pos: {playerRank} / {BOT_COUNT + 1}</h1>
-                <h2 style={{ margin: 0 }}>Lap: {uiLap} / {TOTAL_LAPS}</h2>
-                <div style={{ fontSize: '14px', opacity: 0.7 }}>
-                      Target: Check_{nextCheck <= maxCheckpoints ? nextCheck : '0 (Finish)'}
-                </div>
-                {finished && <div style={{ fontSize: '40px', fontWeight: 'bold', color: '#ffdd00' }}>FINISH!</div>}
-            </div>
 
             {/* HUD PRINCIPALE */}
             <GameHUD lap={uiLap} totalLaps={TOTAL_LAPS} rank={playerRank} />
@@ -541,6 +560,9 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                         playerRef={playerRef}
                         botRefs={botRefs}
                         trackPath={trackWaypoints}
+						socket={socket}
+						remoteRefMap={remoteRefMap}
+						opponentsDataRef={opponentsDataRef}
                     />
                     
                     {/* MAP & COLLIDERS */}
@@ -565,6 +587,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 							<RemoteOpponent 
 								key={playerData.id} 
 								playerId={playerData.id} // Passa l'ID
+								ref={remoteRefMap.current[playerData.id]}
 								opponentsDataRef={opponentsDataRef} // Passa il Ref globale
 								character={Characters.find(c => c.id === playerData.charId) || character} 
 								vehicle={VEHICLE_DATABASE[playerData.vehicleId] || vehicle}

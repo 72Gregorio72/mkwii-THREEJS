@@ -14,7 +14,9 @@ export function RaceManager({
     positions,
     playerRef, 
     botRefs, 
-    trackPath 
+    trackPath,
+	opponentsDataRef,
+	remoteRefMap,
 }) {
     
     // --- 1. DATI TRACCIATO (Pre-calcolati una volta sola) ---
@@ -107,67 +109,77 @@ export function RaceManager({
     const updateTimer = useRef(0);
 
     useFrame((state, delta) => {
-        if (finished || !trackData || !racersData.current) return;
+		if (finished || !trackData || !racersData.current) return;
 
-        // Aggiungi tempo trascorso
-        updateTimer.current += delta;
+		updateTimer.current += delta;
+		if (updateTimer.current < UPDATE_INTERVAL) return;
+		updateTimer.current = 0;
 
-        // Se non è passato 1 secondo, non fare nulla (RISPARMIO CPU)
-        if (updateTimer.current < UPDATE_INTERVAL) return;
+		const allRacers = racersData.current;
+		const trackLen = trackData.totalLength;
 
-        // Resetta timer
-        updateTimer.current = 0;
+		Object.keys(allRacers).forEach((racerId) => {
+			let currentPos = null;
 
-        // --- CALCOLO CLASSIFICA (Eseguito solo 1 volta al sec) ---
-        const allRacers = racersData.current;
-        const trackLen = trackData.totalLength;
+			if (racerId === 'player') {
+				if (playerRef.current?.translation) {
+					const t = playerRef.current.translation();
+					currentPos = new THREE.Vector3(t.x, t.y, t.z);
+				}
+			} else if (racerId.startsWith('bot_')) {
+				const botRefObj = botRefs.current[racerId];
+				if (botRefObj?.current?.translation) {
+					const t = botRefObj.current.translation();
+					currentPos = new THREE.Vector3(t.x, t.y, t.z);
+				}
+			} else {
+				// --- LOGICA ONLINE ---
+				// 1. Prova a leggere dal Ref fisico (RemoteOpponent con forwardRef)
+				const remoteComponent = remoteRefMap.current[racerId];
+				if (remoteComponent?.current?.translation) {
+					const t = remoteComponent.current.translation();
+					currentPos = new THREE.Vector3(t.x, t.y, t.z);
+				} 
+				// 2. Fallback ai dati grezzi di rete (attenzione alle chiavi x,y,z o position)
+				else {
+					const remoteData = opponentsDataRef?.current?.[racerId];
+					if (remoteData) {
+						// Controlla se le chiavi sono .x o .position[0]
+						if (remoteData.x !== undefined) {
+							currentPos = new THREE.Vector3(remoteData.x, remoteData.y, remoteData.z);
+						} else if (remoteData.position) {
+							const p = remoteData.position;
+							currentPos = Array.isArray(p) ? new THREE.Vector3(p[0], p[1], p[2]) : new THREE.Vector3(p.x, p.y, p.z);
+						}
+					}
+				}
 
-        Object.keys(allRacers).forEach((racerId) => {
-            let rigidBody = null;
+				// Sincronizza il Lap se presente
+				if (opponentsDataRef.current[racerId]?.lap) {
+					allRacers[racerId].lap = opponentsDataRef.current[racerId].lap;
+				}
+			}
+			if (currentPos) {
+				const currentProgress = getTrackProgress(racerId, currentPos);
+				const currentLap = allRacers[racerId].lap || 1;
+				const totalScore = ((currentLap - 1) * trackLen) + currentProgress;
+				
+				allRacers[racerId].score = totalScore;
+			} else {
+				allRacers[racerId].score = 0;
+			}
+		});
 
-            // Recupera il riferimento al corpo fisico corretto
-            if (racerId === 'player') {
-                rigidBody = playerRef.current;
-            } else {
-                const botRefObj = botRefs.current && botRefs.current[racerId];
-                if (botRefObj) rigidBody = botRefObj.current;
-            }
+		// --- 5. ORDINAMENTO ---
+		const sorted = Object.values(allRacers).sort((a, b) => b.score - a.score);
 
-            // Leggi posizione da Rapier e calcola score
-            if (rigidBody && rigidBody.translation) {
-                const t = rigidBody.translation();
-                const posVec = new THREE.Vector3(t.x, t.y, t.z);
-                
-                const currentProgress = getTrackProgress(racerId, posVec);
-                const currentLap = allRacers[racerId].lap; 
+		// Controllo se la classifica è cambiata (ottimizzazione React)
+		const hasChanged = sorted.some((r, i) => positions[i]?.id !== r.id);
 
-                // Score = (Giri * Lunghezza) + Metri percorsi nel giro attuale
-                const totalScore = ((currentLap - 1) * trackLen) + currentProgress;
-                
-                allRacers[racerId].score = totalScore;
-            }
-        });
-
-        // --- 4. ORDINAMENTO E UPDATE UI ---
-        const sorted = Object.values(allRacers).sort((a, b) => b.score - a.score);
-
-        // Verifica se l'ordine è cambiato per evitare re-render inutili di React
-        let rankingChanged = false;
-        
-        if (positions.length !== sorted.length) rankingChanged = true;
-        else {
-            for (let i = 0; i < sorted.length; i++) {
-                if (positions[i]?.id !== sorted[i].id) {
-                    rankingChanged = true;
-                    break;
-                }
-            }
-        }
-
-        if (rankingChanged) {
-            setPositions(sorted.map((r, index) => ({ id: r.id, position: index + 1 })));
-        }
-    });
+		if (hasChanged) {
+			setPositions(sorted.map((r, index) => ({ id: r.id, position: index + 1 })));
+		}
+	});
 
     return null; // Componente logico, nessun render visivo
 }

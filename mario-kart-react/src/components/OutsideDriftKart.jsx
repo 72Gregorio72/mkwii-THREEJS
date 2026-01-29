@@ -578,31 +578,50 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
       }
   }));
   
-  // Gestione Eventi Colpo
 	useEffect(() => {
-		if (!socket) return;
+		const handleHit = (eventData) => {
+			const victimId = eventData.victimId || eventData.detail?.victimId;
+			
+			// DEBUG: Apri la console (F12) e controlla se questi due ID coincidano quando colpisci la banana
+			console.log("Controllo Colpo:", { victimId, myLocalId: racerId, mySocketId: socket?.id });
 
-		const handleRemoteHitReceived = (data) => {
-			// Se l'ID della vittima inviato dal server è il MIO id socket
-			if (data.victimId === socket.id) {
-				// Se sono invincibile, ignoro
-				if (isBulletBill || isStarActive.current || isMegaActive.current) return;
+			// Controllo flessibile: colpito se l'ID coincide con racerId O con l'ID del socket
+			const isMe = victimId === racerId || (socket && victimId === socket.id);
 
-				console.log("Sono stato colpito da un altro giocatore!");
-				
-				// Attiva lo spin locale
+			if (isMe) {
+				// Se ho la stella, il mega fungo o sono Bill, ignoro il colpo
+				if (isStarActive.current || isMegaActive.current || isBulletBill) {
+					console.log("Colpo ignorato: Powerup attivo");
+					return;
+				}
+
 				if (!isSpinning.current) {
+					console.log("AZIONE: Il Kart gira!");
 					isSpinning.current = true;
-					spinTimer.current = 0.45;
+					spinTimer.current = 0.8; 
 					speed.current = 0;
-					if (BananaHitAudioRef.current) BananaHitAudioRef.current.play();
+					driftLevel.current = 0;
+					boostTime.current = 0;
+					driftDirection.current = 0;
+
+					if (BananaHitAudioRef.current) {
+						BananaHitAudioRef.current.play();
+					}
 				}
 			}
 		};
 
-		socket.on('banana-hit', handleRemoteHitReceived);
-		return () => socket.off('banana-hit', handleRemoteHitReceived);
-	}, [socket, isBulletBill]);
+		const socketHandler = (data) => handleHit(data);
+		const windowHandler = (e) => handleHit(e.detail);
+
+		window.addEventListener('banana-hit', windowHandler);
+		if (socket) socket.on('banana-hit', socketHandler);
+
+		return () => {
+			window.removeEventListener('banana-hit', windowHandler);
+			if (socket) socket.off('banana-hit', socketHandler);
+		};
+	}, [socket, racerId, isBulletBill]);
 
   const { checkSurface } = useHitboxHandler({
     speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
@@ -663,15 +682,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 
         // Se l'avversario è Bullet Bill, Stella o Mega Fungo
         if (effects.isBulletBill || effects.isStar || effects.isMega) {
-            
-            // Se io sono invincibile, ignora
             if (isBulletBill || isStarActive.current || isMegaActive.current) {
                 return;
             }
 
-            console.log(`COLPITO DA EFFETTO NEMICO: ${otherData.id}`);
-
-            // 3. Applica la penalità (Spin Out)
             if (!isSpinning.current) {
                isSpinning.current = true;
                spinTimer.current = 0.45; 
@@ -679,7 +693,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
                driftLevel.current = 0;
                boostTime.current = 0;
             }
-            return; // Esci per evitare altre logiche di collisione standard
+            return;
         }
     }
       // Se siamo Bill, distruggiamo chi tocchiamo
