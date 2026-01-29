@@ -135,7 +135,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    setCurrentItem(ITEMS.BULLET_BILL);
+    setCurrentItem(ITEMS.MEGA_MUSHROOM);
   };
 
   const useMushroom = () => {
