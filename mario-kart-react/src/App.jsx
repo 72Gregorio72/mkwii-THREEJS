@@ -38,7 +38,6 @@ export default function App() {
         	        <VehicleSelection 
         	            setMenuState={setMenuState} 
         	            selectedCharacter={SelectedCharacter}
-        	            // Pass the setter so we save the vehicle
         	            setSelectedVehicle={setSelectedVehicle} 
         	        />
         	    )}
@@ -58,8 +57,8 @@ export default function App() {
 
 						// Passiamo i dati dinamici dalla pista selezionata
 						mapPath={SelectedTrack.file} 
-						checkpointPath={SelectedTrack.checkpoints} // <--- NUOVO
-						maxCheckpoints={SelectedTrack.maxCheckpoints || 1} // <--- NUOVO
+						checkpointPath={SelectedTrack.checkpoints}
+						maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
 						start_pos={SelectedTrack.startPos}
 						selectedTrack={SelectedTrack}
 						onBack={() => setMenuState(0)}
