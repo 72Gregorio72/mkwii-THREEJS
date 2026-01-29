@@ -266,6 +266,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         megaMushroomUseAudioRef.current.play();
         megaMushroomStateAudioRef.current.play();
       }
+      
+      // Abbassa il volume della musica di gioco durante il Mega Fungo
+      if (!isBot) duckMusicVolume();
       if (rb.current) {
           rb.current.setAdditionalMass(500, true); // Diventa pesantissimo
       }
@@ -291,6 +294,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
       if (rb.current) {
           rb.current.setAdditionalMass(0, true);
       }
+      
+      // Ripristina il volume della musica di gioco
+      if (!isBot) restoreMusicVolume();
   };
 
 
@@ -305,6 +311,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
       // THUNDER_LOOP: loop mentre sei piccolo
       if (thunderLoopAudioRef.current) {
           thunderLoopAudioRef.current.currentTime = 0;
+          thunderLoopAudioRef.current.setVolume(3.0);
           thunderLoopAudioRef.current.play();
       }
 
@@ -334,6 +341,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
       
       isStarActive.current = true;
       if (starStateAudioRef.current) starStateAudioRef.current.play();
+      
+      // Abbassa il volume della musica di gioco durante la stella
+      if (!isBot) duckMusicVolume();
       
       // Salva i materiali originali se non l'hai già fatto (per ripristinare il colore dopo)
       // Nota: Questo è un approccio semplificato. Se i modelli cambiano, va gestito meglio.
@@ -382,6 +392,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
           });
       }
       if (starStateAudioRef.current) starStateAudioRef.current.stop();
+      
+      // Ripristina il volume della musica di gioco
+      if (!isBot) restoreMusicVolume();
   };
   
   const billScene = useMemo(() => {
@@ -412,7 +425,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const activeControls = isBot ? botControls : humanControls
 
   // Hook per riprodurre effetti sonori (turbo, etc.)
-  const { playSfx } = useAudio()
+  const { playSfx, duckMusicVolume, restoreMusicVolume } = useAudio()
 
   // Ref e state per il gruppo audio 3D
   const audioGroupRef = useRef(null);
@@ -481,7 +494,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
       currentRank: rank || 8,
       onEnd: () => {
          if(rb.current) rb.current.setLinvel({x:0, y:0, z:0}, true);
-      }
+      },
+      // Passa le funzioni di ducking solo per il player locale
+      duckMusicVolume: isBot ? null : duckMusicVolume,
+      restoreMusicVolume: isBot ? null : restoreMusicVolume,
   });
 
     const isLocalPlayer = !isBot && racerId === 'player';

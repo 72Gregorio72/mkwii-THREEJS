@@ -29,6 +29,11 @@ export const AudioProvider = ({ children }) => {
   const fadeOutIntervalRef = useRef(null);
   const fadeInIntervalRef = useRef(null);
 
+  // REF: Per gestire il "ducking" del volume durante power items (Star, Bullet Bill, Mega Mushroom)
+  const duckingCountRef = useRef(0); // Contatore per gestire più effetti attivi contemporaneamente
+  const originalVolumeRef = useRef(null); // Volume originale prima del ducking
+  const duckFadeIntervalRef = useRef(null);
+
   // ============================================
   // FUNZIONE: enableAudio()
   // ============================================
@@ -197,6 +202,63 @@ export const AudioProvider = ({ children }) => {
   };
 
   // ============================================
+  // FUNZIONE: duckMusicVolume()
+  // Abbassa il volume della musica durante effetti speciali (Star, Bullet Bill, Mega Mushroom)
+  // ============================================
+  const duckMusicVolume = useCallback((targetVolume = 0.05, fadeDuration = 300) => {
+    duckingCountRef.current += 1;
+    
+    // Se è il primo ducking, salva il volume originale
+    if (duckingCountRef.current === 1 && bgmRef.current) {
+      originalVolumeRef.current = bgmRef.current.volume;
+      
+      // Pulisci eventuali fade in corso
+      if (duckFadeIntervalRef.current) clearInterval(duckFadeIntervalRef.current);
+      
+      // Fade rapido verso il volume basso
+      const startVolume = bgmRef.current.volume;
+      const step = (startVolume - targetVolume) / (fadeDuration / 30);
+      
+      duckFadeIntervalRef.current = setInterval(() => {
+        if (bgmRef.current && bgmRef.current.volume > targetVolume + step) {
+          bgmRef.current.volume -= step;
+        } else {
+          if (bgmRef.current) bgmRef.current.volume = targetVolume;
+          clearInterval(duckFadeIntervalRef.current);
+        }
+      }, 30);
+    }
+  }, []);
+
+  // ============================================
+  // FUNZIONE: restoreMusicVolume()
+  // Ripristina il volume della musica dopo la fine degli effetti speciali
+  // ============================================
+  const restoreMusicVolume = useCallback((fadeDuration = 500) => {
+    duckingCountRef.current = Math.max(0, duckingCountRef.current - 1);
+    
+    // Ripristina solo quando tutti gli effetti sono terminati
+    if (duckingCountRef.current === 0 && bgmRef.current && originalVolumeRef.current !== null) {
+      // Pulisci eventuali fade in corso
+      if (duckFadeIntervalRef.current) clearInterval(duckFadeIntervalRef.current);
+      
+      const targetVolume = isMuted ? 0 : originalVolumeRef.current;
+      const startVolume = bgmRef.current.volume;
+      const step = (targetVolume - startVolume) / (fadeDuration / 30);
+      
+      duckFadeIntervalRef.current = setInterval(() => {
+        if (bgmRef.current && bgmRef.current.volume < targetVolume - Math.abs(step)) {
+          bgmRef.current.volume += step;
+        } else {
+          if (bgmRef.current) bgmRef.current.volume = targetVolume;
+          clearInterval(duckFadeIntervalRef.current);
+          originalVolumeRef.current = null;
+        }
+      }, 30);
+    }
+  }, [isMuted]);
+
+  // ============================================
   // EFFETTI (useEffect)
   // ============================================
 
@@ -240,6 +302,8 @@ export const AudioProvider = ({ children }) => {
     stopMusic,
     setMusicSpeed,
     changeTrack,
+    duckMusicVolume,
+    restoreMusicVolume,
   };
 
   return (

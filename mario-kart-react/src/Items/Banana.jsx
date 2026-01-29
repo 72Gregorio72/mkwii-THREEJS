@@ -29,7 +29,10 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0],
         
         // Se tocca qualcosa che non è un racer (suolo/muri)
         if (!targetName.includes("player") && !targetName.startsWith("bot") && !targetName.includes("opponent")) {
-            if (GroundAudioRef.current) GroundAudioRef.current.play();
+            if (GroundAudioRef.current) {
+                GroundAudioRef.current.setVolume(2.5);
+                GroundAudioRef.current.play();
+            }
             setIsLanded(true);
             
             // Invece di cambiare tipo in static (che causerebbe il glitch), 

@@ -42,7 +42,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 			const items = Array.from(this.items.values());
 			
 			this.server.emit('world_update', { players, items }); 
-		}, 1000 / 15);
+		}, 1000 / 1);
 	}
 
   // 2. Handle New Connections
