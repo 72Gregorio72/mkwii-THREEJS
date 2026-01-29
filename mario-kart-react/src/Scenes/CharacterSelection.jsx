@@ -12,10 +12,11 @@ export function CharacterSelection({
     setSelectedCharacter 
 }) {
 
-  const { changeTrack } = useAudio();
+  const { changeTrack, enableSmoothLoop } = useAudio();
   useEffect(() => {
     changeTrack('CHARACTER_KART_SELECT', 100);
-  }, [changeTrack]);
+    enableSmoothLoop();
+  }, [changeTrack, enableSmoothLoop]);
 
   const { playSfx } = useAudio();
   const [localSelection, setLocalSelection] = useState(availableCharacters[0])

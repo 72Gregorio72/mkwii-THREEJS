@@ -343,13 +343,25 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const destroyBobOmb = useCallback((id) => setBobOmbs((prev) => prev.filter(b => b.id !== id)), []);
 
     // 5. AUDIO & LOGICA DI GIOCO
-    const { changeTrack, playSfx, stopMusic } = useAudio();
+    const { changeTrack, playSfx, stopMusic, setMusicPitch, enableSmoothLoop } = useAudio();
     useEffect(() => {
-        stopMusic();
-        if(selectedTrack?.soundtrack && gameState === 'RACING' && !finished) {
-            changeTrack(selectedTrack.soundtrack, false);
+        if (gameState !== 'RACING' || finished) {
+            setMusicPitch(1.0, 1.0, 300);
+            stopMusic();
+            return;
         }
-    }, [selectedTrack, changeTrack, gameState, stopMusic]);
+
+        stopMusic();
+        if (selectedTrack?.soundtrack) {
+            changeTrack(selectedTrack.soundtrack, false);
+            enableSmoothLoop();
+        }
+
+        return () => {
+            setMusicPitch(1.0, 1.0, 300);
+            stopMusic();
+        };
+    }, [selectedTrack, changeTrack, gameState, finished, stopMusic, enableSmoothLoop, setMusicPitch]);
 
     // Checkpoint Trigger
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
@@ -364,19 +376,23 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
             racer.lap += 1;
             if (racer.lap === 2) playSfx(AUDIO_SFX.SECOND_LAP, 3);
-            else if (racer.lap === 3) playSfx(AUDIO_SFX.FINAL_LAP, 3);
+            else if (racer.lap === 3) {
+                playSfx(AUDIO_SFX.FINAL_LAP, 3);
+                setMusicPitch(1.10, 1.10, 2000); // pitch 1.15x, speed 1.15x, fade 500ms
+            }
             racer.nextCP = 1;
             if (racerId === 'player') {
                 if (racer.lap > TOTAL_LAPS) {
                     setFinished(true);
                     playSfx(AUDIO_SFX.FINISH_RACE, 3);
+                    stopMusic();
                 } else {
                     setUiLap(racer.lap);
                     setNextCheck(1);
                 }
             }
         }
-    }, [maxCheckpoints, playSfx]);
+    }, [maxCheckpoints, playSfx, setMusicPitch, stopMusic]);
 
     // Calcolo Targets per Gusci (Red/Blue)
 
