@@ -73,7 +73,7 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0],
             {/* Hitbox principale */}
             <CylinderCollider 
                 args={[0.2, 0.4]} 
-                sensor={true} // Usiamo sensor per gestire l'impatto con i kart senza bloccarli fisicamente
+                sensor={isLanded} // Usiamo sensor per gestire l'impatto con i kart senza bloccarli fisicamente
                 onIntersectionEnter={handleIntersectionEnter}
                 position={[0, 0.2, 0]} 
             /> 

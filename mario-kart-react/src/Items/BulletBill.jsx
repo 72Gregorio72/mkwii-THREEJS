@@ -34,10 +34,8 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
         
         setIsActive(true);
         timer.current = 0;
-        startRank.current = currentRank; // Memorizza la posizione iniziale (es. 8°)
-        
-        // Trova il waypoint più vicino per iniziare subito nella direzione giusta
-        // (Logica identica al Red Shell)
+        startRank.current = currentRank;
+
         if (rb.current) {
             const pos = rb.current.translation();
             let closestDist = Infinity;
@@ -74,13 +72,10 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
         const overtakes = (startRank.current || currentRank) - currentRank; // Es. Partito 8°, ora 3° -> 5 sorpassi
         const isLeader = currentRank === 1;
 
-        // Condizioni di uscita:
-        // A. Tempo massimo raggiunto
         if (timer.current >= MAX_DURATION) {
             deactivate();
             return;
         }
-        // B. Tempo minimo trascorso E (target sorpassi raggiunto O siamo primi)
         if (timer.current >= MIN_DURATION) {
             if (overtakes >= OVERTAKE_LIMIT || isLeader) {
                 deactivate();
@@ -88,7 +83,6 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
             }
         }
 
-        // 2. MOVIMENTO AUTOMATICO (Logica Red Shell)
         const currentPos = rb.current.translation();
         v.pos.set(currentPos.x, currentPos.y, currentPos.z);
         

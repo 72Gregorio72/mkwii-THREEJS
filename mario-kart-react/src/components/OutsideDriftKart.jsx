@@ -261,7 +261,6 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 
   const activateMega = () => {
       isMegaActive.current = true;
-      console.log("Attivazione MEGA FUNGOasdasd!");
       if (megaMushroomUseAudioRef.current && megaMushroomStateAudioRef.current) {
         megaMushroomUseAudioRef.current.play();
         megaMushroomStateAudioRef.current.play();
@@ -501,7 +500,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 	activateMega: activateMega,
 	racerId: racerId,
     selectedCharacter: selectedCharacter,
-    isLocalPlayer: isLocalPlayer, // Solo il player locale sente l'audio della roulette
+    isLocalPlayer: isLocalPlayer,
     kartRef: rb,
     onActivateBulletBill: activateBulletBill,
 	socket: socket
@@ -564,26 +563,30 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   }));
   
   // Gestione Eventi Colpo
-  useEffect(() => {
-    const handleBananaHit = (e) => {
-        const victimId = e.detail?.victimId;
-        // Se siamo Bullet Bill siamo invincibili, ignoriamo il colpo
-        if (isBulletBill || isStarActive.current || isMegaActive.current) return;
+	useEffect(() => {
+		if (!socket) return;
 
-        if (victimId === racerId && !isSpinning.current) { 
-            if (BananaHitAudioRef)
-                BananaHitAudioRef.current.play();
-            console.log(`${racerId} colpito! Spin out!`);
-            isSpinning.current = true;
-            spinTimer.current = 0.45; 
-            speed.current = 0; 
-            driftLevel.current = 0;
-            boostTime.current = 0;
-        }
-    };
-    window.addEventListener('banana-hit', handleBananaHit);
-    return () => window.removeEventListener('banana-hit', handleBananaHit);
-  }, [racerId, isBot, isBulletBill]); 
+		const handleRemoteHitReceived = (data) => {
+			// Se l'ID della vittima inviato dal server è il MIO id socket
+			if (data.victimId === socket.id) {
+				// Se sono invincibile, ignoro
+				if (isBulletBill || isStarActive.current || isMegaActive.current) return;
+
+				console.log("Sono stato colpito da un altro giocatore!");
+				
+				// Attiva lo spin locale
+				if (!isSpinning.current) {
+					isSpinning.current = true;
+					spinTimer.current = 0.45;
+					speed.current = 0;
+					if (BananaHitAudioRef.current) BananaHitAudioRef.current.play();
+				}
+			}
+		};
+
+		socket.on('banana-hit', handleRemoteHitReceived);
+		return () => socket.off('banana-hit', handleRemoteHitReceived);
+	}, [socket, isBulletBill]);
 
   const { checkSurface } = useHitboxHandler({
     speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
@@ -664,44 +667,23 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         }
     }
       // Se siamo Bill, distruggiamo chi tocchiamo
-      if (isBulletBill) {
-          const targetObj = payload.other.rigidBodyObject;
-          const targetName = targetObj?.name || "";
-          const otherData = targetObj?.userData;
+	if (isBulletBill || isStarActive.current || isMegaActive.current) {
+		const targetObj = payload.other.rigidBodyObject;
+		const otherData = targetObj?.userData;
 
-          if (targetName.startsWith('bot') || targetName === 'player'
-                || (otherData && otherData.type === 'opponent')) {
-              console.log(`BULLET BILL SMASH: ${targetName}`);
-              window.dispatchEvent(new CustomEvent('banana-hit', { 
-                  detail: { victimId: targetName } 
-              }));
-              if (otherData && otherData.type === 'opponent' && onHitOpponent) {
-                onHitOpponent(otherData.id); 
-            }
-          }
-      }
+		if (otherData && (otherData.type === 'opponent' || otherData.type === 'racer')) {
+			console.log(`ATTACK! Hitting: ${otherData.id}`);
+			
+			socket.emit('player_hit', { 
+				victimId: otherData.id, 
+				type: isBulletBill ? 'bullet' : 'star' 
+			});
 
-	  if (isStarActive.current || isMegaActive.current) {
-          const targetObj = payload.other.rigidBodyObject;
-          const targetName = targetObj?.name || "";
-          const otherData = targetObj?.userData;
-          
-          // Se tocchiamo un bot o un player
-          if (targetName.startsWith('bot') || targetName === 'player'
-        || (otherData && otherData.type === 'opponent')) {
-              console.log(`STAR SMASH: ${targetName}`);
-              
-              // Invia evento danno
-              window.dispatchEvent(new CustomEvent('banana-hit', { 
-                  detail: { victimId: targetName, type: 'star_hit' } 
-              }));
-              if (otherData && otherData.type === 'opponent' && onHitOpponent) {
-                onHitOpponent(otherData.id);
-              }
-              // Opzionale: Dai una spinta fisica via al nemico
-              // payload.other.rigidBody.applyImpulse({x:0, y:10, z:0}, true);
-          }
-      }
+			window.dispatchEvent(new CustomEvent('banana-hit', { 
+				detail: { victimId: otherData.id } 
+			}));
+		}
+	}
   };
 
   useFrame((state, delta) => {
@@ -794,7 +776,6 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         collisionQueue.current = []; 
     }
 
-    // Input Controllo
     const { forward, backward, left, right, drift, item } = activeControls.current
     handleItemInput(item);
 
@@ -803,27 +784,19 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     // -----------------------------------------------------------
     
     if (isBulletBill) {
-        // A. BULLET BILL MODE
         const velLen = Math.sqrt(rbVel.x**2 + rbVel.z**2);
         speed.current = velLen;
         
         if (velLen > 1.0) {
-            // Calcola l'angolo di movimento basato sulla velocità
-            // Nota: Math.PI serve se il modello "guarda indietro" di default, altrimenti rimuovilo
             const moveAngle = Math.atan2(rbVel.x, rbVel.z) + Math.PI;
             
-            // Aggiorniamo la ref di rotazione per la camera
             rotation.current = moveAngle;
 
-            // --- FIX: Ruotiamo fisicamente il RigidBody ---
-            // Creiamo un quaternione target basato sulla direzione
             const targetQ = new Quaternion().setFromEuler(new Euler(0, moveAngle, 0));
             
-            // Otteniamo la rotazione corrente e facciamo un slerp (interpolazione) morbido
             const currentQ = new Quaternion().copy(rb.current.rotation());
             currentQ.slerp(targetQ, 10 * delta);
             
-            // Applichiamo la rotazione al corpo fisico
             rb.current.setRotation(currentQ, true);
         }
 
@@ -831,17 +804,14 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         driftLevel.current = 0;
         driftDirection.current = 0;
         
-        // Rimuoviamo la logica billVisualsRef qui, non serve più ruotare il figlio dinamicamente
         
     } else {
-        // B. GUIDA NORMALE (Standard Kart Physics)
         
         if (isSpinning.current) {
             spinTimer.current -= delta;
             if (spinTimer.current <= 0) isSpinning.current = false;
         }
 
-        // Drift Logic
         if (!drift) {
             driftHopLocked.current = false; driftEngageWindow.current = false 
             if (driftDirection.current !== 0) {
@@ -1056,32 +1026,27 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   })
 
     useEffect(() => {
-		const handleLightningStrike = (e) => {
-			const attackerId = e.detail?.attackerId;
-
-			// SE SONO IO CHE L'HO LANCIATO, IGNORO
-			if (attackerId === socket.id || attackerId === racerId) { 
+		const handleLightningStrike = (data) => {
+			const attackerId = data?.attackerId;
+			console.log(`LIGHTNING STRIKE RECEIVED ON ${socket.id} FROM ${attackerId}`);
+			if (attackerId === socket.id) { 
 				return; 
 			}
 
-			// SE SONO INVINCIBILE, IGNORO
 			if (isBulletBill || isStarActive.current || isMegaActive.current) {
 				return;
 			}
-
-			// 1. Rimpicciolisci
 			activateLightning();    
 
-			// 2. Effetto "Banana Hit" (Spin out e stop velocità)
 			if (!isSpinning.current) {
 				isSpinning.current = true;
-				spinTimer.current = 0.8; // Un po' più lungo per il fulmine
+				spinTimer.current = 0.8;
 				speed.current = 0;
 				if (BananaHitAudioRef.current) BananaHitAudioRef.current.play();
 			}
 		};
-		window.addEventListener('lightning-strike', handleLightningStrike);
-		return () => window.removeEventListener('lightning-strike', handleLightningStrike);
+		socket.on('lightning-strike', handleLightningStrike);
+		return () => socket.off('lightning-strike', handleLightningStrike);
 	}, [racerId, isBulletBill, socket.id]);
 
   // Visual Steering
@@ -1135,6 +1100,13 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
             frictionCombine="min"
             restitution={0}
             restitutionCombine="min" 
+			sensor={isBulletBill}
+			onCollisionEnter={handleCollisionEnter}
+			onIntersectionEnter={(payload) => {
+				if (isBulletBill) {
+					handleCollisionEnter(payload);
+				}
+			}}
         />
 
         <CylinderCollider 

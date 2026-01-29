@@ -154,26 +154,31 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 	const [networkItems, setNetworkItems] = useState([]);
 
 	const handleRequestSpawn = useCallback((type, position, velocity, extra = {}) => {
-		// Helper per estrarre coordinate in modo sicuro
 		const getCoords = (val) => {
 			if (Array.isArray(val)) return val;
 			if (val && typeof val === 'object') return [val.x || 0, val.y || 0, val.z || 0];
 			return [0, 0, 0];
 		};
 
-		const posArray = getCoords(position);
-		const velArray = getCoords(velocity);
+		setTimeout(() => {
+			const posArray = getCoords(position);
+			const velArray = getCoords(velocity);
+			const localId = `local_${Date.now()}`;
 
-		console.log(`Emitting spawn_item: ${type}`, posArray, velArray);
-
-		if (socket) {
-			socket.emit('spawn_item', { 
-				type, 
-				position: posArray, 
+			setNetworkItems(prev => [...prev, {
+				id: localId,
+				type,
+				position: posArray,
 				velocity: velArray,
-				...extra 
-			});
-		}
+				isLocal: true,
+				ownerId: socket.id,
+				...extra
+			}]);
+
+			if (socket) {
+				socket.emit('spawn_item', { id: localId, type, position: posArray, velocity: velArray, ...extra });
+			}
+		}, 0);
 	}, [socket]);
 
     const handleRequestRemove = useCallback((itemId) => {
@@ -289,7 +294,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const trackRef = useRef();
     const checkpointPositionsRef = useRef({});
     const playerRef = useRef(); 
-    const botRefs = useRef({});
+	const botRefs = useRef({});
 
 	const opponentsDataRef = useRef({});
 
@@ -476,7 +481,6 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
-							// Validazione dati per evitare crash
 							if (!item.position || !item.velocity) return null;
 
 							const pos = new THREE.Vector3().fromArray(item.position);
@@ -497,7 +501,6 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 									return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={trackWaypoints} />;
 								case 'bomb': 
 									return <BobOmb key={item.id} {...commonProps} />;
-								// Aggiungi qui altri casi se necessario
 								default: 
 									return null;
 							}
@@ -597,10 +600,8 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                         // Mappatura: Bot 0 -> start_1, Bot 1 -> start_2, etc. (o logica inversa)
                         // Qui assumo che i Bot riempiano le posizioni da 1 a 11.
                         const gridIndex = i + 1; 
-                        const gridIndex = i; 
                         
                         const botPos = gridPositions[gridIndex] || getGridPosition(start_pos, i);
-                        const botPos = gridPositions[gridIndex] || getGridPosition(start_pos, 12);
                         const botRot = gridRotations[gridIndex] || [0, Math.PI / 2, 0];
 
                         return (
