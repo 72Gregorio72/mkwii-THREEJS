@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useMemo, useEffect, forwardRef, useImperativeHandle, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Vector3, Quaternion, MathUtils, Color } from 'three'; 
 import { useGLTF } from '@react-three/drei';
@@ -9,20 +9,54 @@ import { SkeletonUtils } from 'three-stdlib';
 import { RacerModel } from '../models/RacerModel.jsx'; 
 import { VehicleModel } from '../models/VehicleModel.jsx'; 
 
+// Import Audio Hook
+import { usePositionalKartAudio } from '../hooks/usePositionalKartAudio.js';
+
 const PHYSICS_RADIUS = 1; 
 const INTERPOLATION_DELAY = 100; 
 
 // Usiamo forwardRef per permettere al RaceManager di accedere a questo componente
-export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, character, vehicle, userData, data }, ref) => {
+export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, character, vehicle, userData, data, isRaceActive = true }, ref) => {
     const rb = useRef();
     const visualGroupRef = useRef();
     const renderBuffer = useRef([]);
+    
+    // Audio group ref per l'audio posizionale
+    const audioGroupRef = useRef(null);
+    const [audioGroupMounted, setAudioGroupMounted] = useState(false);
     
     // Visual State Refs
     const isHitRef = useRef(false);
     const spinTimer = useRef(0);
     const isSmall = useRef(false);
     const smallTimer = useRef(null);
+    
+    // Refs per tracciare lo stato audio
+    const prevSpeedRef = useRef(0);
+    const isAcceleratingRef = useRef(false);
+
+    // --- AUDIO POSIZIONALE 3D ---
+    const { updateAudio, startIdleAudio, stopAllAudio } = usePositionalKartAudio({
+        isBike: vehicle?.isBike || false,
+        isActive: isRaceActive,
+        kartObject: audioGroupMounted ? audioGroupRef.current : null,
+        spatialConfig: {
+            refDistance: 8,
+            maxDistance: 100,
+            rolloffFactor: 1.2,
+            volume: 0.5  // Volume ridotto per gli opponent remoti
+        }
+    });
+
+    // Avvia l'audio idle quando il componente è montato
+    useEffect(() => {
+        if (audioGroupMounted && isRaceActive) {
+            startIdleAudio();
+        }
+        return () => {
+            stopAllAudio();
+        };
+    }, [audioGroupMounted, isRaceActive, startIdleAudio, stopAllAudio]);
 
     // --- 1. ESPOSIZIONE REF PER IL RACEMANAGER ---
     // Questo permette al RaceManager di fare remoteRefMap.current[id].current.translation()
@@ -92,6 +126,16 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
             rb.current.setNextKinematicTranslation({ x: interpX, y: interpY, z: interpZ });
             rb.current.setNextKinematicRotation(q0);
         }
+
+        // --- AGGIORNAMENTO AUDIO 3D ---
+        // Stima se sta accelerando basandosi sulla velocità dal server
+        const currentSpeed = serverData.speed || 0;
+        const isAccelerating = currentSpeed > 0.5;
+        const isDrifting = (serverData.drift || 0) !== 0;
+        const driftLevel = serverData.driftLevel || 0;
+        
+        // Aggiorna audio posizionale
+        updateAudio(currentSpeed, isAccelerating, driftLevel, isDrifting);
 
         // --- 3. EFFETTI VISIVI (Hit, Scale, Star) ---
         if (visualGroupRef.current) {
@@ -165,6 +209,17 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
             userData={{ type: 'opponent', id: playerId }}
         >
             <BallCollider args={[PHYSICS_RADIUS]} />
+            
+            {/* Gruppo per l'audio posizionale 3D */}
+            <group 
+                ref={(node) => {
+                    audioGroupRef.current = node;
+                    if (node && !audioGroupMounted) {
+                        setAudioGroupMounted(true);
+                    }
+                }}
+            />
+            
             <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]}>
                 <group visible={!isBulletBill}>
                     <group position={vehicle.vehicleOffset || [0,0,0]}>
