@@ -18,17 +18,12 @@ async function bootstrap() {
     httpsOptions,
   });
   
-  const myIP = getLocalIpAddress();
 
   // 3. Enable CORS for the HTTP endpoints as well
-  app.enableCors({
+app.enableCors({
     // STRICT ORIGIN: Do not use '*'
     // You must explicitly list the frontend URL
-    origin: [
-      'https://127.0.0.1:5173',
-      'https://localhost:5173',
-      `https://${myIP}:5173`
-    ],
+    origin: ['https://localhost:5173'],
     
     // METHODS: Allow standard HTTP methods
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -41,6 +36,7 @@ async function bootstrap() {
   // 4. Listen on 0.0.0.0 so other computers can connect
   await app.listen(3000, '0.0.0.0');
   
+  console.log(`Application is running on: ${await app.getUrl()}`);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

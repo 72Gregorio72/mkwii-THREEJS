@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "helmet": "^8.1.0"
+  }
+}

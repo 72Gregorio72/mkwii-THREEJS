@@ -14,16 +14,16 @@ const myIP = getLocalIpAddress();
 
 @WebSocketGateway({
   cors: {
-    // 1. STRICT ORIGIN: list the exact frontend URL.
+    // 1. STRICT ORIGIN: You MUST list the exact frontend URL.
     // Wildcards ('*') are forbidden when credentials are true.
-    origin: ['https://127.0.0.1:3000', `https://${myIP}:5173`], 
+    origin: ['https://localhost:3000', 'https://localhost:5173'], 
     
     // 2. CREDENTIALS: Required for cookies/sticky sessions
     credentials: true, 
   },
   // 3. TRANSPORTS: 'polling' is useful as a fallback if WS fails initially,
   // but strictly 'websocket' is fine if the client is configured to match.
-  transports: ['websocket'] 
+  transports: ['websocket', 'polling'] 
 })
 export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   
@@ -32,18 +32,18 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   constructor(private readonly gameService: GameService) {}
 
-  private items = new Map<string, any>();
+  // 1. The Heartbeat: This runs automatically when the Gateway starts
+  afterInit() {
+    // Run the loop at ~30 FPS (1000ms / 30 = ~33ms)
+    setInterval(() => {
+      // Get the current state of all players (positions, rotations)
+      const gameState = this.gameService.getWorldState();
 
-	// In your heartbeat (afterInit), include items in the world update
-	// or send a separate 'items_update'
-	afterInit() {
-		setInterval(() => {
-			const players = this.gameService.getWorldState();
-			const items = Array.from(this.items.values());
-			
-			this.server.emit('world_update', { players, items }); 
-		}, 1000 / 15);
-	}
+      // Emit 'world_update' to EVERYONE connected
+      // The frontend will listen for this event to render opponent karts
+      this.server.emit('world_update', gameState);
+    }, 33); 
+  }
 
   // 2. Handle New Connections
   handleConnection(client: Socket) {
