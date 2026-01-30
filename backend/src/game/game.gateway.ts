@@ -14,16 +14,10 @@ const myIP = getLocalIpAddress();
 
 @WebSocketGateway({
   cors: {
-    // 1. STRICT ORIGIN: You MUST list the exact frontend URL.
-    // Wildcards ('*') are forbidden when credentials are true.
-    origin: ['https://localhost:3000', 'https://localhost:5173'], 
-    
-    // 2. CREDENTIALS: Required for cookies/sticky sessions
-    credentials: true, 
+    origin: ['https://localhost', 'https://127.0.0.1', `https://${myIP}`],
+    credentials: true,
   },
-  // 3. TRANSPORTS: 'polling' is useful as a fallback if WS fails initially,
-  // but strictly 'websocket' is fine if the client is configured to match.
-  transports: ['websocket', 'polling'] 
+  transports: ['websocket', 'polling']
 })
 export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   

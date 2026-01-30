@@ -17,6 +17,7 @@ import { ItemBoxesMap } from '../Items/ItemBoxes.jsx'
 import { NetworkManager } from '../multiplayer/NetworkManager.jsx'
 import { RemoteOpponent } from '../multiplayer/RemoteOpponent.jsx'
 import { VEHICLE_DATABASE, Characters } from '../components/Data.jsx'
+import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx'
 
 // --- IMPORTS ITEMS ---
 import { Banana } from '../Items/Banana';

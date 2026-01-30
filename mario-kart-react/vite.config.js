@@ -1,25 +1,27 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import fs from 'fs'
-import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  // resolve: {
-  //   alias: {
-  //     'three': path.resolve('./node_modules/three') ??????
-  //   }
-  // },
   server: {
     host: true,
     strictPort: true,
     port: 5173,
-    https: {
-      key: fs.readFileSync('./certs/key.pem'),  // Legge la chiave privata
-      cert: fs.readFileSync('./certs/cert.pem'), // Legge il certificato pubblico
+    
+    // 1. RIMUOVIAMO l'oggetto https: { ... }
+    // Nginx si occupa dell'SSL. Vite ora gira in HTTP standard dentro il container.
+    https: false, 
+
+    // 2. CONFIGURIAMO l'HMR (Hot Module Replacement)
+    // Senza questo, il browser cercherà di aggiornare i file sulla porta 5173,
+    // ma noi ora passiamo tutto dalla 443 di Nginx.
+    hmr: {
+      protocol: 'wss',
+      clientPort: 443,
     },
+
     watch: {
-      usePolling: true // <--- Aggiungi questo se usi Windows/WSL per fixare il reload
+      usePolling: true 
     }
   }
 })

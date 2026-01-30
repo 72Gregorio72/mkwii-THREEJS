@@ -6,37 +6,13 @@ import * as path from 'path';
 import { getLocalIpAddress } from './utils';
 
 async function bootstrap() {
-  // 1. Load your certificates (Make sure these files are in your project root)
-  // If you used mkcert, these are key.pem and cert.pem
-  const httpsOptions = {
-    key: fs.readFileSync(path.resolve('./certs/key.pem')),
-    cert: fs.readFileSync(path.resolve('./certs/cert.pem')),
-  };
-
-  // 2. Pass httpsOptions to create
-  const app = await NestFactory.create(AppModule, {
-    httpsOptions,
-  });
+  const app = await NestFactory.create(AppModule); // Niente HTTPS qui!
   
-
-  // 3. Enable CORS for the HTTP endpoints as well
-app.enableCors({
-    // STRICT ORIGIN: Do not use '*'
-    // You must explicitly list the frontend URL
-    origin: ['https://localhost:5173'],
-    
-    // METHODS: Allow standard HTTP methods
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    
-    // CREDENTIALS: Required if you are sending cookies/sessions
-    // If this is false, Brave will drop cookies silently.
-    credentials: true, 
+  app.enableCors({
+    origin: true, // Nginx gestisce la sicurezza, in dev puoi permettere l'origin
+    credentials: true,
   });
 
-  // 4. Listen on 0.0.0.0 so other computers can connect
   await app.listen(3000, '0.0.0.0');
-  
-  console.log(`Application is running on: ${await app.getUrl()}`);
-  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
