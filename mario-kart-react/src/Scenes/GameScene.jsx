@@ -76,29 +76,21 @@ function CinematicCamera({ gameState, playerStartPos, playerStartRot }) {
 
     useFrame((_state, delta) => {
         if (gameState === 'INTRO') {
-            // Panoramica aerea che ruota lentamente
             camera.position.lerp(new THREE.Vector3(60, 100, 60), delta * 0.5);
             camera.lookAt(0, 0, 0);
         } else if (gameState === 'COUNTDOWN') {
-            // Calcola la posizione "Dietro il Player" basata sulla rotazione iniziale
-            // Creiamo un offset standard (es: 8 unità indietro, 3 unità in alto)
             const offset = new THREE.Vector3(0, 3, -8); 
-            
-            // Applichiamo la rotazione del player all'offset
             const euler = new THREE.Euler(playerStartRot[0], playerStartRot[1] - Math.PI, playerStartRot[2]);
             offset.applyEuler(euler);
 
-            // Posizione target della camera
             const targetPos = new THREE.Vector3(
                 playerStartPos[0] + offset.x,
                 playerStartPos[1] + offset.y,
                 playerStartPos[2] + offset.z
             );
 
-            // Transizione fluida verso il retro del player
-            camera.position.lerp(targetPos, delta * 4);
+            camera.position.lerp(targetPos, delta * 2.5); 
             
-            // Guarda un punto leggermente sopra il player
             const lookAtTarget = new THREE.Vector3(
                 playerStartPos[0],
                 playerStartPos[1] + 1.5,
@@ -272,25 +264,29 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 
     const startCountdown = () => {
         setGameState('COUNTDOWN');
-        let timer = 3;
-        setCountdown(timer);
-        playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
+        const AUDIO_DURATION = 2000; 
 
-        const interval = setInterval(() => {
-            timer -= 1;
-            if (timer > 0) {
-                setCountdown(timer);
-                playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
-            } else if (timer === 0) {
-                playSfx(AUDIO_SFX.FINISH_COUNTDOWN, 5);
-                setCountdown('START!');
-                setGameState('RACING');
-                // SFX_RACE_START
-            } else {
-                setCountdown(null);
-                clearInterval(interval);
-            }
-        }, 1000);
+        setTimeout(() => {
+            let timer = 3;
+            setCountdown(timer);
+            playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
+
+            const interval = setInterval(() => {
+                timer -= 1;
+                if (timer > 0) {
+                    setCountdown(timer);
+                    playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
+                } else if (timer === 0) {
+                    playSfx(AUDIO_SFX.FINISH_COUNTDOWN, 5);
+                    setCountdown('START!');
+                    setGameState('RACING');
+                } else {
+                    setCountdown(null);
+                    clearInterval(interval);
+                }
+            }, 1000); // 1 secondo tra un numero e l'altro
+            
+        }, AUDIO_DURATION);
     };
 
     // 3. REFS & STATE
@@ -385,6 +381,11 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     // 5. AUDIO & LOGICA DI GIOCO
     const { changeTrack, playSfx, stopMusic, setMusicPitch, enableSmoothLoop } = useAudio();
     useEffect(() => {
+        if (gameState === 'COUNTDOWN') {
+            changeTrack('STARTING_GRID', false);
+            return ;
+        }
+
         if (gameState === 'INTRO')
         {
             changeTrack('RACE_INTRO', false);
