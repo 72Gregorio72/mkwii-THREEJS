@@ -16,3 +16,5 @@ export const socket = io(SERVER_URL, {
     reconnection: true,
     reconnectionAttempts: 10
 });
+
+//https://localhost:8443/socket.io/?EIO=4&transport=websocket
