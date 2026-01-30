@@ -84,7 +84,8 @@ export const usePowerupHandler = ({
   const decideAudioRef = useRef(null);
 
   useEffect(() => {
-    if (!isLocalPlayer) return; // Solo il player locale riproduce audio
+    if (!isLocalPlayer) return;
+    console.log("PowerupHandler: inizializzando audio per roulette oggetti.");
     rouletteAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_DECIDE);
     rouletteAudioRef.current.volume = 0.7;
     decideAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_ROLL);
@@ -95,7 +96,9 @@ export const usePowerupHandler = ({
 		if (currentItem !== ITEMS.NONE || isRoulette) return;
 
 		setIsRoulette(true);
-		
+		if (rouletteAudioRef.current) {
+      rouletteAudioRef.current.play();
+    }
 		// Lista di tutti gli item possibili per l'animazione visiva
 		const allItems = Object.keys(ITEMS).filter(item => item !== 'NONE');
 		
@@ -111,6 +114,9 @@ export const usePowerupHandler = ({
 			clearInterval(rouletteInterval); // Ferma lo scrolling
 			const selectedItem = getItemBasedOnRank(rank);
 			
+      if (decideAudioRef.current) {
+        decideAudioRef.current.play();
+      }
 			setIsRoulette(false);
 			setCurrentItem(selectedItem);
 			
@@ -123,7 +129,7 @@ export const usePowerupHandler = ({
 				detail: { item: selectedItem, isSpinning: false, targetRacerId: racerId } 
 				
 			}));
-		}, 3000); 
+		}, 2135); 
 	};
   const isItemKeyPressed = useRef(false);
 
@@ -135,8 +141,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    setCurrentItem(ITEMS.RED_SHELL);
-    console.log("Oggetto raccolto: RED SHELL");
+    setCurrentItem(ITEMS.BANANA);
   };
 
   const useMushroom = () => {
@@ -194,7 +199,6 @@ export const usePowerupHandler = ({
   // --- ALTRI ITEM ---
 
   const useLightning = () => {
-      console.log("KABOOM! Fulmine attivato !");
       // THUNDER_USE: lo sentono tutti
       playSfx(AUDIO_SFX.THUNDER_USE, 1.0);
       window.dispatchEvent(new CustomEvent('lightning-strike', { 
@@ -230,13 +234,15 @@ export const usePowerupHandler = ({
     if (position && position.current && onSpawnBanana) {
         const currentPos = position.current;
         const currentRot = rotation.current; 
-        const offsetDistance = 3.0; 
+        const offsetDistance = 2.0; 
         const spawnX = currentPos.x + Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z + Math.cos(currentRot) * offsetDistance;
-        const spawnY = currentPos.y - 0.5;
+        const spawnY = currentPos.y + 1;
         const throwForce = 0;
 
-        onSpawnBanana([spawnX, spawnY, spawnZ], [Math.sin(currentRot) * throwForce, 0, Math.cos(currentRot) * throwForce]);
+		setTimeout(() => {
+        	onSpawnBanana([spawnX, spawnY, spawnZ], [Math.sin(currentRot) * throwForce, 0, Math.cos(currentRot) * throwForce]);
+		}, 0);
         console.log("Banana lanciata!");
     }
     setCurrentItem(ITEMS.NONE);

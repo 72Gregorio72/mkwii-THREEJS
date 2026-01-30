@@ -9,7 +9,7 @@ const MIN_DURATION = 7.5;
 const MAX_DURATION = 12.0;
 const OVERTAKE_LIMIT = 5; // Termina dopo aver superato 5 avversari
 
-export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
+export function useBulletBill({ rb, waypoints, currentRank, onEnd, duckMusicVolume, restoreMusicVolume }) {
     const [isActive, setIsActive] = useState(false);
     
     // Reft per gli SFX
@@ -34,10 +34,8 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
         
         setIsActive(true);
         timer.current = 0;
-        startRank.current = currentRank; // Memorizza la posizione iniziale (es. 8°)
-        
-        // Trova il waypoint più vicino per iniziare subito nella direzione giusta
-        // (Logica identica al Red Shell)
+        startRank.current = currentRank;
+
         if (rb.current) {
             const pos = rb.current.translation();
             let closestDist = Infinity;
@@ -49,8 +47,18 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
             currentWpIndex.current = (closestIdx + 1) % waypoints.length;
         }
 
-        if (onAudioRef.current) onAudioRef.current.play();
-        if (engineAudioRef.current) engineAudioRef.current.play();
+        if (onAudioRef.current) {
+            onAudioRef.current.setVolume(2.0);
+            onAudioRef.current.play();
+        }
+        if (engineAudioRef.current) {
+            engineAudioRef.current.setVolume(1.7);
+            engineAudioRef.current.play();
+        }
+        
+        // Abbassa il volume della musica di gioco durante il Bullet Bill
+        if (duckMusicVolume) duckMusicVolume();
+        
         console.log("BULLET BILL ATTIVATO! Rank iniziale:", currentRank);
     };
 
@@ -61,7 +69,14 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
         if (engineAudioRef.current && engineAudioRef.current.isPlaying) {
             engineAudioRef.current.stop();
         }
-        if (offAudioRef.current) offAudioRef.current.play();
+        if (offAudioRef.current) {
+            offAudioRef.current.setVolume(2.0);
+            offAudioRef.current.play();
+        }
+        
+        // Ripristina il volume della musica di gioco
+        if (restoreMusicVolume) restoreMusicVolume();
+        
         console.log("BULLET BILL TERMINATO.");
     };
 
@@ -74,13 +89,10 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
         const overtakes = (startRank.current || currentRank) - currentRank; // Es. Partito 8°, ora 3° -> 5 sorpassi
         const isLeader = currentRank === 1;
 
-        // Condizioni di uscita:
-        // A. Tempo massimo raggiunto
         if (timer.current >= MAX_DURATION) {
             deactivate();
             return;
         }
-        // B. Tempo minimo trascorso E (target sorpassi raggiunto O siamo primi)
         if (timer.current >= MIN_DURATION) {
             if (overtakes >= OVERTAKE_LIMIT || isLeader) {
                 deactivate();
@@ -88,7 +100,6 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd }) {
             }
         }
 
-        // 2. MOVIMENTO AUTOMATICO (Logica Red Shell)
         const currentPos = rb.current.translation();
         v.pos.set(currentPos.x, currentPos.y, currentPos.z);
         

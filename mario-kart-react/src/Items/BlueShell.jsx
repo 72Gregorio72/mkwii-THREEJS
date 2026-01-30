@@ -17,6 +17,9 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
     const [isExploding, setIsExploding] = useState(false);
     const hitList = useRef(new Set());
     const currentWpIndex = useRef(0);
+    const chaseAudioRef = useRef();
+    const lockingAudioRef = useRef();
+    const explosionAudioRef = useRef();
 
     const clone = useMemo(() => {
         const c = SkeletonUtils.clone(scene);
@@ -48,9 +51,17 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
         }
 
         if (phase === 'CHASING') {
+            if (chaseAudioRef.current) {
+                chaseAudioRef.current.setVolume(2.0);
+                chaseAudioRef.current.play();
+            }
             // Se vicino al leader, passa a fase LOCKING/DIVING
             if (v.pos.distanceTo(v.leaderPos) < 15) {
                 setPhase('DIVING');
+                if (lockingAudioRef.current) {
+                    lockingAudioRef.current.setVolume(2.0);
+                    lockingAudioRef.current.play();
+                }
             } else {
                 // Segue i waypoint a mezz'aria
                 const wp = waypoints[currentWpIndex.current];
@@ -71,6 +82,10 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
     const handleImpact = (payload) => {
         if (isExploding) return;
         setIsExploding(true);
+        if (explosionAudioRef.current) {
+            explosionAudioRef.current.setVolume(2.0);
+            explosionAudioRef.current.play();
+        }
         
         // AOE Damage
         setTimeout(() => {
@@ -92,7 +107,25 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
             <BallCollider args={[1]} />
             {isExploding && <BallCollider args={[EXPLOSION_RADIUS]} sensor onIntersectionEnter={handleAOE} />}
             
-            <PositionalAudio url={AUDIO_SFX.BLUE_SHELL_LOOP} distance={10} loop autoplay />
+            <PositionalAudio
+                ref={chaseAudioRef}
+                url={AUDIO_SFX.BLUE_SHELL_LOOP}
+                distance={10}
+                loop={true}
+                autoplay={true}
+            />
+            <PositionalAudio
+                ref={lockingAudioRef}
+                url={AUDIO_SFX.BLUE_SHELL_ABOVE}
+                distance={10}
+                loop={true}
+            />
+            <PositionalAudio
+                ref={explosionAudioRef}
+                url={AUDIO_SFX.BLUE_SHELL_EXPLODE}
+                distance={15}
+                loop={false}
+            />
             
             <group scale={[2, 2, 2]}>
                 {!isExploding ? <primitive object={clone} /> : (

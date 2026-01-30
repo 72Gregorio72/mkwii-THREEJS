@@ -32,18 +32,17 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   constructor(private readonly gameService: GameService) {}
 
-  // 1. The Heartbeat: This runs automatically when the Gateway starts
-  afterInit() {
-    // Run the loop at ~30 FPS (1000ms / 30 = ~33ms)
-    setInterval(() => {
-      // Get the current state of all players (positions, rotations)
-      const gameState = this.gameService.getWorldState();
+  private items = new Map<string, any>();
 
-      // Emit 'world_update' to EVERYONE connected
-      // The frontend will listen for this event to render opponent karts
-      this.server.emit('world_update', gameState);
-    }, 33); 
-  }
+	// In your heartbeat (afterInit), include items in the world update
+	// or send a separate 'items_update'
+	afterInit() {
+		setInterval(() => {
+			const players = this.gameService.getWorldState().players;
+			
+			this.server.emit('world_update', { players }); 
+		}, 1000 / 60);
+	}
 
   // 2. Handle New Connections
   handleConnection(client: Socket) {
@@ -109,7 +108,6 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   handlePlayerHit(client: Socket, payload: { victimId: string, type: string }) {
     console.log(`Hit Event: ${client.id} hit ${payload.victimId} with ${payload.type}`);
 
-    // Broadcast this event to EVERYONE (including the victim).
     this.server.emit('banana-hit', { 
       attackerId: client.id,
       victimId: payload.victimId,
@@ -119,32 +117,21 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   @SubscribeMessage('use_lightning')
 	handleLightning(client: Socket, payload: { attackerId: string }) {
-	// Invia a TUTTI, incluso chi ha usato l'item
-	this.server.emit('lightning-strike', { 
-		attackerId: payload.attackerId // Fondamentale per filtrare
-	});
+		this.server.emit('lightning-strike', { 
+			attackerId: client.id 
+		});
+		console.log(`Lightning Strike: Attacker ID = ${payload.attackerId}`);
 	}
 
 	@SubscribeMessage('spawn_item')
 	handleSpawnItem(client: Socket, payload: any) {
-		const itemId = `item_${Date.now()}_${client.id}`;
-		const newItem = {
-			id: itemId,
-			ownerId: client.id,
-			type: payload.type,
-			position: payload.position, // [x, y, z]
-			velocity: payload.velocity, // [vx, vy, vz]
-			timestamp: Date.now(),
-		};
-		this.items.set(itemId, newItem);
-		this.server.emit('item_spawned', newItem);
+		const newItem = { ...payload, id: `it_${Date.now()}`, ownerId: client.id };
+		client.broadcast.emit('item_spawned', newItem);
 	}
 
 	@SubscribeMessage('remove_item')
 	handleRemoveItem(client: Socket, payload: { itemId: string }) {
-		if (this.items.has(payload.itemId)) {
-			this.items.delete(payload.itemId);
-			this.server.emit('item_removed', { itemId: payload.itemId });
-		}
+		this.gameService.removeItem(payload.itemId);
+		this.server.emit('item_removed', { itemId: payload.itemId });
 	}
 }

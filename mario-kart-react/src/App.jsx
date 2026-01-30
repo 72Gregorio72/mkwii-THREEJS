@@ -6,6 +6,8 @@ import { TrackSelection } from './Scenes/TrackSelection'
 import { GameScene } from './Scenes/GameScene' // Import the new component
 import { AudioProvider } from './audio/AudioManager'
 import { socket } from './multiplayer/socket.js';
+import { VEHICLE_DATABASE } from './components/Data'
+import { Tracks } from './components/Data'
 
 export default function App() {
 	
@@ -13,8 +15,8 @@ export default function App() {
     
     // State for selections
     const [SelectedCharacter, setSelectedCharacter] = useState(Characters[0])
-    const [SelectedVehicle, setSelectedVehicle] = useState(null)
-	const [SelectedTrack, setSelectedTrack] = useState(null)
+    const [SelectedVehicle, setSelectedVehicle] = useState(VEHICLE_DATABASE.StandardKartS)
+	const [SelectedTrack, setSelectedTrack] = useState(Tracks['Daisy Circuit'])
     // Data source
     const [availableCharacters, ] = useState(Characters)
 
@@ -23,7 +25,11 @@ export default function App() {
         	<div style={{ backgroundImage: "url(/sprites/skybox.jpg)", minHeight: '100vh' }}>
 
 				{MenuState === -1 && (
-					<button onClick={() => setMenuState(0)}>Character Selection</button>
+					<>
+						<button onClick={() => setMenuState(0)}>Character Selection</button>
+						<button onClick={() => setMenuState(3)}>Direct to GameScene (for testing)</button>
+						{console.log("Current Selections:", SelectedVehicle, SelectedTrack)}
+					</>
 				)}
 
         	    {MenuState === 0 && (
