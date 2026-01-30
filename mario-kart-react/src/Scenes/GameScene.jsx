@@ -450,7 +450,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
             </div>
 
             {/* HUD PRINCIPALE */}
-            <GameHUD lap={uiLap} totalLaps={TOTAL_LAPS} rank={playerRank} />
+            <GameHUD lap={uiLap} totalLaps={TOTAL_LAPS} rank={playerRank} gameState={gameState} finished={finished} />
 
 			{countdown && (
 				<div style={{

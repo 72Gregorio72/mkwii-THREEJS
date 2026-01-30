@@ -141,7 +141,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    setCurrentItem(ITEMS.LIGHTNING);
+    setCurrentItem(ITEMS.BULLET_BILL);
     console.log("Oggetto raccolto: RED SHELL");
   };
 
