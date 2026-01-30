@@ -157,7 +157,7 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
 		};
 	});
 
-    return (
+    /*return (
         <Html fullscreen style={{ pointerEvents: 'none' }}>
             <div style={{
                 position: 'absolute',
@@ -173,5 +173,5 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
                 PING: {ping}ms
             </div>
         </Html>
-    );
+    );*/
 };
