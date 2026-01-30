@@ -16,7 +16,7 @@ import { GameHUD } from '../ui/GameHUD.jsx'
 import { ItemBoxesMap } from '../Items/ItemBoxes.jsx'
 import { NetworkManager } from '../multiplayer/NetworkManager.jsx'
 import { RemoteOpponent } from '../multiplayer/RemoteOpponent.jsx'
-import { VEHICLE_DATABASE, Characters } from '../components/Data.jsx'
+import { VEHICLE_DATABASE, Characters , AUDIO_TRACKS } from '../components/Data.jsx'
 import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx'
 
 // --- IMPORTS ITEMS ---
@@ -249,22 +249,24 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 		if (introPlayed.current) return;
 			introPlayed.current = true;
 
+			// Prima fase: camera iniziale panoramica (0-5 secondi)
 			gsap.fromTo(cameraTarget.current, 
 				{ x: 0, y: 0, z: 0 }, 
-				{ x: 0, y: 5, z: 0, duration: 4 }
+				{ x: 0, y: 8, z: 0, duration: 5 }
 			);
 
 			const timeline = gsap.timeline({
 				onComplete: () => startCountdown()
 			});
 
+			// Seconda fase: avvicinamento al player (5-12 secondi = 7 secondi)
 			timeline.to(cameraTarget.current, {
 				x: playerStartPos[0],
 				y: playerStartPos[1] + 2,
 				z: playerStartPos[2],
-				duration: 3,
+				duration: 7,
 				ease: "power2.inOut",
-				delay: 1
+				delay: 5  // Inizia dopo la prima fase
 			});
 	}, []);
 
@@ -383,6 +385,12 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     // 5. AUDIO & LOGICA DI GIOCO
     const { changeTrack, playSfx, stopMusic, setMusicPitch, enableSmoothLoop } = useAudio();
     useEffect(() => {
+        if (gameState === 'INTRO')
+        {
+            changeTrack('RACE_INTRO', false);
+            return ;`   `
+        }
+
         if (gameState !== 'RACING' || finished) {
             setMusicPitch(1.0, 1.0, 300);
             stopMusic();

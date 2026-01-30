@@ -796,9 +796,11 @@ export const AUDIO_TRACKS = {
     LOBBY_MUSIC: '/soundTracks/SET_UP.mp3', // lobby music
     CHARACTER_KART_SELECT: '/soundTracks/CHARACTER_KART_SELECT_SCREEN.mp3', // kart e character select music
     COURSE_SELECT: '/soundTracks/COURSE_SELECTION.mp3', // course select music
+    RACE_INTRO: '/soundTracks/RACE_INTRO.mp3',
     RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
     RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
     RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
+
 };
 
 export const AUDIO_SFX = {

@@ -8,16 +8,13 @@ export default defineConfig({
     strictPort: true,
     port: 5173,
     
-    // 1. RIMUOVIAMO l'oggetto https: { ... }
-    // Nginx si occupa dell'SSL. Vite ora gira in HTTP standard dentro il container.
+    // Nginx gestisce l'SSL, quindi qui è false
     https: false, 
 
-    // 2. CONFIGURIAMO l'HMR (Hot Module Replacement)
-    // Senza questo, il browser cercherà di aggiornare i file sulla porta 5173,
-    // ma noi ora passiamo tutto dalla 443 di Nginx.
+    // CONFIGURAZIONE IMPORTANTE PER LA PORTA 8443
     hmr: {
       protocol: 'wss',
-      clientPort: 443,
+      clientPort: 8443, // <--- CAMBIATO QUI: Il browser deve puntare alla 8443
     },
 
     watch: {

@@ -3,8 +3,7 @@ services:
     image: nginx:alpine
     container_name: nginx-proxy
     ports:
-      - "8443:443"
-      - "8080:80" # Redirect opzionale a HTTPS
+      - "8443:443"  # Accesso tramite https://localhost:8443
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs:/etc/nginx/certs:ro
@@ -15,7 +14,6 @@ services:
   kart-game:
     build: ./mario-kart-react
     container_name: mario-kart-container
-    # Niente ports: qui, Nginx ci parla internamente
     volumes:
       - ./mario-kart-react:/app
       - /app/node_modules

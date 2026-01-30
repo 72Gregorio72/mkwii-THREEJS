@@ -573,7 +573,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
           
           return {
               steer: currentSteer, 
-              drift: driftDirection.current // This ref exists in your code, so it's safe
+              drift: driftDirection.current, // This ref exists in your code, so it's safe
+              speed: speed.current,          // Velocità corrente per audio remoto
+              driftLevel: driftLevel.current // Livello drift (0, 1=blu, 2=rosso) per audio remoto
           };
       }
   }));
@@ -879,9 +881,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     // UPDATE SPARKS (SOLO PLAYER)
     updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
 
-    // UPDATE AUDIO 3D (Motore)
+    // UPDATE AUDIO 3D (Motore + Drift sounds)
     const isDriftingNow = driftDirection.current !== 0;
-    updateEngineAudio(speed.current, forward, isDriftingNow);
+    updateEngineAudio(speed.current, forward, driftLevel.current, isDriftingNow);
 
         // Calcolo Velocità
         const isBoosting = boostTime.current > 0
