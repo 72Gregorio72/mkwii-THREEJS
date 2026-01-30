@@ -3,8 +3,8 @@ services:
     image: nginx:alpine
     container_name: nginx-proxy
     ports:
-      - "443:443"
-      - "80:80" # Redirect opzionale a HTTPS
+      - "8443:443"
+      - "8080:80" # Redirect opzionale a HTTPS
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs:/etc/nginx/certs:ro

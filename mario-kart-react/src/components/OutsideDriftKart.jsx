@@ -605,6 +605,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 					driftDirection.current = 0;
 
 					if (BananaHitAudioRef.current) {
+                        BananaHitAudioRef.current.setVolume(2.0);
 						BananaHitAudioRef.current.play();
 					}
 				}
@@ -1072,7 +1073,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 				isSpinning.current = true;
 				spinTimer.current = 0.8;
 				speed.current = 0;
-				if (BananaHitAudioRef.current) BananaHitAudioRef.current.play();
+				if (BananaHitAudioRef.current) {
+                    BananaHitAudioRef.current.setVolume(2.0);
+                    BananaHitAudioRef.current.play();
+                }
 			}
 		};
 		socket.on('lightning-strike', handleLightningStrike);
@@ -1149,7 +1153,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         <PositionalAudio
             ref={BananaHitAudioRef}
             url={AUDIO_SFX.KART_SPIN}
-            distance={10}
+            distance={15}
             loop={false}
         />
         <PositionalAudio
