@@ -35,6 +35,7 @@ const ITEM_SPRITES = {
   [ITEMS.STAR]: '/itemSprites/Star.png',
   [ITEMS.MEGA_MUSHROOM]: '/itemSprites/MegaMushroom.png',
   [ITEMS.LIGHTNING]: '/itemSprites/Lightning.png',
+  [ITEMS.BULLET_BILL]: '/itemSprites/BulletBill.png',
 };
 
 // 1. FIX: Added default values to props to prevent undefined startup

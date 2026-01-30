@@ -1,20 +1,15 @@
 import { io } from 'socket.io-client';
 
+// Poiché Nginx fa da proxy, l'URL è lo stesso da cui viene servito il frontend
+// Se sei su https://localhost, il socket deve puntare a https://localhost
+const SERVER_URL = `${window.location.protocol}//${window.location.hostname}`;
 
-// multiplayer
-const protocol = window.location.protocol; // 'http:' or 'https:'
-const hostname = window.location.hostname; // 'localhost' or '192.168.X.X'
-const port = 3000; // Your backend port
+console.log('Connecting via Nginx Proxy to:', SERVER_URL);
 
-// 2. Construct the URL dynamically
-const SERVER_URL = `${protocol}//${hostname}:${port}`;
-
-console.log('Connecting to Server at:', SERVER_URL);
-
-// 3. Connect
 export const socket = io(SERVER_URL, {
-    transports: ['websocket'],
-	upgrade: false,
-    secure: true,
-    rejectUnauthorized: false
+    // Rimuovi la porta 3000! Nginx gestisce lo smistamento sulla 443
+    transports: ['websocket', 'polling'], // È meglio lasciare polling come fallback
+    withCredentials: true,
+    // Con Nginx, 'secure' viene ereditato dal protocollo della pagina
+    rejectUnauthorized: false // Ancora necessario finché usi certificati self-signed (mkcert)
 });

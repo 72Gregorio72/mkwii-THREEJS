@@ -141,8 +141,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    setCurrentItem(ITEMS.BULLET_BILL);
-    console.log("Oggetto raccolto: RED SHELL");
+    setCurrentItem(ITEMS.BANANA);
   };
 
   const useMushroom = () => {
@@ -200,7 +199,6 @@ export const usePowerupHandler = ({
   // --- ALTRI ITEM ---
 
   const useLightning = () => {
-      console.log("KABOOM! Fulmine attivato !");
       // THUNDER_USE: lo sentono tutti
       playSfx(AUDIO_SFX.THUNDER_USE, 1.0);
       window.dispatchEvent(new CustomEvent('lightning-strike', { 
@@ -236,13 +234,15 @@ export const usePowerupHandler = ({
     if (position && position.current && onSpawnBanana) {
         const currentPos = position.current;
         const currentRot = rotation.current; 
-        const offsetDistance = 3.0; 
+        const offsetDistance = 2.0; 
         const spawnX = currentPos.x + Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z + Math.cos(currentRot) * offsetDistance;
-        const spawnY = currentPos.y - 0.5;
+        const spawnY = currentPos.y + 1;
         const throwForce = 0;
 
-        onSpawnBanana([spawnX, spawnY, spawnZ], [Math.sin(currentRot) * throwForce, 0, Math.cos(currentRot) * throwForce]);
+		setTimeout(() => {
+        	onSpawnBanana([spawnX, spawnY, spawnZ], [Math.sin(currentRot) * throwForce, 0, Math.cos(currentRot) * throwForce]);
+		}, 0);
         console.log("Banana lanciata!");
     }
     setCurrentItem(ITEMS.NONE);

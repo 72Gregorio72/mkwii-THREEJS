@@ -19,12 +19,32 @@ export interface Player {
   }
 }
 
+export interface Item {
+  id: string;
+  ownerId: string;
+  type: string;
+  position: [number, number, number];
+  velocity: [number, number, number];
+}
+
 @Injectable()
 export class GameService {
   private players: Map<string, Player> = new Map();
+  private items: Map<string, Item> = new Map();
 
   getWorldState() {
-    return Array.from(this.players.values());
+    return {
+      players: Array.from(this.players.values()),
+      items: Array.from(this.items.values()),
+    };
+  }
+
+  addItem(item: Item) {
+    this.items.set(item.id, item);
+  }
+
+  removeItem(id: string) {
+    this.items.delete(id);
   }
 
   updatePlayer(id: string, data: Partial<Player>) {

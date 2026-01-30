@@ -51,6 +51,8 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0],
         const targetName = targetObj?.name || "";
         const userData = targetObj?.userData;
         
+		console.log(`Banana hit detected with ${targetName}`);
+
         if (targetName === 'player' || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) {
             setIsHit(true);
             
@@ -76,7 +78,7 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0],
             {/* Hitbox principale */}
             <CylinderCollider 
                 args={[0.2, 0.4]} 
-                sensor={true} // Usiamo sensor per gestire l'impatto con i kart senza bloccarli fisicamente
+                sensor={isLanded} // Usiamo sensor per gestire l'impatto con i kart senza bloccarli fisicamente
                 onIntersectionEnter={handleIntersectionEnter}
                 position={[0, 0.2, 0]} 
             /> 
