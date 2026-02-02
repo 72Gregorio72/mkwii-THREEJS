@@ -44,6 +44,16 @@ export const Tracks = {
 		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
 		maxCheckpoints: 5,
         soundtrack: 'RACE_COCONUT_MALL'
+	},
+	'Bower Castle': {
+		file: './Tracks/BowserCastle/BowserCastle.glb',
+		preview: './TrackPreviews/BowserCastle.png',
+		startPos: [0, 0, 100],
+		checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
+		maxCheckpoints: 7,
+		soundtrack: 'RACE_BOWSER_CASTLE',
+		itemBoxes: './Tracks/BowserCastle/BowserCastle_itemBox.glb',
+		gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
 	}
 }
 

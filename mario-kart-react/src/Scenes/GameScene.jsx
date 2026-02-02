@@ -521,7 +521,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 					gameState={gameState}
                 />
 
-                <Physics debug={false}>
+                <Physics debug={true}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
