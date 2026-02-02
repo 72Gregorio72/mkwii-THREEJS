@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom' // <--- 1. Import Hook
 import { Tracks } from '../components/Data'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 
-export function TrackSelection({ setMenuState, setSelectedTrack }) {
+export function TrackSelection({ setSelectedTrack }) {
+    // setMenuState rimosso dalle props
+    const navigate = useNavigate(); // <--- 2. Inizializza Hook
     const { playSfx } = useAudio();
 
     const tracksList = Object.entries(Tracks).map(([name, data]) => ({
@@ -21,7 +24,8 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
             };
             
             setSelectedTrack(trackData);
-            setMenuState(3);
+            // setMenuState(3); <--- Vecchia logica
+            navigate('/game'); // <--- 3. Nuova logica: vai al gioco
         }
     };
 
@@ -50,7 +54,6 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
             overflowY: 'auto',
             padding: '2vh'
         },
-        // CORREZIONE QUI: card è una funzione
         card: (isActive) => ({
             background: isActive 
                 ? 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255, 230, 0, 0.1) 100%)' 
@@ -73,7 +76,6 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
             backgroundPosition: 'center',
             position: 'relative'
         },
-        // CORREZIONE QUI: label ora è una funzione che accetta isActive
         label: (isActive) => ({
             height: '20%',
             background: 'rgba(0,0,0,0.8)',
@@ -104,7 +106,7 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
                         return (
                             <div 
                                 key={index} 
-                                style={styles.card(isActive)} // Ora funziona perché card è una funzione
+                                style={styles.card(isActive)}
                                 onClick={() => {
                                     setLocalSelection(track);
                                     playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
@@ -117,7 +119,7 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
                                 }}>
                                     {!track.preview && <div style={{position:'absolute', top:'40%', width:'100%', textAlign:'center', opacity:0.5}}>NO PREVIEW</div>}
                                 </div>
-                                <div style={styles.label(isActive)}> {/* Ora funziona perché label è una funzione */}
+                                <div style={styles.label(isActive)}>
                                     {track.name}
                                 </div>
                             </div>
@@ -129,7 +131,7 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
             <div style={styles.footer}>
                 <button 
                     style={{...styles.button, background: '#ccc', color: '#333'}}
-                    onClick={() => setMenuState(1)}
+                    onClick={() => navigate('/vehicle')} // <--- 4. Torna alla selezione veicolo
                 >
                     Back
                 </button>

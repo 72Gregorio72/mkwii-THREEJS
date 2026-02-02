@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useMemo, useEffect, Suspense } fr
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, Stats, useGLTF } from '@react-three/drei'
+import { useNavigate } from 'react-router-dom' // <--- 1. IMPORT ROUTING
 import * as THREE from 'three'
 
 // --- IMPORTS INTERNI ---
@@ -133,45 +134,57 @@ function useGridPositions(url) {
 
 // --- MAIN COMPONENT ---
 
-export function GameScene({ socket, character, vehicle, mapPath, checkpointPath, onBack, start_pos, maxCheckpoints, selectedTrack}) {
+export function GameScene({ 
+    socket, 
+    character, 
+    vehicle, 
+    mapPath, 
+    checkpointPath, 
+    // onBack, <--- 2. RIMOSSO (usiamo navigate)
+    start_pos, 
+    maxCheckpoints, 
+    selectedTrack
+}) {
+    // 3. HOOK DI NAVIGAZIONE
+    const navigate = useNavigate();
 
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
 
-	const [gameState, setGameState] = useState('INTRO'); // 'INTRO', 'COUNTDOWN', 'RACING'
+    const [gameState, setGameState] = useState('INTRO'); // 'INTRO', 'COUNTDOWN', 'RACING'
     const [countdown, setCountdown] = useState(null);
     const [finished, setFinished] = useState(false);
     const [raceExited, setRaceExited] = useState(false);
 
-	const [networkItems, setNetworkItems] = useState([]);
+    const [networkItems, setNetworkItems] = useState([]);
 
-	const handleRequestSpawn = useCallback((type, position, velocity, extra = {}) => {
-		const getCoords = (val) => {
-			if (Array.isArray(val)) return val;
-			if (val && typeof val === 'object') return [val.x || 0, val.y || 0, val.z || 0];
-			return [0, 0, 0];
-		};
+    const handleRequestSpawn = useCallback((type, position, velocity, extra = {}) => {
+        const getCoords = (val) => {
+            if (Array.isArray(val)) return val;
+            if (val && typeof val === 'object') return [val.x || 0, val.y || 0, val.z || 0];
+            return [0, 0, 0];
+        };
 
-		setTimeout(() => {
-			const posArray = getCoords(position);
-			const velArray = getCoords(velocity);
-			const localId = `local_${Date.now()}`;
+        setTimeout(() => {
+            const posArray = getCoords(position);
+            const velArray = getCoords(velocity);
+            const localId = `local_${Date.now()}`;
 
-			setNetworkItems(prev => [...prev, {
-				id: localId,
-				type,
-				position: posArray,
-				velocity: velArray,
-				isLocal: true,
-				ownerId: socket.id,
-				...extra
-			}]);
+            setNetworkItems(prev => [...prev, {
+                id: localId,
+                type,
+                position: posArray,
+                velocity: velArray,
+                isLocal: true,
+                ownerId: socket.id,
+                ...extra
+            }]);
 
-			if (socket) {
-				socket.emit('spawn_item', { id: localId, type, position: posArray, velocity: velArray, ...extra });
-			}
-		}, 0);
-	}, [socket]);
+            if (socket) {
+                socket.emit('spawn_item', { id: localId, type, position: posArray, velocity: velArray, ...extra });
+            }
+        }, 0);
+    }, [socket]);
 
     const handleRequestRemove = useCallback((itemId) => {
         if (socket) socket.emit('remove_item', { itemId });
@@ -179,9 +192,9 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 
     const [onlinePlayers, setOnlinePlayers] = useState([]);
 
-	// Calcola se la gara è effettivamente attiva per il movimento
-	const isRaceActive = gameState === 'RACING' && !finished && !raceExited;
-	const isControlDisabled = gameState !== 'RACING';
+    // Calcola se la gara è effettivamente attiva per il movimento
+    const isRaceActive = gameState === 'RACING' && !finished && !raceExited;
+    const isControlDisabled = gameState !== 'RACING';
 
     // 2. SETUP STATI GARA
     const { initialRacersData, initialPositions } = useMemo(() => {
@@ -201,16 +214,16 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         return { initialRacersData: data, initialPositions: positions, botsArray: bots };
     }, []);
 
-	const introAnimPlayed = useRef(false);
 	const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
 	const startingGridPlayed = useRef(false);
 	const introMusicPlayed = useRef(false);
 	const isFinalLap = useRef(false);
+    const introPlayed = useRef(false);
 
     const [positions, setPositions] = useState(initialPositions);
     const playerRank = positions.find(p => p.id === 'player')?.position || 1;
 
-	useEffect(() => {
+    useEffect(() => {
         const handleItemCollected = (e) => {
             const { racerId } = e.detail;
             
@@ -228,42 +241,43 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         return () => window.removeEventListener('item-collected', handleItemCollected);
     }, [playerRank, positions]);
 
-	useEffect(() => {
-		if (!socket) return;
+    useEffect(() => {
+        if (!socket) return;
 
-		const handleLeaderboard = (officialLeaderboard) => {
-			// officialLeaderboard è l'array [{id, position}, ...] inviato dal server
-			setPositions(officialLeaderboard);
-		};
+        const handleLeaderboard = (officialLeaderboard) => {
+            // officialLeaderboard è l'array [{id, position}, ...] inviato dal server
+            setPositions(officialLeaderboard);
+        };
 
-		socket.on('leaderboard_update', handleLeaderboard);
-		return () => socket.off('leaderboard_update', handleLeaderboard);
-	}, [socket]);
+        socket.on('leaderboard_update', handleLeaderboard);
+        return () => socket.off('leaderboard_update', handleLeaderboard);
+    }, [socket]);
 
-	useEffect(() => {
-		if (introAnimPlayed.current) return;
-			introAnimPlayed.current = true;
 
-			// Prima fase: camera iniziale panoramica (0-5 secondi)
-			gsap.fromTo(cameraTarget.current, 
-				{ x: 0, y: 0, z: 0 }, 
-				{ x: 0, y: 8, z: 0, duration: 5 }
-			);
+    useEffect(() => {
+        if (introPlayed.current) return;
+            introPlayed.current = true;
 
-			const timeline = gsap.timeline({
-				onComplete: () => startCountdown()
-			});
+            // Prima fase: camera iniziale panoramica (0-5 secondi)
+            gsap.fromTo(cameraTarget.current, 
+                { x: 0, y: 0, z: 0 }, 
+                { x: 0, y: 8, z: 0, duration: 5 }
+            );
 
-			// Seconda fase: avvicinamento al player (5-12 secondi = 7 secondi)
-			timeline.to(cameraTarget.current, {
-				x: playerStartPos[0],
-				y: playerStartPos[1] + 2,
-				z: playerStartPos[2],
-				duration: 7,
-				ease: "power2.inOut",
-				delay: 5  // Inizia dopo la prima fase
-			});
-	}, []);
+            const timeline = gsap.timeline({
+                onComplete: () => startCountdown()
+            });
+
+            // Seconda fase: avvicinamento al player (5-12 secondi = 7 secondi)
+            timeline.to(cameraTarget.current, {
+                x: playerStartPos[0],
+                y: playerStartPos[1] + 2,
+                z: playerStartPos[2],
+                duration: 7,
+                ease: "power2.inOut",
+                delay: 5  // Inizia dopo la prima fase
+            });
+    }, []);
 
     const startCountdown = () => {
         setGameState('COUNTDOWN');
@@ -302,10 +316,10 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const trackRef = useRef();
     const checkpointPositionsRef = useRef({});
     const playerRef = useRef(); 
-	const botRefs = useRef({});
-	const onlinePlayersRef = useRef({});
+    const botRefs = useRef({});
+    const onlinePlayersRef = useRef({});
 
-	const opponentsDataRef = useRef({});
+    const opponentsDataRef = useRef({});
 
     // Inizializza refs per i bot
     for (let i = 0; i < BOT_COUNT; i++) {
@@ -314,17 +328,17 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         }
     }
 
-	useEffect(() => {
-		onlinePlayersRef.current = onlinePlayers.reduce((acc, player) => {
-			acc[player.id] = player;
-			return acc;
-		}, {});
-	}, [onlinePlayers]);
+    useEffect(() => {
+        onlinePlayersRef.current = onlinePlayers.reduce((acc, player) => {
+            acc[player.id] = player;
+            return acc;
+        }, {});
+    }, [onlinePlayers]);
 
     // Stati Variabili
     const [opponents, setOpponents] = useState([]);
 
-	const remoteRefMap = useRef({});
+    const remoteRefMap = useRef({});
 
     // 4. GESTIONE ITEMS
     const [bananas, setBananas] = useState([]);
@@ -333,28 +347,28 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
     const [blueShells, setBlueShells] = useState([]);
     const [bobOmbs, setBobOmbs] = useState([]);
 
-	useEffect(() => {
-		// Quando la lista degli avversari online cambia
-		opponents.forEach(opp => {
-			if (!racersData.current[opp.id]) {
-				racersData.current[opp.id] = { 
-					id: opp.id, 
-					lap: 1, 
-					nextCP: 1, 
-					score: 0,
-					isRemote: true 
-				};
-			}
-		});
+    useEffect(() => {
+        // Quando la lista degli avversari online cambia
+        opponents.forEach(opp => {
+            if (!racersData.current[opp.id]) {
+                racersData.current[opp.id] = { 
+                    id: opp.id, 
+                    lap: 1, 
+                    nextCP: 1, 
+                    score: 0,
+                    isRemote: true 
+                };
+            }
+        });
 
-		// Opzionale: pulizia se un giocatore esce
-		const opponentIds = opponents.map(o => o.id);
-		Object.keys(racersData.current).forEach(id => {
-			if (id !== 'player' && !id.startsWith('bot_') && !opponentIds.includes(id)) {
-				delete racersData.current[id];
-			}
-		});
-	}, [opponents]);
+        // Opzionale: pulizia se un giocatore esce
+        const opponentIds = opponents.map(o => o.id);
+        Object.keys(racersData.current).forEach(id => {
+            if (id !== 'player' && !id.startsWith('bot_') && !opponentIds.includes(id)) {
+                delete racersData.current[id];
+            }
+        });
+    }, [opponents]);
 
     // Handlers Spawn
     const handleSpawnBanana = useCallback((position, velocity) => {
@@ -400,6 +414,7 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         if (gameState === 'INTRO' || gameState === 'COUNTDOWN') {
             return;
         }
+
         if (gameState !== 'RACING' || finished) {
             if (!finished) {
                 setMusicPitch(1.0, 1.0, 300);
@@ -459,15 +474,18 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 
     // Calcolo Targets per Gusci (Red/Blue)
 
-    // Gestione Uscita
+    // 4. GESTIONE USCITA AGGIORNATA
     const handleExitRace = useCallback(() => {
         setRaceExited(true);
-        setTimeout(() => { onBack(); }, 50);
-    }, [onBack]);
+        // Ritardo minimo per animazioni opzionali, poi navigazione
+        setTimeout(() => { 
+            navigate('/track'); // Torna alla selezione pista
+        }, 50);
+    }, [navigate]);
     
     // Liste Bersagli (per Gusci Rossi/Blu)
     const targets = useMemo(() => {
-        const list = [];"8IdNhLMq4wXKJguIAAAb"
+        const list = [];
         if (playerRef.current) list.push({ id: 'player', ref: playerRef });
         
         for (let i = 0; i < BOT_COUNT; i++) {
@@ -499,40 +517,49 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
         <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
 
             {/* HUD PRINCIPALE */}
-            <GameHUD lap={uiLap} totalLaps={TOTAL_LAPS} rank={playerRank} gameState={gameState} finished={finished} />
+            <GameHUD 
+                lap={uiLap} 
+                totalLaps={TOTAL_LAPS} 
+                rank={playerRank} 
+                gameState={gameState} 
+                finished={finished} 
+                onExit={handleExitRace} // <--- Passiamo il gestore di uscita all'HUD
+            />
 
-			{countdown && (
-				<div style={{
-					position: 'absolute',
-					top: '50%',
-					left: '50%',
-					transform: 'translate(-50%, -50%)',
-					fontSize: '120px',
-					fontWeight: '900',
-					color: countdown === 'START!' ? '#00ff00' : '#ffff00',
-					textShadow: '5px 5px 0px #000',
-					zIndex: 1000,
-					fontFamily: 'Arial Black, sans-serif'
-				}}>
-					{countdown}
-				</div>
-			)}
+            {countdown && (
+                <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: '120px',
+                    fontWeight: '900',
+                    color: countdown === 'START!' ? '#00ff00' : '#ffff00',
+                    textShadow: '5px 5px 0px #000',
+                    zIndex: 1000,
+                    fontFamily: 'Arial Black, sans-serif'
+                }}>
+                    {countdown}
+                </div>
+            )}
 
             <Canvas>
                 {/* Audio 3D Listener - DEVE essere prima di qualsiasi kart */}
                 <AudioListenerComponent />
                 
-				<CinematicCamera 
-					gameState={gameState} 
-					playerStartPos={playerStartPos} 
-					playerStartRot={playerStartRot} 
-				/>
+                <CinematicCamera 
+                    gameState={gameState} 
+                    playerStartPos={playerStartPos} 
+                    playerStartRot={playerStartRot} 
+                />
                 <LightningAtmosphere />
                 <Stats />
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
-                <Environment preset="city" />
+                
+                {/* MODIFICA: preset city MA senza sfondo (background={false}) */}
+                <Environment preset="city" background={false} />
 
                 {/* NETWORK MANAGER (Multiplayer) */}
                 <NetworkManager 
@@ -541,39 +568,39 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                     setOpponents={setOpponents} 
                     character={character} 
                     vehicle={vehicle} 
-					setItems={setNetworkItems}
-					opponentsDataRef={opponentsDataRef}
-					gameState={gameState}
+                    setItems={setNetworkItems}
+                    opponentsDataRef={opponentsDataRef}
+                    gameState={gameState}
                 />
 
                 <Physics debug={false}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
-							if (!item.position || !item.velocity) return null;
+                            if (!item.position || !item.velocity) return null;
 
-							const pos = new THREE.Vector3().fromArray(item.position);
-							const vel = new THREE.Vector3().fromArray(item.velocity);
+                            const pos = new THREE.Vector3().fromArray(item.position);
+                            const vel = new THREE.Vector3().fromArray(item.velocity);
 
-							const commonProps = {
-								position: pos,
-								initVelocity: vel,
-								onDestroy: () => handleRequestRemove(item.id)
-							};
+                            const commonProps = {
+                                position: pos,
+                                initVelocity: vel,
+                                onDestroy: () => handleRequestRemove(item.id)
+                            };
 
-							switch (item.type) {
-								case 'banana': 
-									return <Banana key={item.id} {...commonProps} />;
-								case 'green_shell': 
-									return <GreenShell key={item.id} {...commonProps} />;
-								case 'red_shell': 
-									return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={trackWaypoints} />;
-								case 'bomb': 
-									return <BobOmb key={item.id} {...commonProps} />;
-								default: 
-									return null;
-							}
-						})}
+                            switch (item.type) {
+                                case 'banana': 
+                                    return <Banana key={item.id} {...commonProps} />;
+                                case 'green_shell': 
+                                    return <GreenShell key={item.id} {...commonProps} />;
+                                case 'red_shell': 
+                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={trackWaypoints} />;
+                                case 'bomb': 
+                                    return <BobOmb key={item.id} {...commonProps} />;
+                                default: 
+                                    return null;
+                            }
+                        })}
                     </Suspense>
                     
                     {/* RACE LOGIC */}
@@ -585,9 +612,9 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                         playerRef={playerRef}
                         botRefs={botRefs}
                         trackPath={trackWaypoints}
-						socket={socket}
-						remoteRefMap={remoteRefMap}
-						opponentsDataRef={opponentsDataRef}
+                        socket={socket}
+                        remoteRefMap={remoteRefMap}
+                        opponentsDataRef={opponentsDataRef}
                     />
                     
                     {/* MAP & COLLIDERS */}
@@ -608,19 +635,19 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
 
                     {/* OPPONENTI REMOTI (Multiplayer) */}
                     {opponents.map((playerData) => {
-						return (
-							<RemoteOpponent 
-								key={playerData.id} 
-								playerId={playerData.id} // Passa l'ID
-								ref={remoteRefMap.current[playerData.id]}
-								opponentsDataRef={opponentsDataRef} // Passa il Ref globale
-								character={Characters.find(c => c.id === playerData.charId) || character} 
-								vehicle={VEHICLE_DATABASE[playerData.vehicleId] || vehicle}
-								userData={{ type: 'opponent', id: playerData.id }} 
-								data={playerData}
-							/>
-						);
-					})}
+                        return (
+                            <RemoteOpponent 
+                                key={playerData.id} 
+                                playerId={playerData.id} // Passa l'ID
+                                ref={remoteRefMap.current[playerData.id]}
+                                opponentsDataRef={opponentsDataRef} // Passa il Ref globale
+                                character={Characters.find(c => c.id === playerData.charId) || character} 
+                                vehicle={VEHICLE_DATABASE[playerData.vehicleId] || vehicle}
+                                userData={{ type: 'opponent', id: playerData.id }} 
+                                data={playerData}
+                            />
+                        );
+                    })}
 
                     {/* PLAYER LOCALE */}
                     <group position={[0, 10, 0]} > 
@@ -643,10 +670,10 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                                 userData={{ type: 'racer', id: 'player' }}
                                 characterConfig={character.modelConfig}
                                 selectedCharacter={character}
-								botRefs={botRefs}
-								gameState={gameState}
+                                botRefs={botRefs}
+                                gameState={gameState}
                                 vehicleConfig={vehicle} 
-								positions={positions}
+                                positions={positions}
                                 START_POS={playerStartPos}
                                 START_ROT={playerStartRot}
                                 trackRef={trackRef}
@@ -655,14 +682,14 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                                 waypoints={trackWaypoints}
                                 rank={playerRank}
                                 onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
-								onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
-								onSpawnRedShell={(p, v) => handleRequestSpawn('red_shell', p, v)}
-								onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
-								onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
+                                onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
+                                onSpawnRedShell={(p, v) => handleRequestSpawn('red_shell', p, v)}
+                                onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
+                                onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
                                 onHitOpponent={(victimId) => {
                                     socket.emit('player_hit', { victimId: victimId, type: 'bullet-bill' });
                                 }}
-								socket={socket}
+                                socket={socket}
                             />
                         )}
                     </group>
@@ -683,17 +710,17 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                                     ref={botRefs.current[botId]}
                                     userData={{ type: 'racer', id: botId }}
                                     characterConfig={character.modelConfig} 
-									gameState={gameState}
+                                    gameState={gameState}
                                     vehicleConfig={vehicle} 
                                     START_POS={botPos}
                                     START_ROT={botRot}
                                     START_ROT={botRot}
-									positions={positions}
-									onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
-									onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
-									onSpawnRedShell={(p, v) => handleRequestSpawn('red_shell', p, v)}
-									onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
-									onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
+                                    positions={positions}
+                                    onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
+                                    onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
+                                    onSpawnRedShell={(p, v) => handleRequestSpawn('red_shell', p, v)}
+                                    onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
+                                    onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
                                     trackRef={trackRef} 
                                     trackConfig={selectedTrack} 
                                     isBot={true}

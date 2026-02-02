@@ -12,6 +12,9 @@ RUN npm install -g vite
 
 RUN npm install socket.io-client
 
+# per il routing delle degli'indirizzi
+RUN npm install react-router-dom
+
 # Copiamo il resto del codice
 COPY . .
 
