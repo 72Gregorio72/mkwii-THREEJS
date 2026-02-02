@@ -4,18 +4,23 @@ import { useRapier } from '@react-three/rapier'
 import * as THREE from 'three'
 
 const AI_CONFIG = {
-  lookAheadDist: 12.0,
-  minLookAhead: 4.0,
-  maxLaneOffset: 1.8,
-  laneSwitchInterval: 8.0,
-  laneSwitchSpeed: 1.5,
-  steerReaction: 15.0,
-  rayLength: 5.0,
+  lookAheadDist: 1.0,
+  minLookAhead: 1.0,  // Ridotto da 4.0 per curve strette
+  maxLookAhead: 12.0,  // Massimo su rettilinei
+  curveThreshold: 0.3,  // Soglia per rilevare curve (radianti)
+  obstacleLookAhead: 1.0,  // Look ahead quando ostacolo davanti
+  maxLaneOffset: 0.0,  // Ridotto da 0.1 a 0.02 per seguire meglio la linea
+  laneSwitchInterval: 50.0,  // Aumentato da 8 a 20 per guida più consistente
+  laneSwitchSpeed: 0.05,  // Più lento per transizioni graduali
+  steerReaction: 18.0,  // Aumentato da 15 per reazioni più rapide
+  rayLength: 8.0,  // Aumentato da 5 per rilevare ostacoli prima
   stuckTime: 1.5,
   debugEnabled: false,
-  logicUpdateRate: 4,
+  logicUpdateRate: 6,
   itemUseChance: 1,
   minDistanceToAttack: 20,
+  raycastInterval: 2,
+  pathSwitchDistance: 3.0,  // Distanza minima per cambiare path
 }
 
 export function useBotAI({ isBot, rigidBody, paths, currentItem, triggerItemInput }) {
@@ -28,25 +33,35 @@ export function useBotAI({ isBot, rigidBody, paths, currentItem, triggerItemInpu
     forward: false, backward: false, left: false, right: false, drift: false 
   })
 
+
   // Offset casuale per evitare che tutti i bot calcolino nello stesso frame
   const frameOffset = useRef(Math.floor(Math.random() * AI_CONFIG.logicUpdateRate))
   const frameCounter = useRef(0)
+  const raycastCounter = useRef(0)
 
   // Cache dei risultati logici tra un frame e l'altro
   const cachedLogic = useRef({
     targetSteer: 0,
     isStuck: false,
-    speed: 0
+    speed: 0,
+    isSightBlocked: false,
+    obstacleDetected: false,
+    avoidanceSteer: 0
   })
+
+	let avoidanceSteer = cachedLogic.current.avoidanceSteer || 0
+	let obstacleDetected = cachedLogic.current.obstacleDetected || false
 
   const activePathIndex = useRef(0)
   const closestWpIndex = useRef(0)
   const currentLaneOffset = useRef(0)
   const targetLaneOffset = useRef(0)
-  const laneTimer = useRef(Math.random() * 10)
+  const laneTimer = useRef(Math.random() * 20)  // Aumentato per iniziare più stabili
   const currentSteer = useRef(0)
   const stuckTimer = useRef(0)
   const debugArrows = useRef({})
+  const pathSwitchCooldown = useRef(0)  // Cooldown per cambio path
+  const lastObstacleType = useRef(null)  // Traccia tipo ultimo ostacolo
 
   // Vettori riutilizzabili
   const v = useMemo(() => ({
@@ -181,39 +196,83 @@ export function useBotAI({ isBot, rigidBody, paths, currentItem, triggerItemInpu
     }
     closestWpIndex.current = checkIndex
 
-    // 2. Target Calculation
-    const speedBonus = Math.floor(currentSpeed * 0.5); 
-    const lookAheadNodes = Math.max(AI_CONFIG.minLookAhead, Math.floor(AI_CONFIG.lookAheadDist * 0.6) + speedBonus);
+    // 2. Analisi Curvatura - Rileva se prossimi waypoint formano una curva
+    const checkCurvature = () => {
+        const wp1 = currentPath[closestWpIndex.current];
+        const wp2Index = (closestWpIndex.current + 3) % pathLen;
+        const wp3Index = (closestWpIndex.current + 6) % pathLen;
+        const wp2 = currentPath[wp2Index];
+        const wp3 = currentPath[wp3Index];
+        
+        // Vettori tra waypoint
+        const v1 = new THREE.Vector2(wp2.x - wp1.x, wp2.z - wp1.z).normalize();
+        const v2 = new THREE.Vector2(wp3.x - wp2.x, wp3.z - wp2.z).normalize();
+        
+        // Angolo tra vettori (dot product)
+        const dotProduct = v1.dot(v2);
+        const angle = Math.acos(THREE.MathUtils.clamp(dotProduct, -1, 1));
+        
+        return angle; // Ritorna angolo in radianti (0 = dritto, π = 180°)
+    };
+    
+    const curveAngle = checkCurvature();
+    const isInCurve = curveAngle > AI_CONFIG.curveThreshold;
+
+    // 3. Target Calculation con LookAhead Dinamico
+    let dynamicLookAhead = AI_CONFIG.maxLookAhead;
+    
+    // Riduci lookAhead in curva (più stretta la curva, meno guarda avanti)
+    if (isInCurve) {
+        const curveFactor = Math.min(curveAngle / Math.PI, 1.0); // 0-1
+        dynamicLookAhead = THREE.MathUtils.lerp(AI_CONFIG.maxLookAhead, AI_CONFIG.minLookAhead, curveFactor);
+    }
+    
+    const speedBonus = Math.floor(currentSpeed * 0.3); // Ridotto da 0.5
+    const lookAheadNodes = Math.max(AI_CONFIG.minLookAhead, Math.floor(dynamicLookAhead * 0.6) + speedBonus);
     const farIndex = (closestWpIndex.current + lookAheadNodes) % pathLen;
     const farWp = currentPath[farIndex];
 
-    // 3. Sight Check (Raycast 1)
-    let isSightBlocked = false
+    // 4. Sight Check (Raycast 1) - Ottimizzato con counter
+    let isSightBlocked = cachedLogic.current.isSightBlocked || false
     let finalTargetWp = farWp
     
-    if (world && rapier) {
+    raycastCounter.current++
+    if (world && rapier && raycastCounter.current % AI_CONFIG.raycastInterval === 0) {
         v.temp.set(farWp.x, v.pos.y + 0.5, farWp.z) 
         v.sightRayDir.copy(v.temp).sub(v.rayOrigin)
         const distanceToFar = v.sightRayDir.length()
         v.sightRayDir.normalize()
         const sightRay = new rapier.Ray(v.rayOrigin, v.sightRayDir)
         const hit = world.castRay(sightRay, distanceToFar, true)
-        if (hit && hit.toi < distanceToFar - 1.5) { isSightBlocked = true }
+        isSightBlocked = hit && hit.toi < distanceToFar - 1.5
+        cachedLogic.current.isSightBlocked = isSightBlocked
+    }
+    
+    // Se ostacolo rilevato, guarda più vicino per non tagliare
+    if (isSightBlocked || obstacleDetected) {
+        const obstacleLookAhead = Math.floor(AI_CONFIG.obstacleLookAhead);
+        const adjustedIndex = (closestWpIndex.current + obstacleLookAhead) % pathLen;
+        finalTargetWp = currentPath[adjustedIndex];
     }
 
-    // 4. Lane Logic
+    // 5. Lane Logic - Guida più consistente, segue la linea centrale
     let targetIndexForOffset = farIndex;
+    
+    // Decrementa cooldown cambio path
+    if (pathSwitchCooldown.current > 0) {
+        pathSwitchCooldown.current -= delta * AI_CONFIG.logicUpdateRate;
+    }
+    
     if (isSightBlocked) {
         const panicIndex = (closestWpIndex.current + 3) % pathLen;
         finalTargetWp = currentPath[panicIndex];
         targetIndexForOffset = panicIndex; 
+        // Mantieni centro linea quando bloccato
         currentLaneOffset.current = THREE.MathUtils.damp(currentLaneOffset.current, 0, 10, delta * AI_CONFIG.logicUpdateRate);
     } else {
-        laneTimer.current += delta * AI_CONFIG.logicUpdateRate; // Adjust delta for skipped frames
-        if (laneTimer.current > AI_CONFIG.laneSwitchInterval) {
-            laneTimer.current = 0;
-            targetLaneOffset.current = (Math.random() - 0.5) * 2 * AI_CONFIG.maxLaneOffset;
-        }
+        // Guida stabile: mantieni sempre centro linea (offset = 0)
+        // Solo variazioni minime per sembrare più naturale
+        targetLaneOffset.current = 0;  // Sempre al centro
         currentLaneOffset.current = THREE.MathUtils.damp(currentLaneOffset.current, targetLaneOffset.current, AI_CONFIG.laneSwitchSpeed, delta * AI_CONFIG.logicUpdateRate);
     }
 
@@ -222,7 +281,7 @@ export function useBotAI({ isBot, rigidBody, paths, currentItem, triggerItemInpu
     v.pathRight.crossVectors(new THREE.Vector3(0, 1, 0), roadDir).normalize()
     v.target.copy(finalTargetWp).addScaledVector(v.pathRight, currentLaneOffset.current) 
 
-    // 5. Safety Side Ray (Raycast 2 - Only if needed)
+    // 6. Safety Side Ray (Raycast 2 - Only if needed)
     if (world && !isSightBlocked) { 
         v.temp.copy(v.target).sub(v.pos);
         const distToTarget = v.temp.length();
@@ -234,34 +293,74 @@ export function useBotAI({ isBot, rigidBody, paths, currentItem, triggerItemInpu
             v.target.copy(finalTargetWp);
         }
     }
-
-    // 6. Car Avoidance (Multiple Raycasts)
-    let avoidanceSteer = 0
-    let obstacleDetected = false
     
-    if (world) {
-      // Ottimizzazione: Riduciamo la frequenza o il numero di raggi se FPS bassi
-      // Per ora manteniamo i 3 raggi ma vengono eseguiti 1/4 delle volte grazie al return sopra
-      const cast = (angle) => {
+    if (world && raycastCounter.current % AI_CONFIG.raycastInterval === 0) {
+      // Cast con info dettagliate
+      const castDetailed = (angle) => {
         v.rayDir.copy(v.forward).applyAxisAngle(new THREE.Vector3(0,1,0), angle)
         const ray = new rapier.Ray(v.rayOrigin, v.rayDir);
-        const hit = world.castRay(ray, AI_CONFIG.rayLength, true);
-        return hit && hit.toi < AI_CONFIG.rayLength
+        const hit = world.castRayAndGetNormal(ray, AI_CONFIG.rayLength, true);
+        return hit
       }
       
-      const hitLeft = cast(0.5); 
-      const hitCenter = cast(0); 
-      const hitRight = cast(-0.5);
+      const hitCenter = castDetailed(0);
       
-      if (hitCenter || hitLeft || hitRight) {
-        obstacleDetected = true
-        if (hitCenter) avoidanceSteer = hitLeft ? -1 : (hitRight ? 1 : (Math.random() > 0.5 ? 1 : -1))
-        else if (hitLeft) avoidanceSteer = -1.0 
-        else if (hitRight) avoidanceSteer = 1.0 
+      if (hitCenter && hitCenter.toi < AI_CONFIG.rayLength) {
+        // Controlla tipo di ostacolo colpito
+        const hitObject = hitCenter.collider?.parent();
+        const userData = hitObject?.userData;
+        const isRacer = userData && (userData.type === 'racer' || userData.type === 'opponent');
+        
+        lastObstacleType.current = isRacer ? 'racer' : 'static';
+        
+        if (isRacer) {
+          // È un bot o player: prova a sorpassare leggermente
+          obstacleDetected = true;
+          // Leggero sterzo per tentativo sorpasso, ma resta sulla stessa linea
+          const hitLeft = castDetailed(0.3);
+          avoidanceSteer = hitLeft ? -0.3 : 0.3;  // Ridotto a 0.3 invece di 1
+        } else {
+          // È un ostacolo statico (banana, muro, etc): cambia path se possibile
+          obstacleDetected = true;
+          
+          // Cambia path se cooldown scaduto e ci sono altri path disponibili
+          if (pathSwitchCooldown.current <= 0 && paths.length > 1 && hitCenter.toi < AI_CONFIG.pathSwitchDistance) {
+            // Scegli path alternativo casuale diverso da quello corrente
+            let newPathIndex = activePathIndex.current;
+            while (newPathIndex === activePathIndex.current && paths.length > 1) {
+              newPathIndex = Math.floor(Math.random() * paths.length);
+            }
+            activePathIndex.current = newPathIndex;
+            pathSwitchCooldown.current = 5.0;  // 5 secondi di cooldown
+            
+            // Resetta waypoint più vicino per nuovo path
+            const newPath = paths[newPathIndex];
+            let closestDist = Infinity;
+            for (let i = 0; i < newPath.length; i++) {
+              const dx = newPath[i].x - v.pos.x;
+              const dz = newPath[i].z - v.pos.z;
+              const dist = dx*dx + dz*dz;
+              if (dist < closestDist) {
+                closestDist = dist;
+                closestWpIndex.current = i;
+              }
+            }
+          }
+          
+          // Sterzo d'emergenza se molto vicino
+          avoidanceSteer = hitCenter.toi < 2.0 ? 1.0 : 0.5;
+        }
+      } else {
+        obstacleDetected = false;
+        avoidanceSteer = 0;
+        lastObstacleType.current = null;
       }
+      
+      cachedLogic.current.obstacleDetected = obstacleDetected;
+      cachedLogic.current.avoidanceSteer = avoidanceSteer;
     }
 
-    // 7. Calculate Final Steer Target
+    // 8. Calculate Final Steer Target
     v.dirToTarget.copy(v.target).sub(v.pos).normalize()
     const dotFront = v.forward.dot(v.dirToTarget);
     const steerToTarget = v.forward.cross(v.dirToTarget).y

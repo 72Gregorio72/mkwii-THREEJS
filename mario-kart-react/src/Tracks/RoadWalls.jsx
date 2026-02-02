@@ -112,7 +112,7 @@ export function RoadWalls({ modelPath, wallHeight = 3, thresholdAngle = 20 }) {
 			)}
 
 			{/* Collider Muri */}
-			{wallGeometry && (
+			{/* {wallGeometry && (
 				<RigidBody type="fixed" colliders={false}>
 					<MeshCollider type="trimesh">
 						<mesh geometry={wallGeometry}>
@@ -120,7 +120,7 @@ export function RoadWalls({ modelPath, wallHeight = 3, thresholdAngle = 20 }) {
 						</mesh>
 					</MeshCollider>
 				</RigidBody>
-			)}
+			)} */}
 		</>
 	)
 }

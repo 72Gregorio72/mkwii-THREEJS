@@ -52,9 +52,21 @@ export const Tracks = {
 		checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
 		maxCheckpoints: 7,
 		soundtrack: 'RACE_BOWSER_CASTLE',
-		itemBoxes: './Tracks/BowserCastle/BowserCastle_itemBox.glb',
+		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
 		gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
-	}
+		road: './Tracks/BowserCastle/BowserCastle_road.glb',
+	},
+	'Delfino Square': {
+		file: './Tracks/DelfinoSquare/DelfinoSquare.glb',
+		preview: './TrackPreviews/DelfinoSquare.png',
+		startPos: [0, 0, 50],
+		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+		maxCheckpoints: 6,
+		soundtrack: 'RACE_DOLPHIN_SQUARE',
+		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+		gridpos: './Tracks/DelfinoSquare/DelfinoSquare_startpos.glb',
+		road: './Tracks/DelfinoSquare/DelfinoSquare_road.glb',
+	},
 }
 
 export const Characters = [

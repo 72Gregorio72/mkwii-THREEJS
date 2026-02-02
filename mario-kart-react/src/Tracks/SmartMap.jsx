@@ -26,7 +26,7 @@ export function SmartMap({ modelPath, scale = 1 }) {
           // child.visible = true // NON NECESSARIO QUI se usiamo il wireframe sotto
           buckets.roads.push(child.geometry)
         } 
-        else if (name.includes('wall_collider')) {
+        else if (name.includes('wall_collider')) { 
           // child.visible = true
           buckets.walls.push(child.geometry)
         } 
@@ -64,7 +64,7 @@ export function SmartMap({ modelPath, scale = 1 }) {
     return (
       <RigidBody 
         type="fixed" 
-        colliders={false} 
+        colliders={true} 
         scale={[scale, scale, scale]} 
         position={[0, 0, 0]} 
         friction={friction}
@@ -77,7 +77,7 @@ export function SmartMap({ modelPath, scale = 1 }) {
                 Questo rende visibili le mesh della fisica (in wireframe)
             */}
             <mesh geometry={geo}>
-               <meshBasicMaterial visible={false} color={color} wireframe />
+               <meshBasicMaterial visible={true} color={color} wireframe />
             </mesh>
           </MeshCollider>
         ))}
@@ -95,9 +95,9 @@ export function SmartMap({ modelPath, scale = 1 }) {
       {/* Proxy Strada */}
       {/* MODIFICA 2: Cambiato color="yellow" in color="purple" 
       */}
-      {/* <ColliderGroup geometries={roads} label="road" friction={1} restitution={0} color="purple" /> */}
+      {/* <ColliderGroup geometries={roads} label="road" friction={1} restitution={0} color="purple" />
 
-      {/* <ColliderGroup geometries={walls} label="wall" friction={0} restitution={0.5} color="red" />
+      <ColliderGroup geometries={walls} label="wall" friction={0} restitution={0.5} color="red" />
       <ColliderGroup geometries={grass} label="grass" friction={0.6} restitution={0} color="green" />
       <ColliderGroup geometries={defaults} label="default" friction={0} restitution={0} color="blue" /> */}
 

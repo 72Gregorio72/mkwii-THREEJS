@@ -41,17 +41,43 @@ const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
 
 // --- HELPERS ---
 
-function WaypointVisualizer({ points, color = 'red' }) {
-    return (
-        <group> 
-            {points.map((p, index) => (
-                <mesh key={index} position={[p.x, p.y + 0.1, p.z]}>
-                    <sphereGeometry args={[0.2, 8, 8]} />
-                    <meshStandardMaterial color={color} />
-                </mesh>
-            ))}
-        </group>
-    );
+function WaypointsVisualizer({ waypoints, color = 'blue' }) {
+	// Converti waypoints in Vector3 (gestisce sia formato [x,y,z] che {x,y,z})
+	const points = waypoints.map(point => {
+		if (Array.isArray(point)) {
+			return new THREE.Vector3(point[0], point[1], point[2]);
+		} else {
+			return new THREE.Vector3(point.x, point.y, point.z);
+		}
+	});
+	
+	// Chiudi il loop: aggiungi il primo punto alla fine
+	points.push(points[0].clone());
+	
+	const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+	return (
+		<group>
+			{/* Linea continua tra i waypoints */}
+			<line geometry={geometry}>
+				<lineBasicMaterial color={color} linewidth={3} />
+			</line>
+			
+			{/* Sfere sui punti waypoint (opzionale, più piccole) */}
+			{waypoints.map((point, index) => {
+				const pos = Array.isArray(point) 
+					? [point[0], point[1], point[2]]
+					: [point.x, point.y, point.z];
+					
+				return (
+					<mesh key={index} position={pos}>
+						<sphereGeometry args={[0.15, 6, 6]} />
+						<meshBasicMaterial color={color} />
+					</mesh>
+				);
+			})}
+		</group>
+	);
 }
 
 // Fallback matematico per la griglia se non esiste nel GLB
@@ -538,6 +564,12 @@ export function GameScene({
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
+
+				{/* <WaypointsVisualizer waypoints={trackWaypoints} color="red" />
+				<WaypointsVisualizer waypoints={trackWaypoints1} color="green" />
+				<WaypointsVisualizer waypoints={trackWaypoints2} color="yellow" />
+				<WaypointsVisualizer waypoints={leftWaypoints} color="blue" />
+				<WaypointsVisualizer waypoints={rightWaypoints} color="purple" /> */}
                 
                 {/* MODIFICA: preset city MA senza sfondo (background={false}) */}
                 <Environment preset="city" background={false} />
@@ -676,7 +708,7 @@ export function GameScene({
                     </group>
 
                     {/* BOTS (AI) */}
-                    {/* {Array.from({ length: BOT_COUNT }, (_, i) => {
+                    {Array.from({ length: BOT_COUNT }, (_, i) => {
                         const botId = `bot_${i}`;
                         // Mappatura: Bot 0 -> start_1, Bot 1 -> start_2, etc. (o logica inversa)
                         // Qui assumo che i Bot riempiano le posizioni da 1 a 11.
@@ -695,7 +727,6 @@ export function GameScene({
                                     vehicleConfig={vehicle} 
                                     START_POS={botPos}
                                     START_ROT={botRot}
-                                    START_ROT={botRot}
                                     positions={positions}
                                     onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
                                     onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
@@ -710,7 +741,7 @@ export function GameScene({
                                 /> 
                             </group>
                         );
-                    })} */}
+                    })}
                 </Physics>
             </Canvas>
         </div>
