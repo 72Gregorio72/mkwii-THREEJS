@@ -47,7 +47,7 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
 			const pos = playerRef.current.translation(); 
 			const rot = playerRef.current.rotation();
 			
-			const inputState = playerRef.current.getInputState?.() || { steer: 0, drift: 0 };
+			const inputState = playerRef.current.getInputState?.() || { steer: 0, drift: 0, speed: 0, driftLevel: 0 };
 			const effectState = playerRef.current.getEffectState?.() || { isBulletBill: false };
 
 			// IL CLIENT È SOVRANO: Manda la sua verità al server
@@ -58,6 +58,8 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
 				rotation: rot,
 				steer: inputState.steer,
 				drift: inputState.drift,
+				speed: inputState.speed,           // Velocità per audio remoto
+				driftLevel: inputState.driftLevel, // Livello drift per audio remoto
 				effects: effectState,
 			});
 		} catch (error) {
@@ -155,7 +157,7 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
 		};
 	});
 
-    return (
+    /*return (
         <Html fullscreen style={{ pointerEvents: 'none' }}>
             <div style={{
                 position: 'absolute',
@@ -171,5 +173,5 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
                 PING: {ping}ms
             </div>
         </Html>
-    );
+    );*/
 };

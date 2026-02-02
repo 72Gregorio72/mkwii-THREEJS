@@ -1,20 +1,20 @@
 import { io } from 'socket.io-client';
 
+// window.location.host include la porta (es. localhost:8443)
+// window.location.hostname include solo il dominio (es. localhost)
+const SERVER_URL = `${window.location.protocol}//${window.location.host}`;
 
-// multiplayer
-const protocol = window.location.protocol; // 'http:' or 'https:'
-const hostname = window.location.hostname; // 'localhost' or '192.168.X.X'
-const port = 3000; // Your backend port
+console.log('Connecting via Nginx Proxy to:', SERVER_URL);
 
-// 2. Construct the URL dynamically
-const SERVER_URL = `${protocol}//${hostname}:${port}`;
-
-console.log('Connecting to Server at:', SERVER_URL);
-
-// 3. Connect
 export const socket = io(SERVER_URL, {
     transports: ['websocket'],
-	upgrade: false,
-    secure: true,
-    rejectUnauthorized: false
+	upgrade: false, 
+    withCredentials: true,
+    rejectUnauthorized: false,
+	secure: true,
+    // Opzionale: riconnessione più aggressiva
+    reconnection: true,
+    reconnectionAttempts: 10
 });
+
+//https://localhost:8443/socket.io/?EIO=4&transport=websocket

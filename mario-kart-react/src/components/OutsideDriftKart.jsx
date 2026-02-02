@@ -573,7 +573,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
           
           return {
               steer: currentSteer, 
-              drift: driftDirection.current // This ref exists in your code, so it's safe
+              drift: driftDirection.current, // This ref exists in your code, so it's safe
+              speed: speed.current,          // Velocità corrente per audio remoto
+              driftLevel: driftLevel.current // Livello drift (0, 1=blu, 2=rosso) per audio remoto
           };
       }
   }));
@@ -605,6 +607,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 					driftDirection.current = 0;
 
 					if (BananaHitAudioRef.current) {
+                        BananaHitAudioRef.current.setVolume(2.0);
 						BananaHitAudioRef.current.play();
 					}
 				}
@@ -878,9 +881,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     // UPDATE SPARKS (SOLO PLAYER)
     updateSparksColor(driftLevel.current, leftSparksRef.current, rightSparksRef.current);
 
-    // UPDATE AUDIO 3D (Motore)
+    // UPDATE AUDIO 3D (Motore + Drift sounds)
     const isDriftingNow = driftDirection.current !== 0;
-    updateEngineAudio(speed.current, forward, isDriftingNow);
+    updateEngineAudio(speed.current, forward, driftLevel.current, isDriftingNow);
 
         // Calcolo Velocità
         const isBoosting = boostTime.current > 0
@@ -1072,7 +1075,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 				isSpinning.current = true;
 				spinTimer.current = 0.8;
 				speed.current = 0;
-				if (BananaHitAudioRef.current) BananaHitAudioRef.current.play();
+				if (BananaHitAudioRef.current) {
+                    BananaHitAudioRef.current.setVolume(2.0);
+                    BananaHitAudioRef.current.play();
+                }
 			}
 		};
 		socket.on('lightning-strike', handleLightningStrike);
@@ -1149,7 +1155,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         <PositionalAudio
             ref={BananaHitAudioRef}
             url={AUDIO_SFX.KART_SPIN}
-            distance={10}
+            distance={15}
             loop={false}
         />
         <PositionalAudio
