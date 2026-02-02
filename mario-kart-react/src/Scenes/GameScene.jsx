@@ -438,7 +438,6 @@ export function GameScene({ socket, character, vehicle, mapPath, checkpointPath,
                 if (racerId === 'player') {
                     isFinalLap.current = true;
                     playSfx(AUDIO_SFX.FINAL_LAP, 3);
-                    // Delay per assicurarsi che la musica sia in riproduzione
                     setTimeout(() => {
                         setMusicPitch(1.15, 1.15, 2000);
                     }, 100);
