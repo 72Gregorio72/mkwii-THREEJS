@@ -179,7 +179,7 @@ export function GameScene({
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
 
-    const [gameState, setGameState] = useState('INTRO'); // 'INTRO', 'COUNTDOWN', 'RACING'
+    const [gameState, setGameState] = useState('RACING'); // 'INTRO', 'COUNTDOWN', 'RACING'
     const [countdown, setCountdown] = useState(null);
     const [finished, setFinished] = useState(false);
     const [raceExited, setRaceExited] = useState(false);
@@ -625,6 +625,7 @@ export function GameScene({
                         socket={socket}
                         remoteRefMap={remoteRefMap}
                         opponentsDataRef={opponentsDataRef}
+						selectedTrack={selectedTrack}
                     />
                     
                     {/* MAP & COLLIDERS */}
@@ -705,7 +706,7 @@ export function GameScene({
                     </group>
 
                     {/* BOTS (AI) */}
-                    {Array.from({ length: BOT_COUNT }, (_, i) => {
+                    {/* {Array.from({ length: BOT_COUNT }, (_, i) => {
                         const botId = `bot_${i}`;
                         // Mappatura: Bot 0 -> start_1, Bot 1 -> start_2, etc. (o logica inversa)
                         // Qui assumo che i Bot riempiano le posizioni da 1 a 11.
@@ -738,7 +739,7 @@ export function GameScene({
                                 /> 
                             </group>
                         );
-                    })}
+                    })} */}
                 </Physics>
             </Canvas>
         </div>

@@ -1123,6 +1123,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   // Handlers Sensore Terra
   const handleGroundEnter = (payload) => {
      const rootObj = payload.other.rigidBodyObject;
+	 checkSurface(rootObj);
      if (!rootObj) return;
      const name = rootObj.name;
      if (name === 'player' || name.startsWith('bot')) return; 

@@ -18,7 +18,7 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
                 
                 if (!isNaN(id)) {
                     // Logga in console cosa sta trovando il sistema al caricamento
-                    console.log(`[Checkpoint Debug] Creato sensore ID: ${id} dalla mesh: ${rawName}`);
+                    // console.log(`[Checkpoint Debug] Creato sensore ID: ${id} dalla mesh: ${rawName}`);
                     
                     boxes.push({
                         id: id,
