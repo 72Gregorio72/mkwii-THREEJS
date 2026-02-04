@@ -7,7 +7,7 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
     // 2. Tell the server who we are when we join/load
     useEffect(() => {
         if (!socket || !character || !vehicle) return;
-        console.log("Sending player details to server:", character.id, vehicle.id);
+        // console.log("Sending player details to server:", character.id, vehicle.id);
         socket.emit('set_details', {
             charId: character.id,
             vehicleId: vehicle.id
@@ -63,7 +63,7 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
 				effects: effectState,
 			});
 		} catch (error) {
-			console.log("Errore durante l'invio della posizione al server:", error);
+			// console.log("Errore durante l'invio della posizione al server:", error);
 		}
 	});
 

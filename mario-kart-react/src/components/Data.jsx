@@ -1,4 +1,10 @@
-// --- LISTE VEICOLI PER CLASSE DI PESO ---
+import DaisyCircuit from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit';
+import DaisyCircuit_left from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left';
+import DaisyCircuit_right from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right';
+import DelfinoSquare0 from '../Bot/Waypoints/DelfinoSquare/DelfinoSquare';
+import DelfinoSquareL from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareL';
+import DelfinoSquareR from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareR';
+
 const SMALL_VEHICLES = [
     'StandardKartS', 'StandardBikeS', 'BoosterSeat', 'BulletBike', 
     'MiniBeast', 'BitBike', 'CheepCharger', 'Quacker', 
@@ -35,7 +41,8 @@ export const Tracks = {
 		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
 		gridpos: './Tracks/DaisyCircuit/DaisyCircuit_startpos.glb',
 		maxCheckpoints: 3,
-        soundtrack: 'RACE_DAISY_CIRCUIT'
+        soundtrack: 'RACE_DAISY_CIRCUIT',
+		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
 	'Coconut Mall': {
 		file: './Tracks/CoconutMall/CoconutMall.glb',
@@ -60,12 +67,13 @@ export const Tracks = {
 		file: './Tracks/DelfinoSquare/DelfinoSquare.glb',
 		preview: './TrackPreviews/DelfinoSquare.png',
 		startPos: [0, 0, 50],
-		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
-		maxCheckpoints: 6,
+		checkpoints: './Tracks/DelfinoSquare/DelfinoSquare_checkpoints.glb',
+		maxCheckpoints: 3,
 		soundtrack: 'RACE_DOLPHIN_SQUARE',
-		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+		itemBoxes: './Tracks/DelfinoSquare/DelfinoSquare_itemBox.glb',
 		gridpos: './Tracks/DelfinoSquare/DelfinoSquare_startpos.glb',
 		road: './Tracks/DelfinoSquare/DelfinoSquare_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
 	},
 }
 

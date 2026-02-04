@@ -1,106 +1,37 @@
 import React, { useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
-import { RigidBody, MeshCollider } from '@react-three/rapier'
+import * as THREE from 'three'
 
 export function SmartMap({ modelPath, scale = 1 }) {
   const { scene } = useGLTF(modelPath)
 
-  const { roads, walls, grass, defaults, visualScene } = useMemo(() => {
-    // Cloniamo la scena per lavorarci
+  const visualScene = useMemo(() => {
     const clone = scene.clone()
     
-    // Secchi per la fisica
-    const buckets = {
-      roads: [],   // Grip alto (Strada invisibile)
-      walls: [],   // Scivolosi (Muri invisibili)
-      grass: [],   // Attrito (Erba invisibile)
-      defaults: [] // Standard (Oggetti visibili come alberi, case, ecc.)
-    }
-
     clone.traverse((child) => {
-      if (child.isMesh) {
-        const name = child.name.toLowerCase()
+      if (child.isMesh && child.material) {
+		
+        child.material.transparent = true
+
+        child.material.alphaTest = 0.5
         
-        // --- 1. PROXY COLLIDERS (Invisibili + Tag Speciali) ---
-        if (name.includes('polygon456')) {
-          // child.visible = true // NON NECESSARIO QUI se usiamo il wireframe sotto
-          buckets.roads.push(child.geometry)
-        } 
-        else if (name.includes('wall_collider')) { 
-          // child.visible = true
-          buckets.walls.push(child.geometry)
-        } 
-        else if (name.includes('grass_collider')) {
-          // child.visible = true
-          buckets.grass.push(child.geometry)
-        }
-        // --- 2. ESCLUSIONI (Solo Grafica) ---
-        // Usa questo tag per la mesh della strada bella, così non collide doppia
-        else if (name.includes('_visual') || name.includes('_ghost')) {
-           // Non facciamo nulla: resta visibile, niente fisica.
-        }
-        // --- 3. TUTTO IL RESTO (Visibile + Fisica Default) ---
-        else {
-          // Non nascondiamo la mesh (child.visible resta true)
-          // Ma aggiungiamo la sua geometria al secchio "defaults" per renderla solida
-          buckets.defaults.push(child.geometry)
+        child.material.depthWrite = true
+        
+        child.material.side = THREE.DoubleSide
+
+        const name = child.name.toLowerCase()
+        if (name.includes('collider') || name.includes('polygon456')) {
+          child.visible = false
         }
       }
     })
-
-    return { 
-      roads: buckets.roads, 
-      walls: buckets.walls, 
-      grass: buckets.grass, 
-      defaults: buckets.defaults,
-      visualScene: clone 
-    }
+    
+    return clone
   }, [scene])
 
-  // Helper per creare i gruppi fisici
-  const ColliderGroup = ({ geometries, label, friction, restitution, color, isVisible = false }) => {
-    if (!geometries || geometries.length === 0) return null;
-
-    return (
-      <RigidBody 
-        type="fixed" 
-        colliders={true} 
-        scale={[scale, scale, scale]} 
-        position={[0, 0, 0]} 
-        friction={friction}
-        restitution={restitution}
-        userData={{ type: label }}
-      >
-        {geometries.map((geo, index) => (
-          <MeshCollider key={index} type="trimesh">
-            {/* MODIFICA 1: Cambiato visible={false} in visible={true} 
-                Questo rende visibili le mesh della fisica (in wireframe)
-            */}
-            <mesh geometry={geo}>
-               <meshBasicMaterial visible={true} color={color} wireframe />
-            </mesh>
-          </MeshCollider>
-        ))}
-      </RigidBody>
-    )
-  }
-
   return (
-    <group>
-      {/* 1. TUTTA LA GRAFICA (VisualScene contiene tutto ciò che non è stato nascosto) */}
-      <primitive object={visualScene} scale={[scale, scale, scale]} />
-
-      {/* 2. LIVELLI FISICI */}
-      
-      {/* Proxy Strada */}
-      {/* MODIFICA 2: Cambiato color="yellow" in color="purple" 
-      */}
-      {/* <ColliderGroup geometries={roads} label="road" friction={1} restitution={0} color="purple" />
-
-      <ColliderGroup geometries={walls} label="wall" friction={0} restitution={0.5} color="red" />
-      <ColliderGroup geometries={grass} label="grass" friction={0.6} restitution={0} color="green" />
-      <ColliderGroup geometries={defaults} label="default" friction={0} restitution={0} color="blue" /> */}
-
+    <group scale={[scale, scale, scale]}>
+      <primitive object={visualScene} />
     </group>
   )
 }

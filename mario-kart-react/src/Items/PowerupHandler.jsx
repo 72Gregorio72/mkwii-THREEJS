@@ -85,7 +85,7 @@ export const usePowerupHandler = ({
 
   useEffect(() => {
     if (!isLocalPlayer) return;
-    console.log("PowerupHandler: inizializzando audio per roulette oggetti.");
+    // console.log("PowerupHandler: inizializzando audio per roulette oggetti.");
     rouletteAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_DECIDE);
     rouletteAudioRef.current.volume = 0.7;
     decideAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_ROLL);
@@ -161,7 +161,7 @@ export const usePowerupHandler = ({
     if (speed && speed.current < SETTINGS.maxSpeed) {
       speed.current = MathUtils.lerp(speed.current, SETTINGS.maxSpeed + 25, 0.5);
     }
-    console.log("Fungo utilizzato!");
+    // console.log("Fungo utilizzato!");
   };
 
   const useTripleMushroom = () => {
@@ -169,7 +169,7 @@ export const usePowerupHandler = ({
       
       const newCount = tripleCount - 1;
       setTripleCount(newCount);
-      console.log(`Funghi rimasti: ${newCount}`);
+    //   console.log(`Funghi rimasti: ${newCount}`);
 
       if (newCount <= 0) {
           setCurrentItem(ITEMS.NONE); // Finiti
@@ -184,14 +184,14 @@ export const usePowerupHandler = ({
 
       // Se è la prima volta che premiamo, attiviamo il timer
       if (!isGoldenActive) {
-          console.log("GOLDEN MUSHROOM ATTIVO! SPAMMA IL TASTO!");
+        //   console.log("GOLDEN MUSHROOM ATTIVO! SPAMMA IL TASTO!");
           setIsGoldenActive(true);
           
           // Dura 10 secondi, poi sparisce
           goldenTimerRef.current = setTimeout(() => {
               setIsGoldenActive(false);
               setCurrentItem(ITEMS.NONE);
-              console.log("Golden Mushroom esaurito.");
+            //   console.log("Golden Mushroom esaurito.");
           }, 10000);
       }
   };
@@ -214,13 +214,13 @@ export const usePowerupHandler = ({
   };
 
   const useMegaMushroom = () => {
-      console.log("Attivazione MEGA FUNGO!");
+    //   console.log("Attivazione MEGA FUNGO!");
       if (activateMega) activateMega();
       setCurrentItem(ITEMS.NONE);
   };
 
   const useStar = () => {
-      console.log("Attivazione STELLA!");
+    //   console.log("Attivazione STELLA!");
       if (onActivateStar) onActivateStar();
       setCurrentItem(ITEMS.NONE);
   };
@@ -243,7 +243,7 @@ export const usePowerupHandler = ({
 		setTimeout(() => {
         	onSpawnBanana([spawnX, spawnY, spawnZ], [Math.sin(currentRot) * throwForce, 0, Math.cos(currentRot) * throwForce]);
 		}, 0);
-        console.log("Banana lanciata!");
+        // console.log("Banana lanciata!");
     }
     setCurrentItem(ITEMS.NONE);
   };

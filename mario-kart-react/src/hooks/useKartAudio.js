@@ -228,10 +228,10 @@ export const useKartAudio = ({ isBike = false, isActive = true, isBot = false, b
     
     // Quando GAS finisce, passa automaticamente a LOOP
     const handleGasEnded = () => {
-      console.log('[Audio] GAS ended, isAccelerating:', isAcceleratingRef.current, 'currentState:', currentStateRef.current);
+    //   console.log('[Audio] GAS ended, isAccelerating:', isAcceleratingRef.current, 'currentState:', currentStateRef.current);
       if (currentStateRef.current === 'gas' && isAcceleratingRef.current) {
         currentStateRef.current = 'loop';
-        console.log('[Audio] Transitioning to LOOP');
+        // console.log('[Audio] Transitioning to LOOP');
         startLoopWithCrossfade();
       }
     };

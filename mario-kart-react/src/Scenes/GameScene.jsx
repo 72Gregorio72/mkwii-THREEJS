@@ -19,6 +19,7 @@ import { NetworkManager } from '../multiplayer/NetworkManager.jsx'
 import { RemoteOpponent } from '../multiplayer/RemoteOpponent.jsx'
 import { VEHICLE_DATABASE, Characters , AUDIO_TRACKS } from '../components/Data.jsx'
 import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx'
+import { WaypointRecorder } from '../Bot/WaypointRecorder.jsx'
 
 // --- IMPORTS ITEMS ---
 import { Banana } from '../Items/Banana';
@@ -27,13 +28,6 @@ import { RedShell } from '../Items/RedShell';
 import { BlueShell } from '../Items/BlueShell.jsx'
 import { BobOmb } from '../Items/BobOmb.jsx'
 import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
-
-// --- IMPORTS WAYPOINTS ---
-import trackWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit.json'
-import leftWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left.json'
-import rightWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right.json'
-import trackWaypoints1 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit1.json'
-import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
 import { gsap } from 'gsap'
 
 const TOTAL_LAPS = 3;
@@ -565,11 +559,9 @@ export function GameScene({
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
 
-				{/* <WaypointsVisualizer waypoints={trackWaypoints} color="red" />
-				<WaypointsVisualizer waypoints={trackWaypoints1} color="green" />
-				<WaypointsVisualizer waypoints={trackWaypoints2} color="yellow" />
-				<WaypointsVisualizer waypoints={leftWaypoints} color="blue" />
-				<WaypointsVisualizer waypoints={rightWaypoints} color="purple" /> */}
+				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[0]} color="red" />
+				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[1]} color="green" />
+				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[2]} color="yellow" />
                 
                 {/* MODIFICA: preset city MA senza sfondo (background={false}) */}
                 <Environment preset="city" background={false} />
@@ -607,7 +599,7 @@ export function GameScene({
                                 case 'green_shell': 
                                     return <GreenShell key={item.id} {...commonProps} />;
                                 case 'red_shell': 
-                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={trackWaypoints} />;
+                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={selectedTrack.Waypoints[0]} />;
                                 case 'bomb': 
                                     return <BobOmb key={item.id} {...commonProps} />;
                                 default: 
@@ -615,6 +607,11 @@ export function GameScene({
                             }
                         })}
                     </Suspense>
+
+					{/* <WaypointRecorder
+						kartRef={playerRef}
+						isRecording={true}
+					/> */}
                     
                     {/* RACE LOGIC */}
                     <RaceManager 
@@ -624,7 +621,7 @@ export function GameScene({
                         positions={positions}
                         playerRef={playerRef}
                         botRefs={botRefs}
-                        trackPath={trackWaypoints}
+                        trackPath={selectedTrack.Waypoints[0]}
                         socket={socket}
                         remoteRefMap={remoteRefMap}
                         opponentsDataRef={opponentsDataRef}
@@ -692,7 +689,7 @@ export function GameScene({
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
                                 isRaceActive={isRaceActive}
-                                waypoints={trackWaypoints}
+                                waypoints={selectedTrack.Waypoints[0]}
                                 rank={playerRank}
                                 onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
                                 onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
@@ -736,7 +733,7 @@ export function GameScene({
                                     trackRef={trackRef} 
                                     trackConfig={selectedTrack} 
                                     isBot={true}
-                                    paths={[trackWaypoints, trackWaypoints1, trackWaypoints2, leftWaypoints, rightWaypoints]} 
+                                    paths={selectedTrack.Waypoints} 
                                     onCheckpoint={(idx) => handleCheckpointTrigger(idx, botId)}
                                 /> 
                             </group>

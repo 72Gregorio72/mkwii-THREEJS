@@ -595,7 +595,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 			const victimId = eventData.victimId || eventData.detail?.victimId;
 			
 			// DEBUG: Apri la console (F12) e controlla se questi due ID coincidano quando colpisci la banana
-			console.log("Controllo Colpo:", { victimId, myLocalId: racerId, mySocketId: socket?.id });
+			// console.log("Controllo Colpo:", { victimId, myLocalId: racerId, mySocketId: socket?.id });
 
 			// Controllo flessibile: colpito se l'ID coincide con racerId O con l'ID del socket
 			const isMe = victimId === racerId || (socket && victimId === socket.id);
@@ -603,12 +603,12 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 			if (isMe) {
 				// Se ho la stella, il mega fungo o sono Bill, ignoro il colpo
 				if (isStarActive.current || isMegaActive.current || isBulletBill) {
-					console.log("Colpo ignorato: Powerup attivo");
+					// console.log("Colpo ignorato: Powerup attivo");
 					return;
 				}
 
 				if (!isSpinning.current) {
-					console.log("AZIONE: Il Kart gira!");
+					// console.log("AZIONE: Il Kart gira!");
 					isSpinning.current = true;
 					spinTimer.current = 0.8; 
 					speed.current = 0;
@@ -719,7 +719,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 		const otherData = targetObj?.userData;
 
 		if (otherData && (otherData.type === 'opponent' || otherData.type === 'racer')) {
-			console.log(`ATTACK! Hitting: ${otherData.id}`);
+			// console.log(`ATTACK! Hitting: ${otherData.id}`);
 			
 			socket.emit('player_hit', { 
 				victimId: otherData.id, 
@@ -796,7 +796,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
      }
 
 	if (isBulletBill)
-		console.log(`BULLET BILL VELOCITÀ: ${Math.abs(Math.round(speed.current * 1.5))} km/h`);
+		// console.log(`BULLET BILL VELOCITÀ: ${Math.abs(Math.round(speed.current * 1.5))} km/h`);
 
 	if (isStarActive.current && visualGroupRef.current && frameCounter.current % 2 === 0) {
         // Velocità cambio colore (aggiornato ogni 2 frame per performance)
@@ -1093,7 +1093,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         
         const handleLightningStrike = (data) => {
             const attackerId = data?.attackerId;
-            console.log(`LIGHTNING STRIKE RECEIVED ON ${socket.id} FROM ${attackerId}`);
+            // console.log(`LIGHTNING STRIKE RECEIVED ON ${socket.id} FROM ${attackerId}`);
             if (attackerId === socket.id) { 
                 return; 
             }

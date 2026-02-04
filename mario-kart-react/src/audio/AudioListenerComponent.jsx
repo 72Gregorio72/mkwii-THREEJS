@@ -26,7 +26,7 @@ export function AudioListenerComponent() {
     camera.add(listener);
     globalAudioListener = listener;
 
-    console.log('[AudioListenerComponent] AudioListener 3D creato e attaccato alla camera');
+    // console.log('[AudioListenerComponent] AudioListener 3D creato e attaccato alla camera');
 
     return () => {
       // Non rimuoviamo il listener al cleanup per evitare problemi
