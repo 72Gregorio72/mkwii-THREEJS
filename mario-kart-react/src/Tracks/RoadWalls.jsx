@@ -13,14 +13,24 @@ export function RoadWalls({ modelPath }) {
         
         Object.values(nodes).forEach((node) => {
             if (node.isMesh) {
+                // Invece di nascondere l'oggetto, nascondiamo il materiale
+                // Cloniamo il materiale per evitare di nascondere altri oggetti che lo condividono
+                if (node.material) {
+                    node.material = node.material.clone();
+                    node.material.visible = false; // <--- IL TRUCCO È QUI
+                    // Opzionale: se vuoi essere sicuro che non influenzi il depth buffer
+                    node.material.depthWrite = false; 
+                }
+
                 elements.push(
                     <RigidBody 
                         key={node.uuid} 
                         type="fixed" 
-                        colliders="trimesh"
+                        colliders="trimesh" // Rapier ora vede la mesh perché l'oggetto è "visible"
                         name={node.name}
                     >
-                        <primitive object={node} visible={false} />
+                        {/* Rimuovi visible={false} da qui */}
+                        <primitive object={node} /> 
                     </RigidBody>
                 );
             }

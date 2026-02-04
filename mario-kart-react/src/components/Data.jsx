@@ -78,6 +78,18 @@ export const Tracks = {
 		road: './Tracks/DelfinoSquare/DelfinoSquare_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
 	},
+    'Yoshi Falls': {
+        file: './Tracks/YoshiFalls/YoshiFalls.glb',
+        preview: './TrackPreviews/YoshiFalls.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+        maxCheckpoints: 5,
+        soundtrack: 'RACE_YOSHI_FALLS',
+        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+        gridpos: './Tracks/YoshiFalls/YoshiFalls_startpos.glb',
+        road: './Tracks/YoshiFalls/YoshiFalls_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    }
 }
 
 export const Characters = [
