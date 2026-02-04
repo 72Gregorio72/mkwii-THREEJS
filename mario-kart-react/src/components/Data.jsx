@@ -19,17 +19,20 @@ const LARGE_VEHICLES = [
 
 export const Tracks = {
 	'Luigi Circuit': { 
-		file: './Tracks/LuigiCircuit.glb',
+		file: './Tracks/LuigiCircuit/LuigiCircuit.glb',
 		preview: './TrackPreviews/LuigiCircuit.png',
-		startPos: [-200, 10, 270],
-		checkpoints: './Tracks/LuigiCircuit/LuigiCircuit_checkpoints.glb',
+		startPos: [9, 12, 98],
+		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+        road: './Tracks/LuigiCircuit/LuigiCircuit_road.glb',
+        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
 		maxCheckpoints: 1,
         soundtrack: 'RACE_LUIGI_CIRCUIT'
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
 		preview: './TrackPreviews/DaisyCircuit.png',
-		startPos: [9, 12, 98],
+		startPos: [100, 12, 98],
 		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
 		road: './Tracks/DaisyCircuit/DaisyCircuit_road.glb',
 		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
