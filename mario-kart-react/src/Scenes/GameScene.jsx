@@ -19,6 +19,7 @@ import { NetworkManager } from '../multiplayer/NetworkManager.jsx'
 import { RemoteOpponent } from '../multiplayer/RemoteOpponent.jsx'
 import { VEHICLE_DATABASE, Characters , AUDIO_TRACKS } from '../components/Data.jsx'
 import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx'
+import { WaypointRecorder } from '../Bot/WaypointRecorder.jsx'
 
 // --- IMPORTS ITEMS ---
 import { Banana } from '../Items/Banana';
@@ -27,13 +28,6 @@ import { RedShell } from '../Items/RedShell';
 import { BlueShell } from '../Items/BlueShell.jsx'
 import { BobOmb } from '../Items/BobOmb.jsx'
 import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
-
-// --- IMPORTS WAYPOINTS ---
-import trackWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit.json'
-import leftWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left.json'
-import rightWaypoints from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right.json'
-import trackWaypoints1 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit1.json'
-import trackWaypoints2 from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit2.json'
 import { gsap } from 'gsap'
 
 const TOTAL_LAPS = 3;
@@ -41,17 +35,43 @@ const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
 
 // --- HELPERS ---
 
-function WaypointVisualizer({ points, color = 'red' }) {
-    return (
-        <group> 
-            {points.map((p, index) => (
-                <mesh key={index} position={[p.x, p.y + 0.1, p.z]}>
-                    <sphereGeometry args={[0.2, 8, 8]} />
-                    <meshStandardMaterial color={color} />
-                </mesh>
-            ))}
-        </group>
-    );
+function WaypointsVisualizer({ waypoints, color = 'blue' }) {
+	// Converti waypoints in Vector3 (gestisce sia formato [x,y,z] che {x,y,z})
+	const points = waypoints.map(point => {
+		if (Array.isArray(point)) {
+			return new THREE.Vector3(point[0], point[1], point[2]);
+		} else {
+			return new THREE.Vector3(point.x, point.y, point.z);
+		}
+	});
+	
+	// Chiudi il loop: aggiungi il primo punto alla fine
+	points.push(points[0].clone());
+	
+	const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+	return (
+		<group>
+			{/* Linea continua tra i waypoints */}
+			<line geometry={geometry}>
+				<lineBasicMaterial color={color} linewidth={3} />
+			</line>
+			
+			{/* Sfere sui punti waypoint (opzionale, più piccole) */}
+			{waypoints.map((point, index) => {
+				const pos = Array.isArray(point) 
+					? [point[0], point[1], point[2]]
+					: [point.x, point.y, point.z];
+					
+				return (
+					<mesh key={index} position={pos}>
+						<sphereGeometry args={[0.15, 6, 6]} />
+						<meshBasicMaterial color={color} />
+					</mesh>
+				);
+			})}
+		</group>
+	);
 }
 
 // Fallback matematico per la griglia se non esiste nel GLB
@@ -151,7 +171,7 @@ export function GameScene({
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
 
-    const [gameState, setGameState] = useState('INTRO'); // 'INTRO', 'COUNTDOWN', 'RACING'
+    const [gameState, setGameState] = useState('RACING'); // 'INTRO', 'COUNTDOWN', 'RACING'
     const [countdown, setCountdown] = useState(null);
     const [finished, setFinished] = useState(false);
     const [raceExited, setRaceExited] = useState(false);
@@ -557,6 +577,10 @@ export function GameScene({
                 <PerspectiveCamera makeDefault position={[0, 5, -10]} />
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
+
+				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[0]} color="red" />
+				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[1]} color="green" />
+				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[2]} color="yellow" />
                 
                 {/* MODIFICA: preset city MA senza sfondo (background={false}) */}
                 <Environment preset="city" background={false} />
@@ -573,7 +597,7 @@ export function GameScene({
                     gameState={gameState}
                 />
 
-                <Physics debug={false}>
+                <Physics debug={true}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
@@ -594,7 +618,7 @@ export function GameScene({
                                 case 'green_shell': 
                                     return <GreenShell key={item.id} {...commonProps} />;
                                 case 'red_shell': 
-                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={trackWaypoints} />;
+                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={selectedTrack.Waypoints[0]} />;
                                 case 'bomb': 
                                     return <BobOmb key={item.id} {...commonProps} />;
                                 default: 
@@ -602,6 +626,11 @@ export function GameScene({
                             }
                         })}
                     </Suspense>
+
+					{/* <WaypointRecorder
+						kartRef={playerRef}
+						isRecording={true}
+					/> */}
                     
                     {/* RACE LOGIC */}
                     <RaceManager 
@@ -611,10 +640,11 @@ export function GameScene({
                         positions={positions}
                         playerRef={playerRef}
                         botRefs={botRefs}
-                        trackPath={trackWaypoints}
+                        trackPath={selectedTrack.Waypoints[0]}
                         socket={socket}
                         remoteRefMap={remoteRefMap}
                         opponentsDataRef={opponentsDataRef}
+						selectedTrack={selectedTrack}
                     />
                     
                     {/* MAP & COLLIDERS */}
@@ -679,7 +709,7 @@ export function GameScene({
                                 trackRef={trackRef}
                                 trackConfig={selectedTrack}
                                 isRaceActive={isRaceActive}
-                                waypoints={trackWaypoints}
+                                waypoints={selectedTrack.Waypoints[0]}
                                 rank={playerRank}
                                 onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
                                 onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
@@ -714,7 +744,6 @@ export function GameScene({
                                     vehicleConfig={vehicle} 
                                     START_POS={botPos}
                                     START_ROT={botRot}
-                                    START_ROT={botRot}
                                     positions={positions}
                                     onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
                                     onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
@@ -724,7 +753,7 @@ export function GameScene({
                                     trackRef={trackRef} 
                                     trackConfig={selectedTrack} 
                                     isBot={true}
-                                    paths={[trackWaypoints, trackWaypoints1, trackWaypoints2, leftWaypoints, rightWaypoints]} 
+                                    paths={selectedTrack.Waypoints} 
                                     onCheckpoint={(idx) => handleCheckpointTrigger(idx, botId)}
                                 /> 
                             </group>

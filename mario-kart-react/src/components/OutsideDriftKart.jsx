@@ -81,7 +81,7 @@ function getNintendoSparkTexture() {
 
 // --- 3. COMPONENTE PARTICELLE ---
 const DriftParticles = React.forwardRef((props, ref) => {
-  const { count = 45 } = props; 
+  const { count = 30 } = props; 
   const points = useRef();
   const texture = useMemo(() => getNintendoSparkTexture(), []);
   const [data] = useState(() => ({
@@ -100,17 +100,25 @@ const DriftParticles = React.forwardRef((props, ref) => {
   };
   useMemo(() => { for (let i = 0; i < count; i++) resetParticle(i); }, []);
 
+  const updateCounter = useRef(0);
   useFrame((state, delta) => {
     if (!points.current || !ref.current || !ref.current.visible) return;
+    
+    // Aggiorna solo ogni 2 frame per ridurre carico
+    updateCounter.current++;
+    if (updateCounter.current % 2 !== 0) return;
+    
     const pos = points.current.geometry.attributes.position.array;
+    const adjustedDelta = delta * 2; // Compensa per frame saltati
+    
     for (let i = 0; i < count; i++) {
-      data.life[i] -= delta * 3.5; 
+      data.life[i] -= adjustedDelta * 3.5; 
       if (data.life[i] <= 0) resetParticle(i);
       else {
-        pos[i * 3] += data.velocities[i * 3] * delta;      
-        pos[i * 3 + 1] += data.velocities[i * 3 + 1] * delta; 
-        pos[i * 3 + 2] += data.velocities[i * 3 + 2] * delta; 
-        data.velocities[i * 3 + 1] -= 9.8 * delta;
+        pos[i * 3] += data.velocities[i * 3] * adjustedDelta;      
+        pos[i * 3 + 1] += data.velocities[i * 3 + 1] * adjustedDelta; 
+        pos[i * 3 + 2] += data.velocities[i * 3 + 2] * adjustedDelta; 
+        data.velocities[i * 3 + 1] -= 9.8 * adjustedDelta;
         data.velocities[i * 3 + 2] *= 0.95; data.velocities[i * 3] *= 0.95;
         if (pos[i * 3 + 1] < -0.2) { pos[i * 3 + 1] = -0.2; data.velocities[i * 3 + 1] *= -0.5; }
       }
@@ -147,7 +155,7 @@ const WheelPosition = React.forwardRef(({ position, children }, ref) => (<group 
 // --- 4. SPEED LINES EFFECT ---
 const SpeedEffect = ({ boostTimeRef, isBulletBill }) => {
   const meshRef = useRef()
-  const count = 20 
+  const count = 12  // Ridotto da 20 a 12 per performance
   const rb = useRef(null);
   const { camera, scene } = useThree()
   
@@ -416,32 +424,6 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     return clonedScene;
   }, [scene]);
 
-  const billVisualsRef = useRef();
-
-  // Controls
-  // Passiamo 'rb' (il ref fisico vero) al bot
-  const humanControls = useGameControls() 
-  const activeControls = isBot ? botControls : humanControls
-
-  // Hook per riprodurre effetti sonori (turbo, etc.)
-  const { playSfx, duckMusicVolume, restoreMusicVolume } = useAudio()
-
-  // Ref e state per il gruppo audio 3D
-  const audioGroupRef = useRef(null);
-  const [audioGroupMounted, setAudioGroupMounted] = useState(false);
-
-  // Hook per audio 3D spaziale del motore
-  const { updateAudio: updateEngineAudio, startIdleAudio, stopAllAudio } = usePositionalKartAudio({
-    isBike: false,
-    isActive: isRaceActive,
-    kartObject: audioGroupMounted ? audioGroupRef.current : null,
-    spatialConfig: {
-      refDistance: 8,       // Distanza a cui il volume è al 100%
-      maxDistance: 100,     // Distanza massima di ascolto
-      rolloffFactor: 1.2,   // Attenuazione graduale
-      volume: isBot ? 0.5 : 0.9  // Bot più silenziosi
-    }
-  });
 
   // Coda collisioni
   const collisionQueue = useRef([]) 
@@ -485,6 +467,13 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)
   const racerId = userData?.id || (isBot ? "bot" : "player");
 
+  const billVisualsRef = useRef();
+
+      const isLocalPlayer = !isBot && racerId === 'player';
+  
+
+  // Hook per riprodurre effetti sonori (turbo, etc.)
+  const { playSfx, duckMusicVolume, restoreMusicVolume } = useAudio()
 
   // --- LOGICA BULLET BILL ---
   const { isBulletBill, activateBulletBill, bulletBillAudioRefs } = useBulletBill({
@@ -499,8 +488,6 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
       restoreMusicVolume: isBot ? null : restoreMusicVolume,
   });
 
-    const isLocalPlayer = !isBot && racerId === 'player';
-  
   const { currentItem, handleItemInput, tripleCount, triggerItemRoulette } = usePowerupHandler({
     boostTime: boostTime, 
     speed: speed,        
@@ -529,6 +516,29 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 		currentItem: currentItem,
 		triggerItemInput: handleItemInput
 	});
+
+  // Controls
+  // Passiamo 'rb' (il ref fisico vero) al bot
+  const humanControls = useGameControls() 
+  const activeControls = isBot ? botControls : humanControls
+
+
+  // Ref e state per il gruppo audio 3D
+  const audioGroupRef = useRef(null);
+  const [audioGroupMounted, setAudioGroupMounted] = useState(false);
+
+  // Hook per audio 3D spaziale del motore
+  const { updateAudio: updateEngineAudio, startIdleAudio, stopAllAudio } = usePositionalKartAudio({
+    isBike: false,
+    isActive: isRaceActive,
+    kartObject: audioGroupMounted ? audioGroupRef.current : null,
+    spatialConfig: {
+      refDistance: 8,       // Distanza a cui il volume è al 100%
+      maxDistance: 100,     // Distanza massima di ascolto
+      rolloffFactor: 1.2,   // Attenuazione graduale
+      volume: isBot ? 0.5 : 0.9  // Bot più silenziosi
+    }
+  });
 
   // Vettori riutilizzabili
   const v = useMemo(() => ({
@@ -585,7 +595,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 			const victimId = eventData.victimId || eventData.detail?.victimId;
 			
 			// DEBUG: Apri la console (F12) e controlla se questi due ID coincidano quando colpisci la banana
-			console.log("Controllo Colpo:", { victimId, myLocalId: racerId, mySocketId: socket?.id });
+			// console.log("Controllo Colpo:", { victimId, myLocalId: racerId, mySocketId: socket?.id });
 
 			// Controllo flessibile: colpito se l'ID coincide con racerId O con l'ID del socket
 			const isMe = victimId === racerId || (socket && victimId === socket.id);
@@ -593,12 +603,12 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 			if (isMe) {
 				// Se ho la stella, il mega fungo o sono Bill, ignoro il colpo
 				if (isStarActive.current || isMegaActive.current || isBulletBill) {
-					console.log("Colpo ignorato: Powerup attivo");
+					// console.log("Colpo ignorato: Powerup attivo");
 					return;
 				}
 
 				if (!isSpinning.current) {
-					console.log("AZIONE: Il Kart gira!");
+					// console.log("AZIONE: Il Kart gira!");
 					isSpinning.current = true;
 					spinTimer.current = 0.8; 
 					speed.current = 0;
@@ -673,6 +683,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     }
   }
 
+  // Ref per tracciare ultima collisione e prevenire jitter
+  const lastCollisionTime = useRef(0);
+  const collisionCooldown = 0.1; // 100ms cooldown tra collisioni
+
   // --- GESTIONE COLLISIONI FISICHE (RigidBody) ---
   const handleCollisionEnter = (payload) => {
 
@@ -705,7 +719,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 		const otherData = targetObj?.userData;
 
 		if (otherData && (otherData.type === 'opponent' || otherData.type === 'racer')) {
-			console.log(`ATTACK! Hitting: ${otherData.id}`);
+			// console.log(`ATTACK! Hitting: ${otherData.id}`);
 			
 			socket.emit('player_hit', { 
 				victimId: otherData.id, 
@@ -717,6 +731,20 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 			}));
 		}
 	}
+    
+    // Damping verticale per ridurre jitter da collisioni tra kart
+    const currentTime = Date.now() / 1000;
+    if (currentTime - lastCollisionTime.current > collisionCooldown) {
+        const otherData = payload.other.rigidBodyObject?.userData;
+        if (otherData && (otherData.type === 'racer' || otherData.type === 'opponent')) {
+            // Smorza componente verticale della velocità dopo collisione tra kart
+            const vel = rb.current.linvel();
+            if (Math.abs(vel.y) > 0.5) {
+                rb.current.setLinvel({ x: vel.x, y: vel.y * 0.3, z: vel.z }, true);
+            }
+            lastCollisionTime.current = currentTime;
+        }
+    }
   };
 
   useFrame((state, delta) => {
@@ -736,8 +764,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     const rbVel = rb.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
     
-    // Aggiorna UI
-    if (!isBot && speedUiRef.current) {
+    // Aggiorna UI solo ogni 3 frame per ridurre overhead DOM
+    const shouldUpdateUI = !isBot && (frameCounter.current % 3 === 0);
+    if (shouldUpdateUI && speedUiRef.current) {
         // FIX: Usa (speed.current || 0) per evitare calcoli su valori nulli/NaN
         const currentSpd = speed.current || 0;
         
@@ -767,10 +796,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
      }
 
 	if (isBulletBill)
-		console.log(`BULLET BILL VELOCITÀ: ${Math.abs(Math.round(speed.current * 1.5))} km/h`);
+		// console.log(`BULLET BILL VELOCITÀ: ${Math.abs(Math.round(speed.current * 1.5))} km/h`);
 
-	if (isStarActive.current && visualGroupRef.current) {
-        // Velocità cambio colore
+	if (isStarActive.current && visualGroupRef.current && frameCounter.current % 2 === 0) {
+        // Velocità cambio colore (aggiornato ogni 2 frame per performance)
         const time = state.clock.elapsedTime * 5; 
         
         // Calcola colore arcobaleno (HSL)
@@ -946,7 +975,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         // Raycast Anti-Wall & Gravity
         frameCounter.current++;
         let isHittingVerticalWall = false
-        if (world && rapier && (!isBot || frameCounter.current % 2 === 0)) {
+        if (world && rapier && (!isBot || frameCounter.current % 3 === 0)) {
             v.forwardGlobal.set(0, 0, -1).applyAxisAngle(new Vector3(0,1,0), rotation.current).normalize()
             v.rayOrigin.copy(currentPosition.current).add(new Vector3(0, 0.5, 0))
             const ray = new rapier.Ray(v.rayOrigin, v.forwardGlobal)
@@ -977,27 +1006,28 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         rb.current.setRotation(q, true)
         rb.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
-        // Visual Smoothing (Solo Kart)
+        // Visual Smoothing (Ottimizzato per evitare jitter)
         const yDiff = Math.abs(rbPos.y - smoothedY.current);
-        const smoothFactor = yDiff < 0.15 ? 5.0 : 40.0; 
-        smoothedY.current = MathUtils.damp(smoothedY.current, rbPos.y, smoothFactor, delta);
+        
+        // Smoothing più aggressivo quando vicino, meno quando lontano
+        let smoothFactor;
+        if (yDiff < 0.05) {
+            smoothFactor = 2.0; // Molto lento per piccole oscillazioni
+        } else if (yDiff < 0.2) {
+            smoothFactor = 8.0; // Medio
+        } else {
+            smoothFactor = 20.0; // Veloce per grandi salti
+        }
+        
+        smoothedY.current = MathUtils.damp(
+            smoothedY.current, 
+            rbPos.y, 
+            smoothFactor, 
+            delta
+        );
+
+        // Applica la posizione smussata solo al gruppo visuale
         const visualLocalY = (smoothedY.current - rbPos.y) - PHYSICS_RADIUS + jumpOffset.current.y;
-
-		const smoothingSpeed = isGrounded.current ? 12.0 : 5.0; 
-
-		smoothedY.current = MathUtils.damp(
-			smoothedY.current, 
-			rbPos.y, 
-			smoothingSpeed, 
-			delta
-		);
-
-		// Applica la posizione smussata solo al gruppo visuale, non al corpo fisico
-		if (visualGroupRef.current) {
-			// Calcoliamo l'offset rispetto alla posizione fisica reale
-			const visualLocalY = (smoothedY.current - rbPos.y) - PHYSICS_RADIUS + jumpOffset.current.y;
-			visualGroupRef.current.position.y = visualLocalY;
-		}
 
         if (visualGroupRef.current) {
             const driftTilt = isDrifting ? (driftDirection.current * 0.15) : 0;
@@ -1059,31 +1089,33 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   })
 
     useEffect(() => {
-		const handleLightningStrike = (data) => {
-			const attackerId = data?.attackerId;
-			console.log(`LIGHTNING STRIKE RECEIVED ON ${socket.id} FROM ${attackerId}`);
-			if (attackerId === socket.id) { 
-				return; 
-			}
+        if (!socket) return;
+        
+        const handleLightningStrike = (data) => {
+            const attackerId = data?.attackerId;
+            // console.log(`LIGHTNING STRIKE RECEIVED ON ${socket.id} FROM ${attackerId}`);
+            if (attackerId === socket.id) { 
+                return; 
+            }
 
-			if (isBulletBill || isStarActive.current || isMegaActive.current) {
-				return;
-			}
-			activateLightning();    
+            if (isBulletBill || isStarActive.current || isMegaActive.current) {
+                return;
+            }
+            activateLightning();    
 
-			if (!isSpinning.current) {
-				isSpinning.current = true;
-				spinTimer.current = 0.8;
-				speed.current = 0;
-				if (BananaHitAudioRef.current) {
+            if (!isSpinning.current) {
+                isSpinning.current = true;
+                spinTimer.current = 0.8;
+                speed.current = 0;
+                if (BananaHitAudioRef.current) {
                     BananaHitAudioRef.current.setVolume(2.0);
                     BananaHitAudioRef.current.play();
                 }
-			}
-		};
-		socket.on('lightning-strike', handleLightningStrike);
-		return () => socket.off('lightning-strike', handleLightningStrike);
-	}, [racerId, isBulletBill, socket.id]);
+            }
+        };
+        socket.on('lightning-strike', handleLightningStrike);
+        return () => socket.off('lightning-strike', handleLightningStrike);
+    }, [racerId, isBulletBill, socket]);
 
   // Visual Steering
   const modelSteer = (activeControls.current.left ? 1 : 0) + (activeControls.current.right ? -1 : 0)
@@ -1091,6 +1123,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   // Handlers Sensore Terra
   const handleGroundEnter = (payload) => {
      const rootObj = payload.other.rigidBodyObject;
+	 checkSurface(rootObj);
      if (!rootObj) return;
      const name = rootObj.name;
      if (name === 'player' || name.startsWith('bot')) return; 
@@ -1116,9 +1149,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         ref={rb} 
         position={START_POS} 
         rotation={START_ROT}
-        mass={isBulletBill ? 1000 : 100}
-        linearDamping={2}
-        angularDamping={2} 
+        mass={isBulletBill ? 1000 : 150}
+        linearDamping={3.5}
+        angularDamping={5} 
         type="dynamic" 
         ccd={true} 
         name={racerId} 

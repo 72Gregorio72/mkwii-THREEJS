@@ -18,7 +18,7 @@ export function WaypointRecorder({ kartRef, isRecording }) {
 
         // 1. Controllo di sicurezza: Il Kart esiste?
         if (!kartRef || !kartRef.current) {
-            // console.warn("WaypointRecorder: kartRef non trovato o non ancora pronto.");
+             console.warn("WaypointRecorder: kartRef non trovato o non ancora pronto.");
             return;
         }
 
@@ -44,7 +44,7 @@ export function WaypointRecorder({ kartRef, isRecording }) {
             // Aggiorna la linea visiva (convertiamo in formato per <Line>)
             setLinePoints(prev => [...prev, currentVec.clone().add(new THREE.Vector3(0, 0.5, 0))]);
             
-            console.log(`📍 Punto aggiunto: ${pointsRef.current.length} (Dist: ${dist.toFixed(2)})`);
+            // console.log(`📍 Punto aggiunto: ${pointsRef.current.length} (Dist: ${dist.toFixed(2)})`);
         }
     });
 
@@ -71,7 +71,7 @@ export function WaypointRecorder({ kartRef, isRecording }) {
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();
-        console.log("💾 JSON Scaricato con successo!");
+        // console.log("💾 JSON Scaricato con successo!");
     }
 
     if (!isRecording) return null;

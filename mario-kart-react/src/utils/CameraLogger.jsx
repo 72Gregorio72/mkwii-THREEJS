@@ -14,9 +14,9 @@ export function CameraLogger() {
 
         const rotationY = camera.rotation.y.toFixed(2)
 
-        console.log(`📍 POSIZIONE CAMERA: [${x}, ${y}, ${z}]`)
-        console.log(`🔄 ROTAZIONE CAMERA: ${rotationY}`)
-        console.log('-----------------------------------')
+        // console.log(`📍 POSIZIONE CAMERA: [${x}, ${y}, ${z}]`)
+        // console.log(`🔄 ROTAZIONE CAMERA: ${rotationY}`)
+        // console.log('-----------------------------------')
       }
     }
 

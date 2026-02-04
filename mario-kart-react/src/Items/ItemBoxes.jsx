@@ -11,7 +11,7 @@ function giveItemToPlayer(other) {
 
     if (userData && userData.type === 'racer') {
         const racerId = userData.id;
-        console.log(`📦 BOX PRESO DA: ${racerId}`);
+        // console.log(`📦 BOX PRESO DA: ${racerId}`);
 
         window.dispatchEvent(new CustomEvent('item-collected', {
             detail: { racerId: racerId }
@@ -88,8 +88,8 @@ export function ItemBoxesMap({ mapModelPath, triggerName = "Cube" }) {
     const itemSpawns = useMemo(() => {
         const spawns = []
         
-        console.group("--- DEBUG ITEM BOXES ---");
-        console.log(`Cercando oggetti che contengono: "${triggerName}"`);
+        // console.group("--- DEBUG ITEM BOXES ---");
+        // console.log(`Cercando oggetti che contengono: "${triggerName}"`);
         scene.updateMatrixWorld(true);
 
         let objectsFound = 0;
@@ -116,7 +116,7 @@ export function ItemBoxesMap({ mapModelPath, triggerName = "Cube" }) {
             }
         });
 
-        console.log(`Totale Item trovati: ${objectsFound}`);
+        // console.log(`Totale Item trovati: ${objectsFound}`);
         console.groupEnd();
 
         return spawns

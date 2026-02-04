@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom' // Importa React Router
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { Characters } from './components/Data'
 import { CharacterSelection } from './Scenes/CharacterSelection'
 import { VehicleSelection } from './Scenes/VehicleSelection'

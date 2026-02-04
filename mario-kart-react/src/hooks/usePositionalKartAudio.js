@@ -135,10 +135,10 @@ export const usePositionalKartAudio = ({
         };
 
         isInitializedRef.current = true;
-        console.log('[PositionalAudio] Audio 3D inizializzato per kart');
+        // console.log('[PositionalAudio] Audio 3D inizializzato per kart');
 
       } catch (error) {
-        console.error('[PositionalAudio] Errore caricamento audio:', error);
+        // console.error('[PositionalAudio] Errore caricamento audio:', error);
       }
     };
 

@@ -59,7 +59,7 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd, duckMusicVolu
         // Abbassa il volume della musica di gioco durante il Bullet Bill
         if (duckMusicVolume) duckMusicVolume();
         
-        console.log("BULLET BILL ATTIVATO! Rank iniziale:", currentRank);
+        // console.log("BULLET BILL ATTIVATO! Rank iniziale:", currentRank);
     };
 
     const deactivate = () => {
@@ -77,7 +77,7 @@ export function useBulletBill({ rb, waypoints, currentRank, onEnd, duckMusicVolu
         // Ripristina il volume della musica di gioco
         if (restoreMusicVolume) restoreMusicVolume();
         
-        console.log("BULLET BILL TERMINATO.");
+        // console.log("BULLET BILL TERMINATO.");
     };
 
     useFrame((state, delta) => {

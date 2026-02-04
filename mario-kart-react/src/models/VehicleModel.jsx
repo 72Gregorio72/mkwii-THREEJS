@@ -56,9 +56,9 @@ export function VehicleModel({ vehicleConfig, steer, speed = 10, drift, isBike, 
   useEffect(() => {
     if (debug) {
        console.group(`🚗 ANALISI VEICOLO: ${vehicleConfig.file}`)
-       console.log(`Ruote Anteriori trovate (${vehicleParts.frontWheels.length}):`, vehicleParts.frontWheels.map(n => n.name));
-       console.log(`Ruote Posteriori trovate (${vehicleParts.rearWheels.length}):`, vehicleParts.rearWheels.map(n => n.name));
-       console.log(`Main Body Node:`, vehicleParts.body ? vehicleParts.body.name : 'Non trovato');
+    //    console.log(`Ruote Anteriori trovate (${vehicleParts.frontWheels.length}):`, vehicleParts.frontWheels.map(n => n.name));
+    //    console.log(`Ruote Posteriori trovate (${vehicleParts.rearWheels.length}):`, vehicleParts.rearWheels.map(n => n.name));
+    //    console.log(`Main Body Node:`, vehicleParts.body ? vehicleParts.body.name : 'Non trovato');
        console.groupEnd()
     }
   }, [vehicleConfig.file, debug, vehicleParts])
