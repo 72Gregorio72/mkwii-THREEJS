@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Tracks } from '../components/Data'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 
-export function TrackSelection({ setSelectedTrack }) {
+export function TrackSelection({ setSelectedTrack, roomCode = null, socket = null, isHost = false }) {
 
     const navigate = useNavigate();
     const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();

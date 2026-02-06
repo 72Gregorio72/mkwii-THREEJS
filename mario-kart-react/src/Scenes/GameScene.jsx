@@ -575,10 +575,16 @@ export function GameScene({
             racer.lap += 1;
             
             if (racerId === 'player') {
-                if (racer.lap === 2) playSfx(AUDIO_SFX.SECOND_LAP, 3);
+                if (racer.lap === 2) {
+                    playSfx(AUDIO_SFX.SECOND_LAP, 3);
+                }
                 else if (racer.lap === 3) {
+                    isFinalLap.current = true;
                     playSfx(AUDIO_SFX.FINAL_LAP, 3);
                     setMusicPitch(1.10, 1.10, 2000); // pitch 1.15x, speed 1.15x, fade 500ms
+                    setTimeout(() => {
+                        setMusicPitch(1.15, 1.15, 2000);
+                    }, 100);
                 }
             }
             
@@ -872,6 +878,7 @@ export function GameScene({
                     </group>
 
                     {/* BOTS (AI) - Renderizza solo se NON siamo in multiplayer */}
+                    {/*
                     {!roomCode && Array.from({ length: BOT_COUNT }, (_, i) => {
                         const botId = `bot_${i}`;
                         // Mappatura: Bot 0 -> start_1, Bot 1 -> start_2, etc. (o logica inversa)
@@ -906,6 +913,7 @@ export function GameScene({
                             </group>
                         );
                     })}
+                    */}
 
                     {/* In multiplayer non ci sono bot, solo player reali */}
                 </Physics>

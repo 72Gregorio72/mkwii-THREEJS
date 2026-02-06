@@ -78,6 +78,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     if (this.roomData.has(roomCode)) {
       const room = this.roomData.get(roomCode);
+      if (!room) return;
+      
       room.players = room.players.filter(p => p.id !== client.id);
 
       // If host left, assign new host
@@ -183,6 +185,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
     
     const room = this.roomData.get(roomCode);
+    if (!room) return;
+    
     client.emit('room_state', {
       roomCode: room.roomCode,
       isHost: room.hostId === client.id,
@@ -235,6 +239,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     
     // Check if already in room
     if (room.players.find(p => p.id === client.id)) {
@@ -264,6 +269,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     
     // Only host can select track
     if (room.hostId !== client.id) {
@@ -289,6 +295,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     
     // Only host can start race
     if (room.hostId !== client.id) {
@@ -330,6 +337,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     
     // Only host can sync game state
     if (room.hostId !== client.id) return;
