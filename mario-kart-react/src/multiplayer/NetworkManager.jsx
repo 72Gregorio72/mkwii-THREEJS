@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 
-export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef }) => {
+export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef, setRemoteBots, isHost }) => {
     const [ping, setPing] = useState(0);
     // 2. Tell the server who we are when we join/load
     useEffect(() => {
@@ -74,9 +74,30 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
 		const onWorldUpdate = (data) => {
 			const allPlayers = data.players || [];
 			const others = allPlayers.filter(p => p.id !== socket.id);
+			
+			// Aggiorna opponentsDataRef con TUTTI i dati (player remoti + bot)
 			others.forEach(p => {
 				opponentsDataRef.current[p.id] = p;
 			});
+
+			// Se non sei l'host e ricevi bot, popola remoteBots per renderizzarli
+			if (!isHost && setRemoteBots) {
+				const bots = others.filter(p => p.isBot);
+				if (bots.length > 0) {
+					setRemoteBots(prev => {
+						// Aggiorna solo se è cambiato il numero o gli ID
+						if (prev.length !== bots.length) {
+							console.log('[Client] Receiving', bots.length, 'bots from host');
+							return bots.map(b => ({
+								id: b.id,
+								charId: b.charId || 'mario',
+								vehicleId: b.vehicleId || 'StandardKartM'
+							}));
+						}
+						return prev;
+					});
+				}
+			}
 
 			if (others.length !== opponentIds.current.size) {
 				opponentIds.current = new Set(others.map(o => o.id));
@@ -118,44 +139,6 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
 			socket.off('banana-hit', handleRemoteHit);
 		};
 	}, [socket, setOpponents, setItems, opponentsDataRef]);
-
-	useEffect(() => {
-		if (!socket) return;
-
-		const onWorldUpdate = (data) => {
-			const allPlayers = data.players || [];
-			const others = allPlayers.filter(p => p.id !== socket.id);
-			others.forEach(p => {
-				opponentsDataRef.current[p.id] = p;
-			});
-
-			if (others.length !== opponentIds.current.size) {
-				opponentIds.current = new Set(others.map(o => o.id));
-				setOpponents(others);
-			}
-		};
-
-		const onItemSpawned = (newItem) => {
-			const isMine = newItem.ownerId === socket.id;
-			
-			setItems(prev => {
-				if (prev.find(i => i.id === newItem.id)) return prev;
-				return [...prev, { ...newItem, isLocal: isMine }];
-			});
-		};
-
-		const onItemRemoved = ({ itemId }) => {
-			setItems(prev => prev.filter(i => i.id !== itemId));
-		};
-
-		socket.on('world_update', onWorldUpdate);
-		socket.on('item_spawned', onItemSpawned);
-		socket.on('item_removed', onItemRemoved);
-
-		return () => {
-			socket.off('world_update', onWorldUpdate);
-		};
-	});
 
     /*return (
         <Html fullscreen style={{ pointerEvents: 'none' }}>

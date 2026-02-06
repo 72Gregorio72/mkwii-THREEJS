@@ -12,6 +12,75 @@ const mkwiiFontStyle = `
 export const RaceResults = ({ finishers }) => {
   if (!finishers || finishers.length === 0) return null;
 
+  // Split finishers into two columns
+  const leftColumn = finishers.slice(0, 6);
+  const rightColumn = finishers.slice(6, 12);
+
+  const renderFinisher = (finisher, index) => {
+    const position = index + 1;
+    let positionColor = '#FFD700'; // Gold for 1st
+    if (position === 2) positionColor = '#C0C0C0'; // Silver
+    else if (position === 3) positionColor = '#CD7F32'; // Bronze
+    else positionColor = '#FFFFFF'; // White for others
+
+    // Format the racer name
+    let displayName = finisher.id;
+    if (finisher.id === 'player') {
+      displayName = 'YOU';
+    } else if (finisher.id.startsWith('bot_')) {
+      const botNumber = parseInt(finisher.id.split('_')[1]) + 1;
+      displayName = `BOT ${botNumber}`;
+    }
+
+    return (
+      <div key={finisher.id} style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: 'rgba(255, 255, 255, 0.1)',
+        padding: '10px 15px',
+        borderRadius: '10px',
+        border: finisher.id === 'player' ? '2px solid #00FF00' : '2px solid transparent',
+        animation: 'fadeIn 0.3s ease-in',
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}>
+          <span style={{
+            fontFamily: 'MKWii, Arial, sans-serif',
+            fontSize: '24px',
+            color: positionColor,
+            fontWeight: 'bold',
+            minWidth: '35px',
+            textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
+          }}>
+            {position}
+          </span>
+          <span style={{
+            fontFamily: 'MKWii, Arial, sans-serif',
+            fontSize: '20px',
+            color: finisher.id === 'player' ? '#00FF00' : '#FFFFFF',
+            fontWeight: finisher.id === 'player' ? 'bold' : 'normal',
+            textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
+          }}>
+            {displayName}
+          </span>
+        </div>
+        {finisher.finishTime && (
+          <span style={{
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '14px',
+            color: '#CCCCCC',
+          }}>
+            {finisher.finishTime}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <style>{mkwiiFontStyle}</style>
@@ -24,8 +93,8 @@ export const RaceResults = ({ finishers }) => {
         border: '4px solid #FFD700',
         borderRadius: '20px',
         padding: '30px 40px',
-        minWidth: '400px',
-        maxWidth: '600px',
+        minWidth: '800px',
+        maxWidth: '1000px',
         zIndex: 1000,
         boxShadow: '0 10px 40px rgba(0, 0, 0, 0.7)',
       }}>
@@ -42,73 +111,27 @@ export const RaceResults = ({ finishers }) => {
 
         <div style={{
           display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
+          gap: '30px',
         }}>
-          {finishers.map((finisher, index) => {
-            const position = index + 1;
-            let positionColor = '#FFD700'; // Gold for 1st
-            if (position === 2) positionColor = '#C0C0C0'; // Silver
-            else if (position === 3) positionColor = '#CD7F32'; // Bronze
-            else positionColor = '#FFFFFF'; // White for others
+          {/* Left Column */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+          }}>
+            {leftColumn.map((finisher, index) => renderFinisher(finisher, index))}
+          </div>
 
-            // Format the racer name
-            let displayName = finisher.id;
-            if (finisher.id === 'player') {
-              displayName = 'YOU';
-            } else if (finisher.id.startsWith('bot_')) {
-              const botNumber = parseInt(finisher.id.split('_')[1]) + 1;
-              displayName = `BOT ${botNumber}`;
-            }
-
-            return (
-              <div key={finisher.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'rgba(255, 255, 255, 0.1)',
-                padding: '12px 20px',
-                borderRadius: '10px',
-                border: finisher.id === 'player' ? '2px solid #00FF00' : '2px solid transparent',
-                animation: 'fadeIn 0.3s ease-in',
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '15px',
-                }}>
-                  <span style={{
-                    fontFamily: 'MKWii, Arial, sans-serif',
-                    fontSize: '28px',
-                    color: positionColor,
-                    fontWeight: 'bold',
-                    minWidth: '40px',
-                    textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
-                  }}>
-                    {position}
-                  </span>
-                  <span style={{
-                    fontFamily: 'MKWii, Arial, sans-serif',
-                    fontSize: '24px',
-                    color: finisher.id === 'player' ? '#00FF00' : '#FFFFFF',
-                    fontWeight: finisher.id === 'player' ? 'bold' : 'normal',
-                    textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
-                  }}>
-                    {displayName}
-                  </span>
-                </div>
-                {finisher.finishTime && (
-                  <span style={{
-                    fontFamily: 'Arial, sans-serif',
-                    fontSize: '16px',
-                    color: '#CCCCCC',
-                  }}>
-                    {finisher.finishTime}
-                  </span>
-                )}
-              </div>
-            );
-          })}
+          {/* Right Column */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+          }}>
+            {rightColumn.map((finisher, index) => renderFinisher(finisher, index + 6))}
+          </div>
         </div>
 
         {finishers.length < 12 && (

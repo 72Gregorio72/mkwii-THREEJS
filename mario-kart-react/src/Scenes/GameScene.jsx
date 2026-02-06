@@ -15,18 +15,17 @@ import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 import { RoadWalls } from '../Tracks/RoadWalls.jsx'
 import { GameHUD } from '../ui/GameHUD.jsx'
 import { RaceResults } from '../ui/RaceResults.jsx'
+import { LobbyScreen } from '../ui/LobbyScreen.jsx'
 import { ItemBoxesMap } from '../Items/ItemBoxes.jsx'
 import { NetworkManager } from '../multiplayer/NetworkManager.jsx'
 import { RemoteOpponent } from '../multiplayer/RemoteOpponent.jsx'
-import { VEHICLE_DATABASE, Characters , AUDIO_TRACKS } from '../components/Data.jsx'
+import { VEHICLE_DATABASE, Characters } from '../components/Data.jsx'
 import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx'
-import { WaypointRecorder } from '../Bot/WaypointRecorder.jsx'
 
 // --- IMPORTS ITEMS ---
 import { Banana } from '../Items/Banana';
 import { GreenShell } from '../Items/GreenShell';
 import { RedShell } from '../Items/RedShell';
-import { BlueShell } from '../Items/BlueShell.jsx'
 import { BobOmb } from '../Items/BobOmb.jsx'
 import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
 import { gsap } from 'gsap'
@@ -125,6 +124,43 @@ function CinematicCamera({ gameState, playerStartPos, playerStartRot }) {
     return null;
 }
 
+// Componente per sincronizzare i bot solo dall'host
+function BotSynchronizer({ socket, isHost, botRefs, remoteBots }) {
+    const lastSendTime = useRef(0);
+
+    useFrame(({ clock }) => {
+        if (!socket || !isHost || remoteBots.length === 0) return;
+
+        const now = clock.getElapsedTime();
+        // Invio a 20Hz per i bot (più lento dei player per risparmiare banda)
+        if (now - lastSendTime.current < 0.05) return;
+        lastSendTime.current = now;
+
+        // Invia posizioni di tutti i bot
+        remoteBots.forEach(bot => {
+            const botRef = botRefs.current[bot.id];
+            if (!botRef || !botRef.current) return;
+
+            try {
+                const pos = botRef.current.translation();
+                const rot = botRef.current.rotation();
+                const vel = botRef.current.linvel();
+
+                socket.emit('bot_update', {
+                    botId: bot.id,
+                    position: { x: pos.x, y: pos.y, z: pos.z },
+                    rotation: rot,
+                    velocity: vel
+                });
+            } catch (error) {
+                // Ignora errori (bot non ancora inizializzato)
+            }
+        });
+    });
+
+    return null;
+}
+
 // Hook per estrarre posizioni e rotazioni dai nodi "start_X" del GLB
 function useGridPositions(url) {
     const { scene } = useGLTF(url || ""); // Gestione caso url nullo
@@ -161,10 +197,11 @@ export function GameScene({
     vehicle, 
     mapPath, 
     checkpointPath, 
-    // onBack, <--- 2. RIMOSSO (usiamo navigate)
     start_pos, 
     maxCheckpoints, 
-    selectedTrack
+    selectedTrack,
+    roomCode = null,
+    isHostProp = false
 }) {
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
@@ -172,7 +209,17 @@ export function GameScene({
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
 
-    const [gameState, setGameState] = useState('INTRO'); // 'INTRO', 'COUNTDOWN', 'RACING'
+    // Calculate player start position early (before useEffect hooks)
+    const playerStartPos = gridPositions[12] || start_pos; 
+    const playerStartRot = gridRotations[12] || [0, Math.PI / 2, 0];
+
+    // Lobby state
+    const [isInLobby, setIsInLobby] = useState(roomCode ? true : false);
+    const [isHost, setIsHost] = useState(isHostProp);
+    const [lobbyPlayers, setLobbyPlayers] = useState([]);
+    const [remoteBots, setRemoteBots] = useState([]); // Bot sincronizzati dall'host
+
+    const [gameState, setGameState] = useState(roomCode ? 'LOBBY' : 'INTRO'); // Se no room, parte subito
     const [countdown, setCountdown] = useState(null);
     const [finished, setFinished] = useState(false);
     const [raceExited, setRaceExited] = useState(false);
@@ -198,43 +245,48 @@ export function GameScene({
                 position: posArray,
                 velocity: velArray,
                 isLocal: true,
-                ownerId: socket.id,
+                ownerId: socket?.id || 'local',
                 ...extra
             }]);
 
-            if (socket) {
+            // Invia al server solo se in multiplayer
+            if (socket && roomCode) {
                 socket.emit('spawn_item', { id: localId, type, position: posArray, velocity: velArray, ...extra });
             }
         }, 0);
-    }, [socket]);
+    }, [socket, roomCode]);
 
     const handleRequestRemove = useCallback((itemId) => {
-        if (socket) socket.emit('remove_item', { itemId });
-    }, [socket]);
+        // Invia al server solo se in multiplayer
+        if (socket && roomCode) socket.emit('remove_item', { itemId });
+    }, [socket, roomCode]);
 
-    const [onlinePlayers, setOnlinePlayers] = useState([]);
+    const [onlinePlayers] = useState([]);
 
     // Calcola se la gara è effettivamente attiva per il movimento
     const isRaceActive = gameState === 'RACING' && !finished && !raceExited;
-    const isControlDisabled = gameState !== 'RACING';
 
     // 2. SETUP STATI GARA
     const { initialRacersData, initialPositions } = useMemo(() => {
         const data = {
             player: { id: 'player', lap: 1, nextCP: 1, score: 0 }
         };
-        const positions = [{ id: 'player', position: 12 }]; // Player parte ultimo (esempio)
-        const bots = [];
+        const positions = [{ id: 'player', position: 1 }]; // Player parte primo in multiplayer
+        
+        // In multiplayer (roomCode presente) non creiamo bot
+        // In single player creiamo bot locali
+        const botsToUse = roomCode ? [] : 
+            (remoteBots.length > 0 ? remoteBots : 
+                Array.from({ length: BOT_COUNT }, (_, i) => ({ id: `bot_${i}`, index: i })));
 
-        for (let i = 0; i < BOT_COUNT; i++) {
-            const botId = `bot_${i}`;
+        botsToUse.forEach((bot, i) => {
+            const botId = bot.id;
             data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0 };
             positions.push({ id: botId, position: i + 1 });
-            bots.push({ id: botId, index: i });
-        }
+        });
 
-        return { initialRacersData: data, initialPositions: positions, botsArray: bots };
-    }, []);
+        return { initialRacersData: data, initialPositions: positions, botsArray: botsToUse };
+    }, [remoteBots, roomCode]);
 
 	const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
 	const startingGridPlayed = useRef(false);
@@ -275,9 +327,89 @@ export function GameScene({
         return () => socket.off('leaderboard_update', handleLeaderboard);
     }, [socket]);
 
+    // Lobby management
+    useEffect(() => {
+        if (!socket || !roomCode) return; // Solo se c'è una stanza
+
+        // Check if this player is the host
+        const handleRoomState = (data) => {
+            // Solo aggiorna se è la stessa stanza
+            if (data.roomCode === roomCode) {
+                setLobbyPlayers(data.players || []);
+                console.log('Room state updated:', data);
+            }
+        };
+
+        // When race starts
+        const handleRaceStart = (data) => {
+            // Solo se è la stessa stanza
+            if (data.roomCode !== roomCode) return;
+            
+            console.log('Race starting with bots:', data.bots);
+            setRemoteBots(data.bots || []);
+            setIsInLobby(false);
+            setGameState('INTRO');
+            
+            // Start intro animation
+            if (!introPlayed.current) {
+                introPlayed.current = true;
+                gsap.fromTo(cameraTarget.current, 
+                    { x: 0, y: 0, z: 0 }, 
+                    { x: 0, y: 8, z: 0, duration: 5 }
+                );
+
+                const timeline = gsap.timeline({
+                    onComplete: () => startCountdown()
+                });
+
+                timeline.to(cameraTarget.current, {
+                    x: playerStartPos[0],
+                    y: playerStartPos[1] + 2,
+                    z: playerStartPos[2],
+                    duration: 7,
+                    ease: "power2.inOut",
+                    delay: 5
+                });
+            }
+        };
+
+        // When game state changes
+        const handleGameStateSync = (data) => {
+            if (data.roomCode !== roomCode) return;
+            
+            setGameState(data.gameState);
+            if (data.countdown !== undefined) {
+                setCountdown(data.countdown);
+            }
+        };
+
+        socket.on('room_state', handleRoomState);
+        socket.on('race_start', handleRaceStart);
+        socket.on('game_state_sync', handleGameStateSync);
+
+        // Request initial room state
+        socket.emit('request_room_state', { roomCode });
+
+        return () => {
+            socket.off('room_state', handleRoomState);
+            socket.off('race_start', handleRaceStart);
+            socket.off('game_state_sync', handleGameStateSync);
+        };
+    }, [socket, roomCode, playerStartPos]);
+
+    // Handle start race button (host only)
+    const handleStartRace = useCallback(() => {
+        if (!socket || !isHost || !roomCode) return;
+
+        // In multiplayer non creiamo bot, solo player reali
+        console.log('[Multiplayer] Starting race without bots');
+        
+        // Emit race start without bots
+        socket.emit('start_race', { bots: [], roomCode });
+    }, [socket, isHost, roomCode]);
 
     useEffect(() => {
-        if (introPlayed.current) return;
+        if (isInLobby || introPlayed.current) return;
             introPlayed.current = true;
 
             // Prima fase: camera iniziale panoramica (0-5 secondi)
@@ -343,12 +475,17 @@ export function GameScene({
 
     const opponentsDataRef = useRef({});
 
-    // Inizializza refs per i bot
-    for (let i = 0; i < BOT_COUNT; i++) {
-        if (!botRefs.current[`bot_${i}`]) {
-            botRefs.current[`bot_${i}`] = React.createRef();
-        }
-    }
+    // Inizializza refs per i bot dinamicamente
+    useEffect(() => {
+        const botsToUse = remoteBots.length > 0 ? remoteBots : 
+            Array.from({ length: BOT_COUNT }, (_, i) => ({ id: `bot_${i}`, index: i }));
+        
+        botsToUse.forEach(bot => {
+            if (!botRefs.current[bot.id]) {
+                botRefs.current[bot.id] = React.createRef();
+            }
+        });
+    }, [remoteBots]);
 
     useEffect(() => {
         onlinePlayersRef.current = onlinePlayers.reduce((acc, player) => {
@@ -361,13 +498,6 @@ export function GameScene({
     const [opponents, setOpponents] = useState([]);
 
     const remoteRefMap = useRef({});
-
-    // 4. GESTIONE ITEMS
-    const [bananas, setBananas] = useState([]);
-    const [shells, setShells] = useState([]); // Green Shells
-    const [redShells, setRedShells] = useState([]);
-    const [blueShells, setBlueShells] = useState([]);
-    const [bobOmbs, setBobOmbs] = useState([]);
 
     useEffect(() => {
         // Quando la lista degli avversari online cambia
@@ -391,31 +521,6 @@ export function GameScene({
             }
         });
     }, [opponents]);
-
-    // Handlers Spawn
-    const handleSpawnBanana = useCallback((position, velocity) => {
-        setBananas((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity }]);
-    }, []);
-
-    const handleSpawnGreenShell = useCallback((position, velocity) => {
-        setShells((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity }]);
-    }, []);
-    const handleRemoveShell = useCallback((id) => setShells((prev) => prev.filter(s => s.id !== id)), []);
-
-    const handleSpawnRedShell = useCallback((position, velocity, ownerId) => {
-        setRedShells((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity, ownerId }]);
-    }, []);
-    const handleRemoveRedShell = useCallback((id) => setRedShells((prev) => prev.filter(s => s.id !== id)), []);
-
-    const handleSpawnBlueShell = useCallback((position, velocity) => {
-        setBlueShells((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity }]);
-    }, []);
-    const handleDestroyBlueShell = useCallback((id) => setBlueShells((prev) => prev.filter(s => s.id !== id)), []);
-
-    const handleSpawnBobOmb = useCallback((position, velocity) => {
-        setBobOmbs((prev) => [...prev, { id: Date.now() + Math.random(), position, velocity }]);
-    }, []);
-    const destroyBobOmb = useCallback((id) => setBobOmbs((prev) => prev.filter(b => b.id !== id)), []);
 
     // 5. AUDIO & LOGICA DI GIOCO
     const { changeTrack, playSfx, stopMusic, setMusicPitch , playMusicOnce} = useAudio();
@@ -468,18 +573,15 @@ export function GameScene({
         } 
         else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
             racer.lap += 1;
-            if (racer.lap === 2) {
-                if (racerId === 'player')
-                    playSfx(AUDIO_SFX.SECOND_LAP, 3);
-            } else if (racer.lap === 3) {
-                if (racerId === 'player') {
-                    isFinalLap.current = true;
+            
+            if (racerId === 'player') {
+                if (racer.lap === 2) playSfx(AUDIO_SFX.SECOND_LAP, 3);
+                else if (racer.lap === 3) {
                     playSfx(AUDIO_SFX.FINAL_LAP, 3);
-                    setTimeout(() => {
-                        setMusicPitch(1.15, 1.15, 2000);
-                    }, 100);
+                    setMusicPitch(1.10, 1.10, 2000); // pitch 1.15x, speed 1.15x, fade 500ms
                 }
             }
+            
             racer.nextCP = 1;
             
             // Check if racer finished the race
@@ -501,13 +603,9 @@ export function GameScene({
                     setFinished(true);
                     playSfx(AUDIO_SFX.FINISH_RACE, 3);
                     stopMusic();
-                } else {
-                    setUiLap(racer.lap);
-                    setNextCheck(1);
                 }
             } else if (racerId === 'player') {
                 setUiLap(racer.lap);
-                setNextCheck(1);
             }
         }
     }, [maxCheckpoints, playSfx, setMusicPitch, stopMusic]);
@@ -550,11 +648,18 @@ export function GameScene({
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
 
-    const playerStartPos = gridPositions[12] || start_pos; 
-    const playerStartRot = gridRotations[12] || [0, Math.PI / 2, 0]; 
-
     return (
         <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+
+            {/* LOBBY SCREEN */}
+            {isInLobby && (
+                <LobbyScreen 
+                    isHost={isHost}
+                    players={lobbyPlayers}
+                    onStartRace={handleStartRace}
+                    roomId={roomCode || 'N/A'}
+                />
+            )}
 
             {/* HUD PRINCIPALE */}
             <GameHUD 
@@ -565,6 +670,9 @@ export function GameScene({
                 finished={finished} 
                 onExit={handleExitRace} // <--- Passiamo il gestore di uscita all'HUD
             />
+
+            {/* RACE RESULTS - Mostra solo quando il player ha finito */}
+            {finished && finishers.length > 0 && <RaceResults finishers={finishers} />}
 
             {countdown && (
                 <div style={{
@@ -598,26 +706,40 @@ export function GameScene({
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
 
-				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[0]} color="red" />
+				{/* <WaypointsVisualizer waypoints={selectedTrack.Waypoints[0]} color="red" />
 				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[1]} color="green" />
-				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[2]} color="yellow" />
+				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[2]} color="yellow" /> */}
                 
                 {/* MODIFICA: preset city MA senza sfondo (background={false}) */}
                 <Environment preset="city" background={false} />
 
-                {/* NETWORK MANAGER (Multiplayer) */}
-                <NetworkManager 
-                    socket={socket} 
-                    playerRef={playerRef} 
-                    setOpponents={setOpponents} 
-                    character={character} 
-                    vehicle={vehicle} 
-                    setItems={setNetworkItems}
-                    opponentsDataRef={opponentsDataRef}
-                    gameState={gameState}
-                />
+                {/* NETWORK MANAGER - Solo in multiplayer */}
+                {roomCode && (
+                    <NetworkManager 
+                        socket={socket} 
+                        playerRef={playerRef} 
+                        setOpponents={setOpponents} 
+                        character={character} 
+                        vehicle={vehicle} 
+                        setItems={setNetworkItems}
+                        opponentsDataRef={opponentsDataRef}
+                        gameState={gameState}
+                        setRemoteBots={setRemoteBots}
+                        isHost={isHost}
+                    />
+                )}
 
-                <Physics debug={true}>
+                {/* BOT SYNCHRONIZER - Solo in single player */}
+                {!roomCode && (
+                    <BotSynchronizer 
+                        socket={socket}
+                        isHost={isHost}
+                        botRefs={botRefs}
+                        remoteBots={remoteBots}
+                    />
+                )}
+
+                <Physics debug={false}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
@@ -683,8 +805,8 @@ export function GameScene({
                         />
                     )}
 
-                    {/* OPPONENTI REMOTI (Multiplayer) */}
-                    {opponents.map((playerData) => {
+                    {/* OPPONENTI REMOTI - Solo in multiplayer */}
+                    {roomCode && opponents.map((playerData) => {
                         return (
                             <RemoteOpponent 
                                 key={playerData.id} 
@@ -739,15 +861,18 @@ export function GameScene({
                                 onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
                                 onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
                                 onHitOpponent={(victimId) => {
-                                    socket.emit('player_hit', { victimId: victimId, type: 'bullet-bill' });
+                                    // Invia al server solo se in multiplayer
+                                    if (socket && roomCode) {
+                                        socket.emit('player_hit', { victimId: victimId, type: 'bullet-bill' });
+                                    }
                                 }}
-                                socket={socket}
+                                socket={roomCode ? socket : null}
                             />
                         )}
                     </group>
 
-                    {/* BOTS (AI) */}
-                    {/* {Array.from({ length: BOT_COUNT }, (_, i) => {
+                    {/* BOTS (AI) - Renderizza solo se NON siamo in multiplayer */}
+                    {!roomCode && Array.from({ length: BOT_COUNT }, (_, i) => {
                         const botId = `bot_${i}`;
                         // Mappatura: Bot 0 -> start_1, Bot 1 -> start_2, etc. (o logica inversa)
                         // Qui assumo che i Bot riempiano le posizioni da 1 a 11.
@@ -780,7 +905,9 @@ export function GameScene({
                                 /> 
                             </group>
                         );
-                    })} */}
+                    })}
+
+                    {/* In multiplayer non ci sono bot, solo player reali */}
                 </Physics>
             </Canvas>
         </div>

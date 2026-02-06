@@ -8,8 +8,10 @@ export interface Player {
   rotation: { x: number, y: number, z: number, w: number }; 
   charId?: string;
   vehicleId?: string;
+  isBot?: boolean;
   steer?: number;
   drift?: number;
+  velocity?: any;
   effects?: {
       isBulletBill?: boolean;
       isStar?: boolean;

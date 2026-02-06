@@ -5,6 +5,7 @@ import { CharacterSelection } from './Scenes/CharacterSelection'
 import { VehicleSelection } from './Scenes/VehicleSelection'
 import { TrackSelection } from './Scenes/TrackSelection'
 import { GameScene } from './Scenes/GameScene'
+import { RoomSelection } from './Scenes/RoomSelection'
 import { AudioProvider } from './audio/AudioManager'
 import { socket } from './multiplayer/socket.js'
 import { VEHICLE_DATABASE } from './components/Data'
@@ -16,7 +17,8 @@ const MainMenu = () => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '100px', gap: '20px' }}>
             <h1>Mario Kart Three.js</h1>
-            <button onClick={() => navigate('/character')}>Character Selection</button>
+            <button onClick={() => navigate('/room')}>Multiplayer</button>
+            <button onClick={() => navigate('/character')}>Solo Play</button>
             <button onClick={() => navigate('/game')}>Direct to GameScene (Testing)</button>
         </div>
     );
@@ -29,8 +31,26 @@ export default function App() {
     const [SelectedVehicle, setSelectedVehicle] = useState(VEHICLE_DATABASE.StandardKartS)
     const [SelectedTrack, setSelectedTrack] = useState(Tracks['Daisy Circuit'])
     
+    // Room state
+    const [roomCode, setRoomCode] = useState(null)
+    const [isHost, setIsHost] = useState(false)
+    
     // Data source
     const [availableCharacters, ] = useState(Characters)
+
+    const handleCreateRoom = (code) => {
+        setRoomCode(code);
+        setIsHost(true);
+        // Emit to server
+        socket.emit('create_room', { roomCode: code });
+    };
+
+    const handleJoinRoom = (code) => {
+        setRoomCode(code);
+        setIsHost(false);
+        // Emit to server
+        socket.emit('join_room', { roomCode: code });
+    };
 
     return (
         <AudioProvider>
@@ -41,6 +61,16 @@ export default function App() {
                     <Routes>
                         {/* HOME PAGE */}
                         <Route path="/" element={<MainMenu />} />
+
+                        {/* ROOM SELECTION */}
+                        <Route path="/room" element={
+                            <RoomSelection 
+                                onCreateRoom={handleCreateRoom}
+                                onJoinRoom={handleJoinRoom}
+                                socket={socket}
+                                setSelectedTrack={setSelectedTrack}
+                            />
+                        } />
 
                         {/* SELEZIONE PERSONAGGIO */}
                         <Route path="/character" element={
@@ -63,6 +93,9 @@ export default function App() {
                         <Route path="/track" element={
                             <TrackSelection
                                 setSelectedTrack={setSelectedTrack}
+                                roomCode={roomCode}
+                                isHost={isHost}
+                                socket={socket}
                             />
                         } />
 
@@ -77,6 +110,8 @@ export default function App() {
                                 maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
                                 start_pos={SelectedTrack.startPos}
                                 selectedTrack={SelectedTrack}
+                                roomCode={roomCode}
+                                isHostProp={isHost}
                             />
                         } />
                     </Routes>

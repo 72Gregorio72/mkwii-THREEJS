@@ -20,6 +20,35 @@ export function TrackSelection({ setSelectedTrack }) {
     }));
 
     const [localSelection, setLocalSelection] = useState(tracksList[0]);
+    const [waitingForHost, setWaitingForHost] = useState(false);
+
+    // Se sei in multiplayer, aspetta la scelta del tracciato dall'host
+    React.useEffect(() => {
+        if (roomCode && socket) {
+            // Sia host che client ascoltano la conferma dal server
+            const handleTrackSelected = (data) => {
+                if (data.roomCode === roomCode) {
+                    console.log('[Track] Received track from server:', data.track.name);
+                    const trackData = {
+                        ...data.track,
+                        start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
+                    };
+                    setSelectedTrack(trackData);
+                    navigate('/game');
+                }
+            };
+            
+            socket.on('track_selected', handleTrackSelected);
+            return () => socket.off('track_selected', handleTrackSelected);
+        }
+    }, [roomCode, socket, navigate, setSelectedTrack]);
+    
+    // Imposta waiting solo per i non-host
+    React.useEffect(() => {
+        if (roomCode && !isHost) {
+            setWaitingForHost(true);
+        }
+    }, [roomCode, isHost]);
 
     const handleConfirm = () => {
         if (localSelection) {
@@ -29,9 +58,17 @@ export function TrackSelection({ setSelectedTrack }) {
                 start_pos: localSelection.startPos || localSelection.start_pos || [0, 2, 0]
             };
             
-            setSelectedTrack(trackData);
-            // setMenuState(3); <--- Vecchia logica
-            navigate('/game'); // <--- 3. Nuova logica: vai al gioco
+            // Se sei l'host in multiplayer, invia la scelta al server e aspetta conferma
+            if (roomCode && isHost && socket) {
+                console.log('[Host] Sending track selection:', trackData.name);
+                setSelectedTrack(trackData);
+                socket.emit('select_track', { roomCode, track: trackData });
+                // La navigazione avverrà quando riceveremo track_selected dal server
+            } else if (!roomCode) {
+                // Single player: vai direttamente
+                setSelectedTrack(trackData);
+                navigate('/game');
+            }
         }
     };
 
@@ -104,7 +141,35 @@ export function TrackSelection({ setSelectedTrack }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>Select Track</div>
-
+            
+            {/* Se sei in multiplayer e non sei l'host, mostra waiting */}
+            {waitingForHost ? (
+                <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '20px'
+                }}>
+                    <h2 style={{ fontSize: '4vh', color: '#ffe600' }}>Waiting for host to select track...</h2>
+                    <div style={{
+                        width: '60px',
+                        height: '60px',
+                        border: '5px solid #ffe600',
+                        borderTop: '5px solid transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                    }} />
+                    <style>{`
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    `}</style>
+                </div>
+            ) : (
+            <>
             <div style={styles.content}>
                 <div style={styles.grid}>
                     {tracksList.map((track, index) => {
@@ -149,6 +214,8 @@ export function TrackSelection({ setSelectedTrack }) {
                     Start Race
                 </button>
             </div>
+            </>
+            )}
         </div>
     )
 }
