@@ -12,15 +12,24 @@ export function RoadWalls({ modelPath }) {
         const elements = [];
         
         Object.values(nodes).forEach((node) => {
-            if (node.isMesh) {
+            if (node.isMesh && node.geometry) {
+                // Clona la geometria e applica le trasformazioni
+                let geometry = node.geometry.clone();
+                node.updateWorldMatrix(true, false);
+                geometry.applyMatrix4(node.matrixWorld);
+                
                 elements.push(
                     <RigidBody 
                         key={node.uuid} 
                         type="fixed" 
-                        colliders="trimesh"
+                        colliders={false}
                         name={node.name}
                     >
-                        <primitive object={node} visible={false} />
+                        <MeshCollider type="trimesh">
+                            <mesh geometry={geometry}>
+                                <meshBasicMaterial visible={false} />
+                            </mesh>
+                        </MeshCollider>
                     </RigidBody>
                 );
             }
