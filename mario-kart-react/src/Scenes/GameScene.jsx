@@ -172,7 +172,7 @@ export function GameScene({
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
 
-    const [gameState, setGameState] = useState('RACING'); // 'INTRO', 'COUNTDOWN', 'RACING'
+    const [gameState, setGameState] = useState('INTRO'); // 'INTRO', 'COUNTDOWN', 'RACING'
     const [countdown, setCountdown] = useState(null);
     const [finished, setFinished] = useState(false);
     const [raceExited, setRaceExited] = useState(false);
@@ -418,7 +418,7 @@ export function GameScene({
     const destroyBobOmb = useCallback((id) => setBobOmbs((prev) => prev.filter(b => b.id !== id)), []);
 
     // 5. AUDIO & LOGICA DI GIOCO
-    const { changeTrack, playSfx, stopMusic, setMusicPitch } = useAudio();
+    const { changeTrack, playSfx, stopMusic, setMusicPitch , playMusicOnce} = useAudio();
     const racingMusicStarted = useRef(false);
     
     useEffect(() => {
@@ -429,7 +429,7 @@ export function GameScene({
         }
 
         if (gameState === 'COUNTDOWN' && !startingGridPlayed.current) {
-            changeTrack('STARTING_GRID', 0, false);
+            playMusicOnce('STARTING_GRID', 0);
             startingGridPlayed.current = true;
             return;
         }

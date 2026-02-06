@@ -1,4 +1,4 @@
-import React, { useState, useRef, Suspense } from 'react'
+import React, { useState, useRef, Suspense, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, OrbitControls } from '@react-three/drei'
 import { useNavigate } from 'react-router-dom' // <--- 1. Import Hook
@@ -64,7 +64,13 @@ export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
     // setMenuState rimosso dalle props
     const navigate = useNavigate(); // <--- 2. Inizializza Hook
 
-    const { playSfx } = useAudio();
+    const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+	useEffect(() => {
+        if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
+            changeTrack('CHARACTER_KART_SELECT', 100);
+		    enableSmoothLoop();
+        }
+	}, [changeTrack, enableSmoothLoop]);
 
     const availableIDs = selectedCharacter.veichles || []; 
 

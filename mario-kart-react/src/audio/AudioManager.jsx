@@ -278,6 +278,96 @@ export const AudioProvider = ({ children }) => {
     setMusic(trackUrl, fadeDuration, enableLoop);
   }, [setMusic]);
 
+  // ============================================
+  // FUNZIONE: playMusicOnce()
+  // Riproduce una traccia musicale una sola volta senza loop
+  // Accetta sia una chiave di AUDIO_TRACKS che un URL diretto
+  // ============================================
+  const playMusicOnce = useCallback((trackKeyOrUrl, fadeDuration = 1000) => {
+    if (!trackKeyOrUrl) {
+      console.warn('[AudioManager] playMusicOnce: trackKeyOrUrl non specificato');
+      return;
+    }
+    
+    // Se è una chiave di AUDIO_TRACKS, ottieni l'URL
+    const url = AUDIO_TRACKS[trackKeyOrUrl] || trackKeyOrUrl;
+    
+    if (!url) {
+      console.warn(`[AudioManager] playMusicOnce: Traccia non trovata: ${trackKeyOrUrl}`);
+      return;
+    }
+
+    const targetVolume = isMuted ? 0 : musicVolume;
+
+    // Pulisci timer e tentativi play precedenti
+    if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
+    if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
+    if (pendingPlayAbortRef.current) {
+      pendingPlayAbortRef.current.abort();
+      pendingPlayAbortRef.current = null;
+    }
+
+    // Ferma eventuale musica in riproduzione
+    if (bgmRef.current) {
+      const oldAudio = bgmRef.current;
+      oldAudio.pause();
+      oldAudio.src = '';
+    }
+
+    // Crea nuova traccia SENZA loop
+    const newAudio = new Audio(url);
+    newAudio.loop = false;
+    newAudio.playbackRate = musicPlaybackRate;
+
+    newAudio.addEventListener('ended', () => {
+      if (currentTrackRef.current === url) {
+        currentTrackRef.current = null;
+      }
+    });
+
+    bgmRef.current = newAudio;
+    currentTrackRef.current = url;
+
+    if (audioEnabled) {
+      newAudio.volume = fadeDuration > 0 ? 0 : targetVolume;
+
+      const abortController = new AbortController();
+      pendingPlayAbortRef.current = abortController;
+
+      newAudio.play()
+        .then(() => {
+          if (pendingPlayAbortRef.current === abortController) {
+            pendingPlayAbortRef.current = null;
+          }
+
+          if (fadeDuration > 0 && targetVolume > 0) {
+            const step = targetVolume / (fadeDuration / 50);
+            fadeInIntervalRef.current = setInterval(() => {
+              if (newAudio.volume < targetVolume - step) {
+                newAudio.volume += step;
+              } else {
+                newAudio.volume = targetVolume;
+                clearInterval(fadeInIntervalRef.current);
+              }
+            }, 50);
+          }
+        })
+        .catch(e => {
+          if (e.name !== 'AbortError') {
+            console.warn('[AudioManager] Errore Play Music Once:', e);
+          }
+        });
+    } else {
+      newAudio.volume = targetVolume;
+    }
+  }, [audioEnabled, isMuted, musicPlaybackRate, musicVolume]);
+
+  // ============================================
+  // FUNZIONE: getCurrentTrack()
+  // Ritorna l'URL della traccia attualmente in riproduzione (o null)
+  // ============================================
+  const getCurrentTrack = useCallback(() => currentTrackRef.current, []);
+
   const stopMusic = () => {
     // Pulisci i timer di fade se fermiamo tutto bruscamente
     if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
@@ -454,6 +544,8 @@ export const AudioProvider = ({ children }) => {
     enableSmoothLoop,
     disableSmoothLoop,
     changeTrack,
+    playMusicOnce,
+    getCurrentTrack,
     duckMusicVolume,
     restoreMusicVolume,
   };

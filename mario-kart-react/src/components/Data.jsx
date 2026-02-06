@@ -72,7 +72,7 @@ export const Tracks = {
 		startPos: [0, 0, 50],
 		checkpoints: './Tracks/DelfinoSquare/DelfinoSquare_checkpoints.glb',
 		maxCheckpoints: 3,
-		soundtrack: 'RACE_DOLPHIN_SQUARE',
+		soundtrack: 'RACE_DELPHINO_SQUARE',
 		itemBoxes: './Tracks/DelfinoSquare/DelfinoSquare_itemBox.glb',
 		gridpos: './Tracks/DelfinoSquare/DelfinoSquare_startpos.glb',
 		road: './Tracks/DelfinoSquare/DelfinoSquare_road.glb',
@@ -838,14 +838,13 @@ export const VEHICLE_DATABASE = {
 // ============================================
 export const AUDIO_TRACKS = {
     MENU: '/soundTracks/TITLE_SCREEN.mp3', // title screen music
-    LOBBY_MUSIC: '/soundTracks/SET_UP.mp3', // lobby music
     CHARACTER_KART_SELECT: '/soundTracks/CHARACTER_KART_SELECT_SCREEN.mp3', // kart e character select music
-    COURSE_SELECT: '/soundTracks/COURSE_SELECTION.mp3', // course select music
     RACE_INTRO: '/soundTracks/RACE_INTRO.mp3',
     STARTING_GRID: '/soundTracks/STARTING_GRID.mp3',
     RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
     RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
     RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
+    RACE_DELPHINO_SQUARE: '/soundTracks/DELPHINO_SQUARE_ST.mp3',
 };
 
 export const AUDIO_SFX = {
