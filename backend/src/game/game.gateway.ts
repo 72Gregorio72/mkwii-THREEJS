@@ -38,7 +38,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     hostId: string, 
     players: any[], 
     bots: any[], 
-    gameState: string 
+    gameState: string,
+    selectedTrack?: any 
   }>();
   
   // Map socket.id -> roomCode
@@ -96,7 +97,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
           roomCode: room.roomCode,
           hostId: room.hostId,
           players: room.players,
-          gameState: room.gameState
+          gameState: room.gameState,
+          selectedTrack: room.selectedTrack
         });
       }
     }
@@ -186,7 +188,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       isHost: room.hostId === client.id,
       hostId: room.hostId,
       players: room.players,
-      gameState: room.gameState
+      gameState: room.gameState,
+      selectedTrack: room.selectedTrack
     });
   }
 
@@ -250,7 +253,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       roomCode: room.roomCode,
       hostId: room.hostId,
       players: room.players,
-      gameState: room.gameState
+      gameState: room.gameState,
+      selectedTrack: room.selectedTrack
     });
   }
 
@@ -268,6 +272,9 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
 
     console.log(`Host ${client.id} selected track for room ${roomCode}:`, payload.track.name);
+    
+    // Save track in room data
+    room.selectedTrack = payload.track;
     
     // Broadcast track selection to all players in room
     this.server.emit('track_selected', {

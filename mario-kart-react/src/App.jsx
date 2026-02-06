@@ -67,6 +67,8 @@ export default function App() {
                             <RoomSelection 
                                 onCreateRoom={handleCreateRoom}
                                 onJoinRoom={handleJoinRoom}
+                                socket={socket}
+                                setSelectedTrack={setSelectedTrack}
                             />
                         } />
 

@@ -10,22 +10,48 @@ const mkwiiFontStyle = `
   }
 `;
 
-export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
+export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket, setSelectedTrack }) => {
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const navigate = useNavigate();
+
+  // Ascolta room_state per controllare se il tracciato è già stato scelto
+  React.useEffect(() => {
+    if (socket) {
+      const handleRoomState = (data) => {
+        console.log('[RoomSelection] Received room_state:', data);
+        
+        // Se il tracciato è già stato scelto, vai direttamente al gioco
+        if (data.selectedTrack) {
+          console.log('[RoomSelection] Track already selected, going to game:', data.selectedTrack.name);
+          const trackData = {
+            ...data.selectedTrack,
+            start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
+          };
+          setSelectedTrack(trackData);
+          navigate('/game');
+        } else {
+          // Altrimenti vai alla selezione del personaggio
+          navigate('/character');
+        }
+      };
+      
+      socket.on('room_state', handleRoomState);
+      return () => socket.off('room_state', handleRoomState);
+    }
+  }, [socket, navigate, setSelectedTrack]);
 
   const handleCreateRoom = () => {
     // Generate a random room code
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     onCreateRoom(code);
-    navigate('/character');
+    // Non navigare qui, aspetta room_state
   };
 
   const handleJoinRoom = () => {
     if (roomCode.trim()) {
       onJoinRoom(roomCode.trim().toUpperCase());
-      navigate('/character');
+      // Non navigare qui, aspetta room_state
     }
   };
 

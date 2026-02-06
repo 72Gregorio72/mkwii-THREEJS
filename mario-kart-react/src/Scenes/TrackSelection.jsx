@@ -16,14 +16,13 @@ export function TrackSelection({ setSelectedTrack, roomCode, isHost, socket }) {
     const [localSelection, setLocalSelection] = useState(tracksList[0]);
     const [waitingForHost, setWaitingForHost] = useState(false);
 
-    // Se sei in multiplayer ma non sei l'host, aspetta la scelta
+    // Se sei in multiplayer, aspetta la scelta del tracciato dall'host
     React.useEffect(() => {
-        if (roomCode && !isHost && socket) {
-            setWaitingForHost(true);
-            
-            // Ascolta la scelta della pista dall'host
+        if (roomCode && socket) {
+            // Sia host che client ascoltano la conferma dal server
             const handleTrackSelected = (data) => {
                 if (data.roomCode === roomCode) {
+                    console.log('[Track] Received track from server:', data.track.name);
                     const trackData = {
                         ...data.track,
                         start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
@@ -36,7 +35,14 @@ export function TrackSelection({ setSelectedTrack, roomCode, isHost, socket }) {
             socket.on('track_selected', handleTrackSelected);
             return () => socket.off('track_selected', handleTrackSelected);
         }
-    }, [roomCode, isHost, socket, navigate, setSelectedTrack]);
+    }, [roomCode, socket, navigate, setSelectedTrack]);
+    
+    // Imposta waiting solo per i non-host
+    React.useEffect(() => {
+        if (roomCode && !isHost) {
+            setWaitingForHost(true);
+        }
+    }, [roomCode, isHost]);
 
     const handleConfirm = () => {
         if (localSelection) {
@@ -46,14 +52,17 @@ export function TrackSelection({ setSelectedTrack, roomCode, isHost, socket }) {
                 start_pos: localSelection.startPos || localSelection.start_pos || [0, 2, 0]
             };
             
-            setSelectedTrack(trackData);
-            
-            // Se sei l'host in multiplayer, invia la scelta al server
+            // Se sei l'host in multiplayer, invia la scelta al server e aspetta conferma
             if (roomCode && isHost && socket) {
+                console.log('[Host] Sending track selection:', trackData.name);
+                setSelectedTrack(trackData);
                 socket.emit('select_track', { roomCode, track: trackData });
+                // La navigazione avverrà quando riceveremo track_selected dal server
+            } else if (!roomCode) {
+                // Single player: vai direttamente
+                setSelectedTrack(trackData);
+                navigate('/game');
             }
-            
-            navigate('/game');
         }
     };
 
