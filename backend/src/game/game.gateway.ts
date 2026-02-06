@@ -78,6 +78,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     if (this.roomData.has(roomCode)) {
       const room = this.roomData.get(roomCode);
+      if (!room) return;
+      
       room.players = room.players.filter(p => p.id !== client.id);
 
       // If host left, assign new host
@@ -183,6 +185,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
     
     const room = this.roomData.get(roomCode);
+
+    if (!room) return;
     client.emit('room_state', {
       roomCode: room.roomCode,
       isHost: room.hostId === client.id,
@@ -221,7 +225,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       isHost: true,
       hostId: client.id,
       players: [{ id: client.id, isHost: true }],
-      gameState: 'LOBBY'
+      gameState: 'LOBBY',
+      selectedTrack: undefined
     });
   }
 
@@ -237,6 +242,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const room = this.roomData.get(roomCode);
     
     // Check if already in room
+
+      if (!room) return;
     if (room.players.find(p => p.id === client.id)) {
       console.log(`Player ${client.id} already in room ${roomCode}`);
       return;
@@ -264,6 +271,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     
     // Only host can select track
     if (room.hostId !== client.id) {
@@ -275,12 +283,39 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     
     // Save track in room data
     room.selectedTrack = payload.track;
+
+  console.log(`Track selection for room ${roomCode} is now:`, room.selectedTrack?.name);
     
     // Broadcast track selection to all players in room
     this.server.emit('track_selected', {
-      roomCode: roomCode,
+      roomCode: room.roomCode,
       track: payload.track
     });
+  }
+
+  @SubscribeMessage('waiting_for_track')
+  handleWaitingForTrack(client: Socket, payload: { roomCode: string }) {
+    const roomCode = payload.roomCode;
+    if (!roomCode || !this.roomData.has(roomCode)) return;
+
+    const room = this.roomData.get(roomCode);
+	if (!room) return;
+
+	if (room.selectedTrack && room.selectedTrack.name) {
+	  console.log(`Track already selected for room ${roomCode}, notifying player ${client.id}`);
+	  client.emit('track_selected', {
+		roomCode: roomCode,
+		track: room.selectedTrack
+	  });
+	  return;
+	}
+
+	if (room.hostId !== client.id) {
+	  console.log(`Non-host ${client.id} is waiting for track`);
+	  return;
+	}
+
+    console.log(`Player ${client.id} is waiting for track in room ${roomCode}`);
   }
 
   @SubscribeMessage('start_race')
@@ -290,6 +325,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     const room = this.roomData.get(roomCode);
     
+      if (!room) return;
     // Only host can start race
     if (room.hostId !== client.id) {
       console.log(`Non-host ${client.id} tried to start race`);
@@ -330,6 +366,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     
     // Only host can sync game state
     if (room.hostId !== client.id) return;
