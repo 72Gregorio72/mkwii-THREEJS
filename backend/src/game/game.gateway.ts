@@ -33,11 +33,21 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   constructor(private readonly gameService: GameService) {}
 
   private items = new Map<string, any>();
+  private roomData = new Map<string, { 
+    roomCode: string,
+    hostId: string, 
+    players: any[], 
+    bots: any[], 
+    gameState: string 
+  }>();
+  
+  // Map socket.id -> roomCode
+  private playerRoomMap = new Map<string, string>();
 
   afterInit() {
     setInterval(() => {
-      const players = this.gameService.getWorldState().players;
-      this.server.emit('world_update', { players }); 
+      const worldState = this.gameService.getWorldState();
+      this.server.emit('world_update', { players: worldState.players }); 
     }, 1000 / 60);
   }
 
@@ -51,16 +61,71 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       z: 0,
       rotation: { x: 0, y: 0, z: 0, w: 1 } 
     });
+
+    // Room will be joined via 'create_room' or 'join_room' events
   }
 
   handleDisconnect(client: Socket) {
     console.log(`Player left: ${client.id}`);
     this.gameService.removePlayer(client.id);
+
+    // Get the room this player was in
+    const roomCode = this.playerRoomMap.get(client.id);
+    if (!roomCode) return;
+
+    this.playerRoomMap.delete(client.id);
+
+    if (this.roomData.has(roomCode)) {
+      const room = this.roomData.get(roomCode);
+      room.players = room.players.filter(p => p.id !== client.id);
+
+      // If host left, assign new host
+      if (room.hostId === client.id && room.players.length > 0) {
+        room.hostId = room.players[0].id;
+        room.players[0].isHost = true;
+        console.log(`New host for room ${roomCode}: ${room.hostId}`);
+      }
+
+      // If room is empty, delete it
+      if (room.players.length === 0) {
+        this.roomData.delete(roomCode);
+        console.log(`Room ${roomCode} deleted`);
+      } else {
+        // Update all players in room with new state
+        this.server.emit('room_state', {
+          roomCode: room.roomCode,
+          hostId: room.hostId,
+          players: room.players,
+          gameState: room.gameState
+        });
+      }
+    }
   }
 
   @SubscribeMessage('move_kart')
   handleMove(client: Socket, payload: any) {
     this.gameService.updatePlayer(client.id, payload);
+  }
+
+  @SubscribeMessage('bot_update')
+  handleBotUpdate(client: Socket, payload: { botId: string, position: any, rotation: any, velocity: any }) {
+    // Only host should send bot updates
+    const roomCode = this.playerRoomMap.get(client.id);
+    if (!roomCode) return;
+    
+    const room = this.roomData.get(roomCode);
+    if (!room || room.hostId !== client.id) return;
+
+    // Update bot state in game service
+    this.gameService.updatePlayer(payload.botId, {
+      id: payload.botId,
+      x: payload.position.x,
+      y: payload.position.y,
+      z: payload.position.z,
+      rotation: payload.rotation,
+      velocity: payload.velocity,
+      isBot: true
+    });
   }
 
   @SubscribeMessage('set_details')
@@ -105,5 +170,170 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   handleRemoveItem(client: Socket, payload: { itemId: string }) {
     this.gameService.removeItem(payload.itemId);
     this.server.emit('item_removed', { itemId: payload.itemId });
+  }
+
+  @SubscribeMessage('request_room_state')
+  handleRequestRoomState(client: Socket, payload: { roomCode: string }) {
+    const roomCode = payload?.roomCode;
+    if (!roomCode || !this.roomData.has(roomCode)) {
+      console.log(`Room ${roomCode} not found for ${client.id}`);
+      return;
+    }
+    
+    const room = this.roomData.get(roomCode);
+    client.emit('room_state', {
+      roomCode: room.roomCode,
+      isHost: room.hostId === client.id,
+      hostId: room.hostId,
+      players: room.players,
+      gameState: room.gameState
+    });
+  }
+
+  @SubscribeMessage('create_room')
+  handleCreateRoom(client: Socket, payload: { roomCode: string }) {
+    const roomCode = payload.roomCode;
+    
+    if (this.roomData.has(roomCode)) {
+      client.emit('room_error', { message: 'Room already exists' });
+      return;
+    }
+
+    // Create new room
+    this.roomData.set(roomCode, {
+      roomCode: roomCode,
+      hostId: client.id,
+      players: [{ id: client.id, isHost: true }],
+      bots: [],
+      gameState: 'LOBBY'
+    });
+
+    this.playerRoomMap.set(client.id, roomCode);
+    
+    console.log(`Room ${roomCode} created by ${client.id}`);
+
+    // Send room state
+    client.emit('room_state', {
+      roomCode: roomCode,
+      isHost: true,
+      hostId: client.id,
+      players: [{ id: client.id, isHost: true }],
+      gameState: 'LOBBY'
+    });
+  }
+
+  @SubscribeMessage('join_room')
+  handleJoinRoom(client: Socket, payload: { roomCode: string }) {
+    const roomCode = payload.roomCode;
+    
+    if (!this.roomData.has(roomCode)) {
+      client.emit('room_error', { message: 'Room not found' });
+      return;
+    }
+
+    const room = this.roomData.get(roomCode);
+    
+    // Check if already in room
+    if (room.players.find(p => p.id === client.id)) {
+      console.log(`Player ${client.id} already in room ${roomCode}`);
+      return;
+    }
+
+    // Add player to room
+    room.players.push({ id: client.id, isHost: false });
+    this.playerRoomMap.set(client.id, roomCode);
+    
+    console.log(`Player ${client.id} joined room ${roomCode}`);
+
+    // Send room state to all players in room
+    this.server.emit('room_state', {
+      roomCode: room.roomCode,
+      hostId: room.hostId,
+      players: room.players,
+      gameState: room.gameState
+    });
+  }
+
+  @SubscribeMessage('select_track')
+  handleSelectTrack(client: Socket, payload: { roomCode: string, track: any }) {
+    const roomCode = payload.roomCode;
+    if (!roomCode || !this.roomData.has(roomCode)) return;
+
+    const room = this.roomData.get(roomCode);
+    
+    // Only host can select track
+    if (room.hostId !== client.id) {
+      console.log(`Non-host ${client.id} tried to select track`);
+      return;
+    }
+
+    console.log(`Host ${client.id} selected track for room ${roomCode}:`, payload.track.name);
+    
+    // Broadcast track selection to all players in room
+    this.server.emit('track_selected', {
+      roomCode: roomCode,
+      track: payload.track
+    });
+  }
+
+  @SubscribeMessage('start_race')
+  handleStartRace(client: Socket, payload: { bots: any[], roomCode: string }) {
+    const roomCode = payload.roomCode;
+    if (!roomCode || !this.roomData.has(roomCode)) return;
+
+    const room = this.roomData.get(roomCode);
+    
+    // Only host can start race
+    if (room.hostId !== client.id) {
+      console.log(`Non-host ${client.id} tried to start race`);
+      return;
+    }
+
+    console.log(`Host ${client.id} starting race in room ${roomCode} with ${payload.bots.length} bots`);
+    
+    // Store bots and change game state
+    room.bots = payload.bots;
+    room.gameState = 'INTRO';
+
+    // Notify all players in room
+    this.server.emit('race_start', {
+      roomCode: roomCode,
+      bots: payload.bots,
+      gameState: 'INTRO'
+    });
+
+    // Sync bot positions
+    payload.bots.forEach(bot => {
+      this.gameService.updatePlayer(bot.id, {
+        id: bot.id,
+        x: 0,
+        y: 0,
+        z: 0,
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        charId: bot.charId,
+        vehicleId: bot.vehicleId,
+        isBot: true
+      });
+    });
+  }
+
+  @SubscribeMessage('sync_game_state')
+  handleSyncGameState(client: Socket, payload: { gameState: string, countdown?: any, roomCode: string }) {
+    const roomCode = payload.roomCode;
+    if (!roomCode || !this.roomData.has(roomCode)) return;
+
+    const room = this.roomData.get(roomCode);
+    
+    // Only host can sync game state
+    if (room.hostId !== client.id) return;
+
+    room.gameState = payload.gameState;
+    
+    // Broadcast to all clients in room
+    this.server.emit('game_state_sync', {
+      roomCode: roomCode,
+      gameState: payload.gameState,
+      countdown: payload.countdown
+    });
   }
 }
