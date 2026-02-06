@@ -234,7 +234,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
     isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onHitOpponent, gameState,
-	positions, botRefs, socket,
+	positions, botRefs, socket, finished = false,
   } = props;
   
 //   const { scene } = useThree()
@@ -510,9 +510,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   });
 
   const botControls = useBotAI({ 
-		isBot, 
+		isBot: isBot || finished, 
 		rigidBody: rb, 
-		paths,
+		paths: paths || [waypoints],
 		currentItem: currentItem,
 		triggerItemInput: handleItemInput
 	});
@@ -520,7 +520,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   // Controls
   // Passiamo 'rb' (il ref fisico vero) al bot
   const humanControls = useGameControls() 
-  const activeControls = isBot ? botControls : humanControls
+  const activeControls = (isBot || finished) ? botControls : humanControls
 
 
   // Ref e state per il gruppo audio 3D

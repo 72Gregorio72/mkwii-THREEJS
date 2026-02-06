@@ -14,6 +14,7 @@ import { RaceManager } from '../Race/RaceManager.jsx'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 import { RoadWalls } from '../Tracks/RoadWalls.jsx'
 import { GameHUD } from '../ui/GameHUD.jsx'
+import { RaceResults } from '../ui/RaceResults.jsx'
 import { ItemBoxesMap } from '../Items/ItemBoxes.jsx'
 import { NetworkManager } from '../multiplayer/NetworkManager.jsx'
 import { RemoteOpponent } from '../multiplayer/RemoteOpponent.jsx'
@@ -175,6 +176,7 @@ export function GameScene({
     const [countdown, setCountdown] = useState(null);
     const [finished, setFinished] = useState(false);
     const [raceExited, setRaceExited] = useState(false);
+    const [finishers, setFinishers] = useState([]); // Lista dei corridori che hanno finito in ordine
 
     const [networkItems, setNetworkItems] = useState([]);
 
@@ -479,8 +481,23 @@ export function GameScene({
                 }
             }
             racer.nextCP = 1;
-            if (racerId === 'player') {
-                if (racer.lap > TOTAL_LAPS) {
+            
+            // Check if racer finished the race
+            if (racer.lap > TOTAL_LAPS) {
+                // Add to finishers list
+                setFinishers(prev => {
+                    // Check if already in the list
+                    if (prev.some(f => f.id === racerId)) return prev;
+                    
+                    const finishPosition = prev.length + 1;
+                    return [...prev, { 
+                        id: racerId, 
+                        position: finishPosition,
+                        finishTime: null // Can add time later
+                    }];
+                });
+                
+                if (racerId === 'player') {
                     setFinished(true);
                     playSfx(AUDIO_SFX.FINISH_RACE, 3);
                     stopMusic();
@@ -488,6 +505,9 @@ export function GameScene({
                     setUiLap(racer.lap);
                     setNextCheck(1);
                 }
+            } else if (racerId === 'player') {
+                setUiLap(racer.lap);
+                setNextCheck(1);
             }
         }
     }, [maxCheckpoints, playSfx, setMusicPitch, stopMusic]);
@@ -710,6 +730,8 @@ export function GameScene({
                                 trackConfig={selectedTrack}
                                 isRaceActive={isRaceActive}
                                 waypoints={selectedTrack.Waypoints[0]}
+                                paths={selectedTrack.Waypoints}
+                                finished={finished}
                                 rank={playerRank}
                                 onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
                                 onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
