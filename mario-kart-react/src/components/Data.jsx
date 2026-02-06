@@ -25,17 +25,20 @@ const LARGE_VEHICLES = [
 
 export const Tracks = {
 	'Luigi Circuit': { 
-		file: './Tracks/LuigiCircuit.glb',
+		file: './Tracks/LuigiCircuit/LuigiCircuit.glb',
 		preview: './TrackPreviews/LuigiCircuit.png',
-		startPos: [-200, 10, 270],
-		checkpoints: './Tracks/LuigiCircuit/LuigiCircuit_checkpoints.glb',
+		startPos: [9, 12, 98],
+		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+        road: './Tracks/LuigiCircuit/LuigiCircuit_road.glb',
+        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
 		maxCheckpoints: 1,
         soundtrack: 'RACE_LUIGI_CIRCUIT'
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
 		preview: './TrackPreviews/DaisyCircuit.png',
-		startPos: [9, 12, 98],
+		startPos: [100, 12, 98],
 		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
 		road: './Tracks/DaisyCircuit/DaisyCircuit_road.glb',
 		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
@@ -69,12 +72,24 @@ export const Tracks = {
 		startPos: [0, 0, 50],
 		checkpoints: './Tracks/DelfinoSquare/DelfinoSquare_checkpoints.glb',
 		maxCheckpoints: 3,
-		soundtrack: 'RACE_DOLPHIN_SQUARE',
+		soundtrack: 'RACE_DELPHINO_SQUARE',
 		itemBoxes: './Tracks/DelfinoSquare/DelfinoSquare_itemBox.glb',
 		gridpos: './Tracks/DelfinoSquare/DelfinoSquare_startpos.glb',
 		road: './Tracks/DelfinoSquare/DelfinoSquare_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
 	},
+    'Yoshi Falls': {
+        file: './Tracks/YoshiFalls/YoshiFalls.glb',
+        preview: './TrackPreviews/YoshiFalls.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+        maxCheckpoints: 5,
+        soundtrack: 'RACE_YOSHI_FALLS',
+        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+        gridpos: './Tracks/YoshiFalls/YoshiFalls_startpos.glb',
+        road: './Tracks/YoshiFalls/YoshiFalls_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    }
 }
 
 export const Characters = [
@@ -823,14 +838,13 @@ export const VEHICLE_DATABASE = {
 // ============================================
 export const AUDIO_TRACKS = {
     MENU: '/soundTracks/TITLE_SCREEN.mp3', // title screen music
-    LOBBY_MUSIC: '/soundTracks/SET_UP.mp3', // lobby music
     CHARACTER_KART_SELECT: '/soundTracks/CHARACTER_KART_SELECT_SCREEN.mp3', // kart e character select music
-    COURSE_SELECT: '/soundTracks/COURSE_SELECTION.mp3', // course select music
     RACE_INTRO: '/soundTracks/RACE_INTRO.mp3',
+    STARTING_GRID: '/soundTracks/STARTING_GRID.mp3',
     RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
     RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
     RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
-
+    RACE_DELPHINO_SQUARE: '/soundTracks/DELPHINO_SQUARE_ST.mp3',
 };
 
 export const AUDIO_SFX = {

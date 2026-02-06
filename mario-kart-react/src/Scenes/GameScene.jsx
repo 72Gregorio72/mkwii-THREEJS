@@ -97,29 +97,21 @@ function CinematicCamera({ gameState, playerStartPos, playerStartRot }) {
 
     useFrame((_state, delta) => {
         if (gameState === 'INTRO') {
-            // Panoramica aerea che ruota lentamente
             camera.position.lerp(new THREE.Vector3(60, 100, 60), delta * 0.5);
             camera.lookAt(0, 0, 0);
         } else if (gameState === 'COUNTDOWN') {
-            // Calcola la posizione "Dietro il Player" basata sulla rotazione iniziale
-            // Creiamo un offset standard (es: 8 unità indietro, 3 unità in alto)
             const offset = new THREE.Vector3(0, 3, -8); 
-            
-            // Applichiamo la rotazione del player all'offset
             const euler = new THREE.Euler(playerStartRot[0], playerStartRot[1] - Math.PI, playerStartRot[2]);
             offset.applyEuler(euler);
 
-            // Posizione target della camera
             const targetPos = new THREE.Vector3(
                 playerStartPos[0] + offset.x,
                 playerStartPos[1] + offset.y,
                 playerStartPos[2] + offset.z
             );
 
-            // Transizione fluida verso il retro del player
-            camera.position.lerp(targetPos, delta * 4);
+            camera.position.lerp(targetPos, delta * 2.5); 
             
-            // Guarda un punto leggermente sopra il player
             const lookAtTarget = new THREE.Vector3(
                 playerStartPos[0],
                 playerStartPos[1] + 1.5,
@@ -296,8 +288,11 @@ export function GameScene({
         return { initialRacersData: data, initialPositions: positions, botsArray: botsToUse };
     }, [remoteBots, roomCode]);
 
+	const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
+	const startingGridPlayed = useRef(false);
+	const introMusicPlayed = useRef(false);
+	const isFinalLap = useRef(false);
     const introPlayed = useRef(false);
-    const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
 
     const [positions, setPositions] = useState(initialPositions);
     const playerRank = positions.find(p => p.id === 'player')?.position || 1;
@@ -440,25 +435,29 @@ export function GameScene({
 
     const startCountdown = () => {
         setGameState('COUNTDOWN');
-        let timer = 3;
-        setCountdown(timer);
-        playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
+        const AUDIO_DURATION = 2000; 
 
-        const interval = setInterval(() => {
-            timer -= 1;
-            if (timer > 0) {
-                setCountdown(timer);
-                playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
-            } else if (timer === 0) {
-                playSfx(AUDIO_SFX.FINISH_COUNTDOWN, 5);
-                setCountdown('START!');
-                setGameState('RACING');
-                // SFX_RACE_START
-            } else {
-                setCountdown(null);
-                clearInterval(interval);
-            }
-        }, 1000);
+        setTimeout(() => {
+            let timer = 3;
+            setCountdown(timer);
+            playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
+
+            const interval = setInterval(() => {
+                timer -= 1;
+                if (timer > 0) {
+                    setCountdown(timer);
+                    playSfx(AUDIO_SFX.COUNTDOWN_RACE, 5);
+                } else if (timer === 0) {
+                    playSfx(AUDIO_SFX.FINISH_COUNTDOWN, 5);
+                    setCountdown('START!');
+                    setGameState('RACING');
+                } else {
+                    setCountdown(null);
+                    clearInterval(interval);
+                }
+            }, 1000); // 1 secondo tra un numero e l'altro
+            
+        }, AUDIO_DURATION);
     };
 
     // 3. REFS & STATE
@@ -524,31 +523,43 @@ export function GameScene({
     }, [opponents]);
 
     // 5. AUDIO & LOGICA DI GIOCO
-    const { changeTrack, playSfx, stopMusic, setMusicPitch, enableSmoothLoop } = useAudio();
+    const { changeTrack, playSfx, stopMusic, setMusicPitch , playMusicOnce} = useAudio();
+    const racingMusicStarted = useRef(false);
+    
     useEffect(() => {
-        if (gameState === 'INTRO')
-        {
-            changeTrack('RACE_INTRO', false);
+        if (gameState === 'INTRO' && !introMusicPlayed.current) {
+            changeTrack('RACE_INTRO', 0, false);
+            introMusicPlayed.current = true;
+            return;
+        }
+
+        if (gameState === 'COUNTDOWN' && !startingGridPlayed.current) {
+            playMusicOnce('STARTING_GRID', 0);
+            startingGridPlayed.current = true;
+            return;
+        }
+        if (gameState === 'INTRO' || gameState === 'COUNTDOWN') {
             return;
         }
 
         if (gameState !== 'RACING' || finished) {
-            setMusicPitch(1.0, 1.0, 300);
+            if (!finished) {
+                setMusicPitch(1.0, 1.0, 300);
+            }
             stopMusic();
+            racingMusicStarted.current = false;
             return;
         }
-
-        stopMusic();
-        if (selectedTrack?.soundtrack) {
-            changeTrack(selectedTrack.soundtrack, false);
-            enableSmoothLoop();
-        }
-
-        return () => {
-            setMusicPitch(1.0, 1.0, 300);
+        
+        // Avvia la musica della gara solo una volta
+        if (!racingMusicStarted.current && selectedTrack?.soundtrack) {
             stopMusic();
-        };
-    }, [selectedTrack, changeTrack, gameState, finished, stopMusic, enableSmoothLoop, setMusicPitch]);
+            changeTrack(selectedTrack.soundtrack, 0, true);
+            racingMusicStarted.current = true;
+        }
+        
+        // Non c'è più cleanup che chiama stopMusic durante RACING
+    }, [selectedTrack, changeTrack, gameState, finished, stopMusic, setMusicPitch]);
 
     // Checkpoint Trigger
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
@@ -564,10 +575,16 @@ export function GameScene({
             racer.lap += 1;
             
             if (racerId === 'player') {
-                if (racer.lap === 2) playSfx(AUDIO_SFX.SECOND_LAP, 3);
+                if (racer.lap === 2) {
+                    playSfx(AUDIO_SFX.SECOND_LAP, 3);
+                }
                 else if (racer.lap === 3) {
+                    isFinalLap.current = true;
                     playSfx(AUDIO_SFX.FINAL_LAP, 3);
                     setMusicPitch(1.10, 1.10, 2000); // pitch 1.15x, speed 1.15x, fade 500ms
+                    setTimeout(() => {
+                        setMusicPitch(1.15, 1.15, 2000);
+                    }, 100);
                 }
             }
             
@@ -861,6 +878,7 @@ export function GameScene({
                     </group>
 
                     {/* BOTS (AI) - Renderizza solo se NON siamo in multiplayer */}
+                    {/*
                     {!roomCode && Array.from({ length: BOT_COUNT }, (_, i) => {
                         const botId = `bot_${i}`;
                         // Mappatura: Bot 0 -> start_1, Bot 1 -> start_2, etc. (o logica inversa)
@@ -895,6 +913,7 @@ export function GameScene({
                             </group>
                         );
                     })}
+                    */}
 
                     {/* In multiplayer non ci sono bot, solo player reali */}
                 </Physics>

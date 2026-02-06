@@ -1,12 +1,18 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom' // <--- 1. Import Hook
+import React, { useState , useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Tracks } from '../components/Data'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 
-export function TrackSelection({ setSelectedTrack, roomCode, isHost, socket }) {
-    // setMenuState rimosso dalle props
-    const navigate = useNavigate(); // <--- 2. Inizializza Hook
-    const { playSfx } = useAudio();
+export function TrackSelection({ setSelectedTrack, roomCode = null, socket = null, isHost = false }) {
+
+    const navigate = useNavigate();
+    const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+    useEffect(() => {
+        if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
+            changeTrack('CHARACTER_KART_SELECT', 100);
+            enableSmoothLoop();
+        }
+    }, [changeTrack, enableSmoothLoop]);
 
     const tracksList = Object.entries(Tracks).map(([name, data]) => ({
         name,

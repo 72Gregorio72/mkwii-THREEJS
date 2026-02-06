@@ -13,6 +13,7 @@ import { VehicleModel } from '../models/VehicleModel'
 import { useHitboxHandler } from '../hooks/HitboxHandler' 
 import { useKartAudio } from '../hooks/useKartAudio' 
 import { useBotAI } from '../Bot/UseBotAI'
+import { useAudio, AUDIO_SFX } from '../audio/AudioManager'
 
 // --- 1. COSTANTI E SETTINGS SPECIFICI MOTO ---
 const KART_SIZE = 1 
@@ -129,7 +130,7 @@ function updateSparksColor(level, leftRef, rightRef) {
 
 export const InsideDriftBike = forwardRef((props, ref) => {
   const { 
-    characterConfig, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
+    characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
     isRaceActive = true
   } = props;
@@ -141,7 +142,10 @@ export const InsideDriftBike = forwardRef((props, ref) => {
   const { updateAudio, startIdleAudio, stopAllAudio } = useKartAudio({ 
     isBike: true, 
     isActive: isRaceActive 
-  }) 
+  })
+  
+  // Hook per gestire gli SFX generici
+  const { playSfx } = useAudio()
   
   const { world, rapier } = useRapier()
   
@@ -199,7 +203,8 @@ export const InsideDriftBike = forwardRef((props, ref) => {
   }), [])
 
   const { checkSurface } = useHitboxHandler({
-    speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
+    speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3,
+    selectedCharacter, playSfx, AUDIO_SFX
   })
 
   // Avvia l'audio IDLE quando la gara inizia

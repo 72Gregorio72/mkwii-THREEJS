@@ -80,6 +80,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       const room = this.roomData.get(roomCode);
       if (!room) return;
       
+      if (!room) return;
+      
       room.players = room.players.filter(p => p.id !== client.id);
 
       // If host left, assign new host
@@ -240,6 +242,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     
     // Check if already in room
 
@@ -271,6 +274,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     if (!room) return;
     
     // Only host can select track
@@ -324,6 +328,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     
       if (!room) return;
     // Only host can start race
@@ -366,6 +371,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
     const room = this.roomData.get(roomCode);
+    if (!room) return;
     if (!room) return;
     
     // Only host can sync game state

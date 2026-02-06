@@ -637,7 +637,8 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 	}, [socket, racerId, isBulletBill]);
 
   const { checkSurface } = useHitboxHandler({
-    speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3
+    speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints: trackConfig?.maxCheckpoints || 3,
+    selectedCharacter, playSfx, AUDIO_SFX
   })
 
   // Audio Lifecycle: avvia idle quando la gara inizia
