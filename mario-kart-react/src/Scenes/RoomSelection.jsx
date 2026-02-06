@@ -20,7 +20,6 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket, setSelectedTra
     if (socket) {
       const handleRoomState = (data) => {
         console.log('[RoomSelection] Received room_state:', data);
-        
           navigate('/character');
       };
       

@@ -6,6 +6,7 @@ import { VehicleSelection } from './Scenes/VehicleSelection'
 import { TrackSelection } from './Scenes/TrackSelection'
 import { GameScene } from './Scenes/GameScene'
 import { RoomSelection } from './Scenes/RoomSelection'
+import { WaitingRoom } from './Scenes/WaitingRoom'
 import { AudioProvider } from './audio/AudioManager'
 import { socket } from './multiplayer/socket.js'
 import { VEHICLE_DATABASE } from './components/Data'
@@ -96,6 +97,17 @@ export default function App() {
                                 roomCode={roomCode}
                                 isHost={isHost}
                                 socket={socket}
+                            />
+                        } />
+
+                        {/* WAITING ROOM */}
+                        <Route path="/waiting" element={
+                            <WaitingRoom
+                                roomCode={roomCode}
+                                isHost={isHost}
+                                socket={socket}
+                                selectedTrack={SelectedTrack}
+                                setSelectedTrack={setSelectedTrack}
                             />
                         } />
 

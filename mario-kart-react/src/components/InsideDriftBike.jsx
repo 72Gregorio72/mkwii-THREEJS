@@ -104,7 +104,7 @@ const DriftParticles = React.forwardRef((props, ref) => {
     points.current.geometry.attributes.position.needsUpdate = true;
   });
   if (!texture) return null;
-  return (<group ref={ref} visible={false}><points ref={points}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={data.positions} itemSize={3} /></bufferGeometry><pointsMaterial map={texture} size={0.8} color="white" transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation={true} vertexColors={false} /></points></group>);
+  return (<group ref={ref} visible={false}><points ref={points} renderOrder={10}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={data.positions} itemSize={3} /></bufferGeometry><pointsMaterial map={texture} size={0.8} color="white" transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation={true} vertexColors={false} /></points></group>);
 });
 
 function updateSparksColor(level, leftRef, rightRef) {

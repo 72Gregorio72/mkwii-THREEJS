@@ -18,6 +18,9 @@ export function SmartMap({ modelPath, scale = 1 }) {
         child.material.depthWrite = true
         
         child.material.side = THREE.DoubleSide
+        
+        // Imposta renderOrder basso per renderizzare la pista sotto gli altri oggetti
+        child.renderOrder = -1
 
         const name = child.name.toLowerCase()
         if (name.includes('collider') || name.includes('polygon456')) {

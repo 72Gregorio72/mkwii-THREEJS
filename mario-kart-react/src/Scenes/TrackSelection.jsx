@@ -30,13 +30,13 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
             
             const handleRoomState = (data) => {
                 if (data.roomCode === roomCode && data.isTrackSelected) {
-                    console.log('[Track] Track already selected, navigating to game:', data.selectedTrack.name);
+                    console.log('[Track] Track already selected, navigating to waiting room:', data.selectedTrack.name);
                     const trackData = {
                         ...data.selectedTrack,
                         start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
                     };
                     setSelectedTrack(trackData);
-                    navigate('/game');
+                    navigate('/waiting');
                 }
             };
             
@@ -57,7 +57,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
                         start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
                     };
                     setSelectedTrack(trackData);
-                    navigate('/game');
+                    navigate('/waiting');
                 }
             };
             

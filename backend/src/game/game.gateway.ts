@@ -297,6 +297,31 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
   }
 
+  @SubscribeMessage('start_game')
+  handleStartGame(client: Socket, payload: { roomCode: string }) {
+    const roomCode = payload.roomCode;
+    if (!roomCode || !this.roomData.has(roomCode)) return;
+
+    const room = this.roomData.get(roomCode);
+    if (!room) return;
+    
+    // Only host can start game
+    if (room.hostId !== client.id) {
+      console.log(`Non-host ${client.id} tried to start game`);
+      return;
+    }
+
+    console.log(`Host ${client.id} starting game for room ${roomCode}`);
+    
+    // Update game state
+    room.gameState = 'RACING';
+    
+    // Broadcast game start to all players in room
+    this.server.emit('game_started', {
+      roomCode: roomCode
+    });
+  }
+
   @SubscribeMessage('waiting_for_track')
   handleWaitingForTrack(client: Socket, payload: { roomCode: string }) {
     const roomCode = payload.roomCode;
