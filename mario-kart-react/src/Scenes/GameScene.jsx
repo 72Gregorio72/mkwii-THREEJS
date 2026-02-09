@@ -16,6 +16,7 @@ import { RoadWalls } from '../Tracks/RoadWalls.jsx'
 import { GameHUD } from '../ui/GameHUD.jsx'
 import { RaceResults } from '../ui/RaceResults.jsx'
 import { LobbyScreen } from '../ui/LobbyScreen.jsx'
+import { Minimap } from '../ui/Minimap.jsx'
 import { ItemBoxesMap } from '../Items/ItemBoxes.jsx'
 import { NetworkManager } from '../multiplayer/NetworkManager.jsx'
 import { RemoteOpponent } from '../multiplayer/RemoteOpponent.jsx'
@@ -700,8 +701,20 @@ export function GameScene({
                 rank={playerRank} 
                 gameState={gameState} 
                 finished={finished} 
-                onExit={handleExitRace} // <--- Passiamo il gestore di uscita all'HUD
+                onExit={handleExitRace}
             />
+
+            {/* MINIMAP */}
+            {gameState !== 'lobby' && (
+                <Minimap 
+                    trackPath={selectedTrack.Waypoints[0]}
+                    playerRef={playerRef}
+                    botRefs={botRefs}
+                    remoteRefMap={remoteRefMap}
+                    opponents={opponents}
+                    playerRank={playerRank}
+                />
+            )}
 
             {/* RACE RESULTS - Mostra solo quando il player ha finito */}
             {finished && finishers.length > 0 && <RaceResults finishers={finishers} />}
