@@ -18,58 +18,22 @@ const INTERPOLATION_DELAY = 100;
 // --- NUOVO COMPONENTE PER GESTIRE LE ANIMAZIONI ---
 // Questo componente legge i dati in tempo reale e aggiorna solo la parte visiva
 const RemoteVisuals = ({ opponentsDataRef, playerId, vehicle, character }) => {
-    // Usiamo dei ref per i valori correnti per fare lo smoothing (Lerp)
-    const currentSpeed = useRef(0);
-    const currentSteer = useRef(0);
-    const currentDrift = useRef(0);
+    // Stato locale per le animazioni (speed, steer, drift)
+    const [animState, setAnimState] = useState({ speed: 0, steer: 0, drift: 0, driftLevel: 0 });
     
-    // Stato per passare i dati puliti ai componenti figli
-    const [animData, setAnimData] = useState({ speed: 0, steer: 0, drift: 0 });
-
-    const prevPos = useRef(new Vector3());
-    const isFirstFrame = useRef(true);
-
-    useFrame((state, delta) => {
+    // Usiamo un ref per limitare gli aggiornamenti di stato se necessario, 
+    // ma React 18 gestisce bene gli aggiornamenti frequenti se il componente è leggero.
+    useFrame(() => {
         const serverData = opponentsDataRef.current[playerId];
         if (!serverData) return;
 
-        // 1. Calcolo Velocità Basato sulla Posizione (Anti T-Pose)
-        const pos = new Vector3(serverData.x, serverData.y, serverData.z);
-        let calculatedSpeed = 0;
-
-        if (!isFirstFrame.current) {
-            const dist = pos.distanceTo(prevPos.current);
-            // Evitiamo divisioni per zero o delta troppo piccoli
-            if (delta > 0.01) {
-                calculatedSpeed = dist / delta;
-            }
-        } else {
-            isFirstFrame.current = false;
-        }
-        prevPos.current.copy(pos);
-
-        // 2. LOGICA "DEADZONE" (Soglia minima)
-        // Se la velocità è inferiore a 0.5 (molto lento/fermo), forziamola a 0
-        // Questo impedisce alle ruote di girare quando il kart è fermo ma "vibra" per la fisica
-        if (calculatedSpeed < 0.5) calculatedSpeed = 0;
-
-        // 3. SMOOTHING (Lerp)
-        // Invece di passare da 0 a 20 in un frame, ci arriviamo gradualmente.
-        // Il fattore 10 * delta rende la transizione fluida ma reattiva.
-        currentSpeed.current = MathUtils.lerp(currentSpeed.current, calculatedSpeed, 10 * delta);
-        
-        // Smooth anche per lo sterzo per evitare scatti delle ruote anteriori
-        const targetSteer = serverData.steer || 0;
-        currentSteer.current = MathUtils.lerp(currentSteer.current, targetSteer, 10 * delta);
-
-        // Drift non ha bisogno di molto smoothing, è on/off o graduale
-        currentDrift.current = serverData.drift || 0;
-
-        // 4. Aggiorniamo lo stato (che aggiorna RacerModel e VehicleModel)
-        setAnimData({
-            speed: currentSpeed.current,
-            steer: currentSteer.current,
-            drift: currentDrift.current
+        // Aggiorniamo lo stato visuale con i dati più recenti dal server
+        // Nota: serverData.speed arriva dal NetworkManager
+        setAnimState({
+            speed: serverData.speed || 0,
+            steer: serverData.steer || 0,
+            drift: serverData.drift || 0,
+            driftLevel: serverData.driftLevel || 0
         });
     });
 
@@ -80,24 +44,21 @@ const RemoteVisuals = ({ opponentsDataRef, playerId, vehicle, character }) => {
                 scale={1.4} 
                 rotation={[0, Math.PI, 0]} 
                 isBike={vehicle.isBike} 
-                // Passiamo i dati "puliti" e interpolati
-                speed={animData.speed}       
-                steer={animData.steer}       
-                drift={animData.drift} 
-                // Nota: Rimuovi isRemote={true} da qui se VehicleModel lo usa per bloccare le animazioni
-                // oppure assicurati che VehicleModel non abbia "if (isRemote) return"
+                speed={animState.speed}       // <--- Ora è dinamico!
+                steer={animState.steer}       // <--- Ora è dinamico!
+                drift={animState.drift} 
             />
             <group rotation={[0, Math.PI, 0]}>
                 <RacerModel
                     isInMenu={false} 
-                    // isRemote={true} // <-- Rimuovi o metti false se vuoi le animazioni complete
+                    isRemote={true} 
                     characterConfig={character.modelConfig} 
                     vehicleConfig={vehicle} 
                     isKart={true} 
-                    steer={animData.steer}   
-                    drift={animData.drift} 
+                    steer={animState.steer}   // <--- Ora è dinamico!
+                    drift={animState.drift} 
                     scale={1.5} 
-                    speed={animData.speed}
+                    speed={animState.speed}   // <--- Risolve la T-Pose
                 />
             </group>
         </group>
@@ -111,6 +72,7 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
     const renderBuffer = useRef([]);
     
     // Audio group ref
+    // Audio group ref
     const audioGroupRef = useRef(null);
     const [audioGroupMounted, setAudioGroupMounted] = useState(false);
     
@@ -121,6 +83,7 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
     const smallTimer = useRef(null);
     
     // Audio Logic
+    // Audio Logic
     const { updateAudio, startIdleAudio, stopAllAudio } = usePositionalKartAudio({
         isBike: vehicle?.isBike || false,
         isActive: isRaceActive,
@@ -130,10 +93,13 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
             maxDistance: 100,
             rolloffFactor: 1.2,
             volume: 0.5
+            volume: 0.5
         }
     });
 
     useEffect(() => {
+        if (audioGroupMounted && isRaceActive) startIdleAudio();
+        return () => stopAllAudio();
         if (audioGroupMounted && isRaceActive) startIdleAudio();
         return () => stopAllAudio();
     }, [audioGroupMounted, isRaceActive, startIdleAudio, stopAllAudio]);
@@ -154,24 +120,40 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
 
     // Gestione Effetti
     const { isBulletBill = false, isStar = false, isMega = false } = data.effects || {};
+    // Gestione Effetti
+    const { isBulletBill = false, isStar = false, isMega = false } = data.effects || {};
     const latestEffects = useRef({ isBulletBill, isStar, isMega });
     useEffect(() => {
         latestEffects.current = { isBulletBill, isStar, isMega };
     }, [isBulletBill, isStar, isMega]);
 
     // LOGICA MOVIMENTO (Interpolazione e Audio)
+    // LOGICA MOVIMENTO (Interpolazione e Audio)
     useFrame((state, delta) => {
         const serverData = opponentsDataRef.current[playerId];
         if (!serverData || !rb.current) return;
 
         // ... [Codice Buffer Interpolazione invariato] ...
+        // ... [Codice Buffer Interpolazione invariato] ...
         renderBuffer.current.push({
             t: Date.now(),
             pos: [serverData.x, serverData.y, serverData.z],
             rot: [serverData.rotation?.x ?? 0, serverData.rotation?.y ?? 0, serverData.rotation?.z ?? 0, serverData.rotation?.w ?? 1]
+            rot: [serverData.rotation?.x ?? 0, serverData.rotation?.y ?? 0, serverData.rotation?.z ?? 0, serverData.rotation?.w ?? 1]
         });
 
         if (renderBuffer.current.length > 20) renderBuffer.current.shift();
+        
+        // Interpolazione fisica
+        if (renderBuffer.current.length >= 2) {
+             const now = Date.now();
+             const renderTime = now - INTERPOLATION_DELAY;
+             let i = 0;
+             while(i < renderBuffer.current.length - 1 && renderBuffer.current[i+1].t <= renderTime) {
+                 i++;
+             }
+             const b0 = renderBuffer.current[i];
+             const b1 = renderBuffer.current[i + 1];
         
         // Interpolazione fisica
         if (renderBuffer.current.length >= 2) {
@@ -193,12 +175,25 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
                  const q0 = new Quaternion(...b0.rot);
                  const q1 = new Quaternion(...b1.rot);
                  q0.slerp(q1, alpha);
+             if (b0 && b1) {
+                 const alpha = Math.min(1, Math.max(0, (renderTime - b0.t) / (b1.t - b0.t)));
+                 const interpX = MathUtils.lerp(b0.pos[0], b1.pos[0], alpha);
+                 const interpY = MathUtils.lerp(b0.pos[1], b1.pos[1], alpha);
+                 const interpZ = MathUtils.lerp(b0.pos[2], b1.pos[2], alpha);
+                 
+                 const q0 = new Quaternion(...b0.rot);
+                 const q1 = new Quaternion(...b1.rot);
+                 q0.slerp(q1, alpha);
 
+                 rb.current.setNextKinematicTranslation({ x: interpX, y: interpY, z: interpZ });
+                 rb.current.setNextKinematicRotation(q0);
+             }
                  rb.current.setNextKinematicTranslation({ x: interpX, y: interpY, z: interpZ });
                  rb.current.setNextKinematicRotation(q0);
              }
         }
 
+        // Audio Update
         // Audio Update
         const currentSpeed = serverData.speed || 0;
         const isAccelerating = currentSpeed > 0.5;
@@ -206,6 +201,7 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
         const driftLevel = serverData.driftLevel || 0;
         updateAudio(currentSpeed, isAccelerating, driftLevel, isDrifting);
 
+        // Effetti Visivi (Scale, Hit) - Logica invariata
         // Effetti Visivi (Scale, Hit) - Logica invariata
         if (visualGroupRef.current) {
             if (isHitRef.current) {
@@ -220,11 +216,15 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
             let targetScale = isMega ? 2.5 : (isSmall.current ? 0.5 : 1);
             visualGroupRef.current.scale.lerp(new Vector3(targetScale, targetScale, targetScale), delta * 5);
             // ... [Codice Star invariato] ...
+            // ... [Codice Star invariato] ...
             if (isStar) {
                 const time = state.clock.elapsedTime * 5;
                 const rainbowColor = new Color().setHSL((time % 1), 1.0, 0.5);
                 visualGroupRef.current.traverse((child) => {
                     if (child.isMesh && child.material) {
+                         if (!child.userData.hasCloned) { child.material = child.material.clone(); child.userData.hasCloned = true; }
+                         child.material.emissive.copy(rainbowColor);
+                         child.material.emissiveIntensity = 0.5;
                          if (!child.userData.hasCloned) { child.material = child.material.clone(); child.userData.hasCloned = true; }
                          child.material.emissive.copy(rainbowColor);
                          child.material.emissiveIntensity = 0.5;
@@ -235,6 +235,7 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
     });
 
     // ... [Event Listeners invariati] ...
+    // ... [Event Listeners invariati] ...
     useEffect(() => {
         const handleHit = (e) => {
              if (e.detail?.victimId === playerId) {
@@ -243,8 +244,25 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
                  isHitRef.current = true;
                  spinTimer.current = 1.0; 
              }
+             if (e.detail?.victimId === playerId) {
+                 const { isBulletBill, isStar, isMega } = latestEffects.current;
+                 if (isBulletBill || isStar || isMega) return;
+                 isHitRef.current = true;
+                 spinTimer.current = 1.0; 
+             }
         };
         const handleLightning = (e) => {
+             if (e.detail?.attackerId !== playerId) {
+                 const { isBulletBill, isStar, isMega } = latestEffects.current;
+                 if (isBulletBill || isStar || isMega) return;
+                 setTimeout(() => {
+                     isHitRef.current = true;
+                     spinTimer.current = 1.0;
+                     isSmall.current = true;
+                     if (smallTimer.current) clearTimeout(smallTimer.current);
+                     smallTimer.current = setTimeout(() => isSmall.current = false, 10000);
+                 }, Math.random() * 400);
+             }
              if (e.detail?.attackerId !== playerId) {
                  const { isBulletBill, isStar, isMega } = latestEffects.current;
                  if (isBulletBill || isStar || isMega) return;
@@ -276,11 +294,21 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
             <BallCollider args={[PHYSICS_RADIUS]} />
             
             <group ref={(node) => { audioGroupRef.current = node; if (node && !audioGroupMounted) setAudioGroupMounted(true); }} />
+            <group ref={(node) => { audioGroupRef.current = node; if (node && !audioGroupMounted) setAudioGroupMounted(true); }} />
             
             <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]}>
                 
                 {/* Visualizzazione Normale del Kart/Personaggio */}
+                
+                {/* Visualizzazione Normale del Kart/Personaggio */}
                 <group visible={!isBulletBill}>
+                    {/* USIAMO IL NUOVO COMPONENTE PER LE ANIMAZIONI */}
+                    <RemoteVisuals 
+                        opponentsDataRef={opponentsDataRef}
+                        playerId={playerId}
+                        vehicle={vehicle}
+                        character={character}
+                    />
                     {/* USIAMO IL NUOVO COMPONENTE PER LE ANIMAZIONI */}
                     <RemoteVisuals 
                         opponentsDataRef={opponentsDataRef}
@@ -292,8 +320,12 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
 
                 {/* Visualizzazione Bullet Bill */}
                 <group visible={!!isBulletBill} scale={2.5} position={[0, 0.8, 0]} rotation={[0, Math.PI, 0]}>
+
+                {/* Visualizzazione Bullet Bill */}
+                <group visible={!!isBulletBill} scale={2.5} position={[0, 0.8, 0]} rotation={[0, Math.PI, 0]}>
                     <primitive object={billClone} />
                 </group>
+
 
             </group>
         </RigidBody>
