@@ -112,7 +112,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   handleMove(client: Socket, payload: any) {
     this.gameService.updatePlayer(client.id, payload);
   }
-
+// bot online
   @SubscribeMessage('bot_update')
   handleBotUpdate(client: Socket, payload: { botId: string, position: any, rotation: any, velocity: any }) {
     // Only host should send bot updates

@@ -745,7 +745,7 @@ export function GameScene({
                     />
                 )}
 
-                <Physics debug={true}>
+                <Physics debug={false}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
