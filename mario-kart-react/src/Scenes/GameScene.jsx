@@ -905,14 +905,25 @@ export function GameScene({
 
                     {/* OPPONENTI REMOTI - Solo in multiplayer */}
                     {roomCode && opponents.map((playerData) => {
+                        // 1. Cerca i dati remoti
+                        const remoteCharacter = Characters.find(c => c.id === playerData.charId);
+                        const remoteVehicle = VEHICLE_DATABASE[playerData.vehicleId];
+
+                        // 2. FALLBACK DI SICUREZZA:
+                        // Se remoteVehicle è undefined, usa 'vehicle' (il tuo locale).
+                        // Se anche quello fallisce, prendi il PRIMO veicolo del database.
+                        const safeVehicle = remoteVehicle || vehicle || Object.values(VEHICLE_DATABASE)[0];
+                        const safeCharacter = remoteCharacter || character || Characters[0];
+
                         return (
                             <RemoteOpponent 
                                 key={playerData.id} 
-                                playerId={playerData.id} // Passa l'ID
+                                playerId={playerData.id}
                                 ref={remoteRefMap.current[playerData.id]}
-                                opponentsDataRef={opponentsDataRef} // Passa il Ref globale
-                                character={Characters.find(c => c.id === playerData.charId) || character} 
-                                vehicle={VEHICLE_DATABASE[playerData.vehicleId] || vehicle}
+                                opponentsDataRef={opponentsDataRef}
+                                // Passa i dati SICURI
+                                character={safeCharacter} 
+                                vehicle={safeVehicle} 
                                 userData={{ type: 'opponent', id: playerData.id }} 
                                 data={playerData}
                             />

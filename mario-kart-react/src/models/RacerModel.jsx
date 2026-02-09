@@ -103,19 +103,24 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   const { actions, names } = useAnimations(anims, group)
 
   // Gestione Animazioni
-  useEffect(() => {
+    useEffect(() => {
+        let targetAnim = 'idle';
+        
+        // Se è un kart, forza l'animazione di guida, IGNORANDO altre logiche
+        if (isKart) {
+            console.log(`vehicle animation type: ${vehicleConfig.animationType}`);
+            targetAnim = vehicleConfig?.animationType || 'kart';
+        } else if (isInMenu) {
+            targetAnim = 'idle';
+        }
 
-      let targetAnim = 'idle';
-      console.log(vehicleConfig.animationType);
-      if (isKart && vehicleConfig) targetAnim = vehicleConfig.animationType || 'kart';
-
-      names.forEach(name => {
-          const action = actions[name];
-          if (!action) return;
-          if (name === targetAnim) action.reset().fadeIn(0.2).play().setLoop(LoopRepeat);
-          else action.fadeOut(0.2);
-      });
-  }, [vehicleConfig?.animationType, isKart, actions, names]);
+        names.forEach(name => {
+            const action = actions[name];
+            if (!action) return;
+            if (name === targetAnim) action.reset().fadeIn(0.2).play().setLoop(LoopRepeat);
+            else action.fadeOut(0.2);
+        });
+    }, [vehicleConfig, isKart, isInMenu, actions, names]);
 
   useEffect(() => {
       clone.traverse(o => { 
