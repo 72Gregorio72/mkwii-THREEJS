@@ -1,107 +1,135 @@
 import React, { useState } from 'react'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { Characters } from './components/Data'
 import { CharacterSelection } from './Scenes/CharacterSelection'
 import { VehicleSelection } from './Scenes/VehicleSelection'
 import { TrackSelection } from './Scenes/TrackSelection'
-import { GameScene } from './Scenes/GameScene' // Import the new component
+import { GameScene } from './Scenes/GameScene'
+import { RoomSelection } from './Scenes/RoomSelection'
+import { WaitingRoom } from './Scenes/WaitingRoom'
 import { AudioProvider } from './audio/AudioManager'
-import { socket } from './multiplayer/socket.js';
+import { socket } from './multiplayer/socket.js'
+import { VEHICLE_DATABASE } from './components/Data'
+import { Tracks } from './components/Data'
+
+// Creiamo un piccolo componente per la Home
+const MainMenu = () => {
+    const navigate = useNavigate();
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '100px', gap: '20px' }}>
+            <h1>Mario Kart Three.js</h1>
+            <button onClick={() => navigate('/room')}>Multiplayer</button>
+            <button onClick={() => navigate('/character')}>Solo Play</button>
+            <button onClick={() => navigate('/game')}>Direct to GameScene (Testing)</button>
+        </div>
+    );
+};
 
 export default function App() {
-	
-    const [MenuState, setMenuState] = useState(-1)
     
     // State for selections
     const [SelectedCharacter, setSelectedCharacter] = useState(Characters[0])
-    const [SelectedVehicle, setSelectedVehicle] = useState(null)
-	const [SelectedTrack, setSelectedTrack] = useState(null)
+    const [SelectedVehicle, setSelectedVehicle] = useState(VEHICLE_DATABASE.StandardKartS)
+    const [SelectedTrack, setSelectedTrack] = useState(Tracks['Daisy Circuit'])
+    
+    // Room state
+    const [roomCode, setRoomCode] = useState(null)
+    const [isHost, setIsHost] = useState(false)
+    
     // Data source
     const [availableCharacters, ] = useState(Characters)
 
+    const handleCreateRoom = (code) => {
+        setRoomCode(code);
+        setIsHost(true);
+        // Emit to server
+        socket.emit('create_room', { roomCode: code });
+    };
+
+    const handleJoinRoom = (code) => {
+        setRoomCode(code);
+        setIsHost(false);
+        // Emit to server
+        socket.emit('join_room', { roomCode: code });
+    };
+
     return (
-		<AudioProvider>
-        	<div style={{ backgroundImage: "url(/sprites/skybox.jpg)", minHeight: '100vh' }}>
+        <AudioProvider>
+            <BrowserRouter>
+                {/* MODIFICA QUI: Sfondo totalmente azzurro (#87CEEB è SkyBlue) */}
+                <div style={{ minHeight: '100vh', backgroundColor: '#3dacf7' }}>
+                    
+                    <Routes>
+                        {/* HOME PAGE */}
+                        <Route path="/" element={<MainMenu />} />
 
-				{MenuState === -1 && (
-					<button onClick={() => setMenuState(0)}>Character Selection</button>
-				)}
+                        {/* ROOM SELECTION */}
+                        <Route path="/room" element={
+                            <RoomSelection 
+                                onCreateRoom={handleCreateRoom}
+                                onJoinRoom={handleJoinRoom}
+                                socket={socket}
+                                setSelectedTrack={setSelectedTrack}
+                            />
+                        } />
 
-        	    {MenuState === 0 && (
-        	        <CharacterSelection 
-        	            setMenuState={setMenuState} 
-        	            setSelectedCharacter={setSelectedCharacter}
-        	            availableCharacters={availableCharacters}
-        	        />
-        	    )}
+                        {/* SELEZIONE PERSONAGGIO */}
+                        <Route path="/character" element={
+                            <CharacterSelection 
+                                onNext={() => {}} 
+                                setSelectedCharacter={setSelectedCharacter}
+                                availableCharacters={availableCharacters}
+                            />
+                        } />
 
-        	    {MenuState === 1 && (
-        	        <VehicleSelection 
-        	            setMenuState={setMenuState} 
-        	            selectedCharacter={SelectedCharacter}
-        	            setSelectedVehicle={setSelectedVehicle} 
-        	        />
-        	    )}
+                        {/* SELEZIONE VEICOLO */}
+                        <Route path="/vehicle" element={
+                            <VehicleSelection 
+                                selectedCharacter={SelectedCharacter}
+                                setSelectedVehicle={setSelectedVehicle} 
+                            />
+                        } />
 
-				{MenuState === 2 && (
-					<TrackSelection
-						setMenuState={setMenuState}
-						setSelectedTrack={setSelectedTrack}
-					/>
-				)}
+                        {/* SELEZIONE PISTA */}
+                        <Route path="/track" element={
+                            <TrackSelection
+                                setSelectedTrack={setSelectedTrack}
+                                roomCode={roomCode}
+                                isHost={isHost}
+                                socket={socket}
+                            />
+                        } />
 
-        	    {MenuState === 3 && (
-					<GameScene
-						socket={socket}
-						character={SelectedCharacter}
-						vehicle={SelectedVehicle}
+                        {/* WAITING ROOM */}
+                        <Route path="/waiting" element={
+                            <WaitingRoom
+                                roomCode={roomCode}
+                                isHost={isHost}
+                                socket={socket}
+                                selectedTrack={SelectedTrack}
+                                setSelectedTrack={setSelectedTrack}
+                            />
+                        } />
 
-						// Passiamo i dati dinamici dalla pista selezionata
-						mapPath={SelectedTrack.file} 
-						checkpointPath={SelectedTrack.checkpoints}
-						maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
-						start_pos={SelectedTrack.startPos}
-						selectedTrack={SelectedTrack}
-						onBack={() => setMenuState(0)}
-					/>
-				)}
-			</div>
-		</AudioProvider>
+                        {/* GIOCO */}
+                        <Route path="/game" element={
+                            <GameScene
+                                socket={socket}
+                                character={SelectedCharacter}
+                                vehicle={SelectedVehicle}
+                                mapPath={SelectedTrack.file} 
+                                checkpointPath={SelectedTrack.checkpoints}
+                                maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
+                                start_pos={SelectedTrack.startPos}
+                                selectedTrack={SelectedTrack}
+                                roomCode={roomCode}
+                                isHostProp={isHost}
+                            />
+                        } />
+                    </Routes>
+
+                </div>
+            </BrowserRouter>
+        </AudioProvider>
     )
 }
-
-{/*
-			<>
-		 <Canvas shadows camera={{ position: [0, 5, 10], fov: 50 }}>
-			<ambientLight intensity={3} />
-			<pointLight position={[10, 10, 10]} intensity={1} castShadow />
-			<Physics>
-				 < RacerModel
-					characterConfig={SelectedCharacter}
-					steer={0}
-					drift={0}
-					debug={true}
-					position={[0, 1, 0]}
-					key={SelectedCharacter.id}
-				/>
-				 <OrbitControls />
-				    < OutsideDriftKart
-					position={[0, 1, 0]}
-					scale={0.01}
-					charModel={Mario}
-					vehicleModel={StandardKartM}
-					/>
-				< OutsideDriftKart
-					position={[0, 1, 0]}
-					scale={0.01}
-					charModel={Mario}
-					bikeModel={StandardKartM}
-					/>
-				<Environment preset="sunset" />
-				<SmartMap 
-					modelPath="/LuigiCircuit_colliders.glb" 
-					scale={1} 
-				/>
-			</Physics>
-		</Canvas> 
-			
-		</>*/}

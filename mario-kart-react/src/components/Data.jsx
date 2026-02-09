@@ -1,4 +1,10 @@
-// --- LISTE VEICOLI PER CLASSE DI PESO ---
+import DaisyCircuit from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit';
+import DaisyCircuit_left from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_left';
+import DaisyCircuit_right from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right';
+import DelfinoSquare0 from '../Bot/Waypoints/DelfinoSquare/DelfinoSquare';
+import DelfinoSquareL from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareL';
+import DelfinoSquareR from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareR';
+
 const SMALL_VEHICLES = [
     'StandardKartS', 'StandardBikeS', 'BoosterSeat', 'BulletBike', 
     'MiniBeast', 'BitBike', 'CheepCharger', 'Quacker', 
@@ -19,23 +25,28 @@ const LARGE_VEHICLES = [
 
 export const Tracks = {
 	'Luigi Circuit': { 
-		file: './Tracks/LuigiCircuit.glb',
+		file: './Tracks/LuigiCircuit/LuigiCircuit.glb',
 		preview: './TrackPreviews/LuigiCircuit.png',
-		startPos: [-200, 10, 270],
+		startPos: [9, 12, 98],
 		checkpoints: './Tracks/LuigiCircuit/LuigiCircuit_checkpoints.glb',
-		maxCheckpoints: 1,
-        soundtrack: 'RACE_LUIGI_CIRCUIT'
+        road: './Tracks/LuigiCircuit/LuigiCircuit_road.glb',
+        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
+		maxCheckpoints: 4,
+        soundtrack: 'RACE_LUIGI_CIRCUIT',
+		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
 		preview: './TrackPreviews/DaisyCircuit.png',
-		startPos: [9, 12, 98],
+		startPos: [100, 12, 98],
 		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
 		road: './Tracks/DaisyCircuit/DaisyCircuit_road.glb',
 		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
 		gridpos: './Tracks/DaisyCircuit/DaisyCircuit_startpos.glb',
 		maxCheckpoints: 3,
-        soundtrack: 'RACE_DAISY_CIRCUIT'
+        soundtrack: 'RACE_DAISY_CIRCUIT',
+		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
 	'Coconut Mall': {
 		file: './Tracks/CoconutMall/CoconutMall.glb',
@@ -44,7 +55,42 @@ export const Tracks = {
 		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
 		maxCheckpoints: 5,
         soundtrack: 'RACE_COCONUT_MALL'
-	}
+	},
+	'Bower Castle': {
+		file: './Tracks/BowserCastle/BowserCastle.glb',
+		preview: './TrackPreviews/BowserCastle.png',
+		startPos: [0, 0, 100],
+		checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
+		maxCheckpoints: 7,
+		soundtrack: 'RACE_BOWSER_CASTLE',
+		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+		gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
+		road: './Tracks/BowserCastle/BowserCastle_road.glb',
+	},
+	'Delfino Square': {
+		file: './Tracks/DelfinoSquare/DelfinoSquare.glb',
+		preview: './TrackPreviews/DelfinoSquare.png',
+		startPos: [0, 0, 50],
+		checkpoints: './Tracks/DelfinoSquare/DelfinoSquare_checkpoints.glb',
+		maxCheckpoints: 3,
+		soundtrack: 'RACE_DELPHINO_SQUARE',
+		itemBoxes: './Tracks/DelfinoSquare/DelfinoSquare_itemBox.glb',
+		gridpos: './Tracks/DelfinoSquare/DelfinoSquare_startpos.glb',
+		road: './Tracks/DelfinoSquare/DelfinoSquare_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+	},
+    'Yoshi Falls': {
+        file: './Tracks/YoshiFalls/YoshiFalls.glb',
+        preview: './TrackPreviews/YoshiFalls.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+        maxCheckpoints: 5,
+        soundtrack: 'RACE_YOSHI_FALLS',
+        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+        gridpos: './Tracks/YoshiFalls/YoshiFalls_startpos.glb',
+        road: './Tracks/YoshiFalls/YoshiFalls_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    }
 }
 
 export const Characters = [
@@ -793,12 +839,13 @@ export const VEHICLE_DATABASE = {
 // ============================================
 export const AUDIO_TRACKS = {
     MENU: '/soundTracks/TITLE_SCREEN.mp3', // title screen music
-    LOBBY_MUSIC: '/soundTracks/SET_UP.mp3', // lobby music
     CHARACTER_KART_SELECT: '/soundTracks/CHARACTER_KART_SELECT_SCREEN.mp3', // kart e character select music
-    COURSE_SELECT: '/soundTracks/COURSE_SELECTION.mp3', // course select music
+    RACE_INTRO: '/soundTracks/RACE_INTRO.mp3',
+    STARTING_GRID: '/soundTracks/STARTING_GRID.mp3',
     RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
     RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
     RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
+    RACE_DELPHINO_SQUARE: '/soundTracks/DELPHINO_SQUARE_ST.mp3',
 };
 
 export const AUDIO_SFX = {
@@ -807,17 +854,27 @@ export const AUDIO_SFX = {
     KART_DOWNSHIFT: '/SFX/kart/KART_DOWN.wav', // downshift sound
     KART_LOOP: '/SFX/kart/KART_LOOP.wav', // loop sound
     KART_SPIN: '/SFX/kart/KART_SPIN.wav', // spin sound
+
     BIKE_IDLE: '/SFX/bike/BIKE_IDLE.wav',
     BIKE_GAS: '/SFX/bike/BIKE_GAS.wav',
     BIKE_DOWNSHIFT: '/SFX/bike/BIKE_DOWN.wav',
     BIKE_LOOP: '/SFX/bike/BIKE_LOOP.wav',
+
     BLUE_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_BLUE.wav',
     RED_DRIFT: '/SFX/drift/SE_VCL_DRIFT_HIBANA_RED.wav',
     TURBO_DRIFT: '/SFX/drift/SE_VCL_DASH.wav',
     NORMAL_DRIFT: '/SFX/drift/SE_VCL_SLIP_ASPHALT.wav',
+
     MOVE_IN_MENU: '/SFX/UI/SE_UI_BIN_IN.wav',
     SELECT_IN_MENU: '/SFX/UI/SE_UI_RADIO_IN.wav',
     START_RACE: '/SFX/UI/SE_UI_RACE_OK.wav',
+
+    COUNTDOWN_RACE: '/SFX/race/321_RACE_COUNT.wav',
+    FINISH_COUNTDOWN: '/SFX/race/SE_RC_GO.wav',
+
+    FINAL_LAP: '/SFX/race/RACE_FINA_LAP.wav',
+    SECOND_LAP: '/SFX/race/RACE_SECOND_LAP.wav',
+    FINISH_RACE: '/SFX/race/RACE_GOAL.wav',
     
     BABY_MARIO_WIN: '/SFX/BabyMario/VO_BMR_GOL_GOD_END.rwav.wav',
     BABY_MARIO_LOSE: '/SFX/BabyMario/VO_BMR_GOL_BAD_END.rwav.wav',

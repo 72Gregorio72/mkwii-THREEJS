@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react'
+import React, { useMemo, useState, useRef, useEffect } from 'react'
 import * as THREE from 'three'
 import { useGLTF, Clone, PositionalAudio } from '@react-three/drei';
 import { RigidBody } from '@react-three/rapier'
@@ -11,7 +11,7 @@ function giveItemToPlayer(other) {
 
     if (userData && userData.type === 'racer') {
         const racerId = userData.id;
-        console.log(`📦 BOX PRESO DA: ${racerId}`);
+        // console.log(`📦 BOX PRESO DA: ${racerId}`);
 
         window.dispatchEvent(new CustomEvent('item-collected', {
             detail: { racerId: racerId }
@@ -31,11 +31,23 @@ function SingleItemBox({ position, rotation }) {
     // Riferimento per l'animazione
     const meshRef = useRef()
 
+    // Imposta renderOrder per renderizzare sopra la pista
+    useEffect(() => {
+        if (meshRef.current) {
+            meshRef.current.traverse((child) => {
+                if (child.isMesh) {
+                    child.renderOrder = 1;
+                }
+            });
+        }
+    }, []);
+
     // Logica di collisione
     const handleIntersection = ({ other }) => {
         if (!isActive) return;
 		// Qui potremmo aggiungere logica per dare un oggetto al giocatore
         if (audioRef.current) {
+            audioRef.current.setVolume(1.3);
             audioRef.current.play();
         }
 		giveItemToPlayer(other);
@@ -73,7 +85,7 @@ function SingleItemBox({ position, rotation }) {
                  <PositionalAudio
                     ref={audioRef}
                     url={AUDIO_SFX.ITEM_BOX_BREAK} // Suono della scatola che si rompe
-                    distance={5}  // Distanza a cui si sente al 100%
+                    distance={8}  // Distanza a cui si sente al 100%
                     loop={false}
                  />
             </group>
@@ -87,8 +99,8 @@ export function ItemBoxesMap({ mapModelPath, triggerName = "Cube" }) {
     const itemSpawns = useMemo(() => {
         const spawns = []
         
-        console.group("--- DEBUG ITEM BOXES ---");
-        console.log(`Cercando oggetti che contengono: "${triggerName}"`);
+        // console.group("--- DEBUG ITEM BOXES ---");
+        // console.log(`Cercando oggetti che contengono: "${triggerName}"`);
         scene.updateMatrixWorld(true);
 
         let objectsFound = 0;
@@ -115,7 +127,7 @@ export function ItemBoxesMap({ mapModelPath, triggerName = "Cube" }) {
             }
         });
 
-        console.log(`Totale Item trovati: ${objectsFound}`);
+        // console.log(`Totale Item trovati: ${objectsFound}`);
         console.groupEnd();
 
         return spawns

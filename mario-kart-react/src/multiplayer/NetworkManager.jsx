@@ -2,12 +2,12 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 
-export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef }) => {
+export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef, setRemoteBots, isHost }) => {
     const [ping, setPing] = useState(0);
     // 2. Tell the server who we are when we join/load
     useEffect(() => {
         if (!socket || !character || !vehicle) return;
-        console.log("Sending player details to server:", character.id, vehicle.id);
+        // console.log("Sending player details to server:", character.id, vehicle.id);
         socket.emit('set_details', {
             charId: character.id,
             vehicleId: vehicle.id
@@ -43,55 +43,104 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
 		if (now - lastSendTime.current < 0.033) return; 
 		lastSendTime.current = now;
 
-		// PRENDI I DATI REALI DALLA FISICA LOCALE (L'AUTORITÀ)
-		const pos = playerRef.current.translation(); 
-		const rot = playerRef.current.rotation();
-		
-		const inputState = playerRef.current.getInputState?.() || { steer: 0, drift: 0 };
-		const effectState = playerRef.current.getEffectState?.() || { isBulletBill: false };
+		try {
+			const pos = playerRef.current.translation(); 
+			const rot = playerRef.current.rotation();
+			
+			const inputState = playerRef.current.getInputState?.() || { steer: 0, drift: 0, speed: 0, driftLevel: 0 };
+			const effectState = playerRef.current.getEffectState?.() || { isBulletBill: false };
 
-		// IL CLIENT È SOVRANO: Manda la sua verità al server
-		socket.emit('move_kart', {
-			x: pos.x, 
-			y: pos.y, 
-			z: pos.z,
-			rotation: rot, // Assicurati che sia l'oggetto {x,y,z,w}
-			steer: inputState.steer,
-			drift: inputState.drift,
-			effects: effectState,
-		});
+			// IL CLIENT È SOVRANO: Manda la sua verità al server
+			socket.emit('move_kart', {
+				x: pos.x, 
+				y: pos.y, 
+				z: pos.z,
+				rotation: rot,
+				steer: inputState.steer,
+				drift: inputState.drift,
+				speed: inputState.speed,           // Velocità per audio remoto
+				driftLevel: inputState.driftLevel, // Livello drift per audio remoto
+				effects: effectState,
+			});
+		} catch (error) {
+			// console.log("Errore durante l'invio della posizione al server:", error);
+		}
 	});
 
-	// --- NetworkManager.jsx ---
+	const opponentIds = useRef(new Set());
 	useEffect(() => {
 		if (!socket) return;
 
 		const onWorldUpdate = (data) => {
 			const allPlayers = data.players || [];
 			const others = allPlayers.filter(p => p.id !== socket.id);
-
-			// 1. Aggiorna il REF (Dati per il movimento fluido senza re-render)
+			
+			// Aggiorna opponentsDataRef con TUTTI i dati (player remoti + bot)
 			others.forEach(p => {
 				opponentsDataRef.current[p.id] = p;
 			});
 
-			// 2. Aggiorna lo STATO (Solo per dire a React QUALI componenti RemoteOpponent montare)
-			// Usiamo un set di ID per evitare re-render inutili se i dati cambiano ma i giocatori sono gli stessi
-			setOpponents(prev => {
-				const newIds = others.map(o => o.id).join(',');
-				const prevIds = prev.map(o => o.id).join(',');
-				if (newIds === prevIds) return prev; // Se i giocatori sono gli stessi, non aggiornare lo stato
-				return others;
-			});
+			// Se non sei l'host e ricevi bot, popola remoteBots per renderizzarli
+			if (!isHost && setRemoteBots) {
+				const bots = others.filter(p => p.isBot);
+				if (bots.length > 0) {
+					setRemoteBots(prev => {
+						// Aggiorna solo se è cambiato il numero o gli ID
+						if (prev.length !== bots.length) {
+							console.log('[Client] Receiving', bots.length, 'bots from host');
+							return bots.map(b => ({
+								id: b.id,
+								charId: b.charId || 'mario',
+								vehicleId: b.vehicleId || 'StandardKartM'
+							}));
+						}
+						return prev;
+					});
+				}
+			}
 
-			if (data.items) setItems(data.items);
+			if (others.length !== opponentIds.current.size) {
+				opponentIds.current = new Set(others.map(o => o.id));
+				setOpponents(others);
+			}
 		};
 
+		const onItemSpawned = (newItem) => {
+			const isMine = newItem.ownerId === socket.id;
+			
+			setItems(prev => {
+				if (prev.find(i => i.id === newItem.id)) return prev;
+				return [...prev, { ...newItem, isLocal: isMine }];
+			});
+		};
+
+		const onItemRemoved = ({ itemId }) => {
+			setItems(prev => prev.filter(i => i.id !== itemId));
+		};
+
+		const handleRemoteHit = (data) => {
+			window.dispatchEvent(new CustomEvent('banana-hit', { 
+				detail: { 
+					victimId: data.victimId, 
+					type: data.type 
+				} 
+			}));
+		};
+
+    	socket.on('banana-hit', handleRemoteHit);
 		socket.on('world_update', onWorldUpdate);
-		return () => socket.off('world_update', onWorldUpdate);
+		socket.on('item_spawned', onItemSpawned);
+		socket.on('item_removed', onItemRemoved);
+
+		return () => {
+			socket.off('world_update', onWorldUpdate);
+			socket.off('item_spawned', onItemSpawned);
+			socket.off('item_removed', onItemRemoved);
+			socket.off('banana-hit', handleRemoteHit);
+		};
 	}, [socket, setOpponents, setItems, opponentsDataRef]);
 
-    return (
+    /*return (
         <Html fullscreen style={{ pointerEvents: 'none' }}>
             <div style={{
                 position: 'absolute',
@@ -107,5 +156,5 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
                 PING: {ping}ms
             </div>
         </Html>
-    );
+    );*/
 };

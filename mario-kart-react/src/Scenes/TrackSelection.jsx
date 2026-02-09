@@ -1,9 +1,18 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState , useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Tracks } from '../components/Data'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 
-export function TrackSelection({ setMenuState, setSelectedTrack }) {
-    const { playSfx } = useAudio();
+export function TrackSelection({ setSelectedTrack, roomCode = null, socket = null, isHost = false }) {
+
+    const navigate = useNavigate();
+    const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+    useEffect(() => {
+        if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
+            changeTrack('CHARACTER_KART_SELECT', 100);
+            enableSmoothLoop();
+        }
+    }, [changeTrack, enableSmoothLoop]);
 
     const tracksList = Object.entries(Tracks).map(([name, data]) => ({
         name,
@@ -11,6 +20,59 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
     }));
 
     const [localSelection, setLocalSelection] = useState(tracksList[0]);
+    const [waitingForHost, setWaitingForHost] = useState(false);
+
+    // Controlla se la pista è già stata scelta quando arriviamo qui
+    React.useEffect(() => {
+        if (roomCode && socket && !isHost) {
+            // Richiedi lo stato della room per vedere se la pista è già stata scelta
+            socket.emit('request_room_state', { roomCode });
+            
+            const handleRoomState = (data) => {
+                if (data.roomCode === roomCode && data.isTrackSelected) {
+                    console.log('[Track] Track already selected, navigating to waiting room:', data.selectedTrack.name);
+                    const trackData = {
+                        ...data.selectedTrack,
+                        start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
+                    };
+                    setSelectedTrack(trackData);
+                    navigate('/waiting');
+                }
+            };
+            
+            socket.on('room_state', handleRoomState);
+            return () => socket.off('room_state', handleRoomState);
+        }
+    }, [roomCode, socket, isHost, navigate, setSelectedTrack]);
+
+    // Se sei in multiplayer, aspetta la scelta del tracciato dall'host
+    React.useEffect(() => {
+        if (roomCode && socket) {
+            // Sia host che client ascoltano la conferma dal server
+            const handleTrackSelected = (data) => {
+                if (data.roomCode === roomCode) {
+                    console.log('[Track] Received track from server:', data.track.name);
+                    const trackData = {
+                        ...data.track,
+                        start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
+                    };
+                    setSelectedTrack(trackData);
+                    navigate('/waiting');
+                }
+            };
+            
+            socket.on('track_selected', handleTrackSelected);
+            return () => socket.off('track_selected', handleTrackSelected);
+        }
+    }, [roomCode, socket, navigate, setSelectedTrack]);
+    
+    // Imposta waiting solo per i non-host
+	React.useEffect(() => {
+		if (roomCode && !isHost && socket) {
+			setWaitingForHost(true);
+			socket.emit('waiting_for_track', { roomCode });
+		}
+	}, [roomCode, isHost, socket]);
 
     const handleConfirm = () => {
         if (localSelection) {
@@ -20,8 +82,16 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
                 start_pos: localSelection.startPos || localSelection.start_pos || [0, 2, 0]
             };
             
-            setSelectedTrack(trackData);
-            setMenuState(3);
+            if (roomCode && isHost && socket) {
+                console.log('[Host] Sending track selection:', trackData.name);
+                setSelectedTrack(trackData);
+                socket.emit('select_track', { roomCode, track: trackData });
+                // La navigazione avverrà quando riceveremo track_selected dal server
+            } else if (!roomCode) {
+                // Single player: vai direttamente
+                setSelectedTrack(trackData);
+                navigate('/game');
+            }
         }
     };
 
@@ -50,7 +120,6 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
             overflowY: 'auto',
             padding: '2vh'
         },
-        // CORREZIONE QUI: card è una funzione
         card: (isActive) => ({
             background: isActive 
                 ? 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255, 230, 0, 0.1) 100%)' 
@@ -73,7 +142,6 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
             backgroundPosition: 'center',
             position: 'relative'
         },
-        // CORREZIONE QUI: label ora è una funzione che accetta isActive
         label: (isActive) => ({
             height: '20%',
             background: 'rgba(0,0,0,0.8)',
@@ -96,7 +164,35 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>Select Track</div>
-
+            
+            {/* Se sei in multiplayer e non sei l'host, mostra waiting */}
+            {waitingForHost ? (
+                <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '20px'
+                }}>
+                    <h2 style={{ fontSize: '4vh', color: '#ffe600' }}>Waiting for host to select track...</h2>
+                    <div style={{
+                        width: '60px',
+                        height: '60px',
+                        border: '5px solid #ffe600',
+                        borderTop: '5px solid transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                    }} />
+                    <style>{`
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    `}</style>
+                </div>
+            ) : (
+            <>
             <div style={styles.content}>
                 <div style={styles.grid}>
                     {tracksList.map((track, index) => {
@@ -104,7 +200,7 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
                         return (
                             <div 
                                 key={index} 
-                                style={styles.card(isActive)} // Ora funziona perché card è una funzione
+                                style={styles.card(isActive)}
                                 onClick={() => {
                                     setLocalSelection(track);
                                     playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
@@ -117,7 +213,7 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
                                 }}>
                                     {!track.preview && <div style={{position:'absolute', top:'40%', width:'100%', textAlign:'center', opacity:0.5}}>NO PREVIEW</div>}
                                 </div>
-                                <div style={styles.label(isActive)}> {/* Ora funziona perché label è una funzione */}
+                                <div style={styles.label(isActive)}>
                                     {track.name}
                                 </div>
                             </div>
@@ -129,7 +225,7 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
             <div style={styles.footer}>
                 <button 
                     style={{...styles.button, background: '#ccc', color: '#333'}}
-                    onClick={() => setMenuState(1)}
+                    onClick={() => navigate('/vehicle')} // <--- 4. Torna alla selezione veicolo
                 >
                     Back
                 </button>
@@ -141,6 +237,8 @@ export function TrackSelection({ setMenuState, setSelectedTrack }) {
                     Start Race
                 </button>
             </div>
+            </>
+            )}
         </div>
     )
 }

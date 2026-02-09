@@ -46,6 +46,10 @@ export const usePositionalKartAudio = ({
   const gasAudioRef = useRef(null);
   const loopAudioRef = useRef(null);
   const driftLoopAudioRef = useRef(null);
+  
+  // Refs per i suoni drift "bling" (blu/rosso) - usano Audio HTML standard
+  const driftBlingAudioRef = useRef(null);
+  const prevDriftLevelRef = useRef(0);
 
   // Buffer audio caricati
   const buffersRef = useRef({
@@ -131,10 +135,10 @@ export const usePositionalKartAudio = ({
         };
 
         isInitializedRef.current = true;
-        console.log('[PositionalAudio] Audio 3D inizializzato per kart');
+        // console.log('[PositionalAudio] Audio 3D inizializzato per kart');
 
       } catch (error) {
-        console.error('[PositionalAudio] Errore caricamento audio:', error);
+        // console.error('[PositionalAudio] Errore caricamento audio:', error);
       }
     };
 
@@ -177,7 +181,15 @@ export const usePositionalKartAudio = ({
       }
     });
     
+    // Ferma anche il suono drift bling
+    if (driftBlingAudioRef.current) {
+      driftBlingAudioRef.current.pause();
+      driftBlingAudioRef.current.src = '';
+      driftBlingAudioRef.current = null;
+    }
+    
     isDriftingRef.current = false;
+    prevDriftLevelRef.current = 0;
   }, []);
 
   /**
@@ -204,9 +216,10 @@ export const usePositionalKartAudio = ({
    * 
    * @param {number} speed - Velocità attuale
    * @param {boolean} isAccelerating - Se sta accelerando
+   * @param {number} driftLevel - Livello drift (0, 1=blu, 2=rosso)
    * @param {boolean} isDrifting - Se sta driftando
    */
-  const updateAudio = useCallback((speed, isAccelerating, isDrifting = false) => {
+  const updateAudio = useCallback((speed, isAccelerating, driftLevel = 0, isDrifting = false) => {
     if (!isInitializedRef.current || !isActive) return;
 
     const absSpeed = Math.abs(speed);
@@ -282,7 +295,28 @@ export const usePositionalKartAudio = ({
       }
       isDriftingRef.current = isDrifting;
     }
-  }, [isActive]);
+    
+    // Gestione suoni drift "bling" blu/rosso
+    if (driftLevel !== prevDriftLevelRef.current) {
+      // Ferma il suono drift precedente se esiste
+      if (driftBlingAudioRef.current) {
+        driftBlingAudioRef.current.pause();
+        driftBlingAudioRef.current.src = '';
+        driftBlingAudioRef.current = null;
+      }
+      
+      // Riproduci nuovo suono se drift level > 0
+      if (driftLevel > 0) {
+        const soundFile = driftLevel === 1 ? AUDIO_SFX.BLUE_DRIFT : AUDIO_SFX.RED_DRIFT;
+        const audio = new Audio(soundFile);
+        audio.volume = volume;
+        audio.play().catch(() => {});
+        driftBlingAudioRef.current = audio;
+      }
+      
+      prevDriftLevelRef.current = driftLevel;
+    }
+  }, [isActive, volume]);
 
   /**
    * Imposta il volume (per tutti gli audio)

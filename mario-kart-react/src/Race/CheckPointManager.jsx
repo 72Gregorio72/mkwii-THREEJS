@@ -1,11 +1,12 @@
-import React, { useRef, useMemo, useEffect } from 'react'
+import React, { useRef, useMemo, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { useGLTF } from '@react-three/drei'
+import { useGLTF, Text } from '@react-three/drei' // Aggiunto Text per debug visivo
 import { RigidBody } from '@react-three/rapier'
 
 export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
     const { scene } = useGLTF(url);
     const hitsQueue = useRef([]);
+    const [lastHit, setLastHit] = useState(null); // Stato locale solo per il feedback visivo del debug
 
     const sensors = useMemo(() => {
         const boxes = [];
@@ -16,84 +17,105 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
                 const id = parseInt(numberOnly);
                 
                 if (!isNaN(id)) {
+                    // Logga in console cosa sta trovando il sistema al caricamento
+                    // console.log(`[Checkpoint Debug] Creato sensore ID: ${id} dalla mesh: ${rawName}`);
+                    
                     boxes.push({
                         id: id,
-                        position: child.position.clone(), // Clona per sicurezza
-                        rotation: child.rotation,
-                        scale: child.scale,
+                        position: child.position.clone(),
+                        rotation: child.rotation.clone(),
+                        scale: child.scale.clone(),
                         geometry: child.geometry
                     });
                 }
             }
         });
-		return boxes.sort((a, b) => a.id - b.id);
+        return boxes.sort((a, b) => a.id - b.id);
     }, [scene, url]);
 
-	useEffect(() => {
+    useEffect(() => {
         if (sensors.length > 0 && onSystemReady) {
-            // Creiamo un oggetto { 1: Vector3, 2: Vector3, ... }
             const posMap = {};
-            sensors.forEach(s => {
-                posMap[s.id] = s.position;
-            });
+            sensors.forEach(s => posMap[s.id] = s.position);
             onSystemReady(posMap);
         }
     }, [sensors, onSystemReady]);
 
-    // Processiamo la coda degli urti al frame successivo
     useFrame(() => {
         if (hitsQueue.current.length > 0) {
             hitsQueue.current.forEach((hit) => {
-                // Passiamo entrambi i dati al genitore: ID Checkpoint e ID Racer
+                // LOG DI INTERSEZIONE
+                console.warn(`[HIT!] Racer: ${hit.racerId} -> Checkpoint: ${hit.cpId}`);
+                setLastHit({ cpId: hit.cpId, racerId: hit.racerId, time: Date.now() });
+                
                 onCheckpointTrigger(hit.cpId, hit.racerId);
             });
-            // Svuota la coda
             hitsQueue.current = [];
         }
     });
 
     return (
         <group>
-            {sensors.map((box, index) => (
-                <RigidBody
-                    key={index} 
-                    type="fixed" 
-                    colliders="trimesh" 
-                    sensor={true} 
-                    position={box.position}
-                    rotation={box.rotation}
-                    scale={box.scale}
-                    // Aggiungiamo un nome al sensore per debug
-                    name={`checkpoint-${box.id}`}
-                    onIntersectionEnter={(payload) => {
-                        // 1. Recuperiamo l'oggetto fisico che ha colpito
-                        const otherBody = payload.other.rigidBodyObject;
-                        
-                        // 2. Controlliamo se ha i userData che abbiamo settato nei veicoli
-                        // (Assicurati che Kart e Bot abbiano userData={{ type: 'racer', id: 'player'/'bot' }})
-                        if (otherBody && otherBody.userData && otherBody.userData.type === 'racer') {
-                            
-                            const racerId = otherBody.userData.id;
-                            const cpId = box.id;
+            {sensors.map((box, index) => {
+                // Cambia colore se è stato l'ultimo colpito negli ultimi 500ms
+                const isRecentlyHit = lastHit?.cpId === box.id && (Date.now() - lastHit.time < 500);
+                
+                return (
+                    <group key={`debug-group-${box.id}`}>
+                        {/* Etichetta testuale sopra il checkpoint */}
+                        <Text
+                            position={[box.position.x, box.position.y + 2, box.position.z]}
+                            fontSize={0.5}
+                            color="white"
+                            anchorX="center"
+                            anchorY="middle"
+                        >
+                            {`CP ${box.id}`}
+                        </Text>
 
-                            // 3. Evitiamo duplicati NELLO STESSO FRAME
-                            // Controlliamo se nella coda c'è già questo specifico racer su questo specifico checkpoint
-                            const alreadyInQueue = hitsQueue.current.some(
-                                hit => hit.cpId === cpId && hit.racerId === racerId
-                            );
+                        <RigidBody
+                            type="fixed" 
+                            colliders="trimesh" 
+                            sensor={true} 
+                            position={box.position}
+                            rotation={box.rotation}
+                            scale={box.scale}
+                            name={`checkpoint-${box.id}`}
+                            onIntersectionEnter={(payload) => {
+                                const otherBody = payload.other.rigidBodyObject;
+                                
+                                // DEBUG: Se colpisci qualcosa che NON è un racer, logga comunque per capire cosa succede
+                                if (otherBody && (!otherBody.userData || otherBody.userData.type !== 'racer')) {
+                                    console.log(`[Debug] Qualcosa ha toccato CP ${box.id} ma non è un racer:`, otherBody.name || 'Unknown');
+                                }
 
-                            if (!alreadyInQueue) {
-                                hitsQueue.current.push({ cpId, racerId });
-                            }
-                        }
-                    }}
-                >
-                    <mesh geometry={box.geometry}>
-                        {/* Rendi visibile true temporaneamente se vuoi vedere dove sono i box */}
-                        <meshBasicMaterial visible={false} color="red" wireframe />
-                    </mesh>
-                </RigidBody>
-            ))}
+                                if (otherBody?.userData?.type === 'racer') {
+                                    const racerId = otherBody.userData.id;
+                                    const cpId = box.id;
+
+                                    const alreadyInQueue = hitsQueue.current.some(
+                                        hit => hit.cpId === cpId && hit.racerId === racerId
+                                    );
+
+                                    if (!alreadyInQueue) {
+                                        hitsQueue.current.push({ cpId, racerId });
+                                    }
+                                }
+                            }}
+                        >
+                            <mesh geometry={box.geometry}>
+                                <meshBasicMaterial 
+                                    visible={true} 
+                                    color={isRecentlyHit ? "yellow" : "red"} 
+                                    wireframe 
+                                    transparent
+                                    opacity={0.5}
+                                />
+                            </mesh>
+                        </RigidBody>
+                    </group>
+                );
+            })}
         </group>
     );
 }

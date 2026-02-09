@@ -1,10 +1,11 @@
 import { useRef } from 'react'
 
-export function useHitboxHandler({ speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints }) {
+export function useHitboxHandler({ speed, boostTime, SETTINGS, onCheckpoint, maxCheckpoints, selectedCharacter, playSfx, AUDIO_SFX }) {
 
   const lastCheckTime = useRef(0);
   const nextCheckpoint = useRef(1); 
-  const currentLap = useRef(1);     
+  const currentLap = useRef(1);
+  const lastBoostSfxTime = useRef(0); // Cooldown per il suono del boost
   
   // Riduciamo il cooldown a 1 secondo, sufficiente per non prenderlo doppio
   // ma abbastanza veloce se fai inversione a U.
@@ -15,6 +16,8 @@ export function useHitboxHandler({ speed, boostTime, SETTINGS, onCheckpoint, max
 
     let obj = hitObject;
     let foundName = '';
+
+	console.log('Hit object:', obj.name);
     
     // Risalita sicura
     for (let i = 0; i < 3; i++) {
@@ -90,9 +93,13 @@ export function useHitboxHandler({ speed, boostTime, SETTINGS, onCheckpoint, max
     }
 
     if (foundName.includes('_boost')) {
+        if (selectedCharacter?.turbo_sfx && AUDIO_SFX?.[selectedCharacter.turbo_sfx] && playSfx) {
+            playSfx(AUDIO_SFX[selectedCharacter.turbo_sfx], 0.6);
+        }
+
         if (boostTime.current < 5) { 
-             boostTime.current = SETTINGS.boostDuration;
-             speed.current = Math.max(speed.current, SETTINGS.maxSpeed + 20);
+            boostTime.current = SETTINGS.boostDuration;
+            speed.current = Math.max(speed.current, SETTINGS.maxSpeed + 20);
         }
         return { type: 'boost' };
     }

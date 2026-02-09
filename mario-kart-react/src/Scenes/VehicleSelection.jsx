@@ -1,6 +1,7 @@
 import React, { useState, useRef, Suspense, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Environment, Center, Html, OrbitControls } from '@react-three/drei'
+import { Environment, OrbitControls } from '@react-three/drei'
+import { useNavigate } from 'react-router-dom' // <--- 1. Import Hook
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { VEHICLE_DATABASE } from '../components/Data'
@@ -59,9 +60,17 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
     )
 }
 
-export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedVehicle }) {
+export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
+    // setMenuState rimosso dalle props
+    const navigate = useNavigate(); // <--- 2. Inizializza Hook
 
-    const { playSfx } = useAudio();
+    const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+	useEffect(() => {
+        if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
+            changeTrack('CHARACTER_KART_SELECT', 100);
+		    enableSmoothLoop();
+        }
+	}, [changeTrack, enableSmoothLoop]);
 
     const availableIDs = selectedCharacter.veichles || []; 
 
@@ -74,7 +83,8 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
 
     const handleConfirm = () => {
         setSelectedVehicle(localSelection);
-        setMenuState(2);
+        // setMenuState(2); <--- Vecchia logica
+        navigate('/track'); // <--- 3. Nuova logica: vai alla selezione pista
     };
 
     const totalSlots = 12;
@@ -85,7 +95,6 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
     const styles = {
         container: {
             width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0,
-            // Sfondo stile "Scanlines" scure
             background: `repeating-linear-gradient(0deg, #050505, #050505 2px, #111 2px, #111 4px)`,
             display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'sans-serif'
         },
@@ -97,7 +106,6 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
         },
         mainContent: { display: 'flex', flex: 1, padding: '0', overflow: 'hidden', alignItems: 'center' },
         
-        // Pannello Sinistro
         leftPanel: {
             flex: 1, display: 'flex', flexDirection: 'row', position: 'relative', height: '100%',
             alignItems: 'center'
@@ -110,8 +118,6 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
             width: '65%', height: '100%', position: 'relative'
         },
         
-        // Pannello Destro: Griglia Veicoli
-        // Aumentato flex a 1.2 per dare più spazio orizzontale ai bottoni (rettangoli più larghi)
         rightPanel: {
             flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '2vmin'
         },
@@ -119,27 +125,20 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
             display: 'grid', 
             gridTemplateColumns: 'repeat(2, 1fr)', 
             gridTemplateRows: 'repeat(6, 1fr)', 
-            // Gap ridotto per avvicinare i bottoni come nella Wii
             gap: '1.2vmin 3vmin', 
-            // Width 90% per riempire bene il pannello destro
             width: '75%',
             height: '85%', maxHeight: '100%'
         },
         gridItem: (isActive, isEmpty) => ({
             width: '100%', height: '100%', 
-            // Stile Bordo: Giallo acceso se attivo, Grigio scuro se inattivo
             border: isActive ? '0.4vh solid #ffe600' : '0.3vh solid #444', 
-            // Sfondo: Gradiente verticale scuro per simulare l'effetto "tubo" o metallico della Wii
             background: isEmpty 
                 ? 'transparent' 
                 : 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(60,60,60,0.8) 50%, rgba(0,0,0,0.8) 100%)',
-            // Border radius ridotto per renderli più rettangolari
             borderRadius: '4px', 
             cursor: isEmpty ? 'default' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            // GLOW: Ombra esterna gialla + Ombra interna gialla per illuminare il bottone
             boxShadow: isActive ? '0 0 15px #ffe600, inset 0 0 10px rgba(255, 230, 0, 0.4)' : 'none',
-            // Scala leggermente per feedback tattile
             transform: isActive ? 'scale(1.02)' : 'scale(1)',
             transition: 'all 0.1s ease-in-out',
             position: 'relative',
@@ -242,14 +241,11 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
                                             src={spritePath} 
                                             alt={veh.name}
                                             style={{
-                                                // Imposta larghezza su auto e altezza fissa per evitare stretching
-                                                // e mantenere l'aspect ratio originale dello sprite
                                                 width: 'auto',
                                                 height: '95%',
                                                 maxWidth: '95%',
                                                 objectFit: 'contain',
                                                 pointerEvents: 'none',
-                                                // Aggiunta ombra allo sprite stesso quando selezionato per farlo risaltare
                                                 filter: isActive ? 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' : 'none'
                                             }}
                                             onError={(e) => {
@@ -271,7 +267,7 @@ export function VehicleSelection({ setMenuState, selectedCharacter, setSelectedV
             <div style={styles.footer}>
                 <button 
                     style={{...styles.button, background: '#ccc', color: '#333'}}
-                    onClick={() => setMenuState(0)}
+                    onClick={() => navigate('/character')} // <--- 4. Torna alla selezione personaggio
                 >
                     Back
                 </button>
