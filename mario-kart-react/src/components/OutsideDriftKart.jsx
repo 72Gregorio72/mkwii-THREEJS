@@ -28,7 +28,7 @@ const STAR_SPEED_BOOST = 1.15;
 
 const MEGA_DURATION = 12000; // Dura un po' più della stella
 const MEGA_SCALE = 2.5;      // Diventa 2.5 volte più grande
-const MEGA_SPEED_BOOST = 1.15;
+const MEGA_SPEED_BOOST = 1.3;
 
 const SMALL_DURATION = 10000; // Rimani piccolo per 10 secondi
 const SMALL_SCALE = 0.5;      // Diventi la metà
@@ -269,6 +269,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 
   const activateMega = () => {
       isMegaActive.current = true;
+
       if (megaMushroomUseAudioRef.current && megaMushroomStateAudioRef.current) {
         megaMushroomUseAudioRef.current.play();
         megaMushroomStateAudioRef.current.play();
@@ -946,7 +947,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 			} else {
 				let currentAccel = SETTINGS.acceleration
 				if (isBoosting) currentAccel *= 2.5
-				if (isStarActive.current) currentAccel *= 2;
+				if (isStarActive.current || isMegaActive.current) currentAccel *= 2;
 				else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
 				speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
 			}
