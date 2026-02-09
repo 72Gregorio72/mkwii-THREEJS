@@ -22,6 +22,29 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
     const [localSelection, setLocalSelection] = useState(tracksList[0]);
     const [waitingForHost, setWaitingForHost] = useState(false);
 
+    // Controlla se la pista è già stata scelta quando arriviamo qui
+    React.useEffect(() => {
+        if (roomCode && socket && !isHost) {
+            // Richiedi lo stato della room per vedere se la pista è già stata scelta
+            socket.emit('request_room_state', { roomCode });
+            
+            const handleRoomState = (data) => {
+                if (data.roomCode === roomCode && data.isTrackSelected) {
+                    console.log('[Track] Track already selected, navigating to waiting room:', data.selectedTrack.name);
+                    const trackData = {
+                        ...data.selectedTrack,
+                        start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
+                    };
+                    setSelectedTrack(trackData);
+                    navigate('/waiting');
+                }
+            };
+            
+            socket.on('room_state', handleRoomState);
+            return () => socket.off('room_state', handleRoomState);
+        }
+    }, [roomCode, socket, isHost, navigate, setSelectedTrack]);
+
     // Se sei in multiplayer, aspetta la scelta del tracciato dall'host
     React.useEffect(() => {
         if (roomCode && socket) {
@@ -34,7 +57,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
                         start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
                     };
                     setSelectedTrack(trackData);
-                    navigate('/game');
+                    navigate('/waiting');
                 }
             };
             
@@ -44,11 +67,12 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
     }, [roomCode, socket, navigate, setSelectedTrack]);
     
     // Imposta waiting solo per i non-host
-    React.useEffect(() => {
-        if (roomCode && !isHost) {
-            setWaitingForHost(true);
-        }
-    }, [roomCode, isHost]);
+	React.useEffect(() => {
+		if (roomCode && !isHost && socket) {
+			setWaitingForHost(true);
+			socket.emit('waiting_for_track', { roomCode });
+		}
+	}, [roomCode, isHost, socket]);
 
     const handleConfirm = () => {
         if (localSelection) {
@@ -58,7 +82,6 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
                 start_pos: localSelection.startPos || localSelection.start_pos || [0, 2, 0]
             };
             
-            // Se sei l'host in multiplayer, invia la scelta al server e aspetta conferma
             if (roomCode && isHost && socket) {
                 console.log('[Host] Sending track selection:', trackData.name);
                 setSelectedTrack(trackData);

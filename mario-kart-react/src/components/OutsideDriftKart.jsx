@@ -28,7 +28,7 @@ const STAR_SPEED_BOOST = 1.15;
 
 const MEGA_DURATION = 12000; // Dura un po' più della stella
 const MEGA_SCALE = 2.5;      // Diventa 2.5 volte più grande
-const MEGA_SPEED_BOOST = 1.15;
+const MEGA_SPEED_BOOST = 1.3;
 
 const SMALL_DURATION = 10000; // Rimani piccolo per 10 secondi
 const SMALL_SCALE = 0.5;      // Diventi la metà
@@ -126,7 +126,7 @@ const DriftParticles = React.forwardRef((props, ref) => {
     points.current.geometry.attributes.position.needsUpdate = true;
   });
   if (!texture) return null;
-  return (<group ref={ref} visible={false}><points ref={points}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={data.positions} itemSize={3} /></bufferGeometry><pointsMaterial map={texture} size={0.8} color={0x00BFFF} transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation={true} vertexColors={false} /></points></group>);
+  return (<group ref={ref} visible={false}><points ref={points} renderOrder={10}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={data.positions} itemSize={3} /></bufferGeometry><pointsMaterial map={texture} size={0.8} color={0x00BFFF} transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation={true} vertexColors={false} /></points></group>);
 });
 
 function updateSparksColor(level, leftRef, rightRef) {
@@ -269,6 +269,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 
   const activateMega = () => {
       isMegaActive.current = true;
+
       if (megaMushroomUseAudioRef.current && megaMushroomStateAudioRef.current) {
         megaMushroomUseAudioRef.current.play();
         megaMushroomStateAudioRef.current.play();
@@ -722,11 +723,15 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 		if (otherData && (otherData.type === 'opponent' || otherData.type === 'racer')) {
 			// console.log(`ATTACK! Hitting: ${otherData.id}`);
 			
-			socket.emit('player_hit', { 
-				victimId: otherData.id, 
-				type: isBulletBill ? 'bullet' : 'star' 
-			});
+			// Invia tramite socket solo in multiplayer
+			if (socket) {
+				socket.emit('player_hit', { 
+					victimId: otherData.id, 
+					type: isBulletBill ? 'bullet' : (isStarActive.current ? 'star' : 'mega') 
+				});
+			}
 
+			// Dispatch window event per single player (bot locali)
 			window.dispatchEvent(new CustomEvent('banana-hit', { 
 				detail: { victimId: otherData.id } 
 			}));
@@ -942,7 +947,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 			} else {
 				let currentAccel = SETTINGS.acceleration
 				if (isBoosting) currentAccel *= 2.5
-				if (isStarActive.current) currentAccel *= 2;
+				if (isStarActive.current || isMegaActive.current) currentAccel *= 2;
 				else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
 				speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
 			}
@@ -1090,12 +1095,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   })
 
     useEffect(() => {
-        if (!socket) return;
-        
         const handleLightningStrike = (data) => {
             const attackerId = data?.attackerId;
-            // console.log(`LIGHTNING STRIKE RECEIVED ON ${socket.id} FROM ${attackerId}`);
-            if (attackerId === socket.id) { 
+            // console.log(`LIGHTNING STRIKE RECEIVED ON ${racerId} FROM ${attackerId}`);
+            if (attackerId === racerId) { 
                 return; 
             }
 
@@ -1114,8 +1117,26 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
                 }
             }
         };
-        socket.on('lightning-strike', handleLightningStrike);
-        return () => socket.off('lightning-strike', handleLightningStrike);
+        
+        // Gestione window event per single player (anche per i bot)
+        const handleWindowLightning = (e) => {
+            const { attackerId } = e.detail;
+            if (attackerId === racerId) return; // Non colpire se stesso
+            handleLightningStrike({ attackerId });
+        };
+        
+        // IMPORTANTE: Window listener sempre attivo (funziona per bot in single player)
+        window.addEventListener('lightning-strike', handleWindowLightning);
+        
+        // Socket listener solo in multiplayer
+        if (socket) {
+            socket.on('lightning-strike', handleLightningStrike);
+        }
+        
+        return () => {
+            window.removeEventListener('lightning-strike', handleWindowLightning);
+            if (socket) socket.off('lightning-strike', handleLightningStrike);
+        };
     }, [racerId, isBulletBill, socket]);
 
   // Visual Steering

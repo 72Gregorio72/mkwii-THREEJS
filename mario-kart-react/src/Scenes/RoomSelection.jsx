@@ -20,20 +20,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket, setSelectedTra
     if (socket) {
       const handleRoomState = (data) => {
         console.log('[RoomSelection] Received room_state:', data);
-        
-        // Se il tracciato è già stato scelto, vai direttamente al gioco
-        if (data.selectedTrack) {
-          console.log('[RoomSelection] Track already selected, going to game:', data.selectedTrack.name);
-          const trackData = {
-            ...data.selectedTrack,
-            start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
-          };
-          setSelectedTrack(trackData);
-          navigate('/game');
-        } else {
-          // Altrimenti vai alla selezione del personaggio
           navigate('/character');
-        }
       };
       
       socket.on('room_state', handleRoomState);

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react'
+import React, { useMemo, useState, useRef, useEffect } from 'react'
 import * as THREE from 'three'
 import { useGLTF, Clone, PositionalAudio } from '@react-three/drei';
 import { RigidBody } from '@react-three/rapier'
@@ -30,6 +30,17 @@ function SingleItemBox({ position, rotation }) {
 
     // Riferimento per l'animazione
     const meshRef = useRef()
+
+    // Imposta renderOrder per renderizzare sopra la pista
+    useEffect(() => {
+        if (meshRef.current) {
+            meshRef.current.traverse((child) => {
+                if (child.isMesh) {
+                    child.renderOrder = 1;
+                }
+            });
+        }
+    }, []);
 
     // Logica di collisione
     const handleIntersection = ({ other }) => {

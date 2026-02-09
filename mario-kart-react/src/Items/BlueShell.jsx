@@ -87,9 +87,11 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
             explosionAudioRef.current.play();
         }
         
-        // AOE Damage
+        // AOE Damage - Add extra delay to prevent physics errors
         setTimeout(() => {
-            if (onDestroy) onDestroy();
+            setTimeout(() => {
+                if (onDestroy) onDestroy();
+            }, 100);
         }, 700);
     };
 

@@ -48,7 +48,10 @@ export const BobOmb = memo(function BobOmb({ position, initVelocity = [0, 0, 0],
 
         setTimeout(() => {
             setIsFinished(true);
-            if (onDestroy) onDestroy(); // Rimuove l'oggetto dal server
+            // Additional delay to ensure physics cleanup completes
+            setTimeout(() => {
+                if (onDestroy) onDestroy(); // Rimuove l'oggetto dal server
+            }, 100);
         }, 500);
     };
 

@@ -171,7 +171,22 @@ export function RaceManager({
 		});
 
 		// --- 5. ORDINAMENTO ---
-		const sorted = Object.values(allRacers).sort((a, b) => b.score - a.score);
+		// Prima ordina per checkpoint superati (nextCP + lap), poi per score (progresso)
+		const sorted = Object.values(allRacers).sort((a, b) => {
+			// Calcola checkpoint totali: (lap - 1) * maxCheckpoints + nextCP
+			// Assumiamo che ci siano circa 10-15 checkpoint per giro (usa un valore alto per sicurezza)
+			const maxCheckpointsPerLap = 20;
+			const checkpointsA = ((a.lap - 1) * maxCheckpointsPerLap) + (a.nextCP || 0);
+			const checkpointsB = ((b.lap - 1) * maxCheckpointsPerLap) + (b.nextCP || 0);
+			
+			// Ordina per checkpoint (più checkpoint = più avanti)
+			if (checkpointsB !== checkpointsA) {
+				return checkpointsB - checkpointsA;
+			}
+			
+			// In caso di parità di checkpoint, usa lo score (progresso sul tracciato)
+			return b.score - a.score;
+		});
 
 		// Controllo se la classifica è cambiata (ottimizzazione React)
 		const hasChanged = sorted.some((r, i) => positions[i]?.id !== r.id);
