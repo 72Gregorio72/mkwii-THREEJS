@@ -18,22 +18,58 @@ const INTERPOLATION_DELAY = 100;
 // --- NUOVO COMPONENTE PER GESTIRE LE ANIMAZIONI ---
 // Questo componente legge i dati in tempo reale e aggiorna solo la parte visiva
 const RemoteVisuals = ({ opponentsDataRef, playerId, vehicle, character }) => {
-    // Stato locale per le animazioni (speed, steer, drift)
-    const [animState, setAnimState] = useState({ speed: 0, steer: 0, drift: 0, driftLevel: 0 });
+    // Usiamo dei ref per i valori correnti per fare lo smoothing (Lerp)
+    const currentSpeed = useRef(0);
+    const currentSteer = useRef(0);
+    const currentDrift = useRef(0);
     
-    // Usiamo un ref per limitare gli aggiornamenti di stato se necessario, 
-    // ma React 18 gestisce bene gli aggiornamenti frequenti se il componente è leggero.
-    useFrame(() => {
+    // Stato per passare i dati puliti ai componenti figli
+    const [animData, setAnimData] = useState({ speed: 0, steer: 0, drift: 0 });
+
+    const prevPos = useRef(new Vector3());
+    const isFirstFrame = useRef(true);
+
+    useFrame((state, delta) => {
         const serverData = opponentsDataRef.current[playerId];
         if (!serverData) return;
 
-        // Aggiorniamo lo stato visuale con i dati più recenti dal server
-        // Nota: serverData.speed arriva dal NetworkManager
-        setAnimState({
-            speed: serverData.speed || 0,
-            steer: serverData.steer || 0,
-            drift: serverData.drift || 0,
-            driftLevel: serverData.driftLevel || 0
+        // 1. Calcolo Velocità Basato sulla Posizione (Anti T-Pose)
+        const pos = new Vector3(serverData.x, serverData.y, serverData.z);
+        let calculatedSpeed = 0;
+
+        if (!isFirstFrame.current) {
+            const dist = pos.distanceTo(prevPos.current);
+            // Evitiamo divisioni per zero o delta troppo piccoli
+            if (delta > 0.01) {
+                calculatedSpeed = dist / delta;
+            }
+        } else {
+            isFirstFrame.current = false;
+        }
+        prevPos.current.copy(pos);
+
+        // 2. LOGICA "DEADZONE" (Soglia minima)
+        // Se la velocità è inferiore a 0.5 (molto lento/fermo), forziamola a 0
+        // Questo impedisce alle ruote di girare quando il kart è fermo ma "vibra" per la fisica
+        if (calculatedSpeed < 0.5) calculatedSpeed = 0;
+
+        // 3. SMOOTHING (Lerp)
+        // Invece di passare da 0 a 20 in un frame, ci arriviamo gradualmente.
+        // Il fattore 10 * delta rende la transizione fluida ma reattiva.
+        currentSpeed.current = MathUtils.lerp(currentSpeed.current, calculatedSpeed, 10 * delta);
+        
+        // Smooth anche per lo sterzo per evitare scatti delle ruote anteriori
+        const targetSteer = serverData.steer || 0;
+        currentSteer.current = MathUtils.lerp(currentSteer.current, targetSteer, 10 * delta);
+
+        // Drift non ha bisogno di molto smoothing, è on/off o graduale
+        currentDrift.current = serverData.drift || 0;
+
+        // 4. Aggiorniamo lo stato (che aggiorna RacerModel e VehicleModel)
+        setAnimData({
+            speed: currentSpeed.current,
+            steer: currentSteer.current,
+            drift: currentDrift.current
         });
     });
 
@@ -44,21 +80,24 @@ const RemoteVisuals = ({ opponentsDataRef, playerId, vehicle, character }) => {
                 scale={1.4} 
                 rotation={[0, Math.PI, 0]} 
                 isBike={vehicle.isBike} 
-                speed={animState.speed}       // <--- Ora è dinamico!
-                steer={animState.steer}       // <--- Ora è dinamico!
-                drift={animState.drift} 
+                // Passiamo i dati "puliti" e interpolati
+                speed={animData.speed}       
+                steer={animData.steer}       
+                drift={animData.drift} 
+                // Nota: Rimuovi isRemote={true} da qui se VehicleModel lo usa per bloccare le animazioni
+                // oppure assicurati che VehicleModel non abbia "if (isRemote) return"
             />
             <group rotation={[0, Math.PI, 0]}>
                 <RacerModel
                     isInMenu={false} 
-                    isRemote={true} 
+                    // isRemote={true} // <-- Rimuovi o metti false se vuoi le animazioni complete
                     characterConfig={character.modelConfig} 
                     vehicleConfig={vehicle} 
                     isKart={true} 
-                    steer={animState.steer}   // <--- Ora è dinamico!
-                    drift={animState.drift} 
+                    steer={animData.steer}   
+                    drift={animData.drift} 
                     scale={1.5} 
-                    speed={animState.speed}   // <--- Risolve la T-Pose
+                    speed={animData.speed}
                 />
             </group>
         </group>
