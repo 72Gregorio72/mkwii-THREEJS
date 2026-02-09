@@ -28,12 +28,13 @@ export const Tracks = {
 		file: './Tracks/LuigiCircuit/LuigiCircuit.glb',
 		preview: './TrackPreviews/LuigiCircuit.png',
 		startPos: [9, 12, 98],
-		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+		checkpoints: './Tracks/LuigiCircuit/LuigiCircuit_checkpoints.glb',
         road: './Tracks/LuigiCircuit/LuigiCircuit_road.glb',
         itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
 		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
-		maxCheckpoints: 1,
-        soundtrack: 'RACE_LUIGI_CIRCUIT'
+		maxCheckpoints: 4,
+        soundtrack: 'RACE_LUIGI_CIRCUIT',
+		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
