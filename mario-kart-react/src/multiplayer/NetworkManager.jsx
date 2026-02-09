@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 
-export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef, setRemoteBots, isHost }) => {
+export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef, isHost, setRemoteBots }) => {
     const [ping, setPing] = useState(0);
     
     // 2. Tell the server who we are when we join/load

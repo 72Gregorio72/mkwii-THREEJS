@@ -83,10 +83,10 @@ export const Tracks = {
         file: './Tracks/YoshiFalls/YoshiFalls.glb',
         preview: './Previews/Yoshi Falls.png',
         startPos: [0, 0, 50],
-        checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
-        maxCheckpoints: 5,
+        checkpoints: './Tracks/YoshiFalls/YoshiFalls_checkpos.glb',
+        maxCheckpoints: 3,
         soundtrack: 'RACE_YOSHI_FALLS',
-        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+        itemBoxes: './Tracks/YoshiFalls/YoshiFalls_itembox.glb',
         gridpos: './Tracks/YoshiFalls/YoshiFalls_startpos.glb',
         road: './Tracks/YoshiFalls/YoshiFalls_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
@@ -870,6 +870,7 @@ export const AUDIO_TRACKS = {
     RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
     RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
     RACE_DELPHINO_SQUARE: '/soundTracks/DELPHINO_SQUARE_ST.mp3',
+    RACE_YOSHI_FALLS: '/soundTracks/YOSHI_FALLS_ST.mp3',
 };
 
 export const AUDIO_SFX = {

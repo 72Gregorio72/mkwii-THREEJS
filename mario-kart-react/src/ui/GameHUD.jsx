@@ -51,6 +51,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
   const timerIntervalRef = useRef(null);
   const hasStarted = useRef(false);
   const lastLapRef = useRef(1);
+  const lapStartTimeRef = useRef(null);
 
   // --- FREEZE & FLASH STATE ---
   const [isFrozen, setIsFrozen] = useState(false);
@@ -61,6 +62,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
     if (gameState === 'RACING' && !hasStarted.current) {
       hasStarted.current = true;
       raceStartTimeRef.current = Date.now();
+      lapStartTimeRef.current = Date.now();
       
       timerIntervalRef.current = setInterval(() => {
         const elapsed = Date.now() - raceStartTimeRef.current;
@@ -87,9 +89,13 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
   useEffect(() => {
     if (lap > lastLapRef.current && hasStarted.current) {
       
-      setFrozenTimeValue(raceTime); // Salva il tempo al traguardo
+      // Calcola il tempo del giro appena completato (non il tempo totale)
+      const now = Date.now();
+      const lapTime = now - lapStartTimeRef.current;
+      setFrozenTimeValue(lapTime); // Salva il tempo del giro
       setIsFrozen(true);            // Blocca l'UI
       
+      lapStartTimeRef.current = now; // Reset per il prossimo giro
       lastLapRef.current = lap;
 
       // Sblocca dopo 2 secondi
