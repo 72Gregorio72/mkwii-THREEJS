@@ -40,12 +40,20 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
             homingAudioRef.current.setVolume(2.0);
             homingAudioRef.current.play();
         }
-        if (rb.current) {
-            rb.current.wakeUp(); // Fondamentale: sveglia il corpo rigido
-            if (initVelocity) {
-                rb.current.setLinvel(new THREE.Vector3(...initVelocity), true);
+        
+        // Ritarda l'inizializzazione per assicurarsi che il RigidBody sia pronto
+        const initTimer = setTimeout(() => {
+            if (rb.current) {
+                try {
+                    rb.current.wakeUp(); // Fondamentale: sveglia il corpo rigido
+                    if (initVelocity) {
+                        rb.current.setLinvel(new THREE.Vector3(...initVelocity), true);
+                    }
+                } catch (e) {
+                    console.warn('Failed to initialize RedShell physics:', e);
+                }
             }
-        }
+        }, 0);
         
         // Calcola waypoint più vicino allo spawn
         if (waypoints && waypoints.length > 0) {
@@ -60,18 +68,34 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
             isInitialized.current = true;
         }
 
+        
         const timer = setTimeout(() => {
             setIsActive(false);
-            if (onDestroy) onDestroy();
+            // Aspetta che React smonta il componente
+            setTimeout(() => {
+                if (onDestroy) onDestroy();
+            }, 100);
         }, 20000);
-        return () => clearTimeout(timer);
+        
+        // Cleanup
+        return () => {
+            clearTimeout(initTimer);
+            clearTimeout(timer);
+        };
     }, [waypoints]);
 
     useFrame((state, delta) => {
         if (!isActive || !rb.current) return;
 
-        const rbTrans = rb.current.translation();
-        v.pos.set(rbTrans.x, rbTrans.y, rbTrans.z);
+        let rbTrans;
+        try {
+            rbTrans = rb.current.translation();
+            if (!rbTrans) return;
+            v.pos.set(rbTrans.x, rbTrans.y, rbTrans.z);
+        } catch (e) {
+            // RigidBody non ancora pronto
+            return;
+        }
 
         // --- INVIO POSIZIONE AL SERVER ---
         if (socket?.connected && state.clock.elapsedTime % 0.1 < 0.02) { // Throttle per non intasare il socket
@@ -90,11 +114,17 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         // Se ha un target, lo segue
         const targetObj = targets.find(t => t.id === targetId);
         if (targetId && targetObj?.ref.current) {
-            const tPos = targetObj.ref.current.translation();
-            destination = v.targetPos.set(tPos.x, rbTrans.y, tPos.z);
+            try {
+                const tPos = targetObj.ref.current.translation();
+                if (tPos) {
+                    destination = v.targetPos.set(tPos.x, rbTrans.y, tPos.z);
+                }
+            } catch (e) {
+                // Target non disponibile, usa waypoints
+            }
         } 
         // Altrimenti segue i waypoint
-        else if (waypoints.length > 0) {
+        if (!destination && waypoints.length > 0) {
             const wp = waypoints[currentWpIndex.current];
             v.nextWp.set(wp.x, rbTrans.y, wp.z);
 
@@ -108,34 +138,80 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         if (destination) {
             v.dir.subVectors(destination, v.pos).normalize();
             
-            // Applichiamo setLinvel OGNI frame per assicurarci che non si fermi mai
-            rb.current.setLinvel({ 
-                x: v.dir.x * SHELL_SPEED, 
-                y: -8.0, // Forza verso il basso per incollarlo alla pista
-                z: v.dir.z * SHELL_SPEED 
-            }, true);
-            
-            rb.current.wakeUp(); // Continua a svegliare il corpo
+            try {
+                // Applichiamo setLinvel OGNI frame per assicurarci che non si fermi mai
+                rb.current.setLinvel({ 
+                    x: v.dir.x * SHELL_SPEED, 
+                    y: -8.0, // Forza verso il basso per incollarlo alla pista
+                    z: v.dir.z * SHELL_SPEED 
+                }, true);
+                
+                rb.current.wakeUp(); // Continua a svegliare il corpo
+            } catch (e) {
+                // Ignora errori se il RigidBody non è pronto
+            }
         }
 
-        // Ricerca target se non ce l'ha
+        // Ricerca target se non ce l'ha - SOLO DAVANTI
         if (!targetId && targets.length > 0) {
+            let closestTarget = null;
+            let closestDist = DETECTION_RADIUS;
+            
             targets.forEach(t => {
                 if (t.id === ownerId || !t.ref.current) return;
-                const dist = v.pos.distanceTo(v.targetPos.set(t.ref.current.translation().x, rbTrans.y, t.ref.current.translation().z));
-                if (dist < DETECTION_RADIUS) setTargetId(t.id);
+                try {
+                    const tTrans = t.ref.current.translation();
+                    if (tTrans) {
+                        // Calcola direzione verso il target
+                        const toTarget = new THREE.Vector3(
+                            tTrans.x - v.pos.x,
+                            0, // Ignora Y per il controllo direzionale
+                            tTrans.z - v.pos.z
+                        ).normalize();
+                        
+                        // Calcola la direzione di movimento del guscio (basata su velocità attuale)
+                        const shellDirection = v.dir.clone().normalize();
+                        
+                        // Prodotto scalare: > 0 = davanti, < 0 = dietro
+                        const dotProduct = shellDirection.dot(toTarget);
+                        
+                        // Solo target davanti (angolo < 90 gradi)
+                        if (dotProduct > 0) {
+                            const dist = v.pos.distanceTo(v.targetPos.set(tTrans.x, rbTrans.y, tTrans.z));
+                            
+                            // Trova il target più vicino davanti
+                            if (dist < closestDist) {
+                                closestDist = dist;
+                                closestTarget = t.id;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Target non accessibile
+                }
             });
+            
+            if (closestTarget) {
+                setTargetId(closestTarget);
+            }
         }
     });
 
     const handleImpact = (payload) => {
+        if (!isActive) return;
+        
         const targetObj = payload.other.rigidBodyObject;
         const victimId = targetObj?.userData?.id || targetObj?.name;
 
         if (victimId && victimId !== ownerId && (targetObj.name === 'player' || targetObj.name.startsWith('bot') || targetObj.userData?.type === 'opponent')) {
-            window.dispatchEvent(new CustomEvent('banana-hit', { detail: { victimId } }));
             setIsActive(false);
-            if (onDestroy) onDestroy();
+            
+            window.dispatchEvent(new CustomEvent('banana-hit', { detail: { victimId } }));
+            
+            // Delay destruction to prevent physics errors
+            setTimeout(() => {
+                if (onDestroy) onDestroy();
+            }, 100);
         }
     };
 

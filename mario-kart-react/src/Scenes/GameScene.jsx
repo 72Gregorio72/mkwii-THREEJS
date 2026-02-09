@@ -257,6 +257,9 @@ export function GameScene({
     }, [socket, roomCode]);
 
     const handleRequestRemove = useCallback((itemId) => {
+        // Remove from local state immediately to prevent physics errors
+        setNetworkItems(prev => prev.filter(item => item.id !== itemId));
+        
         // Invia al server solo se in multiplayer
         if (socket && roomCode) socket.emit('remove_item', { itemId });
     }, [socket, roomCode]);
@@ -500,6 +503,15 @@ export function GameScene({
     const remoteRefMap = useRef({});
 
     useEffect(() => {
+        // Inizializza refs per gli opponents remoti
+        opponents.forEach(opp => {
+            if (!remoteRefMap.current[opp.id]) {
+                remoteRefMap.current[opp.id] = React.createRef();
+            }
+        });
+    }, [opponents]);
+
+    useEffect(() => {
         // Quando la lista degli avversari online cambia
         opponents.forEach(opp => {
             if (!racersData.current[opp.id]) {
@@ -632,14 +644,29 @@ export function GameScene({
         const list = [];
         if (playerRef.current) list.push({ id: 'player', ref: playerRef });
         
-        for (let i = 0; i < BOT_COUNT; i++) {
-            const id = `bot_${i}`;
-            if (botRefs.current[id]) {
-                list.push({ id: id, ref: botRefs.current[id] });
+        // Aggiungi bot locali (solo in single player)
+        if (!roomCode) {
+            for (let i = 0; i < BOT_COUNT; i++) {
+                const id = `bot_${i}`;
+                // Verifica che sia il ref che il ref.current esistano
+                if (botRefs.current[id] && botRefs.current[id].current) {
+                    list.push({ id: id, ref: botRefs.current[id] });
+                }
             }
         }
+        
+        // Aggiungi opponents remoti (solo in multiplayer)
+        if (roomCode && opponents.length > 0) {
+            opponents.forEach(opp => {
+                // Verifica che sia il ref che il ref.current esistano
+                if (remoteRefMap.current[opp.id] && remoteRefMap.current[opp.id].current) {
+                    list.push({ id: opp.id, ref: remoteRefMap.current[opp.id] });
+                }
+            });
+        }
+        
         return list;
-    }, []); 
+    }, [roomCode, opponents, remoteBots, gameState]); // Aggiungi gameState per ricalcolare quando la gara inizia
 
     const blueShellTargets = useMemo(() => {
         return targets.map(t => {
@@ -745,7 +772,7 @@ export function GameScene({
                     />
                 )}
 
-                <Physics debug={true}>
+                <Physics debug={true} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
@@ -878,11 +905,8 @@ export function GameScene({
                     </group>
 
                     {/* BOTS (AI) - Renderizza solo se NON siamo in multiplayer */}
-                    {/*
                     {!roomCode && Array.from({ length: BOT_COUNT }, (_, i) => {
                         const botId = `bot_${i}`;
-                        // Mappatura: Bot 0 -> start_1, Bot 1 -> start_2, etc. (o logica inversa)
-                        // Qui assumo che i Bot riempiano le posizioni da 1 a 11.
                         const gridIndex = i + 1; 
                         
                         const botPos = gridPositions[gridIndex] || getGridPosition(start_pos, i);
@@ -913,9 +937,6 @@ export function GameScene({
                             </group>
                         );
                     })}
-                    */}
-
-                    {/* In multiplayer non ci sono bot, solo player reali */}
                 </Physics>
             </Canvas>
         </div>

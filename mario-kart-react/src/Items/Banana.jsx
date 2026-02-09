@@ -60,7 +60,10 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0],
                 detail: { victimId: userData?.id || targetName } 
             }));
             
-            if (onDestroy) onDestroy();
+            // Delay destruction slightly to allow physics to settle
+            setTimeout(() => {
+                if (onDestroy) onDestroy();
+            }, 100);
         }
     };
 

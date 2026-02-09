@@ -722,11 +722,15 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 		if (otherData && (otherData.type === 'opponent' || otherData.type === 'racer')) {
 			// console.log(`ATTACK! Hitting: ${otherData.id}`);
 			
-			socket.emit('player_hit', { 
-				victimId: otherData.id, 
-				type: isBulletBill ? 'bullet' : 'star' 
-			});
+			// Invia tramite socket solo in multiplayer
+			if (socket) {
+				socket.emit('player_hit', { 
+					victimId: otherData.id, 
+					type: isBulletBill ? 'bullet' : (isStarActive.current ? 'star' : 'mega') 
+				});
+			}
 
+			// Dispatch window event per single player (bot locali)
 			window.dispatchEvent(new CustomEvent('banana-hit', { 
 				detail: { victimId: otherData.id } 
 			}));
@@ -1114,8 +1118,21 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
                 }
             }
         };
-        socket.on('lightning-strike', handleLightningStrike);
-        return () => socket.off('lightning-strike', handleLightningStrike);
+        
+        // Gestione window event per single player
+        const handleWindowLightning = (e) => {
+            const { attackerId } = e.detail;
+            if (attackerId === racerId) return; // Non colpire se stesso
+            handleLightningStrike({ attackerId });
+        };
+        
+        window.addEventListener('lightning-strike', handleWindowLightning);
+        if (socket) socket.on('lightning-strike', handleLightningStrike);
+        
+        return () => {
+            window.removeEventListener('lightning-strike', handleWindowLightning);
+            if (socket) socket.off('lightning-strike', handleLightningStrike);
+        };
     }, [racerId, isBulletBill, socket]);
 
   // Visual Steering
