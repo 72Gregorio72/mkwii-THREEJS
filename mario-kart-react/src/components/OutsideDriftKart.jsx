@@ -1094,12 +1094,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   })
 
     useEffect(() => {
-        if (!socket) return;
-        
         const handleLightningStrike = (data) => {
             const attackerId = data?.attackerId;
-            // console.log(`LIGHTNING STRIKE RECEIVED ON ${socket.id} FROM ${attackerId}`);
-            if (attackerId === socket.id) { 
+            // console.log(`LIGHTNING STRIKE RECEIVED ON ${racerId} FROM ${attackerId}`);
+            if (attackerId === racerId) { 
                 return; 
             }
 
@@ -1119,15 +1117,20 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
             }
         };
         
-        // Gestione window event per single player
+        // Gestione window event per single player (anche per i bot)
         const handleWindowLightning = (e) => {
             const { attackerId } = e.detail;
             if (attackerId === racerId) return; // Non colpire se stesso
             handleLightningStrike({ attackerId });
         };
         
+        // IMPORTANTE: Window listener sempre attivo (funziona per bot in single player)
         window.addEventListener('lightning-strike', handleWindowLightning);
-        if (socket) socket.on('lightning-strike', handleLightningStrike);
+        
+        // Socket listener solo in multiplayer
+        if (socket) {
+            socket.on('lightning-strike', handleLightningStrike);
+        }
         
         return () => {
             window.removeEventListener('lightning-strike', handleWindowLightning);
