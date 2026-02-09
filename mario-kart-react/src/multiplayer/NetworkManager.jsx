@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 
-export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef, isHost }) => {
+export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef, isHost, setRemoteBots }) => {
     const [ping, setPing] = useState(0);
     
     // 2. Tell the server who we are when we join/load
@@ -61,14 +61,6 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
     useEffect(() => {
         if (!socket) return;
 
-		const onWorldUpdate = (data) => {
-			const allPlayers = data.players || [];
-			const others = allPlayers.filter(p => p.id !== socket.id);
-			
-			// Aggiorna opponentsDataRef con i dati dei player remoti
-			others.forEach(p => {
-				opponentsDataRef.current[p.id] = p;
-			});
         const onWorldUpdate = (data) => {
             const allPlayers = data.players || [];
             const others = allPlayers.filter(p => p.id !== socket.id);
