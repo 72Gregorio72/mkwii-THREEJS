@@ -20,38 +20,68 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
             homingAudioRef.current.setVolume(2.0);
             homingAudioRef.current.play();
         }
-        if (rb.current) {
-            rb.current.wakeUp();
-            rb.current.setLinvel(velocityVec, true);
-        }
+        
+        // Ritarda l'inizializzazione della fisica per assicurarsi che il RigidBody sia pronto
+        const initTimer = setTimeout(() => {
+            if (rb.current) {
+                try {
+                    rb.current.wakeUp();
+                    rb.current.setLinvel(velocityVec, true);
+                } catch (e) {
+                    console.warn('Failed to initialize GreenShell physics:', e);
+                }
+            }
+        }, 0);
+        
         const timer = setTimeout(() => {
             setIsActive(false);
-            if (onDestroy) onDestroy();
-        }, 15000); 
-        return () => clearTimeout(timer);
+            // Aspetta che React smonta il componente prima di notificare la distruzione
+            setTimeout(() => {
+                if (onDestroy) onDestroy();
+            }, 100);
+        }, 15000);
+        
+        // Cleanup
+        return () => {
+            clearTimeout(initTimer);
+            clearTimeout(timer);
+        };
     }, []);
 
     useFrame((_state, delta) => {
         if (!isActive || !rb.current) return;
         
-        // Mantiene la velocità costante (Network Sync simulato)
-        const currentVel = rb.current.linvel();
-        rb.current.setLinvel({ x: velocityVec.x, y: currentVel.y, z: velocityVec.z }, true);
+        try {
+            // Mantiene la velocità costante (Network Sync simulato)
+            const currentVel = rb.current.linvel();
+            if (currentVel) {
+                rb.current.setLinvel({ x: velocityVec.x, y: currentVel.y, z: velocityVec.z }, true);
+            }
+        } catch (e) {
+            // Ignora errori se il RigidBody non è ancora pronto
+        }
         
         if (meshRef.current) meshRef.current.rotation.y += 15 * delta;
     });
 
     const handleImpact = (payload) => {
+        if (!isActive) return;
+        
         const targetObj = payload.other.rigidBodyObject;
         const targetName = targetObj?.name || "";
         const userData = targetObj?.userData;
 
         if (targetName === 'player' || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) {
+            setIsActive(false);
+            
             window.dispatchEvent(new CustomEvent('banana-hit', { 
                 detail: { victimId: userData?.id || targetName } 
-            })); 
-            setIsActive(false);
-            if (onDestroy) onDestroy();
+            }));
+            
+            // Aspetta che React smonta il componente prima di notificare la distruzione
+            setTimeout(() => {
+                if (onDestroy) onDestroy();
+            }, 100);
         }
     };
 
