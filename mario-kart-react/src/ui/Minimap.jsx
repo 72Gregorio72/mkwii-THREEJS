@@ -56,8 +56,6 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                     const iconPath = botCharacter.icon.replace('./icons/', '/Icons/');
                     console.log(`[Minimap] Bot ${botId} icon path:`, iconPath);
                     imagesToLoad.push({ key: botId, src: iconPath });
-                } else {
-                    console.warn(`[Minimap] No character found for bot ID: ${botId}`);
                 }
             });
         }
@@ -77,7 +75,6 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
         console.log('[Minimap] Total images to load:', imagesToLoad.length);
 
         if (imagesToLoad.length === 0) {
-            console.warn('[Minimap] No images to load!');
             setIconImages({});
             return;
         }
@@ -180,12 +177,6 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                         size
                     );
                 } else {
-                    // Fallback: pallino rosso se l'icona non è caricata
-                    if (!icon) {
-                        console.warn(`[Minimap] No icon found for key: ${iconKey}`, 'Available:', Object.keys(iconImages));
-                    } else if (!icon.complete) {
-                        console.warn(`[Minimap] Icon not complete for key: ${iconKey}`);
-                    }
                     ctx.fillStyle = 'rgba(255, 100, 100, 0.9)';
                     ctx.beginPath();
                     ctx.arc(canvasPos.x, canvasPos.y, size / 3, 0, Math.PI * 2);
@@ -201,7 +192,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                         try {
                             const pos = botRef.current.translation();
                             const canvasPos = worldToCanvas(pos.x, pos.z);
-                            drawIcon(canvasPos, botId, 12);
+                            drawIcon(canvasPos, botId, 20);
                         } catch (e) {
                             // Ignora errori di traduzione
                         }
@@ -217,7 +208,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                         try {
                             const pos = oppRef.current.translation();
                             const canvasPos = worldToCanvas(pos.x, pos.z);
-                            drawIcon(canvasPos, opp.id, 12);
+                            drawIcon(canvasPos, opp.id, 20);
                         } catch (e) {
                             // Ignora errori
                         }
@@ -232,13 +223,13 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                     const canvasPos = worldToCanvas(pos.x, pos.z);
 
                     // Icona più grande per il player
-                    drawIcon(canvasPos, 'player', 16);
+                    drawIcon(canvasPos, 'player', 26);
 
                     // Bordo bianco attorno al player
                     ctx.strokeStyle = 'white';
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.arc(canvasPos.x, canvasPos.y, 10, 0, Math.PI * 2);
+                    ctx.arc(canvasPos.x, canvasPos.y, 16, 0, Math.PI * 2);
                     ctx.stroke();
 
                     // Freccia direzione (opzionale)
@@ -269,7 +260,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
 
         const animationId = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(animationId);
-    }, [trackPath, bounds, playerRef, botRefs, remoteRefMap, opponents]);
+    }, [trackPath, bounds, playerRef, botRefs, remoteRefMap, opponents, iconImages]);
 
     if (!trackPath || trackPath.length === 0) return null;
 
@@ -278,8 +269,8 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
             position: 'absolute',
             bottom: '20px',
             right: '20px',
-            width: '200px',
-            height: '200px',
+            width: '300px',
+            height: '300px',
             borderRadius: '10px',
             overflow: 'hidden',
             border: '3px solid rgba(255, 255, 255, 0.5)',
@@ -288,8 +279,8 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
         }}>
             <canvas 
                 ref={canvasRef}
-                width={200}
-                height={200}
+                width={300}
+                height={300}
                 style={{ width: '100%', height: '100%' }}
             />
         </div>

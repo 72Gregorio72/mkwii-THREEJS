@@ -204,7 +204,7 @@ export const usePowerupHandler = ({
       window.dispatchEvent(new CustomEvent('lightning-strike', { 
           detail: { attackerId: racerId } 
       }));
-	  if (socket) {
+	  if (socket && roomCode) {
 		socket.emit('use_lightning', { 
 			attackerId: socket.id,
 		});

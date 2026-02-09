@@ -44,8 +44,6 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
     useFrame(() => {
         if (hitsQueue.current.length > 0) {
             hitsQueue.current.forEach((hit) => {
-                // LOG DI INTERSEZIONE
-                console.warn(`[HIT!] Racer: ${hit.racerId} -> Checkpoint: ${hit.cpId}`);
                 setLastHit({ cpId: hit.cpId, racerId: hit.racerId, time: Date.now() });
                 
                 onCheckpointTrigger(hit.cpId, hit.racerId);

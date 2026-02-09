@@ -98,7 +98,7 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         }
 
         // --- INVIO POSIZIONE AL SERVER ---
-        if (socket?.connected && state.clock.elapsedTime % 0.1 < 0.02) { // Throttle per non intasare il socket
+        if (socket?.connected && roomCode && state.clock.elapsedTime % 0.1 < 0.02) { // Throttle per non intasare il socket
             socket.emit('update_item', {
                 id,
                 position: { x: rbTrans.x, y: rbTrans.y, z: rbTrans.z },

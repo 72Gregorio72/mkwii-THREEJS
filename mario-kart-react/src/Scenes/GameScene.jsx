@@ -147,12 +147,14 @@ function BotSynchronizer({ socket, isHost, botRefs, remoteBots }) {
                 const rot = botRef.current.rotation();
                 const vel = botRef.current.linvel();
 
-                socket.emit('bot_update', {
-                    botId: bot.id,
-                    position: { x: pos.x, y: pos.y, z: pos.z },
-                    rotation: rot,
-                    velocity: vel
-                });
+                if (roomCode) {
+                    socket.emit('bot_update', {
+                        botId: bot.id,
+                        position: { x: pos.x, y: pos.y, z: pos.z },
+                        rotation: rot,
+                        velocity: vel
+                    });
+                }
             } catch (error) {
                 // Ignora errori (bot non ancora inizializzato)
             }
