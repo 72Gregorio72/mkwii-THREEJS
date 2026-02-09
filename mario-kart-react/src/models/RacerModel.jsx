@@ -106,6 +106,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   useEffect(() => {
 
       let targetAnim = 'idle';
+      console.log(vehicleConfig.animationType);
       if (isKart && vehicleConfig) targetAnim = vehicleConfig.animationType || 'kart';
 
       names.forEach(name => {
