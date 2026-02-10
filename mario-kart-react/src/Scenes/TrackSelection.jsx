@@ -30,7 +30,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
             
             const handleRoomState = (data) => {
                 if (data.roomCode === roomCode && data.isTrackSelected) {
-                    console.log('[Track] Track already selected, navigating to waiting room:', data.selectedTrack.name);
+                    //console.log('[Track] Track already selected, navigating to waiting room:', data.selectedTrack.name);
                     const trackData = {
                         ...data.selectedTrack,
                         start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
@@ -51,7 +51,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
             // Sia host che client ascoltano la conferma dal server
             const handleTrackSelected = (data) => {
                 if (data.roomCode === roomCode) {
-                    console.log('[Track] Received track from server:', data.track.name);
+                    //console.log('[Track] Received track from server:', data.track.name);
                     const trackData = {
                         ...data.track,
                         start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
@@ -83,7 +83,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
             };
             
             if (roomCode && isHost && socket) {
-                console.log('[Host] Sending track selection:', trackData.name);
+                //console.log('[Host] Sending track selection:', trackData.name);
                 setSelectedTrack(trackData);
                 socket.emit('select_track', { roomCode, track: trackData });
                 // La navigazione avverrà quando riceveremo track_selected dal server

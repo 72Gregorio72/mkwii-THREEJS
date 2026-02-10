@@ -388,7 +388,7 @@ export function GameScene({
             // Solo aggiorna se è la stessa stanza
             if (data.roomCode === roomCode) {
                 setLobbyPlayers(data.players || []);
-                console.log('Room state updated:', data);
+                //console.log('Room state updated:', data);
             }
         };
 
@@ -453,7 +453,7 @@ export function GameScene({
         if (!socket || !isHost || !roomCode) return;
 
         // In multiplayer non creiamo bot, solo player reali
-        console.log('[Multiplayer] Starting race without bots');
+        //console.log('[Multiplayer] Starting race without bots');
         
         // Emit race start without bots
         socket.emit('start_race', { bots: [], roomCode });
@@ -912,9 +912,11 @@ export function GameScene({
                         // 2. FALLBACK DI SICUREZZA:
                         // Se remoteVehicle è undefined, usa 'vehicle' (il tuo locale).
                         // Se anche quello fallisce, prendi il PRIMO veicolo del database.
-                        const safeVehicle = remoteVehicle || vehicle || Object.values(VEHICLE_DATABASE)[0];
+                        const safeVehicle = remoteVehicle || vehicle || VEHICLE_DATABASE['StandardKartS'];
                         const safeCharacter = remoteCharacter || character || Characters[0];
-
+						
+						console.log("Game scene safe vehicle: ")
+						console.log(safeVehicle);
                         return (
                             <RemoteOpponent 
                                 key={playerData.id} 

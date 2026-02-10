@@ -65,7 +65,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
       [`Mani (${vehicleConfig.name})`]: folder({
           hx: { value: vehicleConfig?.handPos?.[0] ?? 0.2, min: 0, max: 10, step: 0.01, label: 'Larghezza' },
           hy: { value: vehicleConfig?.handPos?.[1] ?? 0.5, min: 0, max: 1.5, step: 0.01, label: 'Altezza' },
-          hz: { value: vehicleConfig?.handPos?.[2] ?? 0.3, min: -2, max: 2, step: 0.01, label: 'Profondità' }
+          hz: { value: vehicleConfig?.handPos?.[2] ?? 0.3, min: -2, max: 2, step: 0.01, label: 'ProfonditÃ ' }
       })
   }, [vehicleConfig]);
   */
@@ -86,6 +86,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   };
 
   // Caricamento Assets
+  console.log("Racer model: ", characterConfig);
   const { scene: charScene } = useGLTF(characterConfig.file)
   const clone = useMemo(() => SkeletonUtils.clone(charScene), [charScene])
   const { animations: kartAnims } = useGLTF('/Animations/driving_kart.glb')
@@ -103,24 +104,19 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   const { actions, names } = useAnimations(anims, group)
 
   // Gestione Animazioni
-    useEffect(() => {
-        let targetAnim = 'idle';
-        
-        // Se è un kart, forza l'animazione di guida, IGNORANDO altre logiche
-        if (isKart) {
-            console.log(`vehicle animation type: ${vehicleConfig.animationType}`);
-            targetAnim = vehicleConfig?.animationType || 'kart';
-        } else if (isInMenu) {
-            targetAnim = 'idle';
-        }
+  useEffect(() => {
 
-        names.forEach(name => {
-            const action = actions[name];
-            if (!action) return;
-            if (name === targetAnim) action.reset().fadeIn(0.2).play().setLoop(LoopRepeat);
-            else action.fadeOut(0.2);
-        });
-    }, [vehicleConfig, isKart, isInMenu, actions, names]);
+      let targetAnim = 'idle';
+	  console.log('Vehicle: ', vehicleConfig.animationType);
+      if (isKart && vehicleConfig) targetAnim = vehicleConfig.animationType || 'kart';
+
+      names.forEach(name => {
+          const action = actions[name];
+          if (!action) return;
+          if (name === targetAnim) action.reset().fadeIn(0.2).play().setLoop(LoopRepeat);
+          else action.fadeOut(0.2);
+      });
+  }, [vehicleConfig?.animationType, isKart, actions, names]);
 
   useEffect(() => {
       clone.traverse(o => { 

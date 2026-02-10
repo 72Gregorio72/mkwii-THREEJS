@@ -28,7 +28,7 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
         
         // Se il tracciato cambia, aggiorna
         if (data.selectedTrack) {
-          console.log('[WaitingRoom] Track updated:', data.selectedTrack.name);
+          //console.log('[WaitingRoom] Track updated:', data.selectedTrack.name);
           const trackData = {
             ...data.selectedTrack,
             start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
@@ -42,7 +42,7 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
     // Ascolta quando l'host preme Start Game
     const handleGameStarted = (data) => {
       if (data.roomCode === roomCode) {
-        console.log('[WaitingRoom] Game started! Going to game...');
+        //console.log('[WaitingRoom] Game started! Going to game...');
         navigate('/game');
       }
     };
@@ -50,7 +50,7 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
     // Ascolta quando l'host cambia tracciato
     const handleTrackSelected = (data) => {
       if (data.roomCode === roomCode) {
-        console.log('[WaitingRoom] Track changed by host:', data.track.name);
+        //console.log('[WaitingRoom] Track changed by host:', data.track.name);
         const trackData = {
           ...data.track,
           start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
@@ -76,7 +76,7 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
 
   const handleStartGame = () => {
     if (isHost && socket) {
-      console.log('[WaitingRoom] Host starting game...');
+      //console.log('[WaitingRoom] Host starting game...');
       socket.emit('start_game', { roomCode });
     }
   };

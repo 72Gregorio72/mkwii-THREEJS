@@ -40,14 +40,14 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
         // Icona player
         if (playerCharacter?.icon) {
             const iconPath = playerCharacter.icon.replace('./icons/', '/Icons/');
-            console.log('[Minimap] Player icon path:', iconPath);
+            //console.log('[Minimap] Player icon path:', iconPath);
             imagesToLoad.push({ key: 'player', src: iconPath });
         }
 
         // Icone bot
         if (botRefs && botRefs.current) {
             const botIds = Object.keys(botRefs.current);
-            console.log('[Minimap] Bot IDs from refs:', botIds);
+            //console.log('[Minimap] Bot IDs from refs:', botIds);
             
             botIds.forEach(botId => {
                 // Cerca il character corrispondente in Characters usando l'ID del bot
@@ -62,7 +62,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
 
         // Icone opponents
         if (opponents) {
-            console.log('[Minimap] Opponents count:', opponents.length);
+            //console.log('[Minimap] Opponents count:', opponents.length);
             opponents.forEach(opp => {
                 if (opp.characterIcon) {
                     const iconPath = opp.characterIcon.replace('./icons/', '/Icons/');
@@ -72,7 +72,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
             });
         }
 
-        console.log('[Minimap] Total images to load:', imagesToLoad.length);
+        //console.log('[Minimap] Total images to load:', imagesToLoad.length);
 
         if (imagesToLoad.length === 0) {
             setIconImages({});
@@ -88,7 +88,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                 loadedImages[key] = img;
                 loadedCount++;
                 if (loadedCount === imagesToLoad.length) {
-                    console.log('[Minimap] All icons loaded:', Object.keys(loadedImages));
+                    //console.log('[Minimap] All icons loaded:', Object.keys(loadedImages));
                     setIconImages({ ...loadedImages });
                 }
             };
@@ -96,7 +96,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                 console.error(`[Minimap] ✗ Failed to load icon for ${key}:`, src, e);
                 loadedCount++;
                 if (loadedCount === imagesToLoad.length) {
-                    console.log('[Minimap] Finished loading (with errors):', Object.keys(loadedImages));
+                    //console.log('[Minimap] Finished loading (with errors):', Object.keys(loadedImages));
                     setIconImages({ ...loadedImages });
                 }
             };
@@ -118,7 +118,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
             frameCount++;
             // Log ogni 60 frame (circa 1 secondo)
             if (frameCount % 60 === 0) {
-                console.log('[Minimap] Frame render. IconImages available:', Object.keys(iconImages).length, iconImages);
+                //console.log('[Minimap] Frame render. IconImages available:', Object.keys(iconImages).length, iconImages);
             }
 
             // Pulisci canvas
