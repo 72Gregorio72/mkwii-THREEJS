@@ -837,7 +837,7 @@ export function GameScene({
 
 
 
-                <Physics debug={false} gravity={[0, -20, 0]}>
+                <Physics debug={true} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {

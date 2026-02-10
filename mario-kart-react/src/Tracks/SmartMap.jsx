@@ -23,9 +23,6 @@ export function SmartMap({ modelPath, scale = 1 }) {
         child.renderOrder = -1
 
         const name = child.name.toLowerCase()
-        if (name.includes('collider') || name.includes('polygon456')) {
-          child.visible = false
-        }
       }
     })
     
