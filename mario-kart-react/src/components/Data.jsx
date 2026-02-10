@@ -66,6 +66,7 @@ export const Tracks = {
 		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
 		gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
 		road: './Tracks/BowserCastle/BowserCastle_road.glb',
+		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
 	'Delfino Square': {
 		file: './Tracks/DelfinoSquare/DelfinoSquare.glb',

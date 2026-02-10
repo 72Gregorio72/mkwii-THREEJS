@@ -59,7 +59,7 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
                 const isRecentlyHit = lastHit?.cpId === box.id && (Date.now() - lastHit.time < 500);
                 
                 return (
-                    <group key={`debug-group-${box.id}`}>
+                    <group key={`debug-group-${box.id}-${index}`}>
                         {/* Etichetta testuale sopra il checkpoint */}
                         <Text
                             position={[box.position.x, box.position.y + 2, box.position.z]}
