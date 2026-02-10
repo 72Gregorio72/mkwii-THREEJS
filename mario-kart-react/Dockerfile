@@ -15,6 +15,8 @@ RUN npm install socket.io-client
 # per il routing delle degli'indirizzi
 RUN npm install react-router-dom
 
+RUN npm install -D tailwindcss postcss autoprefixer
+
 # Copiamo il resto del codice
 COPY . .
 
