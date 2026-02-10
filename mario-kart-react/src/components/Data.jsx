@@ -30,7 +30,7 @@ export const Tracks = {
 		startPos: [9, 12, 98],
 		checkpoints: './Tracks/LuigiCircuit/LuigiCircuit_checkpoints.glb',
         road: './Tracks/LuigiCircuit/LuigiCircuit_road.glb',
-        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+        itemBoxes: './Tracks/LuigiCircuit/LuigiCircuit_itempos.glb',
 		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
 		maxCheckpoints: 4,
         soundtrack: 'RACE_LUIGI_CIRCUIT',
