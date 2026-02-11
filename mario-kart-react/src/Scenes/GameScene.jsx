@@ -972,7 +972,7 @@ export function GameScene({
                                         socket.emit('player_hit', { victimId: victimId, type: 'bullet-bill' });
                                     }
                                 }}
-                                socket={roomCode ? socket : null}
+                                socket={socket}
 								roomCode={roomCode}
                             />
                         )}

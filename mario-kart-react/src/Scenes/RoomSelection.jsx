@@ -49,7 +49,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket, setSelectedTra
           setShowJoinInput(false);
           setRoomCode('');
       } else {
-          navigate('/');
+          navigate('/menu');
       }
   };
 

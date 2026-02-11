@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { Characters } from './components/Data'
 import { CharacterSelection } from './Scenes/CharacterSelection'
@@ -12,17 +12,64 @@ import { AudioProvider } from './audio/AudioManager'
 import { socket } from './multiplayer/socket.js'
 import { VEHICLE_DATABASE } from './components/Data'
 import { Tracks } from './components/Data'
+import { MainMenu } from './Scenes/MainMenu.jsx'
 
 // Creiamo un piccolo componente per la Home
-const MainMenu = () => {
+const TitleScreen = () => {
     const navigate = useNavigate();
+    // Stato per gestire l'avvio e l'animazione
+    const [isStarting, setIsStarting] = useState(false);
+
+    // Funzione per navigare al menu
+    const handleStart = () => {
+        // Evita attivazioni multiple se è già in corso l'avvio
+        if (isStarting) return;
+
+        setIsStarting(true);
+
+        // Aspetta 500ms (mezzo secondo) per mostrare l'animazione prima di cambiare pagina
+        setTimeout(() => {
+            navigate('/menu');
+        }, 1000);
+    };
+
+    // Aggiunge un listener per la tastiera quando il componente viene montato
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            handleStart();
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isStarting, navigate]); // Aggiunto isStarting alle dipendenze
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '100px', gap: '20px' }}>
-            <h1>Mario Kart Three.js</h1>
-            <button onClick={() => navigate('/room')}>Multiplayer</button>
-            <button onClick={() => navigate('/character')}>Solo Play</button>
-            <button onClick={() => navigate('/game')}>Direct to GameScene (Testing)</button>
-            <button onClick={() => navigate('/info')}>Privacy and TOS</button>
+        <div 
+            onClick={handleStart}
+            className="w-screen h-screen cursor-pointer flex flex-col items-center justify-end pb-16 relative overflow-hidden"
+        >
+            {/* Immagine di sfondo */}
+            {/* Nota: Ho reimpostato bg-cover come richiesto in precedenza per coprire tutto lo schermo */}
+            <div 
+                className="w-screen h-screen bg-white bg-contain bg-center bg-no-repeat flex flex-col items-center justify-end pb-20"
+                style={{ backgroundImage: "url('/sprites/TitleScreen.jpg')" }}
+            />
+
+            {/* Scritta lampeggiante */}
+            <h1 
+                className={`
+                    z-10 font-bold text-4xl tracking-wider font-sans uppercase drop-shadow-[0_5px_5px_rgba(0,0,0,1)]
+                    transition-all duration-300 ease-out
+                    ${isStarting 
+                        ? 'scale-130 text-gray-400 opacity-75'  // Stile quando premuto: ingrandisce, diventa giallo, opacità fissa
+                        : 'text-white animate-pulse'                 // Stile normale: bianco che lampeggia
+                    }
+                `}
+            >
+                Press A button
+            </h1>
         </div>
     );
 };
@@ -59,11 +106,13 @@ export default function App() {
         <AudioProvider>
             <BrowserRouter>
                 {/* MODIFICA QUI: Sfondo totalmente azzurro (#87CEEB è SkyBlue) */}
-                <div style={{ minHeight: '100vh', backgroundColor: '#3dacf7' }}>
+                <div style={{ minHeight: '100vh', backgroundColor: '#87CEEB' }}>
                     
                     <Routes>
+                        <Route path="/" element={<TitleScreen />} />
+
                         {/* HOME PAGE */}
-                        <Route path="/" element={<MainMenu />} />
+                        <Route path="/menu" element={<MainMenu />} />
 
                         {/* ROOM SELECTION */}
                         <Route path="/room" element={

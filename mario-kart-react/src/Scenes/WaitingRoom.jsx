@@ -18,7 +18,7 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
 
   useEffect(() => {
     if (!socket || !roomCode) {
-      navigate('/');
+      navigate('/menu');
       return;
     }
 
@@ -233,7 +233,7 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
         {/* Footer with Back Button */}
         <div className="h-[10vh] flex justify-center items-center bg-gradient-to-t from-black/90 to-transparent z-20">
             <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/menu')}
                 className="py-[1vh] px-[6vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#ef4444] text-white hover:bg-[#dc2626] transition-all active:scale-95"
             >
                 Leave Room

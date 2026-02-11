@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAudio, AUDIO_SFX } from './audio/AudioManager.jsx'; // Decommenta se usi l'audio
+import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'; // Decommenta se usi l'audio
 
 const mkwiiFontStyle = `
   @font-face {
@@ -13,7 +13,7 @@ const mkwiiFontStyle = `
 
 export const MainMenu = () => {
     const navigate = useNavigate();
-    const { playSfx } = useAudio(); // Decommenta per i suoni
+    const { playSfx } = useAudio();
 
     const handleNavigate = (path) => {
         playSfx(AUDIO_SFX.DECIDE);
