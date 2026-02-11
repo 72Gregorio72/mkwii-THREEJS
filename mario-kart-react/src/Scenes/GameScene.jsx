@@ -717,7 +717,7 @@ export function GameScene({
         }
         
         // Aggiungi opponents remoti (solo in multiplayer)
-        if (roomCode && opponents.length > 0) {
+        if (roomCode && opponents.length > 0 && roomCode === opponents[0]?.roomCode) {
             opponents.forEach(opp => {
                 // Verifica che sia il ref che il ref.current esistano
                 if (remoteRefMap.current[opp.id] && remoteRefMap.current[opp.id].current) {
