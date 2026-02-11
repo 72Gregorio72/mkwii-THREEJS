@@ -106,7 +106,7 @@ export default function App() {
         <AudioProvider>
             <BrowserRouter>
                 {/* MODIFICA QUI: Sfondo totalmente azzurro (#87CEEB è SkyBlue) */}
-                <div style={{ minHeight: '100vh', backgroundColor: '#87CEEB' }}>
+                <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
                     
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
