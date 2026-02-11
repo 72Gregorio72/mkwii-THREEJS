@@ -127,7 +127,7 @@ export function CharacterSelection({ availableCharacters, setSelectedCharacter }
                 <button 
                     onClick={() => {
                         playSfx(AUDIO_SFX.BACK || 'BACK', 10);
-                        navigate('/');
+                        navigate('/menu');
                     }}
                     className="py-[1vh] px-[4vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#ccc] text-[#333] hover:bg-white transition-colors active:scale-95"
                 >

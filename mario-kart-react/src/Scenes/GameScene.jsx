@@ -835,9 +835,7 @@ export function GameScene({
                     />
                 )}
 
-
-
-                <Physics debug={true} gravity={[0, -20, 0]}>
+                <Physics debug={false} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
@@ -974,7 +972,8 @@ export function GameScene({
                                         socket.emit('player_hit', { victimId: victimId, type: 'bullet-bill' });
                                     }
                                 }}
-                                socket={roomCode ? socket : null}
+                                socket={socket}
+								roomCode={roomCode}
                             />
                         )}
                     </group>
@@ -1008,6 +1007,7 @@ export function GameScene({
                                     isBot={true}
                                     paths={selectedTrack.Waypoints} 
                                     onCheckpoint={(idx) => handleCheckpointTrigger(idx, botId)}
+									roomCode={roomCode}
                                 /> 
                             </group>
                         );
