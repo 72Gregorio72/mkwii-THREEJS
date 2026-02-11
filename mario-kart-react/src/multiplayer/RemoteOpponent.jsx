@@ -15,63 +15,12 @@ import { usePositionalKartAudio } from '../hooks/usePositionalKartAudio.js';
 const PHYSICS_RADIUS = 1; 
 const INTERPOLATION_DELAY = 100; 
 
-// --- NUOVO COMPONENTE PER GESTIRE LE ANIMAZIONI ---
-// Questo componente legge i dati in tempo reale e aggiorna solo la parte visiva
-const RemoteVisuals = ({ opponentsDataRef, playerId, vehicle, character }) => {
-    // Stato locale per le animazioni (speed, steer, drift)
-    const [animState, setAnimState] = useState({ speed: 0, steer: 0, drift: 0, driftLevel: 0 });
-    
-    // Usiamo un ref per limitare gli aggiornamenti di stato se necessario, 
-    // ma React 18 gestisce bene gli aggiornamenti frequenti se il componente è leggero.
-    useFrame(() => {
-        const serverData = opponentsDataRef.current[playerId];
-        if (!serverData) return;
-
-        // Aggiorniamo lo stato visuale con i dati più recenti dal server
-        // Nota: serverData.speed arriva dal NetworkManager
-        setAnimState({
-            speed: serverData.speed || 0,
-            steer: serverData.steer || 0,
-            drift: serverData.drift || 0,
-            driftLevel: serverData.driftLevel || 0
-        });
-    });
-
-    return (
-        <group position={vehicle.vehicleOffset || [0,0,0]}>
-            <VehicleModel 
-                vehicleConfig={vehicle.modelConfig} 
-                scale={1.4} 
-                rotation={[0, Math.PI, 0]} 
-                isBike={vehicle.isBike} 
-                speed={animState.speed}       // <--- Ora è dinamico!
-                steer={animState.steer}       // <--- Ora è dinamico!
-                drift={animState.drift} 
-            />
-            <group rotation={[0, Math.PI, 0]}>
-                <RacerModel
-                    isInMenu={false} 
-                    isRemote={true} 
-                    characterConfig={character.modelConfig} 
-                    vehicleConfig={vehicle} 
-                    isKart={true} 
-                    steer={animState.steer}   // <--- Ora è dinamico!
-                    drift={animState.drift} 
-                    scale={1.5} 
-                    speed={animState.speed}   // <--- Risolve la T-Pose
-                />
-            </group>
-        </group>
-    );
-};
-
 // --- COMPONENTE PRINCIPALE ---
 export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, character, vehicle, userData, data, isRaceActive = true }, ref) => {
     const rb = useRef();
     const visualGroupRef = useRef();
     const renderBuffer = useRef([]);
     
-    // Audio group ref
     const audioGroupRef = useRef(null);
     const [audioGroupMounted, setAudioGroupMounted] = useState(false);
     
@@ -120,12 +69,11 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
         latestEffects.current = { isBulletBill, isStar, isMega };
     }, [isBulletBill, isStar, isMega]);
 
-    // LOGICA MOVIMENTO (Interpolazione e Audio)
+    // LOGICA MOVIMENTO
     useFrame((state, delta) => {
         const serverData = opponentsDataRef.current[playerId];
         if (!serverData || !rb.current) return;
 
-        // ... [Codice Buffer Interpolazione invariato] ...
         renderBuffer.current.push({
             t: Date.now(),
             pos: [serverData.x, serverData.y, serverData.z],
@@ -134,14 +82,11 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
 
         if (renderBuffer.current.length > 20) renderBuffer.current.shift();
         
-        // Interpolazione fisica
         if (renderBuffer.current.length >= 2) {
              const now = Date.now();
              const renderTime = now - INTERPOLATION_DELAY;
              let i = 0;
-             while(i < renderBuffer.current.length - 1 && renderBuffer.current[i+1].t <= renderTime) {
-                 i++;
-             }
+             while(i < renderBuffer.current.length - 1 && renderBuffer.current[i+1].t <= renderTime) { i++; }
              const b0 = renderBuffer.current[i];
              const b1 = renderBuffer.current[i + 1];
 
@@ -160,14 +105,12 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
              }
         }
 
-        // Audio Update
         const currentSpeed = serverData.speed || 0;
         const isAccelerating = currentSpeed > 0.5;
         const isDrifting = (serverData.drift || 0) !== 0;
         const driftLevel = serverData.driftLevel || 0;
         updateAudio(currentSpeed, isAccelerating, driftLevel, isDrifting);
 
-        // Effetti Visivi (Scale, Hit) - Logica invariata
         if (visualGroupRef.current) {
             if (isHitRef.current) {
                 spinTimer.current -= delta;
@@ -177,10 +120,9 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
                     visualGroupRef.current.rotation.y = 0; 
                 }
             }
-
             let targetScale = isMega ? 2.5 : (isSmall.current ? 0.5 : 1);
             visualGroupRef.current.scale.lerp(new Vector3(targetScale, targetScale, targetScale), delta * 5);
-            // ... [Codice Star invariato] ...
+            
             if (isStar) {
                 const time = state.clock.elapsedTime * 5;
                 const rainbowColor = new Color().setHSL((time % 1), 1.0, 0.5);
@@ -195,7 +137,6 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
         }
     });
 
-    // ... [Event Listeners invariati] ...
     useEffect(() => {
         const handleHit = (e) => {
              if (e.detail?.victimId === playerId) {
@@ -235,27 +176,36 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
             userData={{ type: 'opponent', id: playerId }}
         >
             <BallCollider args={[PHYSICS_RADIUS]} />
-            
             <group ref={(node) => { audioGroupRef.current = node; if (node && !audioGroupMounted) setAudioGroupMounted(true); }} />
-            
             <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]}>
-                
-                {/* Visualizzazione Normale del Kart/Personaggio */}
-                <group visible={!isBulletBill}>
-                    {/* USIAMO IL NUOVO COMPONENTE PER LE ANIMAZIONI */}
-                    <RemoteVisuals 
-                        opponentsDataRef={opponentsDataRef}
-                        playerId={playerId}
-                        vehicle={vehicle}
-                        character={character}
-                    />
-                </group>
+			<group position={vehicle.vehicleOffset || [0,0,0]}>
+				<VehicleModel 
+					vehicleConfig={vehicle.modelConfig} 
+					scale={1.4} 
+					rotation={[0, Math.PI, 0]} 
+					isBike={vehicle.isBike} 
+					speed={0}       
+					steer={0}       
+					drift={0} 
+				/>
 
-                {/* Visualizzazione Bullet Bill */}
+				<group rotation={[0, Math.PI, 0]}>
+					<RacerModel 
+						isInMenu={false}
+						scale={1.5}
+						characterConfig={character.modelConfig}
+						vehicleConfig={vehicle} 
+						steer={0}
+						drift={0}
+						speed={0}
+						isKart={true}
+						key={vehicle.name + "_racer"}
+					/>
+				</group>
+			</group>
                 <group visible={!!isBulletBill} scale={2.5} position={[0, 0.8, 0]} rotation={[0, Math.PI, 0]}>
                     <primitive object={billClone} />
                 </group>
-
             </group>
         </RigidBody>
     );

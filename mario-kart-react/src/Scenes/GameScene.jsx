@@ -147,12 +147,14 @@ function BotSynchronizer({ socket, isHost, botRefs, remoteBots }) {
                 const rot = botRef.current.rotation();
                 const vel = botRef.current.linvel();
 
-                socket.emit('bot_update', {
-                    botId: bot.id,
-                    position: { x: pos.x, y: pos.y, z: pos.z },
-                    rotation: rot,
-                    velocity: vel
-                });
+                if (roomCode) {
+                    socket.emit('bot_update', {
+                        botId: bot.id,
+                        position: { x: pos.x, y: pos.y, z: pos.z },
+                        rotation: rot,
+                        velocity: vel
+                    });
+                }
             } catch (error) {
                 // Ignora errori (bot non ancora inizializzato)
             }
@@ -190,6 +192,49 @@ function useGridPositions(url) {
     return gridData;
 }
 
+// Funzione per generare configurazioni bot random e uniche
+function generateBotConfigurations(botCount, playerCharacter, playerVehicle) {
+    const usedCharacters = new Set([playerCharacter.id]);
+    const usedVehicles = new Set([playerVehicle.name]);
+    const botConfigs = [];
+
+    // Crea copia shuffled di characters e vehicles
+    const shuffledCharacters = [...Characters].sort(() => Math.random() - 0.5);
+    const allVehicleNames = Object.keys(VEHICLE_DATABASE);
+    const shuffledVehicles = [...allVehicleNames].sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < botCount; i++) {
+        // Trova un character non usato
+        const availableChar = shuffledCharacters.find(c => !usedCharacters.has(c.id));
+        if (!availableChar) break; // Non dovrebbe succedere con 24 characters e 11 bot
+
+        usedCharacters.add(availableChar.id);
+
+        // Trova un veicolo compatibile con il character e non usato
+        let selectedVehicle = null;
+        for (const vehicleName of shuffledVehicles) {
+            if (!usedVehicles.has(vehicleName) && availableChar.veichles.includes(vehicleName)) {
+                selectedVehicle = VEHICLE_DATABASE[vehicleName];
+                usedVehicles.add(vehicleName);
+                break;
+            }
+        }
+
+        // Fallback: se non troviamo veicolo unico, prendi il primo compatibile
+        if (!selectedVehicle) {
+            const compatibleVehicle = availableChar.veichles[0];
+            selectedVehicle = VEHICLE_DATABASE[compatibleVehicle];
+        }
+
+        botConfigs.push({
+            character: availableChar,
+            vehicle: selectedVehicle
+        });
+    }
+
+    return botConfigs;
+}
+
 // --- MAIN COMPONENT ---
 
 export function GameScene({ 
@@ -219,6 +264,11 @@ export function GameScene({
     const [isHost, setIsHost] = useState(isHostProp);
     const [lobbyPlayers, setLobbyPlayers] = useState([]);
 
+    // Genera configurazioni bot random e uniche (memoizzate per non ricambiarle ad ogni render)
+    const botConfigurations = useMemo(() => {
+        if (roomCode) return []; // Nessun bot in multiplayer
+        return generateBotConfigurations(BOT_COUNT, character, vehicle);
+    }, [roomCode, character, vehicle]);
 
     const [gameState, setGameState] = useState(roomCode ? 'LOBBY' : 'INTRO'); // Se no room, parte subito
     const [countdown, setCountdown] = useState(null);
@@ -278,18 +328,17 @@ export function GameScene({
         const positions = [{ id: 'player', position: 1 }]; // Player parte primo in multiplayer
         
         // In multiplayer (roomCode presente) non creiamo bot
-        // In single player creiamo bot locali
-        const botsToUse = roomCode ? [] : 
-            Array.from({ length: BOT_COUNT }, (_, i) => ({ id: `bot_${i}`, index: i }));
+        // In single player usiamo gli ID dei character dai botConfigurations
+        if (!roomCode && botConfigurations.length > 0) {
+            botConfigurations.forEach((botConfig, i) => {
+                const botId = botConfig.character.id;
+                data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0 };
+                positions.push({ id: botId, position: i + 2 });
+            });
+        }
 
-        botsToUse.forEach((bot, i) => {
-            const botId = bot.id;
-            data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0 };
-            positions.push({ id: botId, position: i + 1 });
-        });
-
-        return { initialRacersData: data, initialPositions: positions, botsArray: botsToUse };
-    }, [roomCode]);
+        return { initialRacersData: data, initialPositions: positions };
+    }, [roomCode, botConfigurations]);
 
 	const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
 	const startingGridPlayed = useRef(false);
@@ -306,8 +355,8 @@ export function GameScene({
             
             if (racerId === 'player') {
                 playerRef.current?.triggerItemRoulette(playerRank);
-            } else if (racerId.startsWith('bot_')) {
-                // Trova il bot specifico e attiva la roulette basata sulla sua posizione attuale
+            } else if (botRefs.current[racerId]) {
+                // È un bot (usa character ID)
                 const botRankInfo = positions.find(p => p.id === racerId);
                 const botRank = botRankInfo ? botRankInfo.position : 6;
                 botRefs.current[racerId].current?.triggerItemRoulette(botRank);
@@ -339,7 +388,7 @@ export function GameScene({
             // Solo aggiorna se è la stessa stanza
             if (data.roomCode === roomCode) {
                 setLobbyPlayers(data.players || []);
-                console.log('Room state updated:', data);
+                //console.log('Room state updated:', data);
             }
         };
 
@@ -404,7 +453,7 @@ export function GameScene({
         if (!socket || !isHost || !roomCode) return;
 
         // In multiplayer non creiamo bot, solo player reali
-        console.log('[Multiplayer] Starting race without bots');
+        //console.log('[Multiplayer] Starting race without bots');
         
         // Emit race start without bots
         socket.emit('start_race', { bots: [], roomCode });
@@ -480,15 +529,15 @@ export function GameScene({
     // Inizializza refs per i bot dinamicamente
     useEffect(() => {
         // Solo in single player
-        if (!roomCode) {
-            Array.from({ length: BOT_COUNT }, (_, i) => {
-                const botId = `bot_${i}`;
+        if (!roomCode && botConfigurations.length > 0) {
+            botConfigurations.forEach((botConfig) => {
+                const botId = botConfig.character.id;
                 if (!botRefs.current[botId]) {
                     botRefs.current[botId] = React.createRef();
                 }
             });
         }
-    }, [roomCode]);
+    }, [roomCode, botConfigurations]);
 
     useEffect(() => {
         onlinePlayersRef.current = onlinePlayers.reduce((acc, player) => {
@@ -499,6 +548,17 @@ export function GameScene({
 
     // Stati Variabili
     const [opponents, setOpponents] = useState([]);
+
+    // Arricchisci opponents con le icone dei character
+    const opponentsWithIcons = useMemo(() => {
+        return opponents.map(opp => {
+            const char = Characters.find(c => c.id === opp.charId);
+            return {
+                ...opp,
+                characterIcon: char?.icon || null
+            };
+        });
+    }, [opponents]);
 
     const remoteRefMap = useRef({});
 
@@ -527,8 +587,9 @@ export function GameScene({
 
         // Opzionale: pulizia se un giocatore esce
         const opponentIds = opponents.map(o => o.id);
+        const botIds = botConfigurations.map(bc => bc.character.id);
         Object.keys(racersData.current).forEach(id => {
-            if (id !== 'player' && !id.startsWith('bot_') && !opponentIds.includes(id)) {
+            if (id !== 'player' && !botIds.includes(id) && !opponentIds.includes(id)) {
                 delete racersData.current[id];
             }
         });
@@ -645,14 +706,14 @@ export function GameScene({
         if (playerRef.current) list.push({ id: 'player', ref: playerRef });
         
         // Aggiungi bot locali (solo in single player)
-        if (!roomCode) {
-            for (let i = 0; i < BOT_COUNT; i++) {
-                const id = `bot_${i}`;
+        if (!roomCode && botConfigurations.length > 0) {
+            botConfigurations.forEach(botConfig => {
+                const id = botConfig.character.id;
                 // Verifica che sia il ref che il ref.current esistano
                 if (botRefs.current[id] && botRefs.current[id].current) {
                     list.push({ id: id, ref: botRefs.current[id] });
                 }
-            }
+            });
         }
         
         // Aggiungi opponents remoti (solo in multiplayer)
@@ -709,9 +770,10 @@ export function GameScene({
                 <Minimap 
                     trackPath={selectedTrack.Waypoints[0]}
                     playerRef={playerRef}
+                    playerCharacter={character}
                     botRefs={botRefs}
                     remoteRefMap={remoteRefMap}
-                    opponents={opponents}
+                    opponents={opponentsWithIcons}
                     playerRank={playerRank}
                 />
             )}
@@ -775,7 +837,7 @@ export function GameScene({
 
 
 
-                <Physics debug={false} gravity={[0, -20, 0]}>
+                <Physics debug={true} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
@@ -843,14 +905,24 @@ export function GameScene({
 
                     {/* OPPONENTI REMOTI - Solo in multiplayer */}
                     {roomCode && opponents.map((playerData) => {
+                        // 1. Cerca i dati remoti
+                        const remoteCharacter = Characters.find(c => c.id === playerData.charId);
+                        const remoteVehicle = VEHICLE_DATABASE[playerData.vehicleId];
+
+                        // 2. FALLBACK DI SICUREZZA:
+                        // Se remoteVehicle è undefined, usa 'vehicle' (il tuo locale).
+                        // Se anche quello fallisce, prendi il PRIMO veicolo del database.
+                        const safeVehicle = remoteVehicle || vehicle || VEHICLE_DATABASE['StandardKartS'];
+                        const safeCharacter = remoteCharacter || character || Characters[0];
                         return (
                             <RemoteOpponent 
                                 key={playerData.id} 
-                                playerId={playerData.id} // Passa l'ID
+                                playerId={playerData.id}
                                 ref={remoteRefMap.current[playerData.id]}
-                                opponentsDataRef={opponentsDataRef} // Passa il Ref globale
-                                character={Characters.find(c => c.id === playerData.charId) || character} 
-                                vehicle={VEHICLE_DATABASE[playerData.vehicleId] || vehicle}
+                                opponentsDataRef={opponentsDataRef}
+                                // Passa i dati SICURI
+                                character={safeCharacter} 
+                                vehicle={safeVehicle} 
                                 userData={{ type: 'opponent', id: playerData.id }} 
                                 data={playerData}
                             />
@@ -908,8 +980,8 @@ export function GameScene({
                     </group>
 
                     {/* BOTS (AI) - Renderizza solo se NON siamo in multiplayer */}
-                    {!roomCode && Array.from({ length: BOT_COUNT }, (_, i) => {
-                        const botId = `bot_${i}`;
+                    {!roomCode && botConfigurations.map((botConfig, i) => {
+                        const botId = botConfig.character.id;
                         const gridIndex = i + 1; 
                         
                         const botPos = gridPositions[gridIndex] || getGridPosition(start_pos, i);
@@ -920,9 +992,9 @@ export function GameScene({
                                 <OutsideDriftKart 
                                     ref={botRefs.current[botId]}
                                     userData={{ type: 'racer', id: botId }}
-                                    characterConfig={character.modelConfig} 
+                                    characterConfig={botConfig.character.modelConfig} 
                                     gameState={gameState}
-                                    vehicleConfig={vehicle} 
+                                    vehicleConfig={botConfig.vehicle} 
                                     START_POS={botPos}
                                     START_ROT={botRot}
                                     positions={positions}

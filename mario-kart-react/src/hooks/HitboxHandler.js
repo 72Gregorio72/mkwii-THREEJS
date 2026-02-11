@@ -17,7 +17,7 @@ export function useHitboxHandler({ speed, boostTime, SETTINGS, onCheckpoint, max
     let obj = hitObject;
     let foundName = '';
 
-	console.log('Hit object:', obj.name);
+	// console.log('Hit object:', obj.name);
     
     // Risalita sicura
     for (let i = 0; i < 3; i++) {

@@ -724,7 +724,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 			// console.log(`ATTACK! Hitting: ${otherData.id}`);
 			
 			// Invia tramite socket solo in multiplayer
-			if (socket) {
+			if (socket && roomCode) {
 				socket.emit('player_hit', { 
 					victimId: otherData.id, 
 					type: isBulletBill ? 'bullet' : (isStarActive.current ? 'star' : 'mega') 

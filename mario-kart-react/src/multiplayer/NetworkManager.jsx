@@ -2,17 +2,19 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 
-export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef, isHost, setRemoteBots }) => {
+export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, character, vehicle, setItems, opponentsDataRef, setRemoteBots, isHost }) => {
     const [ping, setPing] = useState(0);
     
     // 2. Tell the server who we are when we join/load
     useEffect(() => {
         if (!socket || !character || !vehicle) return;
+        
+        // Invia i dettagli IMMEDIATAMENTE
         socket.emit('set_details', {
             charId: character.id,
             vehicleId: vehicle.id
         });
-    }, [socket, character, vehicle]);
+    }, [socket, character.id, vehicle.id]);
 
     const lastSendTime = useRef(0);
 
@@ -42,6 +44,9 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
             const rot = playerRef.current.rotation();
             const inputState = playerRef.current.getInputState?.() || { steer: 0, drift: 0, speed: 0, driftLevel: 0 };
             const effectState = playerRef.current.getEffectState?.() || { isBulletBill: false };
+            // console.log(`${inputState.steer}`);
+            // console.log(`${inputState.drift}`);
+            // console.log(`${inputState.driftLevel}`);
 
             socket.emit('move_kart', {
                 x: pos.x, y: pos.y, z: pos.z,
@@ -52,7 +57,9 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
                 driftLevel: inputState.driftLevel,
                 effects: effectState,
             });
-        } catch (error) { }
+        } catch (error) { 
+            console.log(`netwrok error ${error}`);
+        }
     });
 
     // Ref per tracciare la "firma" della configurazione della stanza (chi c'è e chi sono)

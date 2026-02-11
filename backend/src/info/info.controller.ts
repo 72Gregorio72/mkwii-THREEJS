@@ -1,17 +1,16 @@
 import { Controller, Get } from '@nestjs/common';
 import { InfoService } from './info.service';
 
-@Controller('info')
+@Controller('info') // Questo corrisponde a location /info in nginx
 export class InfoController {
-	constructor(private readonly infoService : InfoService) {}
+    constructor(private readonly infoService : InfoService) {}
 
-	@Get('tos')
-	getTos(){
-		return this.infoService.getTos();
-	}
-
-	@Get('Privacy')
-	getPrivacy(){
-		return this.infoService.getPrivacy();
-	}
+    @Get('') 
+    getInfo(){
+        // Restituiamo un unico oggetto JSON pulito
+        return {
+            tos: this.infoService.getTos(),
+            privacy: this.infoService.getPrivacy()
+        };
+    }
 }

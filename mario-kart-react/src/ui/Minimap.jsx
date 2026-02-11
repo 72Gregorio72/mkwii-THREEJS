@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Characters } from '../components/Data.jsx';
 
-export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents, playerRank }) => {
+export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remoteRefMap, opponents, playerRank }) => {
     const canvasRef = useRef(null);
     const [bounds, setBounds] = useState({ minX: 0, maxX: 0, minZ: 0, maxZ: 0 });
+    const [iconImages, setIconImages] = useState({});
 
     // Calcola i bounds del tracciato una volta sola
     useEffect(() => {
@@ -30,6 +32,78 @@ export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents
         });
     }, [trackPath]);
 
+    // Precarica tutte le icone dei personaggi
+    useEffect(() => {
+        const loadedImages = {};
+        const imagesToLoad = [];
+
+        // Icona player
+        if (playerCharacter?.icon) {
+            const iconPath = playerCharacter.icon.replace('./icons/', '/Icons/');
+            //console.log('[Minimap] Player icon path:', iconPath);
+            imagesToLoad.push({ key: 'player', src: iconPath });
+        }
+
+        // Icone bot
+        if (botRefs && botRefs.current) {
+            const botIds = Object.keys(botRefs.current);
+            //console.log('[Minimap] Bot IDs from refs:', botIds);
+            
+            botIds.forEach(botId => {
+                // Cerca il character corrispondente in Characters usando l'ID del bot
+                const botCharacter = Characters.find(c => c.id === botId);
+                if (botCharacter?.icon) {
+                    const iconPath = botCharacter.icon.replace('./icons/', '/Icons/');
+                    console.log(`[Minimap] Bot ${botId} icon path:`, iconPath);
+                    imagesToLoad.push({ key: botId, src: iconPath });
+                }
+            });
+        }
+
+        // Icone opponents
+        if (opponents) {
+            //console.log('[Minimap] Opponents count:', opponents.length);
+            opponents.forEach(opp => {
+                if (opp.characterIcon) {
+                    const iconPath = opp.characterIcon.replace('./icons/', '/Icons/');
+                    console.log(`[Minimap] Opponent ${opp.id} icon path:`, iconPath);
+                    imagesToLoad.push({ key: opp.id, src: iconPath });
+                }
+            });
+        }
+
+        //console.log('[Minimap] Total images to load:', imagesToLoad.length);
+
+        if (imagesToLoad.length === 0) {
+            setIconImages({});
+            return;
+        }
+
+        // Carica tutte le immagini
+        let loadedCount = 0;
+        imagesToLoad.forEach(({ key, src }) => {
+            const img = new Image();
+            img.onload = () => {
+                console.log(`[Minimap] ✓ Loaded icon for ${key}:`, src);
+                loadedImages[key] = img;
+                loadedCount++;
+                if (loadedCount === imagesToLoad.length) {
+                    //console.log('[Minimap] All icons loaded:', Object.keys(loadedImages));
+                    setIconImages({ ...loadedImages });
+                }
+            };
+            img.onerror = (e) => {
+                console.error(`[Minimap] ✗ Failed to load icon for ${key}:`, src, e);
+                loadedCount++;
+                if (loadedCount === imagesToLoad.length) {
+                    //console.log('[Minimap] Finished loading (with errors):', Object.keys(loadedImages));
+                    setIconImages({ ...loadedImages });
+                }
+            };
+            img.src = src;
+        });
+    }, [playerCharacter, botRefs, opponents]);
+
     // Rendering continuo della mappa
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -39,7 +113,14 @@ export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents
         const width = canvas.width;
         const height = canvas.height;
 
+        let frameCount = 0;
         const animate = () => {
+            frameCount++;
+            // Log ogni 60 frame (circa 1 secondo)
+            if (frameCount % 60 === 0) {
+                //console.log('[Minimap] Frame render. IconImages available:', Object.keys(iconImages).length, iconImages);
+            }
+
             // Pulisci canvas
             ctx.clearRect(0, 0, width, height);
 
@@ -84,6 +165,25 @@ export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents
             ctx.arc(startPos.x, startPos.y, 4, 0, Math.PI * 2);
             ctx.stroke();
 
+            // Funzione helper per disegnare un'icona
+            const drawIcon = (canvasPos, iconKey, size = 12) => {
+                const icon = iconImages[iconKey];
+                if (icon && icon.complete) {
+                    ctx.drawImage(
+                        icon, 
+                        canvasPos.x - size / 2, 
+                        canvasPos.y - size / 2, 
+                        size, 
+                        size
+                    );
+                } else {
+                    ctx.fillStyle = 'rgba(255, 100, 100, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(canvasPos.x, canvasPos.y, size / 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            };
+
             // Disegna bot
             if (botRefs.current) {
                 Object.keys(botRefs.current).forEach(botId => {
@@ -92,11 +192,7 @@ export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents
                         try {
                             const pos = botRef.current.translation();
                             const canvasPos = worldToCanvas(pos.x, pos.z);
-
-                            ctx.fillStyle = 'rgba(255, 100, 100, 0.9)';
-                            ctx.beginPath();
-                            ctx.arc(canvasPos.x, canvasPos.y, 4, 0, Math.PI * 2);
-                            ctx.fill();
+                            drawIcon(canvasPos, botId, 20);
                         } catch (e) {
                             // Ignora errori di traduzione
                         }
@@ -112,11 +208,7 @@ export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents
                         try {
                             const pos = oppRef.current.translation();
                             const canvasPos = worldToCanvas(pos.x, pos.z);
-
-                            ctx.fillStyle = 'rgba(255, 100, 100, 0.9)';
-                            ctx.beginPath();
-                            ctx.arc(canvasPos.x, canvasPos.y, 4, 0, Math.PI * 2);
-                            ctx.fill();
+                            drawIcon(canvasPos, opp.id, 20);
                         } catch (e) {
                             // Ignora errori
                         }
@@ -130,15 +222,14 @@ export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents
                     const pos = playerRef.current.translation();
                     const canvasPos = worldToCanvas(pos.x, pos.z);
 
-                    // Pallino più grande per il player
-                    ctx.fillStyle = '#00ff00';
-                    ctx.beginPath();
-                    ctx.arc(canvasPos.x, canvasPos.y, 6, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Icona più grande per il player
+                    drawIcon(canvasPos, 'player', 26);
 
-                    // Bordo bianco
+                    // Bordo bianco attorno al player
                     ctx.strokeStyle = 'white';
                     ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(canvasPos.x, canvasPos.y, 16, 0, Math.PI * 2);
                     ctx.stroke();
 
                     // Freccia direzione (opzionale)
@@ -169,7 +260,7 @@ export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents
 
         const animationId = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(animationId);
-    }, [trackPath, bounds, playerRef, botRefs, remoteRefMap, opponents]);
+    }, [trackPath, bounds, playerRef, botRefs, remoteRefMap, opponents, iconImages]);
 
     if (!trackPath || trackPath.length === 0) return null;
 
@@ -178,8 +269,8 @@ export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents
             position: 'absolute',
             bottom: '20px',
             right: '20px',
-            width: '200px',
-            height: '200px',
+            width: '300px',
+            height: '300px',
             borderRadius: '10px',
             overflow: 'hidden',
             border: '3px solid rgba(255, 255, 255, 0.5)',
@@ -188,8 +279,8 @@ export const Minimap = ({ trackPath, playerRef, botRefs, remoteRefMap, opponents
         }}>
             <canvas 
                 ref={canvasRef}
-                width={200}
-                height={200}
+                width={300}
+                height={300}
                 style={{ width: '100%', height: '100%' }}
             />
         </div>

@@ -1,32 +1,29 @@
 import React, { useState, useRef, Suspense, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, OrbitControls } from '@react-three/drei'
-import { useNavigate } from 'react-router-dom' // <--- 1. Import Hook
+import { useNavigate } from 'react-router-dom' 
 import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { VEHICLE_DATABASE } from '../components/Data'
 import { AUDIO_SFX, useAudio } from '../audio/AudioManager.jsx'
 
-// --- COMPONENTE BARRA STATISTICHE ---
+// --- STAT BAR COMPONENT ---
 const StatBar = ({ label, value }) => (
-    <div style={{ marginBottom: '1vh', width: '100%' }}>
-        <div style={{ color: '#fff', fontSize: '1.8vh', fontWeight: 'bold', textShadow: '2px 2px 0 #000', marginBottom: '0.2vh', textAlign: 'left' }}>
+    <div className="mb-[1vh] w-full">
+        <div className="text-white text-[1.8vh] font-bold drop-shadow-[2px_2px_0_#000] mb-[0.2vh] text-left">
             {label}
         </div>
-        <div style={{ width: '100%', height: '1.5vh', background: 'rgba(0,0,0,0.5)', border: '2px solid #555', borderRadius: '4px', position: 'relative' }}>
-            {/* Barra di riempimento */}
-            <div style={{ 
-                width: `${value}%`, 
-                height: '100%', 
-                background: 'linear-gradient(90deg, #ffaa00, #ffdd00)',
-                borderRadius: '2px',
-                transition: 'width 0.3s ease-out'
-            }}></div>
+        <div className="w-full h-[1.5vh] bg-black/50 border-2 border-[#555] rounded relative overflow-hidden">
+            {/* Fill Bar */}
+            <div 
+                className="h-full bg-gradient-to-r from-[#ffaa00] to-[#ffdd00] rounded-[2px] transition-all duration-300 ease-out"
+                style={{ width: `${value}%` }}
+            ></div>
         </div>
     </div>
 );
 
-// --- SHOWCASE ROTANTE AGGIORNATO ---
+// --- ROTATING SHOWCASE ---
 function RotatingShowcase({ characterConfig, vehicleData }) {
     const groupRef = useRef()
     
@@ -38,15 +35,15 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
 
     return (
         <group ref={groupRef}>
-            <OrbitControls/>
-            {/* IL VEICOLO */}
+            <OrbitControls enableZoom={false} enablePan={false} />
+            {/* VEHICLE */}
             <VehicleModel 
                 vehicleConfig={vehicleData.modelConfig}
                 steer={0} drift={0} speed={5}
                 isBike={vehicleData.isBike}
             />
 
-            {/* IL PILOTA */}
+            {/* DRIVER */}
             <RacerModel 
                 isInMenu={false}
                 characterConfig={characterConfig}
@@ -61,16 +58,15 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
 }
 
 export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
-    // setMenuState rimosso dalle props
-    const navigate = useNavigate(); // <--- 2. Inizializza Hook
-
+    const navigate = useNavigate();
     const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
-	useEffect(() => {
+    
+    useEffect(() => {
         if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
             changeTrack('CHARACTER_KART_SELECT', 100);
-		    enableSmoothLoop();
+            enableSmoothLoop();
         }
-	}, [changeTrack, enableSmoothLoop]);
+    }, [changeTrack, enableSmoothLoop]);
 
     const availableIDs = selectedCharacter.veichles || []; 
 
@@ -83,8 +79,7 @@ export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
 
     const handleConfirm = () => {
         setSelectedVehicle(localSelection);
-        // setMenuState(2); <--- Vecchia logica
-        navigate('/track'); // <--- 3. Nuova logica: vai alla selezione pista
+        navigate('/track'); 
     };
 
     const totalSlots = 12;
@@ -92,86 +87,25 @@ export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
         return index < availableVehicles.length ? availableVehicles[index] : null
     });
 
-    const styles = {
-        container: {
-            width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0,
-            background: `repeating-linear-gradient(0deg, #050505, #050505 2px, #111 2px, #111 4px)`,
-            display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'sans-serif'
-        },
-        header: {
-            height: '8vh', background: 'white', display: 'flex', alignItems: 'center', paddingLeft: '4vw',
-            borderBottom: '0.6vh solid #aaddff', borderBottomRightRadius: '50px', width: '55%',
-            fontSize: '4vh', fontWeight: 'bold', color: '#666', fontStyle: 'italic', zIndex: 10,
-            boxShadow: '0 5px 10px rgba(0,0,0,0.5)'
-        },
-        mainContent: { display: 'flex', flex: 1, padding: '0', overflow: 'hidden', alignItems: 'center' },
-        
-        leftPanel: {
-            flex: 1, display: 'flex', flexDirection: 'row', position: 'relative', height: '100%',
-            alignItems: 'center'
-        },
-        statsContainer: {
-            width: '35%', height: '80%', display: 'flex', flexDirection: 'column', justifyContent: 'center',
-            paddingLeft: '4vw', zIndex: 5
-        },
-        canvasContainer: {
-            width: '65%', height: '100%', position: 'relative'
-        },
-        
-        rightPanel: {
-            flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '2vmin'
-        },
-        gridContainer: {
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(2, 1fr)', 
-            gridTemplateRows: 'repeat(6, 1fr)', 
-            gap: '1.2vmin 3vmin', 
-            width: '75%',
-            height: '85%', maxHeight: '100%'
-        },
-        gridItem: (isActive, isEmpty) => ({
-            width: '100%', height: '100%', 
-            border: isActive ? '0.4vh solid #ffe600' : '0.3vh solid #444', 
-            background: isEmpty 
-                ? 'transparent' 
-                : 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(60,60,60,0.8) 50%, rgba(0,0,0,0.8) 100%)',
-            borderRadius: '4px', 
-            cursor: isEmpty ? 'default' : 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: isActive ? '0 0 15px #ffe600, inset 0 0 10px rgba(255, 230, 0, 0.4)' : 'none',
-            transform: isActive ? 'scale(1.02)' : 'scale(1)',
-            transition: 'all 0.1s ease-in-out',
-            position: 'relative',
-        }),
-        vehicleNameBox: {
-            position: 'absolute', bottom: '10%', left: '50%', transform: 'translateX(-50%) skewX(-10deg)',
-            width: '60%', textAlign: 'center',
-            background: 'linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.6))',
-            border: '0.3vh solid #666', color: '#fff', padding: '1.5vh 0',
-            fontSize: '4vh', fontWeight: 'bold', textShadow: '3px 3px 0 #000',
-            letterSpacing: '1px'
-        },
-        footer: {
-            height: '10vh', display: 'flex', justifyContent: 'space-between', padding: '0 4vw', alignItems: 'center',
-            background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)'
-        },
-        button: {
-            padding: '1vh 3vw', fontSize: '2.5vh', fontWeight: 'bold', borderRadius: '50px',
-            border: '0.3vh solid white', cursor: 'pointer', margin: '0 10px', textTransform: 'uppercase',
-            boxShadow: '0 4px 5px rgba(0,0,0,0.5)'
-        }
-    };
-
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>Select Vehicle</div>
+        // Main Container with Scanlines
+        <div className="w-screen h-screen absolute top-0 left-0 flex flex-col overflow-hidden font-sans select-none text-white bg-[repeating-linear-gradient(0deg,#050505,#050505_2px,#111_2px,#111_4px)]">
+            
+            {/* Header */}
+            <div className="h-[8vh] bg-white flex items-center pl-[4vw] border-b-[0.6vh] border-[#aaddff] rounded-br-[50px] w-[55%] z-10 shadow-[0_5px_10px_rgba(0,0,0,0.5)]">
+                <h1 className="text-[4vh] font-bold text-[#666] italic uppercase">
+                    Select Vehicle
+                </h1>
+            </div>
 
-            <div style={styles.mainContent}>
+            {/* Main Content */}
+            <div className="flex-1 flex overflow-hidden items-center relative">
                 
-                {/* SINISTRA: Stats e 3D */}
-                <div style={styles.leftPanel}>
-                    {/* Colonne Statistiche */}
-                    <div style={styles.statsContainer}>
+                {/* LEFT PANEL: Stats & 3D Model */}
+                <div className="flex-1 flex flex-row h-full items-center relative">
+                    
+                    {/* Stats Column */}
+                    <div className="w-[35%] h-[80%] flex flex-col justify-center pl-[4vw] z-10 gap-2">
                         <StatBar label="Speed" value={localSelection.stats.speed} />
                         <StatBar label="Weight" value={localSelection.stats.weight} />
                         <StatBar label="Acceleration" value={localSelection.stats.accel} />
@@ -180,21 +114,15 @@ export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
                         <StatBar label="Off-Road" value={localSelection.stats.offroad} />
                     </div>
 
-                    {/* Canvas 3D */}
-                    <div style={styles.canvasContainer}>
-                         {/* Sfondo circolare */}
-                        <div style={{
-                            position: 'absolute', width: '50vmin', height: '50vmin',
-                            border: '0.3vmin solid rgba(255,255,255,0.1)', borderRadius: '50%', 
-                            top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                            zIndex: 0, background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 70%)'
-                        }}></div>
+                    {/* 3D Canvas Container */}
+                    <div className="w-[65%] h-full relative flex items-center justify-center">
+                        {/* Background Circle */}
+                        <div className="absolute w-[50vmin] h-[50vmin] border-[0.3vmin] border-white/10 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 bg-[radial-gradient(circle,rgba(255,255,255,0.05)_0%,rgba(0,0,0,0)_70%)] pointer-events-none"></div>
 
                         <Canvas camera={{ position: [3, 2, 5], fov: 45 }}>
                             <ambientLight intensity={1.5} />
                             <spotLight position={[10, 10, 10]} angle={0.3} penumbra={1} intensity={2} />
                             <Environment preset="city" />
-
                             <Suspense fallback={null}>
                                 <RotatingShowcase 
                                     characterConfig={selectedCharacter.modelConfig} 
@@ -203,24 +131,25 @@ export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
                             </Suspense>
                         </Canvas>
 
-                        <div style={styles.vehicleNameBox}>
-                            {localSelection.name}
+                        {/* Vehicle Name Label */}
+                        <div className="absolute bottom-[10%] left-1/2 -translate-x-1/2 w-[60%] text-center bg-gradient-to-b from-black/90 to-black/60 border-[0.3vh] border-[#666] text-white py-[1.5vh] transform -skew-x-[10deg] shadow-lg pointer-events-none">
+                            <span className="block transform skew-x-[10deg] text-[4vh] font-bold drop-shadow-[3px_3px_0_#000] tracking-wider">
+                                {localSelection.name}
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                {/* DESTRA: Griglia */}
-                <div style={styles.rightPanel}>
-                    <div style={styles.gridContainer}>
+                {/* RIGHT PANEL: Grid Selection */}
+                <div className="flex-[1.2] flex items-center justify-center h-full p-[2vmin]">
+                    <div className="grid grid-cols-2 grid-rows-6 gap-x-[3vmin] gap-y-[1.2vmin] w-[75%] h-[85%] max-h-full">
                         {gridSlots.map((veh, index) => {
                             const isEmpty = !veh;
                             const isActive = veh && localSelection.name === veh.name;
 
+                            // Handle Sprite Naming (Stripping 'S', 'M', 'L' suffix for standard karts)
                             let vehicleName = veh ? veh.name.replace(/\s+/g, '') : '';
-                            if (vehicleName === 'StandardBikeS' || vehicleName === 'StandardKartS'
-                                || vehicleName === 'StandardBikeM' || vehicleName === 'StandardKartM'
-                                || vehicleName === 'StandardBikeL' || vehicleName === 'StandardKartL'
-                            ) {
+                            if (['StandardBikeS', 'StandardKartS', 'StandardBikeM', 'StandardKartM', 'StandardBikeL', 'StandardKartL'].includes(vehicleName)) {
                                 vehicleName = vehicleName.slice(0, -1);
                             }
                             const spritePath = veh ? `/vehicleSprites/${vehicleName}.png` : '';
@@ -228,28 +157,35 @@ export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
                             return (
                                 <div 
                                     key={index} 
-                                    style={styles.gridItem(isActive, isEmpty)}
                                     onClick={() => {
                                         if (!isEmpty) {
                                             setLocalSelection(veh);
                                             playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
                                         }
                                     }}
+                                    className={`
+                                        w-full h-full rounded flex items-center justify-center relative transition-all duration-100 ease-in-out
+                                        ${isEmpty 
+                                            ? 'bg-transparent border-[0.3vh] border-[#444] cursor-default opacity-50' 
+                                            : 'cursor-pointer'
+                                        }
+                                        ${isActive 
+                                            ? 'border-[0.4vh] border-[#ffe600] bg-gradient-to-b from-black/80 via-[#3c3c3c]/80 to-black/80 shadow-[0_0_15px_#ffe600] scale-[1.02] z-10' 
+                                            : !isEmpty && 'border-[0.3vh] border-[#444] bg-gradient-to-b from-black/80 via-[#3c3c3c]/80 to-black/80 hover:border-gray-400'
+                                        }
+                                    `}
                                 >
                                     {!isEmpty && (
                                         <img 
                                             src={spritePath} 
                                             alt={veh.name}
-                                            style={{
-                                                width: 'auto',
-                                                height: '95%',
-                                                maxWidth: '95%',
-                                                objectFit: 'contain',
-                                                pointerEvents: 'none',
-                                                filter: isActive ? 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' : 'none'
-                                            }}
+                                            className={`
+                                                w-auto h-[95%] max-w-[95%] object-contain pointer-events-none transition-all
+                                                ${isActive ? 'drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] brightness-110' : 'brightness-90'}
+                                            `}
                                             onError={(e) => {
                                                 e.target.style.display = 'none';
+                                                // Fallback text if image fails
                                                 e.target.parentNode.innerText = veh.name;
                                                 e.target.parentNode.style.color = 'white';
                                                 e.target.parentNode.style.fontSize = '1.5vh';
@@ -264,16 +200,20 @@ export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
                 </div>
             </div>
 
-            <div style={styles.footer}>
+            {/* Footer */}
+            <div className="h-[10vh] flex justify-between px-[4vw] items-center bg-gradient-to-t from-black/90 to-transparent z-20">
                 <button 
-                    style={{...styles.button, background: '#ccc', color: '#333'}}
-                    onClick={() => navigate('/character')} // <--- 4. Torna alla selezione personaggio
+                    onClick={() => navigate('/character')}
+                    className="py-[1vh] px-[4vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#ccc] text-[#333] hover:bg-white transition-colors active:scale-95"
                 >
                     Back
                 </button>
                 <button 
-                    style={{...styles.button, background: '#00aeff', color: 'white'}}
-                    onClick={() => { handleConfirm(); playSfx(AUDIO_SFX.SELECT_IN_MENU, 10); }}
+                    onClick={() => { 
+                        handleConfirm(); 
+                        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10); 
+                    }}
+                    className="py-[1vh] px-[4vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#00aeff] text-white hover:bg-[#33c2ff] transition-colors active:scale-95"
                 >
                     OK
                 </button>

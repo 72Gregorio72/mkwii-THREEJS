@@ -14,6 +14,7 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [trackInfo, setTrackInfo] = useState(selectedTrack);
+  const [copied, setCopied] = useState(false); // Stato per il feedback visivo della copia
 
   useEffect(() => {
     if (!socket || !roomCode) {
@@ -21,14 +22,11 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
       return;
     }
 
-    // Ascolta aggiornamenti dello stato della room
     const handleRoomState = (data) => {
       if (data.roomCode === roomCode) {
         setPlayers(data.players || []);
         
-        // Se il tracciato cambia, aggiorna
         if (data.selectedTrack) {
-          console.log('[WaitingRoom] Track updated:', data.selectedTrack.name);
           const trackData = {
             ...data.selectedTrack,
             start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
@@ -39,18 +37,14 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
       }
     };
 
-    // Ascolta quando l'host preme Start Game
     const handleGameStarted = (data) => {
       if (data.roomCode === roomCode) {
-        console.log('[WaitingRoom] Game started! Going to game...');
         navigate('/game');
       }
     };
 
-    // Ascolta quando l'host cambia tracciato
     const handleTrackSelected = (data) => {
       if (data.roomCode === roomCode) {
-        console.log('[WaitingRoom] Track changed by host:', data.track.name);
         const trackData = {
           ...data.track,
           start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
@@ -64,7 +58,6 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
     socket.on('game_started', handleGameStarted);
     socket.on('track_selected', handleTrackSelected);
 
-    // Richiedi lo stato corrente della room
     socket.emit('request_room_state', { roomCode });
 
     return () => {
@@ -76,7 +69,6 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
 
   const handleStartGame = () => {
     if (isHost && socket) {
-      console.log('[WaitingRoom] Host starting game...');
       socket.emit('start_game', { roomCode });
     }
   };
@@ -87,238 +79,185 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
     }
   };
 
+  // Funzione per copiare il codice
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(roomCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <>
       <style>{mkwiiFontStyle}</style>
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#3dacf7',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-        overflow: 'auto',
-      }}>
-        <div style={{
-          background: 'rgba(20, 20, 40, 0.95)',
-          border: '6px solid #FFD700',
-          borderRadius: '30px',
-          padding: '30px 40px',
-          width: '90%',
-          maxWidth: '700px',
-          maxHeight: '90vh',
-          overflow: 'auto',
-          boxShadow: '0 15px 60px rgba(0, 0, 0, 0.8)',
-        }}>
-          {/* Title */}
-          <h1 style={{
-            fontFamily: 'MKWii, Arial, sans-serif',
-            fontSize: '36px',
-            color: '#FFD700',
-            textAlign: 'center',
-            marginBottom: '10px',
-            textShadow: '4px 4px 8px rgba(0, 0, 0, 0.9)',
-          }}>
-            WAITING ROOM
-          </h1>
-
-          {/* Room Code */}
-          <div style={{
-            textAlign: 'center',
-            marginBottom: '20px',
-            fontSize: '18px',
-            color: '#FFFFFF',
-            fontFamily: 'MKWii, Arial, sans-serif',
-          }}>
-            Room Code: <span style={{ 
-              color: '#FFD700', 
-              fontWeight: 'bold',
-              letterSpacing: '3px'
-            }}>{roomCode}</span>
-          </div>
-
-          {/* Selected Track */}
-          {trackInfo && (
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '3px solid #FFD700',
-              borderRadius: '15px',
-              padding: '15px',
-              marginBottom: '20px',
-            }}>
-              <h3 style={{
-                fontFamily: 'MKWii, Arial, sans-serif',
-                fontSize: '18px',
-                color: '#FFD700',
-                marginBottom: '8px',
-                textAlign: 'center',
-              }}>
-                Selected Track
-              </h3>
-              <div style={{
-                fontSize: '24px',
-                color: '#FFFFFF',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                fontFamily: 'MKWii, Arial, sans-serif',
-                marginBottom: '10px',
-              }}>
-                {trackInfo.name}
-              </div>
-              {trackInfo.preview && (
-                <div style={{
-                  width: '100%',
-                  height: '150px',
-                  backgroundImage: `url(${trackInfo.preview})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  borderRadius: '10px',
-                  border: '2px solid #FFD700',
-                }} />
-              )}
-            </div>
-          )}
-
-          {/* Players List */}
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            border: '2px solid #888',
-            borderRadius: '10px',
-            padding: '15px',
-            marginBottom: '20px',
-            maxHeight: '200px',
-            overflow: 'auto',
-          }}>
-            <h3 style={{
-              fontFamily: 'MKWii, Arial, sans-serif',
-              fontSize: '16px',
-              color: '#FFFFFF',
-              marginBottom: '10px',
-            }}>
-              Players ({players.length})
-            </h3>
-            {players.map((player, index) => (
-              <div key={player.id} style={{
-                padding: '8px',
-                marginBottom: '6px',
-                background: player.isHost ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                border: player.isHost ? '2px solid #FFD700' : '1px solid #555',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                color: '#FFFFFF',
-                fontFamily: 'MKWii, Arial, sans-serif',
-                fontSize: '14px',
-              }}>
-                <span>
-                  {player.isHost ? '👑' : '🏎️'} Player {index + 1}
-                </span>
-                {player.isHost && (
-                  <span style={{ 
-                    fontSize: '12px', 
-                    color: '#FFD700',
-                    fontWeight: 'bold'
-                  }}>
-                    (HOST)
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Status / Buttons */}
-          {isHost ? (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}>
-              <button
-                onClick={handleStartGame}
-                style={{
-                  padding: '15px 30px',
-                  fontFamily: 'MKWii, Arial, sans-serif',
-                  fontSize: '22px',
-                  fontWeight: 'bold',
-                  color: '#FFFFFF',
-                  background: 'linear-gradient(180deg, #00CC00 0%, #008800 100%)',
-                  border: '4px solid #00FF00',
-                  borderRadius: '15px',
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 20px rgba(0, 255, 0, 0.4)',
-                  transition: 'all 0.2s',
-                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'scale(1.05)';
-                  e.target.style.boxShadow = '0 10px 30px rgba(0, 255, 0, 0.6)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'scale(1)';
-                  e.target.style.boxShadow = '0 6px 20px rgba(0, 255, 0, 0.4)';
-                }}
-              >
-                🏁 START GAME
-              </button>
-
-              <button
-                onClick={handleChangeTrack}
-                style={{
-                  padding: '12px 25px',
-                  fontFamily: 'MKWii, Arial, sans-serif',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  color: '#FFFFFF',
-                  background: 'linear-gradient(180deg, #0066CC 0%, #004499 100%)',
-                  border: '3px solid #3399FF',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 15px rgba(51, 153, 255, 0.4)',
-                  transition: 'all 0.2s',
-                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'scale(1.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'scale(1)';
-                }}
-              >
-                🔄 Change Track
-              </button>
-            </div>
-          ) : (
-            <div style={{
-              textAlign: 'center',
-              padding: '20px',
-            }}>
-              <h2 style={{
-                fontFamily: 'MKWii, Arial, sans-serif',
-                fontSize: '20px',
-                color: '#FFD700',
-                marginBottom: '15px',
-              }}>
-                Waiting for host to start game...
-              </h2>
-              <div style={{
-                width: '50px',
-                height: '50px',
-                border: '5px solid #FFD700',
-                borderTop: '5px solid transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                margin: '0 auto',
-              }} />
-              <style>{`
-                @keyframes spin {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
-                }
-              `}</style>
-            </div>
-          )}
+      
+      {/* Main Container with Scanlines (select-none previene la selezione accidentale di tutto il resto) */}
+      <div className="w-screen h-screen absolute top-0 left-0 flex flex-col overflow-hidden font-sans select-none text-white bg-[repeating-linear-gradient(0deg,#050505,#050505_2px,#111_2px,#111_4px)]">
+        
+        {/* Slanted Header */}
+        <div className="h-[8vh] bg-white flex items-center pl-[4vw] border-b-[0.6vh] border-[#aaddff] rounded-br-[50px] w-[55%] z-10 shadow-[0_5px_10px_rgba(0,0,0,0.5)]">
+            <h1 className="text-[4vh] font-bold text-[#666] italic uppercase">
+                Waiting Room
+            </h1>
         </div>
+
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col items-center justify-center p-8 relative overflow-y-auto">
+            
+            {/* Background Decoration */}
+            <div className="absolute w-[60vmin] h-[60vmin] border-[0.3vmin] border-white/5 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 bg-[radial-gradient(circle,rgba(255,255,255,0.05)_0%,rgba(0,0,0,0)_70%)] pointer-events-none"></div>
+
+            {/* Main Card */}
+            <div className="relative z-10 w-full max-w-5xl bg-[#1e293b] rounded-[30px] border-[5px] border-[#fbbf24] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.5)] p-8 flex flex-col gap-6">
+                
+                {/* Room Code Banner - CLICCABILE E SELEZIONABILE */}
+                <div 
+                    onClick={copyToClipboard}
+                    className="w-full bg-black/40 rounded-xl p-4 border-2 border-white/10 text-center cursor-pointer hover:bg-black/60 transition-colors group relative"
+                    title="Click to Copy"
+                >
+                    <span className="text-gray-400 text-lg uppercase tracking-widest mr-4">Room Code:</span>
+                    {/* select-text ABILITATO QUI */}
+                    <span className="text-[#fbbf24] text-5xl font-black tracking-[0.2em] drop-shadow-md select-text font-mono">
+                        {roomCode}
+                    </span>
+                    
+                    {/* Tooltip Copied */}
+                    <span className={`absolute top-2 right-4 text-xs font-bold uppercase px-2 py-1 rounded bg-[#22c55e] text-white transition-opacity duration-300 ${copied ? 'opacity-100' : 'opacity-0'}`}>
+                        Copied! ✅
+                    </span>
+                    <span className={`absolute top-2 right-4 text-xs font-bold uppercase px-2 py-1 rounded text-gray-500 transition-opacity duration-300 ${copied ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
+                        Click to Copy
+                    </span>
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-6 h-full">
+                    
+                    {/* Left Column: Track Info */}
+                    <div className="flex-1 flex flex-col gap-4">
+                        <div className="bg-black/20 rounded-xl p-4 border border-white/10 h-full flex flex-col">
+                            <h3 className="text-[#fbbf24] font-bold text-xl uppercase tracking-wider mb-2 text-center border-b border-white/10 pb-2">
+                                Current Track
+                            </h3>
+                            
+                            {trackInfo ? (
+                                <div className="flex-1 flex flex-col gap-2">
+                                    <div className="text-white text-2xl font-black text-center drop-shadow-md uppercase">
+                                        {trackInfo.name}
+                                    </div>
+                                    <div 
+                                        className="w-full aspect-video bg-cover bg-center rounded-lg border-2 border-[#fbbf24] shadow-lg transition-transform hover:scale-[1.02]"
+                                        style={{ backgroundImage: `url(${trackInfo.preview || '/placeholder_track.png'})` }}
+                                    ></div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex items-center justify-center text-gray-500 italic">
+                                    No track selected
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Player List */}
+                    <div className="flex-1 flex flex-col gap-4">
+                        <div className="bg-black/20 rounded-xl p-4 border border-white/10 h-full overflow-hidden flex flex-col">
+                            <h3 className="text-[#fbbf24] font-bold text-xl uppercase tracking-wider mb-2 text-center border-b border-white/10 pb-2">
+                                Racers ({players.length}/12)
+                            </h3>
+                            
+                            <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
+                                {players.map((player, index) => (
+                                    <div 
+                                        key={player.id || index} 
+                                        className={`
+                                            flex items-center gap-3 p-3 rounded-lg border transition-all animate-in slide-in-from-right duration-300
+                                            ${player.isHost 
+                                                ? 'bg-[#fbbf24]/20 border-[#fbbf24] shadow-[0_0_10px_rgba(251,191,36,0.2)]' 
+                                                : 'bg-white/5 border-white/10'
+                                            }
+                                        `}
+                                    >
+                                        <div className="text-2xl filter drop-shadow-sm">
+                                            {player.isHost ? '👑' : '🏎️'}
+                                        </div>
+                                        <div className="flex-1 font-bold text-white tracking-wide text-lg">
+                                            Player {index + 1}
+                                        </div>
+                                        {player.isHost && (
+                                            <div className="text-[#fbbf24] text-xs font-black uppercase tracking-wider bg-black/40 px-2 py-1 rounded border border-[#fbbf24]/30">
+                                                HOST
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom Action Area */}
+                <div className="mt-2 pt-4 border-t border-white/10 flex flex-col items-center gap-4">
+                    {isHost ? (
+                        <div className="w-full flex flex-col gap-3 md:flex-row">
+                             <button
+                                onClick={handleChangeTrack}
+                                className="flex-1 py-4 rounded-xl border-b-[6px] border-[#075985] bg-[#0284c7] text-white text-lg font-bold uppercase tracking-wider shadow-md hover:brightness-110 active:border-b-0 active:translate-y-[6px] transition-all flex items-center justify-center gap-2"
+                            >
+                                🔄 Change Track
+                            </button>
+                            <button
+                                onClick={handleStartGame}
+                                className="flex-[2] py-4 rounded-xl border-b-[6px] border-[#15803d] bg-[#22c55e] text-white text-2xl font-black uppercase tracking-widest shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:brightness-110 active:border-b-0 active:translate-y-[6px] transition-all flex items-center justify-center gap-2"
+                            >
+                                🏁 Start Race
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center gap-4 py-4 w-full bg-black/20 rounded-lg">
+                            <h2 className="text-[#fbbf24] text-2xl font-bold uppercase tracking-wider animate-pulse flex items-center gap-3">
+                                <span className="w-3 h-3 bg-[#fbbf24] rounded-full"></span>
+                                Waiting for Host...
+                                <span className="w-3 h-3 bg-[#fbbf24] rounded-full"></span>
+                            </h2>
+                            <div className="flex gap-2">
+                                <div className="w-4 h-4 bg-[#fbbf24] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                <div className="w-4 h-4 bg-[#fbbf24] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                <div className="w-4 h-4 bg-[#fbbf24] rounded-full animate-bounce"></div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+            </div>
+        </div>
+
+        {/* Footer with Back Button */}
+        <div className="h-[10vh] flex justify-center items-center bg-gradient-to-t from-black/90 to-transparent z-20">
+            <button
+                onClick={() => navigate('/')}
+                className="py-[1vh] px-[6vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#ef4444] text-white hover:bg-[#dc2626] transition-all active:scale-95"
+            >
+                Leave Room
+            </button>
+        </div>
+
+        {/* Scrollbar Styles */}
+        <style>{`
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 8px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: rgba(0,0,0,0.2);
+                border-radius: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #fbbf24;
+                border-radius: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #f59e0b;
+            }
+        `}</style>
+
       </div>
     </>
   );

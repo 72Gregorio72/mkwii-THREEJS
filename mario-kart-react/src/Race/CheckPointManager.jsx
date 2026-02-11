@@ -44,8 +44,6 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
     useFrame(() => {
         if (hitsQueue.current.length > 0) {
             hitsQueue.current.forEach((hit) => {
-                // LOG DI INTERSEZIONE
-                console.warn(`[HIT!] Racer: ${hit.racerId} -> Checkpoint: ${hit.cpId}`);
                 setLastHit({ cpId: hit.cpId, racerId: hit.racerId, time: Date.now() });
                 
                 onCheckpointTrigger(hit.cpId, hit.racerId);
@@ -61,7 +59,7 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
                 const isRecentlyHit = lastHit?.cpId === box.id && (Date.now() - lastHit.time < 500);
                 
                 return (
-                    <group key={`debug-group-${box.id}`}>
+                    <group key={`debug-group-${box.id}-${index}`}>
                         {/* Etichetta testuale sopra il checkpoint */}
                         <Text
                             position={[box.position.x, box.position.y + 2, box.position.z]}
