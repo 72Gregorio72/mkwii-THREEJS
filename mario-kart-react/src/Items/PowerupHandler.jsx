@@ -76,6 +76,7 @@ export const usePowerupHandler = ({
   selectedCharacter,
   isLocalPlayer = false,
   socket,
+  roomCode,
 }) => {
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
@@ -208,7 +209,6 @@ export const usePowerupHandler = ({
 			attackerId: socket.id,
 		});
 	}
-      // Chi lancia non subisce effetti locali qui, solo invia evento
       setCurrentItem(ITEMS.NONE);
   };
 
@@ -376,7 +376,7 @@ export const usePowerupHandler = ({
 
   return {
     currentItem,
-    pickupItem, // Usa setRandomItem logicamente quando integri le scatole
+    pickupItem,
     handleItemInput,
     tripleCount,
 	triggerItemRoulette
