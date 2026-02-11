@@ -8,11 +8,13 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
     // 2. Tell the server who we are when we join/load
     useEffect(() => {
         if (!socket || !character || !vehicle) return;
+        
+        // Invia i dettagli IMMEDIATAMENTE
         socket.emit('set_details', {
             charId: character.id,
             vehicleId: vehicle.id
         });
-    }, [socket, character?.id, vehicle?.id]);
+    }, [socket, character.id, vehicle.id]);
 
     const lastSendTime = useRef(0);
 

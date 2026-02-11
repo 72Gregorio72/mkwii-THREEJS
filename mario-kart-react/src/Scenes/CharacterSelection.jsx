@@ -1,209 +1,148 @@
 import React, { useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Environment } from '@react-three/drei'
-import { useNavigate } from 'react-router-dom' // <--- 1. Importa hook di navigazione
+import { useNavigate } from 'react-router-dom'
 import { RacerModel } from '../models/RacerModel'
 import { AUDIO_SFX , useAudio } from '../audio/AudioManager.jsx'
 
-export function CharacterSelection({ 
-		// setMenuState, // <--- 2. Rimosso
-		availableCharacters, 
-		setSelectedCharacter 
-	}) {
-	const navigate = useNavigate(); // <--- 3. Inizializza hook
+export function CharacterSelection({ availableCharacters, setSelectedCharacter }) {
+    const navigate = useNavigate();
+    const { changeTrack, enableSmoothLoop, playSfx } = useAudio();
 
-	const { changeTrack, enableSmoothLoop } = useAudio();
-	useEffect(() => {
-		changeTrack('CHARACTER_KART_SELECT', 100);
-		enableSmoothLoop();
-	}, [changeTrack, enableSmoothLoop]);
+    useEffect(() => {
+        changeTrack('CHARACTER_KART_SELECT', 100);
+        enableSmoothLoop();
+    }, [changeTrack, enableSmoothLoop]);
 
-	const { playSfx } = useAudio();
-	const [localSelection, setLocalSelection] = useState(availableCharacters[0])
+    const [localSelection, setLocalSelection] = useState(availableCharacters[0])
 
-	const totalSlots = 24
-	const gridSlots = Array.from({ length: totalSlots }).map((_, index) => {
-		return index < availableCharacters.length ? availableCharacters[index] : null
-	})
+    const totalSlots = 24
+    const gridSlots = Array.from({ length: totalSlots }).map((_, index) => {
+        return index < availableCharacters.length ? availableCharacters[index] : null
+    })
 
-	const handleConfirm = () => {
-		setSelectedCharacter(localSelection)
-		playSfx(AUDIO_SFX[localSelection.select_sfx], 0.5);
-		
-		// Ritardo per far finire l'animazione/suono
-		setTimeout(() => {
-		// setMenuState(1) <--- Vecchia logica
-		navigate('/vehicle'); // <--- 4. Nuova logica: vai alla selezione veicolo
-		}, 2000); 
-	}
+    const handleConfirm = () => {
+        setSelectedCharacter(localSelection)
+        playSfx(AUDIO_SFX[localSelection.select_sfx] || AUDIO_SFX.SELECT_IN_MENU, 0.5);
+        
+        // Delay navigation to let the animation/sound play
+        setTimeout(() => {
+            navigate('/vehicle'); 
+        }, 2000); 
+    }
 
-	const styles = {
-		container: {
-		width: '100vw', 
-		height: '100vh', 
-		position: 'absolute', top: 0, left: 0,
-		background: `repeating-linear-gradient(0deg, #050505, #050505 2px, #111 2px, #111 4px)`,
-		display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'sans-serif'
-		},
-		header: {
-		height: '8vh', 
-		background: 'white', display: 'flex', alignItems: 'center', paddingLeft: '4vw',
-		borderBottom: '0.6vh solid #aaddff', borderBottomRightRadius: '50px', width: '55%',
-		fontSize: '4vh', fontWeight: 'bold', color: '#666', fontStyle: 'italic', zIndex: 10,
-		boxShadow: '0 5px 10px rgba(0,0,0,0.5)'
-		},
-		mainContent: {
-		display: 'flex', flex: 1, padding: '0', overflow: 'hidden',
-		alignItems: 'center' 
-		},
-		leftPanel: {
-		flex: 0.8, 
-		display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-		position: 'relative', height: '100%'
-		},
-		rightPanel: {
-		flex: 1.2, 
-		display: 'flex',          
-		alignItems: 'center',      
-		justifyContent: 'center',  
-		height: '100%', 
-		width: '100%',
-		padding: '2vmin'            
-		},
-		gridContainer: {
-		display: 'grid', 
-		gridTemplateColumns: 'repeat(4, 1fr)', 
-		gridTemplateRows: 'repeat(6, 1fr)', 
-		gap: '1.2vmin 1.5vmin', 
-		width: '85%',
-		height: '85%',
-		maxHeight: '100%', 
-		},
-		charNameBox: {
-			width: '90%',
-			textAlign: 'center',
-			background: 'linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.6))',
-			border: '0.3vh solid #666', color: '#fff', padding: '1.5vh 0',
-			fontSize: '5vh', fontWeight: 'bold', textShadow: '3px 3px 0 #000',
-			transform: 'skewX(-10deg)',
-			marginTop: '2vh',
-			letterSpacing: '2px'
-		},
-		circleBg: {
-			position: 'absolute', width: '45vmin', height: '45vmin',
-			border: '0.3vmin solid rgba(255,255,255,0.05)', borderRadius: '50%', 
-			top: '45%', left: '50%', transform: 'translate(-50%, -50%)',
-			zIndex: 0,
-			background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 70%)'
-		},
-		gridItem: (isActive, isEmpty) => ({
-		width: '100%',  
-		height: '100%', 
-		border: isActive ? '0.4vh solid #ffe600' : '0.3vh solid #444', 
-		background: isEmpty 
-			? 'transparent' 
-			: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(60,60,60,0.8) 50%, rgba(0,0,0,0.8) 100%)',
-		borderRadius: '4px',
-		cursor: isEmpty ? 'default' : 'pointer',
-		display: 'flex', alignItems: 'center', justifyContent: 'center',
-		boxShadow: isActive ? '0 0 15px #ffe600, inset 0 0 10px rgba(255, 230, 0, 0.4)' : 'none',
-		position: 'relative',
-		transition: 'all 0.1s ease-in-out',
-		transform: isActive ? 'scale(1.02)' : 'scale(1)',
-		}),
-		footer: {
-			height: '10vh', display: 'flex', justifyContent: 'space-between', 
-			padding: '0 4vw', alignItems: 'center',
-			background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)'
-		},
-		button: {
-			padding: '1vh 3vw', fontSize: '2.5vh', fontWeight: 'bold', borderRadius: '50px',
-			border: '0.3vh solid white', cursor: 'pointer', margin: '0 10px',
-			textTransform: 'uppercase',
-			boxShadow: '0 4px 5px rgba(0,0,0,0.5)'
-		}
-	}
+    return (
+        // Main Container with Scanline Background
+        <div className="w-screen h-screen absolute top-0 left-0 flex flex-col overflow-hidden font-sans select-none text-white bg-[repeating-linear-gradient(0deg,#050505,#050505_2px,#111_2px,#111_4px)]">
+            
+            {/* Header - Slanted Style */}
+            <div className="h-[8vh] bg-white flex items-center pl-[4vw] border-b-[0.6vh] border-[#aaddff] rounded-br-[50px] w-[55%] z-10 shadow-[0_5px_10px_rgba(0,0,0,0.5)]">
+                <h1 className="text-[4vh] font-bold text-[#666] italic uppercase">
+                    Select Character
+                </h1>
+            </div>
 
-	return (
-		<div style={styles.container}>
-		<div style={styles.header}>Select Character</div>
+            {/* Main Content Area */}
+            <div className="flex-1 flex overflow-hidden items-center relative">
+                
+                {/* Left Panel: 3D Model & Name */}
+                <div className="flex-[0.8] flex flex-col items-center justify-center relative h-full">
+                    
+                    {/* Circle Background */}
+                    <div className="absolute w-[45vmin] h-[45vmin] border-[0.3vmin] border-white/5 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] z-0 bg-[radial-gradient(circle,rgba(255,255,255,0.05)_0%,rgba(0,0,0,0)_70%)] pointer-events-none"></div>
+                    
+                    {/* 3D Canvas */}
+                    <div className="w-full h-[55%] z-10 relative">
+                        <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
+                            <ambientLight intensity={1} />
+                            <Environment preset="sunset" />
+                            <RacerModel 
+                                characterConfig={localSelection.modelConfig} 
+                                steer={0}
+                                drift={0}
+                                position={[0, -0.5, 0]} // Adjusted slightly for view
+                                debug={true}
+                                key={localSelection.id}
+                                isInMenu={true}
+                            />
+                        </Canvas>
+                    </div>
 
-		<div style={styles.mainContent}>
-			
-			<div style={styles.leftPanel}>
-				<div style={styles.circleBg}></div>
-				<div style={{width: '100%', height: '55%', zIndex: 1}}>
-					<Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
-						<ambientLight intensity={1} />
-						<Environment preset="sunset" />
-						<RacerModel 
-							characterConfig={localSelection.modelConfig} 
-							steer={0}
-							drift={0}
-							position={[0, -0.5, 0]}
-							debug={true}
-							key={localSelection.id}
-							isInMenu={true}
-						/>
-					</Canvas>
-				</div>
-				<div style={styles.charNameBox}>
-					{localSelection.name}
-				</div>
-			</div>
+                    {/* Character Name Box */}
+                    <div className="w-[90%] text-center bg-gradient-to-b from-black/90 to-black/60 border-[0.3vh] border-[#666] text-white py-[1.5vh] mt-[2vh] transform -skew-x-[10deg] shadow-lg">
+                        <span className="block transform skew-x-[10deg] text-[5vh] font-bold drop-shadow-[3px_3px_0_#000] tracking-[2px]">
+                            {localSelection.name}
+                        </span>
+                    </div>
+                </div>
 
-			<div style={styles.rightPanel}>
-				<div style={styles.gridContainer}>
-					{gridSlots.map((char, index) => {
-						const isEmpty = !char;
-						const isActive = char && localSelection.name === char.name;
+                {/* Right Panel: Grid Selection */}
+                <div className="flex-[1.2] flex items-center justify-center h-full w-full p-[2vmin]">
+                    <div className="grid grid-cols-4 grid-rows-6 gap-x-[1.5vmin] gap-y-[1.2vmin] w-[85%] h-[85%] max-h-full">
+                        {gridSlots.map((char, index) => {
+                            const isEmpty = !char;
+                            const isActive = char && localSelection.name === char.name;
 
-						return (
-							<div 
-								key={index} 
-								style={styles.gridItem(isActive, isEmpty)}
-								onClick={() => {
-									if (!isEmpty) {
-										setLocalSelection(char);
-										playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
-									}
-								}}
-							>
-								{!isEmpty && (
-								<img 
-										src={char.sprite} 
-										alt={char.name} 
-										style={{
-											width: 'auto', 
-											height: '95%', 
-											maxWidth: '95%',
-											objectFit: 'contain', 
-											filter: isActive ? 'brightness(1.1) drop-shadow(0 0 2px rgba(255,255,255,0.5))' : 'brightness(0.9)'
-										}}
-										onError={(e) => e.target.style.display='none'}
-								/> 
-								)}
-							</div>
-						)
-					})}
-				</div>
-			</div>
-		</div>
+                            return (
+                                <div 
+                                    key={index} 
+                                    onClick={() => {
+                                        if (!isEmpty) {
+                                            setLocalSelection(char);
+                                            playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
+                                        }
+                                    }}
+                                    className={`
+                                        w-full h-full rounded flex items-center justify-center relative transition-all duration-100 ease-in-out
+                                        ${isEmpty 
+                                            ? 'bg-transparent border-[0.3vh] border-[#444] cursor-default opacity-50' 
+                                            : 'cursor-pointer'
+                                        }
+                                        ${isActive 
+                                            ? 'border-[0.4vh] border-[#ffe600] bg-gradient-to-b from-black/80 via-[#3c3c3c]/80 to-black/80 shadow-[0_0_15px_#ffe600] scale-[1.02] z-10' 
+                                            : !isEmpty && 'border-[0.3vh] border-[#444] bg-gradient-to-b from-black/80 via-[#3c3c3c]/80 to-black/80 hover:border-gray-400'
+                                        }
+                                    `}
+                                >
+                                    {!isEmpty && (
+                                        <img 
+                                            src={char.sprite} 
+                                            alt={char.name} 
+                                            className={`
+                                                w-auto h-[95%] max-w-[95%] object-contain transition-all
+                                                ${isActive ? 'brightness-110 drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]' : 'brightness-90 opacity-80'}
+                                            `}
+                                            onError={(e) => e.target.style.display='none'}
+                                        /> 
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            </div>
 
-		<div style={styles.footer}>
-				<button 
-					style={{...styles.button, background: '#ccc', color: '#333'}}
-					onClick={() => navigate('/')} // <--- 5. Torna alla home
-				>
-					Back
-				</button>
-				<button 
-					style={{...styles.button, background: '#00aeff', color: 'white'}}
-					onClick={() => {handleConfirm(); playSfx(AUDIO_SFX.SELECT_IN_MENU, 10); }}
-				>
-					OK
-				</button>
-		</div>
-		</div>
-	)
+            {/* Footer */}
+            <div className="h-[10vh] flex justify-between px-[4vw] items-center bg-gradient-to-t from-black/90 to-transparent z-20">
+                <button 
+                    onClick={() => {
+                        playSfx(AUDIO_SFX.BACK || 'BACK', 10);
+                        navigate('/');
+                    }}
+                    className="py-[1vh] px-[4vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#ccc] text-[#333] hover:bg-white transition-colors active:scale-95"
+                >
+                    Back
+                </button>
+                <button 
+                    onClick={() => {
+                        handleConfirm(); 
+                        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10); 
+                    }}
+                    className="py-[1vh] px-[4vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#00aeff] text-white hover:bg-[#33c2ff] transition-colors active:scale-95"
+                >
+                    OK
+                </button>
+            </div>
+        </div>
+    )
 }

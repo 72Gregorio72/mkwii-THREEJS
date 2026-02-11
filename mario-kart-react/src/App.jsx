@@ -4,6 +4,7 @@ import { Characters } from './components/Data'
 import { CharacterSelection } from './Scenes/CharacterSelection'
 import { VehicleSelection } from './Scenes/VehicleSelection'
 import { TrackSelection } from './Scenes/TrackSelection'
+import { InfoAndTos } from './Scenes/InfoAndTos.jsx'
 import { GameScene } from './Scenes/GameScene'
 import { RoomSelection } from './Scenes/RoomSelection'
 import { WaitingRoom } from './Scenes/WaitingRoom'
@@ -21,6 +22,7 @@ const MainMenu = () => {
             <button onClick={() => navigate('/room')}>Multiplayer</button>
             <button onClick={() => navigate('/character')}>Solo Play</button>
             <button onClick={() => navigate('/game')}>Direct to GameScene (Testing)</button>
+            <button onClick={() => navigate('/info')}>Privacy and TOS</button>
         </div>
     );
 };
@@ -71,6 +73,11 @@ export default function App() {
                                 socket={socket}
                                 setSelectedTrack={setSelectedTrack}
                             />
+                        } />
+						
+						{/* INFO AND TOS */}
+                        <Route path="/info" element={
+                            <InfoAndTos />
                         } />
 
                         {/* SELEZIONE PERSONAGGIO */}

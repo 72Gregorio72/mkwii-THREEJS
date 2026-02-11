@@ -44,7 +44,7 @@ Per far funzionare il gioco, raccogliamo solo i dati essenziali:
 
 2. COME USIAMO I TUOI DATI
 - Gestione dell'account e autenticazione.
-- Generazione delle classifiche globali (Leaderboard).
+- Generazione delle classifiche (Leaderboard).
 - Miglioramento tecnico del gioco basato su log di errore.
 
 3. COOKIE E STORAGE LOCALE

@@ -65,7 +65,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
       [`Mani (${vehicleConfig.name})`]: folder({
           hx: { value: vehicleConfig?.handPos?.[0] ?? 0.2, min: 0, max: 10, step: 0.01, label: 'Larghezza' },
           hy: { value: vehicleConfig?.handPos?.[1] ?? 0.5, min: 0, max: 1.5, step: 0.01, label: 'Altezza' },
-          hz: { value: vehicleConfig?.handPos?.[2] ?? 0.3, min: -2, max: 2, step: 0.01, label: 'Profondità' }
+          hz: { value: vehicleConfig?.handPos?.[2] ?? 0.3, min: -2, max: 2, step: 0.01, label: 'ProfonditÃ ' }
       })
   }, [vehicleConfig]);
   */
@@ -86,6 +86,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   };
 
   // Caricamento Assets
+  console.log("Racer model: ", characterConfig);
   const { scene: charScene } = useGLTF(characterConfig.file)
   const clone = useMemo(() => SkeletonUtils.clone(charScene), [charScene])
   const { animations: kartAnims } = useGLTF('/Animations/driving_kart.glb')
@@ -106,7 +107,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   useEffect(() => {
 
       let targetAnim = 'idle';
-      console.log(vehicleConfig.animationType);
+	  console.log('Vehicle: ', vehicleConfig.animationType);
       if (isKart && vehicleConfig) targetAnim = vehicleConfig.animationType || 'kart';
 
       names.forEach(name => {

@@ -1,4 +1,4 @@
-import React, { useState , useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Tracks } from '../components/Data'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
@@ -7,6 +7,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
 
     const navigate = useNavigate();
     const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+    
     useEffect(() => {
         if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
             changeTrack('CHARACTER_KART_SELECT', 100);
@@ -22,15 +23,13 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
     const [localSelection, setLocalSelection] = useState(tracksList[0]);
     const [waitingForHost, setWaitingForHost] = useState(false);
 
-    // Controlla se la pista è già stata scelta quando arriviamo qui
-    React.useEffect(() => {
+    // Check if track is already selected
+    useEffect(() => {
         if (roomCode && socket && !isHost) {
-            // Richiedi lo stato della room per vedere se la pista è già stata scelta
             socket.emit('request_room_state', { roomCode });
             
             const handleRoomState = (data) => {
                 if (data.roomCode === roomCode && data.isTrackSelected) {
-                    console.log('[Track] Track already selected, navigating to waiting room:', data.selectedTrack.name);
                     const trackData = {
                         ...data.selectedTrack,
                         start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
@@ -45,13 +44,11 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
         }
     }, [roomCode, socket, isHost, navigate, setSelectedTrack]);
 
-    // Se sei in multiplayer, aspetta la scelta del tracciato dall'host
-    React.useEffect(() => {
+    // Listen for host selection
+    useEffect(() => {
         if (roomCode && socket) {
-            // Sia host che client ascoltano la conferma dal server
             const handleTrackSelected = (data) => {
                 if (data.roomCode === roomCode) {
-                    console.log('[Track] Received track from server:', data.track.name);
                     const trackData = {
                         ...data.track,
                         start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
@@ -66,179 +63,141 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
         }
     }, [roomCode, socket, navigate, setSelectedTrack]);
     
-    // Imposta waiting solo per i non-host
-	React.useEffect(() => {
-		if (roomCode && !isHost && socket) {
-			setWaitingForHost(true);
-			socket.emit('waiting_for_track', { roomCode });
-		}
-	}, [roomCode, isHost, socket]);
+    // Set waiting state for non-hosts
+    useEffect(() => {
+        if (roomCode && !isHost && socket) {
+            setWaitingForHost(true);
+            socket.emit('waiting_for_track', { roomCode });
+        }
+    }, [roomCode, isHost, socket]);
 
     const handleConfirm = () => {
         if (localSelection) {
             const trackData = {
                 ...localSelection,
-                // Normalizza start_pos nel caso sia scritto come startPos nel file Data
                 start_pos: localSelection.startPos || localSelection.start_pos || [0, 2, 0]
             };
             
             if (roomCode && isHost && socket) {
-                console.log('[Host] Sending track selection:', trackData.name);
                 setSelectedTrack(trackData);
                 socket.emit('select_track', { roomCode, track: trackData });
-                // La navigazione avverrà quando riceveremo track_selected dal server
             } else if (!roomCode) {
-                // Single player: vai direttamente
                 setSelectedTrack(trackData);
                 navigate('/game');
             }
         }
     };
 
-    const styles = {
-        container: {
-            width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0,
-            background: `repeating-linear-gradient(0deg, #050505, #050505 2px, #111 2px, #111 4px)`,
-            display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'sans-serif',
-            color: 'white'
-        },
-        header: {
-            height: '8vh', background: 'white', display: 'flex', alignItems: 'center', paddingLeft: '4vw',
-            borderBottom: '0.6vh solid #aaddff', borderBottomRightRadius: '50px', width: '55%',
-            fontSize: '4vh', fontWeight: 'bold', color: '#666', fontStyle: 'italic', zIndex: 10,
-            boxShadow: '0 5px 10px rgba(0,0,0,0.5)'
-        },
-        content: {
-            flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '4vh'
-        },
-        grid: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '3vh',
-            width: '80%',
-            height: '80%',
-            overflowY: 'auto',
-            padding: '2vh'
-        },
-        card: (isActive) => ({
-            background: isActive 
-                ? 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255, 230, 0, 0.1) 100%)' 
-                : 'rgba(255,255,255,0.05)',
-            border: isActive ? '0.4vh solid #ffe600' : '0.2vh solid #555',
-            borderRadius: '1vh',
-            cursor: 'pointer',
-            position: 'relative',
-            overflow: 'hidden',
-            transition: 'all 0.2s ease',
-            transform: isActive ? 'scale(1.05)' : 'scale(1)',
-            boxShadow: isActive ? '0 0 20px rgba(255, 230, 0, 0.5)' : '0 5px 10px rgba(0,0,0,0.5)',
-            aspectRatio: '16/9',
-            display: 'flex', flexDirection: 'column'
-        }),
-        imageBox: {
-            flex: 1,
-            width: '100%',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            position: 'relative'
-        },
-        label: (isActive) => ({
-            height: '20%',
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '2.5vh', fontWeight: 'bold', textTransform: 'uppercase',
-            borderTop: '1px solid #444',
-            color: isActive ? '#ffe600' : 'white'
-        }),
-        footer: {
-            height: '10vh', display: 'flex', justifyContent: 'space-between', padding: '0 4vw', alignItems: 'center',
-            background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)'
-        },
-        button: {
-            padding: '1vh 3vw', fontSize: '2.5vh', fontWeight: 'bold', borderRadius: '50px',
-            border: '0.3vh solid white', cursor: 'pointer', margin: '0 10px', textTransform: 'uppercase',
-            boxShadow: '0 4px 5px rgba(0,0,0,0.5)'
-        }
-    };
-
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>Select Track</div>
+        // Container with Scanline Background
+        <div className="w-screen h-screen absolute top-0 left-0 flex flex-col overflow-hidden font-sans select-none text-white bg-[repeating-linear-gradient(0deg,#050505,#050505_2px,#111_2px,#111_4px)]">
             
-            {/* Se sei in multiplayer e non sei l'host, mostra waiting */}
+            {/* Header */}
+            <div className="h-[8vh] bg-white flex items-center pl-[4vw] border-b-[0.6vh] border-[#aaddff] rounded-br-[50px] w-[55%] z-10 shadow-[0_5px_10px_rgba(0,0,0,0.5)]">
+                <h1 className="text-[4vh] font-bold text-[#666] italic uppercase">
+                    Select Track
+                </h1>
+            </div>
+            
+            {/* Waiting for Host State */}
             {waitingForHost ? (
-                <div style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '20px'
-                }}>
-                    <h2 style={{ fontSize: '4vh', color: '#ffe600' }}>Waiting for host to select track...</h2>
-                    <div style={{
-                        width: '60px',
-                        height: '60px',
-                        border: '5px solid #ffe600',
-                        borderTop: '5px solid transparent',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                    }} />
-                    <style>{`
-                        @keyframes spin {
-                            0% { transform: rotate(0deg); }
-                            100% { transform: rotate(360deg); }
-                        }
-                    `}</style>
+                <div className="flex-1 flex flex-col justify-center items-center gap-5">
+                    <h2 className="text-[4vh] text-[#ffe600] font-bold drop-shadow-md">
+                        Waiting for host to select track...
+                    </h2>
+                    <div className="w-[60px] h-[60px] border-[5px] border-[#ffe600] border-t-transparent rounded-full animate-spin"></div>
                 </div>
             ) : (
-            <>
-            <div style={styles.content}>
-                <div style={styles.grid}>
-                    {tracksList.map((track, index) => {
-                        const isActive = localSelection && localSelection.name === track.name;
-                        return (
-                            <div 
-                                key={index} 
-                                style={styles.card(isActive)}
-                                onClick={() => {
-                                    setLocalSelection(track);
-                                    playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
-                                }}
-                                onDoubleClick={handleConfirm}
-                            >
-                                <div style={{
-                                    ...styles.imageBox,
-                                    backgroundImage: `url(${track.preview || '/placeholder_track.png'})`
-                                }}>
-                                    {!track.preview && <div style={{position:'absolute', top:'40%', width:'100%', textAlign:'center', opacity:0.5}}>NO PREVIEW</div>}
+                <>
+                {/* Content Area */}
+                <div className="flex-1 flex justify-center items-center p-[4vh] overflow-hidden">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-[3vh] w-[80%] h-[80%] overflow-y-auto p-[2vh] custom-scrollbar">
+                        {tracksList.map((track, index) => {
+                            const isActive = localSelection && localSelection.name === track.name;
+                            return (
+                                <div 
+                                    key={index} 
+                                    onClick={() => {
+                                        setLocalSelection(track);
+                                        playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
+                                    }}
+                                    onDoubleClick={handleConfirm}
+                                    className={`
+                                        aspect-video flex flex-col rounded-[1vh] cursor-pointer relative overflow-hidden transition-all duration-200 ease-out
+                                        ${isActive 
+                                            ? 'bg-gradient-to-br from-white/20 to-[#ffe600]/10 border-[0.4vh] border-[#ffe600] scale-105 shadow-[0_0_20px_rgba(255,230,0,0.5)] z-10' 
+                                            : 'bg-white/5 border-[0.2vh] border-[#555] shadow-[0_5px_10px_rgba(0,0,0,0.5)] hover:border-gray-400'
+                                        }
+                                    `}
+                                >
+                                    {/* Image Box */}
+                                    <div 
+                                        className="flex-1 w-full bg-cover bg-center relative"
+                                        style={{ backgroundImage: `url(${track.preview || '/placeholder_track.png'})` }}
+                                    >
+                                        {!track.preview && (
+                                            <div className="absolute top-[40%] w-full text-center opacity-50 font-bold">
+                                                NO PREVIEW
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Label */}
+                                    <div className={`
+                                        h-[20%] bg-black/80 flex items-center justify-center text-[2.5vh] font-bold uppercase border-t border-[#444]
+                                        ${isActive ? 'text-[#ffe600]' : 'text-white'}
+                                    `}>
+                                        {track.name}
+                                    </div>
                                 </div>
-                                <div style={styles.label(isActive)}>
-                                    {track.name}
-                                </div>
-                            </div>
-                        )
-                    })}
+                            )
+                        })}
+                    </div>
                 </div>
-            </div>
 
-            <div style={styles.footer}>
-                <button 
-                    style={{...styles.button, background: '#ccc', color: '#333'}}
-                    onClick={() => navigate('/vehicle')} // <--- 4. Torna alla selezione veicolo
-                >
-                    Back
-                </button>
-                <button 
-                    style={{...styles.button, background: '#00aeff', color: 'white'}}
-                    onClick={() => { handleConfirm(); playSfx(AUDIO_SFX.START_RACE, 10); }}
-                    disabled={!localSelection}
-                >
-                    Start Race
-                </button>
-            </div>
-            </>
+                {/* Footer */}
+                <div className="h-[10vh] flex justify-between px-[4vw] items-center bg-gradient-to-t from-black/80 to-transparent z-20">
+                    <button 
+                        onClick={() => navigate('/vehicle')}
+                        className="py-[1vh] px-[3vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#ccc] text-[#333] hover:bg-white transition-all active:scale-95"
+                    >
+                        Back
+                    </button>
+                    <button 
+                        onClick={() => { handleConfirm(); playSfx(AUDIO_SFX.START_RACE, 10); }}
+                        disabled={!localSelection}
+                        className={`
+                            py-[1vh] px-[3vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md transition-all active:scale-95
+                            ${localSelection 
+                                ? 'bg-[#00aeff] text-white hover:bg-[#33c2ff]' 
+                                : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                            }
+                        `}
+                    >
+                        Start Race
+                    </button>
+                </div>
+                </>
             )}
+
+            {/* Custom Scrollbar Styles */}
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(0,0,0,0.3);
+                    border-radius: 5px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #ffe600;
+                    border-radius: 5px;
+                    border: 2px solid rgba(0,0,0,0.3);
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: white;
+                }
+            `}</style>
         </div>
     )
 }
