@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'; 
 
 export const InfoAndTos = () => {
   const [data, setData] = useState(null);
   const [activeTab, setActiveTab] = useState('tos'); 
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { playSfx } = useAudio();
 
   useEffect(() => {
     fetch('/api/info')
@@ -16,92 +20,226 @@ export const InfoAndTos = () => {
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Errore fetch:", err);
+        console.error("Fetch error:", err);
         setLoading(false);
       });
   }, []);
 
-  // Loader
+  const styles = {
+    container: {
+      width: '100vw', 
+      height: '100vh', 
+      position: 'absolute', 
+      top: 0, 
+      left: 0,
+      background: `repeating-linear-gradient(0deg, #050505, #050505 2px, #111 2px, #111 4px)`,
+      display: 'flex', 
+      flexDirection: 'column', 
+      overflow: 'hidden', 
+      fontFamily: 'sans-serif',
+      color: 'white',
+      userSelect: 'none'
+    },
+    header: {
+      height: '8vh', 
+      background: 'white', 
+      display: 'flex', 
+      alignItems: 'center', 
+      paddingLeft: '4vw',
+      borderBottom: '0.6vh solid #aaddff', 
+      borderBottomRightRadius: '50px', 
+      width: '55%',
+      fontSize: '4vh', 
+      fontWeight: 'bold', 
+      color: '#666', 
+      fontStyle: 'italic', 
+      zIndex: 10,
+      boxShadow: '0 5px 10px rgba(0,0,0,0.5)',
+      flexShrink: 0
+    },
+    content: {
+      flex: 1, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      padding: '2vh 4vh',
+      overflow: 'hidden' 
+    },
+    tabsContainer: {
+        display: 'flex',
+        gap: '20px',
+        marginBottom: '2vh',
+        width: '80%',
+        maxWidth: '800px',
+        justifyContent: 'center',
+        flexShrink: 0
+    },
+    tabButton: (isActive, color) => ({
+        flex: 1,
+        padding: '1vh 1vw',
+        fontSize: '2.5vh',
+        fontWeight: 'bold',
+        borderRadius: '50px',
+        border: isActive ? `0.4vh solid ${color}` : '0.3vh solid #555',
+        background: isActive ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.5)',
+        color: isActive ? color : '#888',
+        cursor: 'pointer',
+        textTransform: 'uppercase',
+        boxShadow: isActive ? `0 0 15px ${color}` : 'none',
+        transition: 'all 0.2s',
+        textAlign: 'center'
+    }),
+    textBoxWrapper: {
+        flex: 1, 
+        width: '80%',
+        maxWidth: '1000px',
+        background: 'rgba(255,255,255,0.05)',
+        border: '0.2vh solid #444',
+        borderRadius: '1vh',
+        padding: '3vh',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)'
+    },
+    titleBar: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        borderBottom: '1px solid #555',
+        paddingBottom: '1vh',
+        marginBottom: '1vh',
+        flexShrink: 0
+    },
+    scrollableText: {
+        flex: 1,
+        overflowY: 'auto', 
+        paddingRight: '10px',
+        fontSize: '2.2vh',
+        lineHeight: '1.6',
+        color: '#ddd',
+        whiteSpace: 'pre-line',
+        textAlign: 'left'
+    },
+    footer: {
+      height: '10vh', 
+      display: 'flex', 
+      justifyContent: 'center', // CENTERED
+      alignItems: 'center',
+      background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+      flexShrink: 0,
+      width: '100%'
+    },
+    backButton: {
+      padding: '1vh 6vw', // Wider button
+      fontSize: '2.5vh', 
+      fontWeight: 'bold', 
+      borderRadius: '50px',
+      border: '0.3vh solid white', 
+      cursor: 'pointer', 
+      textTransform: 'uppercase',
+      background: '#ccc', 
+      color: '#333',
+      boxShadow: '0 4px 5px rgba(0,0,0,0.5)',
+      transition: 'transform 0.1s'
+    }
+  };
+
   if (loading) return (
-    <div className="min-h-screen bg-[#38b6ff] flex items-center justify-center font-sans">
-        <div className="text-white text-2xl font-black animate-bounce tracking-widest drop-shadow-md">LOADING...</div>
+    <div style={styles.container}>
+        <div style={{...styles.header, width: '100%'}}>LOADING...</div>
     </div>
   );
 
   if (!data) return (
-     <div className="min-h-screen bg-[#38b6ff] flex items-center justify-center font-sans">
-        <div className="text-red-500 text-2xl font-black bg-white/90 p-6 rounded-xl border-4 border-red-500">ERROR CONNECTION 🛑</div>
+    <div style={styles.container}>
+         <div style={{...styles.header, width: '100%', color: 'red'}}>ERROR CONNECTION</div>
     </div>
   );
 
+  const currentContent = activeTab === 'tos' ? data.tos : data.privacy;
+  const activeColor = activeTab === 'tos' ? '#22c55e' : '#00aeff'; 
+
   return (
-    // SFONDO GENERALE (Blu come nel menu)
-    <div className="min-h-screen w-full bg-[#38b6ff] flex items-center justify-center p-4 font-sans select-none overflow-hidden">
-      
-      {/* CARD "MARIO KART" (Sfondo scuro, Bordo Giallo) */}
-      <div className="relative w-full max-w-md bg-[#1e293b] rounded-[30px] border-[5px] border-[#fbbf24] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.5)] p-6 flex flex-col items-center">
-        
-        {/* TITOLO */}
-        <h1 className="text-5xl font-black text-[#fbbf24] tracking-tighter mb-2 uppercase text-center drop-shadow-[3px_3px_0_rgba(0,0,0,0.8)]">
-            MARIO KART
-        </h1>
-        
-        <h2 className="text-white text-xl font-bold mb-6 tracking-wide drop-shadow-md">
-            Information Board
-        </h2>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        Information Board
+      </div>
 
-        {/* PULSANTI DI SELEZIONE (Stile Create/Join Room) */}
-        <div className="w-full flex flex-col gap-4 mb-4">
-            
-            {/* Pulsante VERDE (TOS) */}
+      <div style={styles.content}>
+        
+        {/* Tabs */}
+        <div style={styles.tabsContainer}>
             <button 
-                onClick={() => setActiveTab('tos')}
-                className={`w-full py-4 rounded-xl text-xl font-black text-white uppercase tracking-wider transition-all transform active:scale-95 flex items-center justify-center gap-2 border-b-[6px] active:border-b-0 active:translate-y-[6px]
-                ${activeTab === 'tos' 
-                    ? 'bg-[#22c55e] border-[#15803d] shadow-[0_0_15px_rgba(34,197,94,0.6)] brightness-110' 
-                    : 'bg-[#22c55e] border-[#15803d] opacity-70 hover:opacity-100'
-                }`}
+                style={styles.tabButton(activeTab === 'tos', '#22c55e')}
+                onClick={() => {
+                    setActiveTab('tos');
+                    playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
+                }}
             >
-                🏁 RULES & TOS
+                🏁 Rules & TOS
             </button>
-
-            {/* Pulsante BLU (Privacy) */}
             <button 
-                onClick={() => setActiveTab('privacy')}
-                className={`w-full py-4 rounded-xl text-xl font-black text-white uppercase tracking-wider transition-all transform active:scale-95 flex items-center justify-center gap-2 border-b-[6px] active:border-b-0 active:translate-y-[6px]
-                ${activeTab === 'privacy' 
-                    ? 'bg-[#0284c7] border-[#075985] shadow-[0_0_15px_rgba(2,132,199,0.6)] brightness-110' 
-                    : 'bg-[#0284c7] border-[#075985] opacity-70 hover:opacity-100'
-                }`}
+                style={styles.tabButton(activeTab === 'privacy', '#00aeff')}
+                onClick={() => {
+                    setActiveTab('privacy');
+                    playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
+                }}
             >
-                 🛡️ PRIVACY
+                🛡️ Privacy
             </button>
         </div>
 
-        {/* BOX TESTO (Scrollabile, stile "Console") */}
-        <div className="w-full bg-black/40 rounded-xl p-4 border-2 border-white/10 mb-6 h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-[#fbbf24] scrollbar-track-transparent shadow-inner">
-            <div className="flex justify-between items-center mb-3 border-b border-white/10 pb-2 sticky top-0 bg-[#1e293b]/0 backdrop-blur-sm">
-                <span className="text-[#fbbf24] font-bold text-sm uppercase tracking-wider">
-                    {activeTab === 'tos' ? data.tos.title : data.privacy.title}
+        {/* Text Content */}
+        <div style={styles.textBoxWrapper}>
+            <div style={styles.titleBar}>
+                <span style={{fontSize: '3vh', color: '#ffe600', fontWeight: 'bold'}}>
+                    {currentContent.title}
                 </span>
-                <span className="text-gray-400 text-xs font-mono">
-                    {activeTab === 'tos' ? data.tos.lastUpdated : data.privacy.lastUpdated}
+                <span style={{fontSize: '1.5vh', color: '#888', fontFamily: 'monospace'}}>
+                    Updated: {currentContent.lastUpdated}
                 </span>
             </div>
-            <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-line font-medium text-shadow-sm px-1">
-                {activeTab === 'tos' ? data.tos.content : data.privacy.content}
-            </p>
+            
+            <div className="custom-scrollbar" style={styles.scrollableText}>
+                {currentContent.content}
+            </div>
         </div>
-
-        {/* PULSANTE BACK (Grigio scuro, stile "Back") */}
-        <button 
-            onClick={() => window.history.back()}
-            className="w-full bg-[#4b5563] hover:bg-[#6b7280] text-gray-200 font-bold py-3 rounded-lg border-b-4 border-[#374151] active:border-b-0 active:translate-y-1 transition-all uppercase tracking-widest text-sm"
-        >
-            ← Back
-        </button>
-
       </div>
+
+      <div style={styles.footer}>
+        <button 
+            style={styles.backButton}
+            onClick={() => {
+                playSfx(AUDIO_SFX.BACK, 10);
+                navigate(-1);
+            }} 
+            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+            Back
+        </button>
+      </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: ${activeColor};
+            border-radius: 5px;
+            border: 2px solid rgba(0,0,0,0.3);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: white;
+        }
+      `}</style>
     </div>
   );
 };
