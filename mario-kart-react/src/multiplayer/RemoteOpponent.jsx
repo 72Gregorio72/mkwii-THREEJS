@@ -15,96 +15,6 @@ import { usePositionalKartAudio } from '../hooks/usePositionalKartAudio.js';
 const PHYSICS_RADIUS = 1; 
 const INTERPOLATION_DELAY = 100; 
 
-// --- COMPONENTE PER GESTIRE LE ANIMAZIONI ---
-const RemoteVisuals = ({ opponentsDataRef, playerId, vehicle, character }) => {
-    const currentSpeed = useRef(0);
-    const currentSteer = useRef(0);
-    const currentDrift = useRef(0);
-    
-    const [animData, setAnimData] = useState({ speed: 0, steer: 0, drift: 0 });
-
-    const prevPos = useRef(new Vector3());
-    const isFirstFrame = useRef(true);
-
-    useFrame((state, delta) => {
-        const serverData = opponentsDataRef.current[playerId];
-        if (!serverData) return;
-
-        // 1. Calcolo Velocità
-        const pos = new Vector3(serverData.x, serverData.y, serverData.z);
-        let calculatedSpeed = 0;
-
-        if (!isFirstFrame.current) {
-            const dist = pos.distanceTo(prevPos.current);
-            if (delta > 0.01) {
-                calculatedSpeed = dist / delta;
-            }
-        } else {
-            isFirstFrame.current = false;
-        }
-        prevPos.current.copy(pos);
-
-        // 2. Deadzone
-        if (calculatedSpeed < 0.5) calculatedSpeed = 0;
-
-        // 3. Smoothing
-        currentSpeed.current = MathUtils.lerp(currentSpeed.current, calculatedSpeed, 10 * delta);
-        
-        const targetSteer = serverData.steer || 0;
-        currentSteer.current = MathUtils.lerp(currentSteer.current, targetSteer, 10 * delta);
-
-        currentDrift.current = serverData.drift || 0;
-
-        // 4. Update state
-        setAnimData({
-            speed: currentSpeed.current,
-            steer: currentSteer.current,
-            drift: currentDrift.current
-        });
-    });
-
-    vehicle.animationType = 'kart';
-	console.log("Debug: animData in RemoteVisuals: ", animData);
-    return (
-        <group position={vehicle.vehicleOffset || [0,0,0]}>
-            <VehicleModel 
-                vehicleConfig={vehicle.modelConfig} 
-                scale={1.4} 
-                rotation={[0, Math.PI, 0]} 
-                isBike={vehicle.isBike} 
-                speed={0}       
-                steer={0}       
-                drift={0} 
-            />
-
-            <group rotation={[0, Math.PI, 0]}>
-                {/* <RacerModel
-                    isInMenu={false} 
-                    characterConfig={character.modelConfig} 
-                    vehicleConfig={vehicle} 
-                    isKart={true}  // <--- FONDAMENTALE: Forza la posa di guida
-                    steer={0}   
-                    drift={0} 
-                    scale={1.5} 
-                    speed={0}
-                /> */}
-				
-				<RacerModel 
-					isInMenu={false}
-					scale={1.5}
-					characterConfig={character.modelConfig}
-					vehicleConfig={vehicle} 
-					steer={0}
-					drift={0}
-					speed={0}
-					isKart={true}
-					key={vehicle.name + "_racer"}
-				/>
-            </group>
-        </group>
-    );
-};
-
 // --- COMPONENTE PRINCIPALE ---
 export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, character, vehicle, userData, data, isRaceActive = true }, ref) => {
     const rb = useRef();
@@ -268,14 +178,31 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
             <BallCollider args={[PHYSICS_RADIUS]} />
             <group ref={(node) => { audioGroupRef.current = node; if (node && !audioGroupMounted) setAudioGroupMounted(true); }} />
             <group ref={visualGroupRef} position={[0, -PHYSICS_RADIUS, 0]}>
-                <group visible={!isBulletBill}>
-                    <RemoteVisuals 
-                        opponentsDataRef={opponentsDataRef}
-                        playerId={playerId}
-                        vehicle={vehicle}
-                        character={character}
-                    />
-                </group>
+			<group position={vehicle.vehicleOffset || [0,0,0]}>
+				<VehicleModel 
+					vehicleConfig={vehicle.modelConfig} 
+					scale={1.4} 
+					rotation={[0, Math.PI, 0]} 
+					isBike={vehicle.isBike} 
+					speed={0}       
+					steer={0}       
+					drift={0} 
+				/>
+
+				<group rotation={[0, Math.PI, 0]}>
+					<RacerModel 
+						isInMenu={false}
+						scale={1.5}
+						characterConfig={character.modelConfig}
+						vehicleConfig={vehicle} 
+						steer={0}
+						drift={0}
+						speed={0}
+						isKart={true}
+						key={vehicle.name + "_racer"}
+					/>
+				</group>
+			</group>
                 <group visible={!!isBulletBill} scale={2.5} position={[0, 0.8, 0]} rotation={[0, Math.PI, 0]}>
                     <primitive object={billClone} />
                 </group>
