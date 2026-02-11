@@ -914,9 +914,6 @@ export function GameScene({
                         // Se anche quello fallisce, prendi il PRIMO veicolo del database.
                         const safeVehicle = remoteVehicle || vehicle || VEHICLE_DATABASE['StandardKartS'];
                         const safeCharacter = remoteCharacter || character || Characters[0];
-						
-						console.log("Game scene safe vehicle: ")
-						console.log(safeVehicle);
                         return (
                             <RemoteOpponent 
                                 key={playerData.id} 

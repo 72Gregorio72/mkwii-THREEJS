@@ -6,6 +6,8 @@ if ! docker info > /dev/null 2>&1 && ! sudo docker info > /dev/null 2>&1; then
     exit 1
 fi
 
+docker-compose down -v
+
 # Prova a lanciare docker-compose. Se fallisce per permessi, usa sudo.
 if docker-compose up --build; then
     : # Successo, non fare nulla
@@ -18,3 +20,4 @@ fi
 # cd certs
 # openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
 # cd ..
+# sed -i 's/\r$//' start.sh
