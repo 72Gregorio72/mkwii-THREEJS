@@ -973,6 +973,7 @@ export function GameScene({
                                     }
                                 }}
                                 socket={roomCode ? socket : null}
+								roomCode={roomCode}
                             />
                         )}
                     </group>
@@ -1006,6 +1007,7 @@ export function GameScene({
                                     isBot={true}
                                     paths={selectedTrack.Waypoints} 
                                     onCheckpoint={(idx) => handleCheckpointTrigger(idx, botId)}
+									roomCode={roomCode}
                                 /> 
                             </group>
                         );

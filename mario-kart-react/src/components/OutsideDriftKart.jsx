@@ -234,7 +234,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
     isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onHitOpponent, gameState,
-	positions, botRefs, socket, finished = false,
+	positions, botRefs, socket, finished = false, roomCode,
   } = props;
   
 //   const { scene } = useThree()
@@ -466,11 +466,11 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const spinTimer = useRef(0);
   const frameCounter = useRef(Math.floor(Math.random() * 3)); 
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)
-  const racerId = userData?.id || (isBot ? "bot" : "player");
+  const racerId = (isBot ? "bot" : socket.id);
 
   const billVisualsRef = useRef();
 
-      const isLocalPlayer = !isBot && racerId === 'player';
+      const isLocalPlayer = !isBot && racerId === socket.id;
   
 
   // Hook per riprodurre effetti sonori (turbo, etc.)
@@ -507,7 +507,8 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     isLocalPlayer: isLocalPlayer,
     kartRef: rb,
     onActivateBulletBill: activateBulletBill,
-	socket: socket
+	socket: socket,
+	roomCode: props.roomCode,
   });
 
   const botControls = useBotAI({ 
@@ -1092,7 +1093,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     useEffect(() => {
         const handleLightningStrike = (data) => {
             const attackerId = data?.attackerId;
-            // console.log(`LIGHTNING STRIKE RECEIVED ON ${racerId} FROM ${attackerId}`);
+            console.log(`LIGHTNING STRIKE RECEIVED ON ${racerId} FROM ${attackerId}`);
             if (attackerId === racerId) { 
                 return; 
             }
@@ -1143,7 +1144,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 	 checkSurface(rootObj);
      if (!rootObj) return;
      const name = rootObj.name;
-     if (name === 'player' || name.startsWith('bot')) return; 
+     if (name === socket.id || name.startsWith('bot')) return; 
      isGrounded.current = true;
      let foundName = '';
      let curr = rootObj;
