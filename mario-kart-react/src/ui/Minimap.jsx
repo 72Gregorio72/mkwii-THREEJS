@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Characters } from '../components/Data.jsx';
 
-export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remoteRefMap, opponents, playerRank }) => {
+export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remoteRefMap, opponents, playerRank, socket }) => {
     const canvasRef = useRef(null);
     const [bounds, setBounds] = useState({ minX: 0, maxX: 0, minZ: 0, maxZ: 0 });
     const [iconImages, setIconImages] = useState({});
@@ -41,7 +41,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
         if (playerCharacter?.icon) {
             const iconPath = playerCharacter.icon.replace('./icons/', '/Icons/');
             //console.log('[Minimap] Player icon path:', iconPath);
-            imagesToLoad.push({ key: 'player', src: iconPath });
+            imagesToLoad.push({ key: socket.id, src: iconPath });
         }
 
         // Icone bot
@@ -223,7 +223,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                     const canvasPos = worldToCanvas(pos.x, pos.z);
 
                     // Icona più grande per il player
-                    drawIcon(canvasPos, 'player', 26);
+                    drawIcon(canvasPos, socket.id, 26);
 
                     // Bordo bianco attorno al player
                     ctx.strokeStyle = 'white';

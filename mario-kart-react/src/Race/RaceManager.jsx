@@ -15,6 +15,7 @@ export function RaceManager({
 	trackPath,
 	opponentsDataRef,
 	remoteRefMap,
+	socket,
 }) {
 	
 	// --- 1. DATI TRACCIATO (Pre-calcolati una volta sola) ---
@@ -84,7 +85,7 @@ export function RaceManager({
 		Object.keys(allRacers).forEach((racerId) => {
 			let currentPos = null;
 
-			if (racerId === 'player') {
+			if (racerId === socket.id) {
 				if (playerRef.current?.translation) {
 					const t = playerRef.current.translation();
 					currentPos = new THREE.Vector3(t.x, t.y, t.z);

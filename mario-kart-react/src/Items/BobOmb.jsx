@@ -70,7 +70,7 @@ export const BobOmb = memo(function BobOmb({ position, initVelocity = [0, 0, 0],
         const userData = targetObj?.userData;
         const id = userData?.id || targetName;
         
-        if ((targetName === 'player' || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) && !hitList.current.has(id)) {
+        if ((targetName === socket.id || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) && !hitList.current.has(id)) {
             hitList.current.add(id);
             window.dispatchEvent(new CustomEvent('banana-hit', { 
                 detail: { victimId: id, type: 'explosion' } 

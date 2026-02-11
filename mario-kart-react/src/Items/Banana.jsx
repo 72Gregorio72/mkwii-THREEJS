@@ -53,7 +53,7 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0],
         
 		// console.log(`Banana hit detected with ${targetName}`);
 
-        if (targetName === 'player' || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) {
+        if (targetName === socket.id || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) {
             setIsHit(true);
             
             window.dispatchEvent(new CustomEvent('banana-hit', { 

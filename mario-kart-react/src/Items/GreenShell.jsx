@@ -71,7 +71,7 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
         const targetName = targetObj?.name || "";
         const userData = targetObj?.userData;
 
-        if (targetName === 'player' || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) {
+        if (targetName === socket.id || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) {
             setIsActive(false);
             
             window.dispatchEvent(new CustomEvent('banana-hit', { 

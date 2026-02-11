@@ -323,9 +323,9 @@ export function GameScene({
     // 2. SETUP STATI GARA
     const { initialRacersData, initialPositions } = useMemo(() => {
         const data = {
-            player: { id: 'player', lap: 1, nextCP: 1, score: 0 }
+            player: { id: socket.id, lap: 1, nextCP: 1, score: 0 }
         };
-        const positions = [{ id: 'player', position: 1 }]; // Player parte primo in multiplayer
+        const positions = [{ id: socket.id, position: 1 }]; // Player parte primo in multiplayer
         
         // In multiplayer (roomCode presente) non creiamo bot
         // In single player usiamo gli ID dei character dai botConfigurations
@@ -347,13 +347,13 @@ export function GameScene({
     const introPlayed = useRef(false);
 
     const [positions, setPositions] = useState(initialPositions);
-    const playerRank = positions.find(p => p.id === 'player')?.position || 1;
+    const playerRank = positions.find(p => p.id === socket.id)?.position || 1;
 
     useEffect(() => {
         const handleItemCollected = (e) => {
             const { racerId } = e.detail;
             
-            if (racerId === 'player') {
+            if (racerId === socket.id) {
                 playerRef.current?.triggerItemRoulette(playerRank);
             } else if (botRefs.current[racerId]) {
                 // È un bot (usa character ID)
@@ -589,7 +589,7 @@ export function GameScene({
         const opponentIds = opponents.map(o => o.id);
         const botIds = botConfigurations.map(bc => bc.character.id);
         Object.keys(racersData.current).forEach(id => {
-            if (id !== 'player' && !botIds.includes(id) && !opponentIds.includes(id)) {
+            if (id !== socket.id && !botIds.includes(id) && !opponentIds.includes(id)) {
                 delete racersData.current[id];
             }
         });
@@ -642,12 +642,12 @@ export function GameScene({
         
         if (hitIndex === racer.nextCP && hitIndex !== 0) {
             racer.nextCP += 1;
-            if (racerId === 'player') setNextCheck(racer.nextCP);
+            if (racerId === socket.id) setNextCheck(racer.nextCP);
         } 
         else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
             racer.lap += 1;
             
-            if (racerId === 'player') {
+            if (racerId === socket.id) {
                 if (racer.lap === 2) {
                     playSfx(AUDIO_SFX.SECOND_LAP, 3);
                 }
@@ -678,12 +678,12 @@ export function GameScene({
                     }];
                 });
                 
-                if (racerId === 'player') {
+                if (racerId === socket.id) {
                     setFinished(true);
                     playSfx(AUDIO_SFX.FINISH_RACE, 3);
                     stopMusic();
                 }
-            } else if (racerId === 'player') {
+            } else if (racerId === socket.id) {
                 setUiLap(racer.lap);
             }
         }
@@ -703,7 +703,7 @@ export function GameScene({
     // Liste Bersagli (per Gusci Rossi/Blu)
     const targets = useMemo(() => {
         const list = [];
-        if (playerRef.current) list.push({ id: 'player', ref: playerRef });
+        if (playerRef.current) list.push({ id: socket.id, ref: playerRef });
         
         // Aggiungi bot locali (solo in single player)
         if (!roomCode && botConfigurations.length > 0) {
@@ -775,11 +775,12 @@ export function GameScene({
                     remoteRefMap={remoteRefMap}
                     opponents={opponentsWithIcons}
                     playerRank={playerRank}
+					socket={socket}
                 />
             )}
 
             {/* RACE RESULTS - Mostra solo quando il player ha finito */}
-            {finished && finishers.length > 0 && <RaceResults finishers={finishers} />}
+            {finished && finishers.length > 0 && <RaceResults finishers={finishers} socket={socket} />}
 
             {countdown && (
                 <div style={{
@@ -932,7 +933,7 @@ export function GameScene({
                         {vehicle.isBike ? (
                             <InsideDriftBike 
                                 ref={playerRef} 
-                                userData={{ type: 'racer', id: 'player' }}
+                                userData={{ type: 'racer', id: socket.id }}
                                 characterConfig={character.modelConfig}
                                 selectedCharacter={character}
                                 vehicleConfig={vehicle} 
@@ -945,7 +946,7 @@ export function GameScene({
                         ) : (
                             <OutsideDriftKart 
                                 ref={playerRef} 
-                                userData={{ type: 'racer', id: 'player' }}
+                                userData={{ type: 'racer', id: socket.id }}
                                 characterConfig={character.modelConfig}
                                 selectedCharacter={character}
                                 botRefs={botRefs}

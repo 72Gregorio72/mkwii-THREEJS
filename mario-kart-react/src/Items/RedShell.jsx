@@ -203,7 +203,7 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         const targetObj = payload.other.rigidBodyObject;
         const victimId = targetObj?.userData?.id || targetObj?.name;
 
-        if (victimId && victimId !== ownerId && (targetObj.name === 'player' || targetObj.name.startsWith('bot') || targetObj.userData?.type === 'opponent')) {
+        if (victimId && victimId !== ownerId && (targetObj.name === socket.id || targetObj.name.startsWith('bot') || targetObj.userData?.type === 'opponent')) {
             setIsActive(false);
             
             window.dispatchEvent(new CustomEvent('banana-hit', { detail: { victimId } }));
