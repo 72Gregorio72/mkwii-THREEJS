@@ -281,7 +281,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                 ref={canvasRef}
                 width={300}
                 height={300}
-                style={{ width: '100%', height: '100%' }}
+                style={{ position: 'relative', width: '100%', height: '100%' }}
             />
         </div>
     );

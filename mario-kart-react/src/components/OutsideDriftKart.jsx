@@ -319,7 +319,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
       // THUNDER_LOOP: loop mentre sei piccolo
       if (thunderLoopAudioRef.current) {
           thunderLoopAudioRef.current.currentTime = 0;
-          thunderLoopAudioRef.current.setVolume(3.0);
+          thunderLoopAudioRef.current.setVolume(0.5);
           thunderLoopAudioRef.current.play();
       }
 
@@ -332,12 +332,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const deactivateLightning = () => {
       isSmall.current = false;
       
-      // Ferma THUNDER_LOOP
       if (thunderLoopAudioRef.current) {
           thunderLoopAudioRef.current.pause();
           thunderLoopAudioRef.current.currentTime = 0;
       }
-      // THUNDER_BIG_STATE: quando torni grande
       if (thunderBigAudioRef.current) {
           thunderBigAudioRef.current.currentTime = 0;
           thunderBigAudioRef.current.play();
