@@ -26,7 +26,7 @@ const LARGE_VEHICLES = [
 export const Tracks = {
 	'Luigi Circuit': { 
 		file: './Tracks/LuigiCircuit/LuigiCircuit.glb',
-		preview: './Previews/Luigi Circuit.png',
+		preview: '/Previews/Luigi Circuit.png',
 		startPos: [9, 12, 98],
 		checkpoints: './Tracks/LuigiCircuit/LuigiCircuit_checkpoints.glb',
         road: './Tracks/LuigiCircuit/LuigiCircuit_road.glb',
@@ -38,7 +38,7 @@ export const Tracks = {
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
-		preview: './Previews/Daisy Circuit.png',
+		preview: '/Previews/Daisy Circuit.png',
 		startPos: [100, 12, 98],
 		checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
 		road: './Tracks/DaisyCircuit/DaisyCircuit_road.glb',
@@ -50,7 +50,7 @@ export const Tracks = {
 	},
 	'Coconut Mall': {
 		file: './Tracks/CoconutMall/CoconutMall.glb',
-		preview: './Previews/Coconut Mall.png',
+		preview: '/Previews/Coconut Mall.png',
 		startPos: [-15, 5, -50],
 		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
 		maxCheckpoints: 5,
@@ -58,7 +58,7 @@ export const Tracks = {
 	},
 	'Bowser Castle': {
 		file: './Tracks/BowserCastle/BowserCastle.glb',
-		preview: './Previews/Bowser Castle.png',
+		preview: '/Previews/Bowser Castle.png',
 		startPos: [0, 0, 100],
 		checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
 		maxCheckpoints: 7,
@@ -70,7 +70,7 @@ export const Tracks = {
 	},
 	'Delfino Square': {
 		file: './Tracks/DelfinoSquare/DelfinoSquare.glb',
-		preview: './Previews/Delfino Square.png',
+		preview: '/Previews/DS Delfino Square.png',
 		startPos: [0, 0, 50],
 		checkpoints: './Tracks/DelfinoSquare/DelfinoSquare_checkpoints.glb',
 		maxCheckpoints: 3,
@@ -82,7 +82,7 @@ export const Tracks = {
 	},
     'Yoshi Falls': {
         file: './Tracks/YoshiFalls/YoshiFalls.glb',
-        preview: './Previews/Yoshi Falls.png',
+		preview: '/Previews/DS Yoshi Falls.png',
         startPos: [0, 0, 50],
         checkpoints: './Tracks/YoshiFalls/YoshiFalls_checkpos.glb',
         maxCheckpoints: 3,
@@ -94,11 +94,11 @@ export const Tracks = {
     },
     'Moo Moo Meadows': {
         file: './Tracks/MooMooMeadows/MooMooMeadows.glb',
-        preview: './TrackPreviews/YoshiFalls.png',
+		preview: '/Previews/Moo Moo Meadows.png',
         startPos: [0, 0, 50],
         checkpoints: './Tracks/MooMooMeadows/MooMooMeadows_checkpoints.glb',
         maxCheckpoints: 3,
-        soundtrack: 'MOO_MOO_MEADOWS',
+        soundtrack: 'RACE_MOO_MOO_MEADOWS',
         itemBoxes: './Tracks/MooMooMeadows/MooMooMeadows_itembox.glb',
         gridpos: './Tracks/MooMooMeadows/MooMooMeadows_startpos.glb',
         road: './Tracks/MooMooMeadows/MooMooMeadows_road.glb',
@@ -884,7 +884,8 @@ export const AUDIO_TRACKS = {
     RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
     RACE_DELPHINO_SQUARE: '/soundTracks/DELPHINO_SQUARE_ST.mp3',
     RACE_YOSHI_FALLS: '/soundTracks/YOSHI_FALLS_ST.mp3',
-    MOO_MOO_MEADOWS: '/soundTracks/MOO_MOO_MEADOWS_ST.mp3',
+    RACE_MOO_MOO_MEADOWS: '/soundTracks/MOO_MOO_MEADOWS_ST.mp3',
+	RACE_BOWSER_CASTLE: '/soundTracks/BOWSER_CASTLE_ST.mp3',
 };
 
 export const AUDIO_SFX = {

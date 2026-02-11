@@ -133,11 +133,11 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
                                     {/* Image Box */}
                                     <div 
                                         className="flex-1 w-full bg-cover bg-center relative"
-                                        style={{ backgroundImage: `url(${track.preview || '/placeholder_track.png'})` }}
+                                        style={{ backgroundImage: `url("${track.preview || '/placeholder_track.png'}")` }}
                                     >
                                         {!track.preview && (
                                             <div className="absolute top-[40%] w-full text-center opacity-50 font-bold">
-                                                NO PREVIEW
+                                                
                                             </div>
                                         )}
                                     </div>
