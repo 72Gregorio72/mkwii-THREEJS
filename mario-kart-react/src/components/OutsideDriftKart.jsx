@@ -801,14 +801,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
          }));
      }
 
-	if (isBulletBill)
-		// console.log(`BULLET BILL VELOCITÀ: ${Math.abs(Math.round(speed.current * 1.5))} km/h`);
-
 	if (isStarActive.current && visualGroupRef.current && frameCounter.current % 2 === 0) {
-        // Velocità cambio colore (aggiornato ogni 2 frame per performance)
         const time = state.clock.elapsedTime * 5; 
         
-        // Calcola colore arcobaleno (HSL)
         const rainbowColor = new Color().setHSL((time % 1), 1.0, 0.5); 
         
         visualGroupRef.current.traverse((child) => {
