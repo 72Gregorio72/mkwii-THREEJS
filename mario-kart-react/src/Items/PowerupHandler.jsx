@@ -120,7 +120,6 @@ export const usePowerupHandler = ({
 			setIsRoulette(false);
 			setCurrentItem(selectedItem);
 			
-			// Logica specifica per i consumabili (Triple, Golden, etc.)
 			if (selectedItem === ITEMS.TRIPLE_MUSHROOM) setTripleCount(3);
 			if (selectedItem === ITEMS.GOLDEN_MUSHROOM) setIsGoldenActive(false);
 			if (selectedItem === ITEMS.MUSHROOM) setTripleCount(1);
