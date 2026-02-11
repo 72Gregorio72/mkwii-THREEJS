@@ -30,7 +30,7 @@ export const Tracks = {
 		startPos: [9, 12, 98],
 		checkpoints: './Tracks/LuigiCircuit/LuigiCircuit_checkpoints.glb',
         road: './Tracks/LuigiCircuit/LuigiCircuit_road.glb',
-        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+        itemBoxes: './Tracks/LuigiCircuit/LuigiCircuit_itempos.glb',
 		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
 		maxCheckpoints: 4,
         soundtrack: 'RACE_LUIGI_CIRCUIT',
@@ -90,7 +90,19 @@ export const Tracks = {
         gridpos: './Tracks/YoshiFalls/YoshiFalls_startpos.glb',
         road: './Tracks/YoshiFalls/YoshiFalls_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
-    }
+    },
+    'Moo Moo Meadows': {
+        file: './Tracks/MooMooMeadows/MooMooMeadows.glb',
+        preview: './TrackPreviews/YoshiFalls.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/MooMooMeadows/MooMooMeadows_checkpoints.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'MOO_MOO_MEADOWS',
+        itemBoxes: './Tracks/MooMooMeadows/MooMooMeadows_itembox.glb',
+        gridpos: './Tracks/MooMooMeadows/MooMooMeadows_startpos.glb',
+        road: './Tracks/MooMooMeadows/MooMooMeadows_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
 }
 
 export const Characters = [
@@ -847,6 +859,7 @@ export const AUDIO_TRACKS = {
     RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
     RACE_DELPHINO_SQUARE: '/soundTracks/DELPHINO_SQUARE_ST.mp3',
     RACE_YOSHI_FALLS: '/soundTracks/YOSHI_FALLS_ST.mp3',
+    MOO_MOO_MEADOWS: '/soundTracks/MOO_MOO_MEADOWS_ST.mp3',
 };
 
 export const AUDIO_SFX = {
