@@ -86,7 +86,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   };
 
   // Caricamento Assets
-  console.log("Racer model: ", characterConfig);
+  //console.log("Racer model: ", characterConfig);
   const { scene: charScene } = useGLTF(characterConfig.file)
   const clone = useMemo(() => SkeletonUtils.clone(charScene), [charScene])
   const { animations: kartAnims } = useGLTF('/Animations/driving_kart.glb')
@@ -107,7 +107,7 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   useEffect(() => {
 
       let targetAnim = 'idle';
-	  console.log('Vehicle: ', vehicleConfig.animationType);
+	  //console.log('Vehicle: ', vehicleConfig.animationType);
       if (isKart && vehicleConfig) targetAnim = vehicleConfig.animationType || 'kart';
 
       names.forEach(name => {
@@ -134,43 +134,43 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
   // =====================================================================
   // LOGICA PROCEDURALE
   // =====================================================================
-  useFrame((state, delta) => {
-      if (isRemote || !isKart || !group.current) return;
+//   useFrame((state, delta) => {
+//       if (isRemote || !isKart || !group.current) return;
 
-      const isBike = vehicleConfig?.isBike;
+//       const isBike = vehicleConfig?.isBike;
       
-      // LEAN DINAMICO (Sterzo)
-      if (spineRef.current) {
-          spineRef.current.rotation.z += -steer * 0.3; 
-          group.current.rotation.y = steer * 0.1;
-      }
+//       // LEAN DINAMICO (Sterzo)
+//       if (spineRef.current) {
+//           spineRef.current.rotation.z += -steer * 0.3; 
+//           group.current.rotation.y = steer * 0.1;
+//       }
 
-      // CALCOLO POSA BRACCIA
-      const { hx, hy, hz } = values;
-      const baseShoulderLift = 0.2; 
-      const liftFactor = (hy - 0.5) * 2.0; 
-      const poseZ = baseShoulderLift + liftFactor; 
-      const poseY = 0.3; 
-      const armStraighten = (hy > 0.6 || hz > 0.5) ? -0.4 : 0;
-      const steerInfluence = 0;
+//       // CALCOLO POSA BRACCIA
+//       const { hx, hy, hz } = values;
+//       const baseShoulderLift = 0.2; 
+//       const liftFactor = (hy - 0.5) * 2.0; 
+//       const poseZ = baseShoulderLift + liftFactor; 
+//       const poseY = 0.3; 
+//       const armStraighten = (hy > 0.6 || hz > 0.5) ? -0.4 : 0;
+//       const steerInfluence = 0;
 
-      if (leftArmRef.current && leftForeArmRef.current) {
-          leftArmRef.current.rotation.z += poseZ; 
-          leftArmRef.current.rotation.y -= (poseY + steerInfluence); 
-          leftForeArmRef.current.rotation.x += armStraighten;
-      }
+//       if (leftArmRef.current && leftForeArmRef.current) {
+//           leftArmRef.current.rotation.z += poseZ; 
+//           leftArmRef.current.rotation.y -= (poseY + steerInfluence); 
+//           leftForeArmRef.current.rotation.x += armStraighten;
+//       }
 
-      if (rightArmRef.current && rightForeArmRef.current) {
-          rightArmRef.current.rotation.z += poseZ; 
-          rightArmRef.current.rotation.y += (poseY - steerInfluence); 
-          rightForeArmRef.current.rotation.x -= armStraighten;
-      }
+//       if (rightArmRef.current && rightForeArmRef.current) {
+//           rightArmRef.current.rotation.z += poseZ; 
+//           rightArmRef.current.rotation.y += (poseY - steerInfluence); 
+//           rightForeArmRef.current.rotation.x -= armStraighten;
+//       }
 	  
-	  if (headRef.current) {
-		  headRef.current.rotation.z += values.rotX; 
-	  }
+// 	  if (headRef.current) {
+// 		  headRef.current.rotation.z += values.rotX; 
+// 	  }
 
-  })
+//   })
 
   useEffect(() => {
     clone.traverse((object) => {

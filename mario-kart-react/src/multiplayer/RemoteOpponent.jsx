@@ -64,7 +64,7 @@ const RemoteVisuals = ({ opponentsDataRef, playerId, vehicle, character }) => {
     });
 
     vehicle.animationType = 'kart';
-
+	console.log("Debug: animData in RemoteVisuals: ", animData);
     return (
         <group position={vehicle.vehicleOffset || [0,0,0]}>
             <VehicleModel 
@@ -72,21 +72,34 @@ const RemoteVisuals = ({ opponentsDataRef, playerId, vehicle, character }) => {
                 scale={1.4} 
                 rotation={[0, Math.PI, 0]} 
                 isBike={vehicle.isBike} 
-                speed={animData.speed}       
-                steer={animData.steer}       
-                drift={animData.drift} 
+                speed={0}       
+                steer={0}       
+                drift={0} 
             />
+
             <group rotation={[0, Math.PI, 0]}>
-                <RacerModel
+                {/* <RacerModel
                     isInMenu={false} 
                     characterConfig={character.modelConfig} 
                     vehicleConfig={vehicle} 
                     isKart={true}  // <--- FONDAMENTALE: Forza la posa di guida
-                    steer={animData.steer}   
-                    drift={animData.drift} 
+                    steer={0}   
+                    drift={0} 
                     scale={1.5} 
-                    speed={animData.speed}
-                />
+                    speed={0}
+                /> */}
+				
+				<RacerModel 
+					isInMenu={false}
+					scale={1.5}
+					characterConfig={character.modelConfig}
+					vehicleConfig={vehicle} 
+					steer={0}
+					drift={0}
+					speed={0}
+					isKart={true}
+					key={vehicle.name + "_racer"}
+				/>
             </group>
         </group>
     );
