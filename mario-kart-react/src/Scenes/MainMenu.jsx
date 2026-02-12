@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'; // Decommenta se usi l'audio
+import { useEffect } from 'react'
+
 
 const mkwiiFontStyle = `
   @font-face {

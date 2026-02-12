@@ -886,6 +886,9 @@ export const AUDIO_TRACKS = {
     RACE_YOSHI_FALLS: '/soundTracks/YOSHI_FALLS_ST.mp3',
     RACE_MOO_MOO_MEADOWS: '/soundTracks/MOO_MOO_MEADOWS_ST.mp3',
 	RACE_BOWSER_CASTLE: '/soundTracks/BOWSER_CASTLE_ST.mp3',
+	FINISH_FIRST: '/soundTracks/FINISH_1ST.mp3',
+	FINISH_SECOND_FOURTH: '/soundTracks/FINISH_2ND_4TH.mp3',
+	FINISH_FIFTH_TWELFTH: '/soundTracks/FINISH_5TH_12TH.mp3',
 };
 
 export const AUDIO_SFX = {
