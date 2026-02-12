@@ -906,7 +906,14 @@ export function GameScene({
                         // 1. Cerca i dati remoti
                         const remoteCharacter = Characters.find(c => c.id === playerData.charId);
                         const remoteVehicle = VEHICLE_DATABASE[playerData.vehicleId];
+                        
 
+                        const effects = {
+                            isStar: playerData.isStar,
+                            isBulletBill: playerData.isBulletBill,
+                            isMega: playerData.isMega
+
+                        }
                         // 2. FALLBACK DI SICUREZZA:
                         // Se remoteVehicle è undefined, usa 'vehicle' (il tuo locale).
                         // Se anche quello fallisce, prendi il PRIMO veicolo del database.
@@ -923,6 +930,7 @@ export function GameScene({
                                 vehicle={safeVehicle} 
                                 userData={{ type: 'opponent', id: playerData.id }} 
                                 data={playerData}
+                                effects={effects}
                             />
                         );
                     })}
