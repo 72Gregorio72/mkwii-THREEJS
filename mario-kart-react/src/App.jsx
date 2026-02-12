@@ -22,8 +22,9 @@ const TitleScreen = () => {
     const [isStarting, setIsStarting] = useState(false);
     const { changeTrack, enableSmoothLoop, playSfx } = useAudio();
 
-    changeTrack('MENU', 100);
-    enableSmoothLoop();
+    // changeTrack('MENU', 2000);
+    // enableSmoothLoop();
+    
     // Funzione per navigare al menu
     const handleStart = () => {
         // Evita attivazioni multiple se è già in corso l'avvio
@@ -38,7 +39,7 @@ const TitleScreen = () => {
     };
 
     useEffect(() => {
-        changeTrack('MENU', 100);
+        changeTrack('MENU', 2000);
         enableSmoothLoop();
     }, [changeTrack, enableSmoothLoop]);
 

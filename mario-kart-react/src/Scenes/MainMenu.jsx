@@ -12,10 +12,18 @@ const mkwiiFontStyle = `
     font-style: normal;
   }
 `;
-
+ ////  0,7 fadeout menu, 0.3 balck screen, start character select music
 export const MainMenu = () => {
     const navigate = useNavigate();
-    const { playSfx } = useAudio();
+    const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack } = useAudio();
+
+    useEffect(() => {
+        if (getCurrentTrack() !== 'MENU') {
+            changeTrack('MENU', 100);
+            enableSmoothLoop();
+        }
+        enableSmoothLoop();
+    }, [changeTrack, enableSmoothLoop]);
 
     const handleNavigate = (path) => {
         playSfx(AUDIO_SFX.DECIDE);
