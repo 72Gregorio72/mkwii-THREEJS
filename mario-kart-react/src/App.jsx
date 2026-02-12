@@ -22,8 +22,8 @@ const TitleScreen = () => {
     const [isStarting, setIsStarting] = useState(false);
     const { changeTrack, enableSmoothLoop, playSfx } = useAudio();
 
-    // changeTrack('MENU', 2000);
-    // enableSmoothLoop();
+    changeTrack('MENU', 2000);
+    enableSmoothLoop();
     
     // Funzione per navigare al menu
     const handleStart = () => {
@@ -39,10 +39,10 @@ const TitleScreen = () => {
         }, 1000);
     };
 
-    // useEffect(() => {
-    //     changeTrack('MENU', 2000);
-    //     enableSmoothLoop();
-    // }, [changeTrack, enableSmoothLoop]);
+    useEffect(() => {
+        changeTrack('MENU', 2000);
+        enableSmoothLoop();
+    }, [changeTrack, enableSmoothLoop]);
 
     // Aggiunge un listener per la tastiera quando il componente viene montato
     useEffect(() => {

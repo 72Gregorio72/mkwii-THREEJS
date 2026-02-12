@@ -498,6 +498,35 @@ export const AudioProvider = ({ children }) => {
   }, [isMuted]);
 
   // ============================================
+  // FUNZIONE: fadeOutMusic()
+  // Esegue un fade out della musica corrente
+  // Default: 700ms (0.7 secondi)
+  // ============================================
+  const fadeOutMusic = useCallback((fadeDuration = 700) => {
+    if (!bgmRef.current || bgmRef.current.paused) return;
+
+    // Pulisci eventuali fade in corso
+    if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
+    if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
+
+    const audio = bgmRef.current;
+    const startVolume = audio.volume;
+    const intervalMs = 30;
+    const step = startVolume / (fadeDuration / intervalMs);
+
+    fadeOutIntervalRef.current = setInterval(() => {
+      if (audio.volume > step) {
+        audio.volume -= step;
+      } else {
+        audio.volume = 0;
+        audio.pause();
+        clearInterval(fadeOutIntervalRef.current);
+        fadeOutIntervalRef.current = null;
+      }
+    }, intervalMs);
+  }, []);
+
+  // ============================================
   // EFFETTI (useEffect)
   // ============================================
 
@@ -548,6 +577,7 @@ export const AudioProvider = ({ children }) => {
     getCurrentTrack,
     duckMusicVolume,
     restoreMusicVolume,
+    fadeOutMusic,
   };
 
   return (
