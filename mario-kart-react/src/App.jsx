@@ -13,13 +13,17 @@ import { socket } from './multiplayer/socket.js'
 import { VEHICLE_DATABASE } from './components/Data'
 import { Tracks } from './components/Data'
 import { MainMenu } from './Scenes/MainMenu.jsx'
+import { useAudio, AUDIO_SFX } from './audio/AudioManager.jsx';
 
 // Creiamo un piccolo componente per la Home
 const TitleScreen = () => {
     const navigate = useNavigate();
     // Stato per gestire l'avvio e l'animazione
     const [isStarting, setIsStarting] = useState(false);
+    const { changeTrack, enableSmoothLoop, playSfx } = useAudio();
 
+    changeTrack('MENU', 100);
+    enableSmoothLoop();
     // Funzione per navigare al menu
     const handleStart = () => {
         // Evita attivazioni multiple se è già in corso l'avvio
@@ -32,6 +36,11 @@ const TitleScreen = () => {
             navigate('/menu');
         }, 1000);
     };
+
+    useEffect(() => {
+        changeTrack('MENU', 100);
+        enableSmoothLoop();
+    }, [changeTrack, enableSmoothLoop]);
 
     // Aggiunge un listener per la tastiera quando il componente viene montato
     useEffect(() => {

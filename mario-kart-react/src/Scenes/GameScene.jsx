@@ -689,6 +689,12 @@ export function GameScene({
                     setFinished(true);
                     playSfx(AUDIO_SFX.FINISH_RACE, 3);
                     stopMusic();
+                    if (racer.position === 1)
+                        changeTrack('FINISH_FIRST', 0, false);
+                    else if (racer.position >= 2 && racer.position <= 4)
+                        changeTrack('FINISH_SECOND_FOURTH', 0, false);
+                    else
+                        changeTrack('FINISH_FIFTH_TWELFTH', 0, false);
                 }
             } else if (racerId === 'player') {
                 setUiLap(racer.lap);
