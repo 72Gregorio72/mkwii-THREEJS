@@ -1,15 +1,38 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'; // Decommenta se usi l'audio
+import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-const mkwiiFontStyle = `
-  @font-face {
-    font-family: 'MKWii';
-    src: url('/font/mkwiiFont.otf') format('opentype');
-    font-weight: normal;
-    font-style: normal;
-  }
-`;
+// Componente per il singolo Pulsante del Menu (Stile MKWii Options)
+const MenuButton = ({ title, onClick, icon, color = "default" }) => {
+    return (
+        <button 
+            onClick={onClick}
+            className="group relative w-full max-w-2xl h-20 md:h-24 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
+                       flex items-center justify-between px-8 overflow-hidden transition-all duration-200 
+                       hover:scale-105 hover:border-[#ffeebb] hover:shadow-[0_0_15px_rgba(255,215,0,0.6)] hover:bg-black/70"
+        >
+            {/* Effetto bagliore interno dorato su hover */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+            
+            {/* Contenitore Icona (Sinistra) */}
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-[#886600] group-hover:border-[#ffcc00] shadow-inner">
+                <span className="text-3xl filter drop-shadow-md group-hover:scale-110 transition-transform">{icon}</span>
+            </div>
+
+            {/* Testo Centrale */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+                <span className="text-3xl md:text-4xl font-bold font-sans text-[#ddccaa] tracking-tight drop-shadow-[2px_2px_0_rgba(0,0,0,1)] uppercase group-hover:text-white transition-colors">
+                    {title}
+                </span>
+            </div>
+
+            {/* Decorazione Destra (Freccia o simbolo) */}
+            <div className="w-8 flex justify-center">
+                <div className="w-3 h-3 border-t-4 border-r-4 border-[#aa8800] rotate-45 group-hover:border-[#ffcc00] group-hover:translate-x-1 transition-all"></div>
+            </div>
+        </button>
+    );
+};
 
 export const MainMenu = () => {
     const navigate = useNavigate();
@@ -21,109 +44,121 @@ export const MainMenu = () => {
     };
 
     return (
-        <>
-            <style>{mkwiiFontStyle}</style>
+        <div className="w-screen h-screen relative overflow-hidden font-sans select-none">
             
-            {/* Main Container con Scanlines */}
-            <div className="w-screen h-screen absolute top-0 left-0 flex flex-col overflow-hidden font-sans select-none text-white bg-[repeating-linear-gradient(0deg,#050505,#050505_2px,#111_2px,#111_4px)]">
-                
-                {/* Header Inclinato (Stile MKWii) */}
-                <div className="h-[15vh] bg-white flex items-center pl-[5vw] border-b-[0.8vh] border-[#aaddff] rounded-br-[60px] w-[65%] z-10 shadow-[0_5px_15px_rgba(0,0,0,0.5)] transform -translate-x-2">
-                    <h1 className="text-[6vh] font-black text-[#666] italic uppercase tracking-tighter drop-shadow-sm">
-                        Mario Kart <span className="text-[#00aeff]">Three.js</span>
-                    </h1>
-                </div>
+            {/* 1. SFONDO SFUOCATO DIETRO */}
+            <div 
+                className="absolute inset-0 z-0 bg-cover bg-center scale-110"
+                style={{ 
+                    backgroundImage: "url('/sprites/TitleScreen.jpg')",
+                    filter: "blur(6px)"
+                }}
+            />
 
-                {/* Content Area */}
-                <div className="flex-1 flex w-full relative">
+            {/* 2. OVERLAY BIANCO "SCANLINES" (Stile Wii) */}
+            <div 
+                className="absolute inset-0 z-10 opacity-80"
+                style={{
+                    background: "repeating-linear-gradient(0deg, rgba(255,255,255,0.6) 0px, rgba(255,255,255,0.6) 4px, rgba(230,230,230,0.8) 4px, rgba(230,230,230,0.8) 8px)"
+                }}
+            />
+
+            {/* 3. CONTENUTO UI */}
+            <div className="relative z-20 w-full h-full flex flex-col">
+            
+                {/* Header Superiore Stile Mario Kart Wii */}
+                <div className="w-full h-[18vh] absolute top-0 left-0 z-30 pointer-events-none">
                     
-                    {/* Left Side (Decorativo / Spazio per 3D Model futuro) */}
-                    <div className="flex-1 flex items-center justify-center relative">
-                        {/* Cerchio decorativo di sfondo */}
-                        <div className="w-[50vmin] h-[50vmin] border-[0.3vmin] border-white/5 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.05)_0%,rgba(0,0,0,0)_70%)] animate-pulse"></div>
+                    {/* SFONDO SVG PER LA FORMA ESATTA */}
+                    <div className="absolute top-0 left-0 w-full h-full z-10 filter drop-shadow-md">
+                        <svg 
+                            viewBox="0 0 100 100" 
+                            preserveAspectRatio="none" 
+                            className="w-full h-[85%]" 
+                        >
+                            <path 
+                                d="M 0,0 L 100,0 L 100,35 C 96,35 94,88 82,98 L 0,98 Z" 
+                                fill="white" 
+                                stroke="#8899ff" 
+                                strokeWidth="1.2"
+                                vectorEffect="non-scaling-stroke"
+                            />
+                        </svg>
                         
-                        {/* Testo decorativo */}
-                        <div className="absolute transform -rotate-12 opacity-20 text-[10vh] font-black italic text-white leading-none pointer-events-none">
-                            START<br/>YOUR<br/>ENGINES
+                        {/* Titolo */}
+                        <div className="absolute bottom-15 left-12 z-20">
+                            <h1 className="text-5xl text-[#444] font-sans font-bold tracking-tight drop-shadow-sm transform scale-y-110">
+                                Main Menu
+                            </h1>
                         </div>
                     </div>
 
-                    {/* Right Side (Menu Buttons) */}
-                    <div className="flex-1 flex flex-col justify-center items-end pr-[5vw] gap-6 z-20">
-                        
-                        {/* Multiplayer Button */}
-                        <button 
-                            onClick={() => handleNavigate('/room')}
-                            className="group relative w-[400px] h-[100px] bg-gradient-to-l from-[#0284c7] to-[#0284c7]/50 rounded-l-full border-r-[8px] border-white/20 hover:border-white transition-all duration-300 transform hover:scale-105 hover:translate-x-[-10px] shadow-[0_10px_20px_rgba(0,0,0,0.5)] flex items-center justify-end pr-8 overflow-hidden"
-                        >
-                            <div className="absolute inset-0 bg-[url('/path/to/noise.png')] opacity-10"></div>
-                            <div className="absolute left-[-20px] top-0 h-full w-[100px] bg-white/20 skew-x-[-20deg] group-hover:translate-x-[400px] transition-transform duration-700"></div>
-                            
-                            <div className="flex flex-col items-end z-10">
-                                <span className="text-4xl font-black italic uppercase text-white drop-shadow-[2px_2px_0_rgba(0,0,0,0.5)] group-hover:text-[#ffe600] transition-colors">
-                                    Multiplayer
-                                </span>
-                                <span className="text-sm font-bold uppercase text-blue-200 tracking-widest">
-                                    Online Race 🌎
+                    {/* BOTTONE SETTINGS (Posizionato nella curva) */}
+                    {/* Top e Right aggiustati per centrarlo nella curva disegnata dall'SVG */}
+                    <div 
+                        onClick={() => handleNavigate('/info')}
+                        className="absolute top-2 right-2 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                    >
+                        <div className="relative w-16 h-16 md:w-20 md:h-20">
+                            {/* Alone bianco dietro il pulsante per staccarlo dallo sfondo */}
+                            <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
+
+                            {/* Cerchio Principale */}
+                            <div className="w-full h-full rounded-full bg-gradient-to-b from-[#44ccff] to-[#0088dd] border-[3px] border-white ring-[3px] ring-[#8899ff] shadow-md flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
+                                <div className="absolute top-0 left-0 w-full h-[50%] bg-white/40 rounded-b-full"></div>
+                                <span className="text-4xl text-white drop-shadow-md transform -rotate-12 filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
+                                    🔧
                                 </span>
                             </div>
-                        </button>
+                        </div>
 
-                        {/* Solo Play Button */}
-                        <button 
-                            onClick={() => handleNavigate('/character')}
-                            className="group relative w-[380px] h-[90px] bg-gradient-to-l from-[#16a34a] to-[#16a34a]/50 rounded-l-full border-r-[8px] border-white/20 hover:border-white transition-all duration-300 transform hover:scale-105 hover:translate-x-[-10px] shadow-[0_10px_20px_rgba(0,0,0,0.5)] flex items-center justify-end pr-8 overflow-hidden"
-                        >
-                            <div className="absolute left-[-20px] top-0 h-full w-[100px] bg-white/20 skew-x-[-20deg] group-hover:translate-x-[400px] transition-transform duration-700"></div>
-                            
-                            <div className="flex flex-col items-end z-10">
-                                <span className="text-3xl font-black italic uppercase text-white drop-shadow-[2px_2px_0_rgba(0,0,0,0.5)] group-hover:text-[#ffe600] transition-colors">
-                                    Solo Play
-                                </span>
-                                <span className="text-xs font-bold uppercase text-green-200 tracking-widest">
-                                    Time Trial / VS 🏁
-                                </span>
-                            </div>
-                        </button>
-
-                        {/* Direct to Game (Dev) */}
-                        <button 
-                            onClick={() => handleNavigate('/game')}
-                            className="group relative w-[300px] h-[70px] bg-gradient-to-l from-[#4b5563] to-[#4b5563]/50 rounded-l-full border-r-[6px] border-white/20 hover:border-[#fbbf24] transition-all duration-300 transform hover:scale-105 hover:translate-x-[-10px] shadow-lg flex items-center justify-end pr-8"
-                        >
-                            <div className="flex flex-col items-end z-10">
-                                <span className="text-xl font-bold italic uppercase text-gray-200 group-hover:text-white transition-colors">
-                                    Debug Race
-                                </span>
-                                <span className="text-[10px] font-mono text-gray-400">
-                                    Direct to Scene 🛠️
-                                </span>
-                            </div>
-                        </button>
-
+                        {/* Etichetta Info */}
+                        <div className="absolute -bottom-1 -left-3 bg-[#0088dd] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
+                            Info
+                        </div>
                     </div>
                 </div>
 
-                {/* Footer Bar */}
-                <div className="h-[10vh] bg-gradient-to-t from-black via-black/80 to-transparent flex justify-between items-center px-8 z-30">
-                    
-                    {/* Privacy / TOS Button */}
-                    <button 
-                        onClick={() => handleNavigate('/info')}
-                        className="flex items-center gap-2 px-6 py-2 rounded-full border border-white/30 bg-white/5 hover:bg-white/20 hover:border-white transition-all text-sm font-bold uppercase tracking-wider text-gray-300 hover:text-white"
-                    >
-                        <span>ℹ️</span>
-                        Privacy & Rules
-                    </button>
 
-                    <div className="text-gray-500 text-xs font-mono">
-                        v1.0.0 Alpha
-                    </div>
+                {/* LISTA PULSANTI CENTRALI (Verticale) */}
+                <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full">
+                    
+                    {/* Pulsanti */}
+                    <MenuButton 
+                        title="Single Player" 
+                        icon="👤" 
+                        onClick={() => handleNavigate('/character')} 
+                    />
+                    
+                    <MenuButton 
+                        title="Multiplayer" 
+                        icon="🌎" 
+                        onClick={() => handleNavigate('/room')} 
+                    />
+                    
+                    <MenuButton 
+                        title="Debug Race" 
+                        icon="🛠️" 
+                        onClick={() => handleNavigate('/game')} 
+                    />
+
+                </div>
+
+                {/* Footer / Tasto Back */}
+                <div className="h-[12vh] w-full flex items-center px-12 relative">
+                    {/* Linea decorativa inferiore */}
+                    <div className="absolute bottom-2 left-0 w-full h-1 bg-gradient-to-r from-gray-400 via-gray-200 to-transparent"></div>
+                    
+                    <button 
+                        onClick={() => handleNavigate('/')}
+                        className="flex items-center gap-3 bg-white px-8 py-2 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all"
+                    >
+                        <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50">B</div>
+                        <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Back</span>
+                    </button>
                 </div>
 
             </div>
-        </>
+        </div>
     );
 };
-
-export default MainMenu;
