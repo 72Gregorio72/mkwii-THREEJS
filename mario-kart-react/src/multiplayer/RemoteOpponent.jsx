@@ -159,7 +159,7 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
             if (isStar) {
                 wasStarRef.current = true;
                 const time = state.clock.elapsedTime * 5;
-                const rainbowColor = new Color().setHSL((time % 1), 1.0, 0.5);
+                const rainbowColor = new Color().setHSL((time % 1), 0.6, 0.2);
                 
                 // Applica colore solo al gruppo del KART (non al Bill se non vuoi)
                 if (kartVisualRef.current) {
