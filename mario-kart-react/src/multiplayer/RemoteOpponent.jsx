@@ -63,6 +63,7 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
     }, [billScene]);
 
     // Gestione Effetti
+    console.log("[debug] remote data effects: ", data.effects);
     const { isBulletBill = false, isStar = false, isMega = false } = data.effects || {};
     const latestEffects = useRef({ isBulletBill, isStar, isMega });
     useEffect(() => {
