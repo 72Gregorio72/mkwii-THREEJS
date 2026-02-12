@@ -83,29 +83,40 @@ export default function App() {
     
     // Room state
     const [roomCode, setRoomCode] = useState(null)
+    const [roomId, setRoomId] = useState(null)
     const [isHost, setIsHost] = useState(false)
     
     // Data source
     const [availableCharacters, ] = useState(Characters)
 
+    // Ascolta room_state per ricevere il roomId dal server
+    useEffect(() => {
+        if (!socket) return;
+        const handleRoomState = (data) => {
+            if (data.roomId) {
+                setRoomId(data.roomId);
+            }
+        };
+        socket.on('room_state', handleRoomState);
+        return () => socket.off('room_state', handleRoomState);
+    }, []);
+
     const handleCreateRoom = (code) => {
         setRoomCode(code);
         setIsHost(true);
-        // Emit to server
+        // roomId verrà generato dal server e ricevuto via room_state
         socket.emit('create_room', { roomCode: code });
     };
 
     const handleJoinRoom = (code) => {
         setRoomCode(code);
         setIsHost(false);
-        // Emit to server
         socket.emit('join_room', { roomCode: code });
     };
 
     return (
         <AudioProvider>
             <BrowserRouter>
-                {/* MODIFICA QUI: Sfondo totalmente azzurro (#87CEEB è SkyBlue) */}
                 <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
                     
                     <Routes>
@@ -160,6 +171,7 @@ export default function App() {
                         <Route path="/waiting" element={
                             <WaitingRoom
                                 roomCode={roomCode}
+                                roomId={roomId}
                                 isHost={isHost}
                                 socket={socket}
                                 selectedTrack={SelectedTrack}
@@ -179,6 +191,7 @@ export default function App() {
                                 start_pos={SelectedTrack.startPos}
                                 selectedTrack={SelectedTrack}
                                 roomCode={roomCode}
+                                roomId={roomId}
                                 isHostProp={isHost}
                             />
                         } />

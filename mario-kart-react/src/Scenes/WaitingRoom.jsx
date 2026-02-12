@@ -10,11 +10,18 @@ const mkwiiFontStyle = `
   }
 `;
 
-export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelectedTrack }) => {
+export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, setSelectedTrack }) => {
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [trackInfo, setTrackInfo] = useState(selectedTrack);
-  const [copied, setCopied] = useState(false); // Stato per il feedback visivo della copia
+  const [copied, setCopied] = useState(false);
+
+  // Aggiorna l'URL del browser per mostrare il roomId
+  useEffect(() => {
+    if (roomId) {
+      window.history.replaceState(null, '', `/waiting?room=${roomId}`);
+    }
+  }, [roomId]);
 
   useEffect(() => {
     if (!socket || !roomCode) {
@@ -109,17 +116,27 @@ export const WaitingRoom = ({ roomCode, isHost, socket, selectedTrack, setSelect
             {/* Main Card */}
             <div className="relative z-10 w-full max-w-5xl bg-[#1e293b] rounded-[30px] border-[5px] border-[#fbbf24] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.5)] p-8 flex flex-col gap-6">
                 
-                {/* Room Code Banner - CLICCABILE E SELEZIONABILE */}
+                {/* Room Code Banner */}
                 <div 
                     onClick={copyToClipboard}
                     className="w-full bg-black/40 rounded-xl p-4 border-2 border-white/10 text-center cursor-pointer hover:bg-black/60 transition-colors group relative"
                     title="Click to Copy"
                 >
-                    <span className="text-gray-400 text-lg uppercase tracking-widest mr-4">Room Code:</span>
-                    {/* select-text ABILITATO QUI */}
-                    <span className="text-[#fbbf24] text-5xl font-black tracking-[0.2em] drop-shadow-md select-text font-mono">
-                        {roomCode}
-                    </span>
+                    <div className="flex flex-col gap-2">
+                        {/* Room ID (mostrato piccolo, è nell'URL) */}
+                        {roomId && (
+                            <div className="text-gray-500 text-sm uppercase tracking-widest">
+                                Room ID: <span className="text-gray-400 font-mono">{roomId}</span>
+                            </div>
+                        )}
+                        {/* Room Code (la password da condividere) */}
+                        <div>
+                            <span className="text-gray-400 text-lg uppercase tracking-widest mr-4">Room Code:</span>
+                            <span className="text-[#fbbf24] text-5xl font-black tracking-[0.2em] drop-shadow-md select-text font-mono">
+                                {roomCode}
+                            </span>
+                        </div>
+                    </div>
                     
                     {/* Tooltip Copied */}
                     <span className={`absolute top-2 right-4 text-xs font-bold uppercase px-2 py-1 rounded bg-[#22c55e] text-white transition-opacity duration-300 ${copied ? 'opacity-100' : 'opacity-0'}`}>
