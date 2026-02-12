@@ -170,7 +170,7 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
                                 <>
                                     <div 
                                         className="w-full aspect-video bg-cover bg-center rounded border-2 border-white/50 shadow-lg group-hover:scale-105 transition-transform"
-                                        style={{ backgroundImage: `url(${trackInfo.preview || '/placeholder_track.png'})` }}
+                                        style={{ backgroundImage: `url("${trackInfo.preview || '/placeholder_track.png'}")` }}
                                     ></div>
                                     <span className="text-2xl font-black text-white uppercase text-center drop-shadow-md tracking-tight leading-none">
                                         {trackInfo.name}
