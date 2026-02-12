@@ -247,6 +247,7 @@ export function GameScene({
     maxCheckpoints, 
     selectedTrack,
     roomCode = null,
+    roomId = null,
     isHostProp = false
 }) {
     // 3. HOOK DI NAVIGAZIONE
@@ -348,6 +349,12 @@ export function GameScene({
 
     const [positions, setPositions] = useState(initialPositions);
     const playerRank = positions.find(p => p.id === 'player')?.position || 1;
+
+    useEffect(() => {
+        if (roomId) {
+            window.history.replaceState(null, '', `/game?roomId=${roomId}`);
+        }
+    }, [roomId]);   
 
     useEffect(() => {
         const handleItemCollected = (e) => {
@@ -799,7 +806,6 @@ export function GameScene({
             )}
 
             <Canvas>
-                {/* Audio 3D Listener - DEVE essere prima di qualsiasi kart */}
                 <AudioListenerComponent />
                 
                 <CinematicCamera 

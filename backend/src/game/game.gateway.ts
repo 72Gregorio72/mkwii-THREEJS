@@ -12,9 +12,13 @@ import { getLocalIpAddress } from 'src/utils';
 
 const myIP = getLocalIpAddress();
 
+function generateRoomId(length = 16): string {
+  const roomId = Math.random().toString(36).substring(2, length + 2).toUpperCase();
+  return roomId;
+}
+
 @WebSocketGateway({
   cors: {
-    // AGGIUNTO 'https://localhost:8443' alla lista
     origin: [
         'https://localhost:8443', 
         'https://localhost', 
@@ -35,6 +39,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   private items = new Map<string, any>();
   private roomData = new Map<string, { 
     roomCode: string,
+    roomId: string,
     hostId: string, 
     players: any[], 
     bots: any[], 
@@ -44,11 +49,22 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   
   // Map socket.id -> roomCode
   private playerRoomMap = new Map<string, string>();
+  // Map roomId -> roomCode (per lookup inverso se serve)
+  private roomIdToCode = new Map<string, string>();
 
   afterInit() {
     setInterval(() => {
-      const worldState = this.gameService.getWorldState();
-      this.server.emit('world_update', { players: worldState.players }); 
+      for (const [roomCode, room] of this.roomData.entries()) {
+        const playerIds = room.players.map(p => p.id);
+        const botIds = (room.bots || []).map(b => b.id);
+        const allIds = [...playerIds, ...botIds];
+        
+        const worldState = this.gameService.getWorldState();
+        const roomPlayers = worldState.players.filter(p => allIds.includes(p.id));
+        
+        // Emetti SOLO alla room specifica
+        this.server.to(roomCode).emit('world_update', { players: roomPlayers });
+      }
     }, 1000 / 60);
   }
 
@@ -62,15 +78,12 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       z: 0,
       rotation: { x: 0, y: 0, z: 0, w: 1 } 
     });
-
-    // Room will be joined via 'create_room' or 'join_room' events
   }
 
   handleDisconnect(client: Socket) {
     console.log(`Player left: ${client.id}`);
     this.gameService.removePlayer(client.id);
 
-    // Get the room this player was in
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
 
@@ -80,25 +93,24 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       const room = this.roomData.get(roomCode);
       if (!room) return;
       
-      if (!room) return;
-      
       room.players = room.players.filter(p => p.id !== client.id);
 
-      // If host left, assign new host
       if (room.hostId === client.id && room.players.length > 0) {
         room.hostId = room.players[0].id;
         room.players[0].isHost = true;
-        console.log(`New host for room ${roomCode}: ${room.hostId}`);
+        console.log(`New host for room ${roomCode} (${room.roomId}): ${room.hostId}`);
       }
 
-      // If room is empty, delete it
       if (room.players.length === 0) {
+        // Rimuovi anche i bot dal game service
+        (room.bots || []).forEach(bot => this.gameService.removePlayer(bot.id));
+        this.roomIdToCode.delete(room.roomId);
         this.roomData.delete(roomCode);
-        console.log(`Room ${roomCode} deleted`);
+        console.log(`Room ${roomCode} (${room.roomId}) deleted`);
       } else {
-        // Update all players in room with new state
-        this.server.emit('room_state', {
+        this.server.to(roomCode).emit('room_state', {
           roomCode: room.roomCode,
+          roomId: room.roomId,
           hostId: room.hostId,
           players: room.players,
           gameState: room.gameState,
@@ -112,17 +124,15 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   handleMove(client: Socket, payload: any) {
     this.gameService.updatePlayer(client.id, payload);
   }
-// bot online
+
   @SubscribeMessage('bot_update')
   handleBotUpdate(client: Socket, payload: { botId: string, position: any, rotation: any, velocity: any }) {
-    // Only host should send bot updates
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
     
     const room = this.roomData.get(roomCode);
     if (!room || room.hostId !== client.id) return;
 
-    // Update bot state in game service
     this.gameService.updatePlayer(payload.botId, {
       id: payload.botId,
       x: payload.position.x,
@@ -150,8 +160,11 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   @SubscribeMessage('player_hit')
   handlePlayerHit(client: Socket, payload: { victimId: string, type: string }) {
-    console.log(`Hit Event: ${client.id} hit ${payload.victimId} with ${payload.type}`);
-    this.server.emit('banana-hit', { 
+    const roomCode = this.playerRoomMap.get(client.id);
+    if (!roomCode) return;
+    
+    console.log(`Hit Event in room ${roomCode}: ${client.id} hit ${payload.victimId} with ${payload.type}`);
+    this.server.to(roomCode).emit('banana-hit', { 
       attackerId: client.id,
       victimId: payload.victimId,
       type: payload.type 
@@ -160,22 +173,31 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   @SubscribeMessage('use_lightning')
   handleLightning(client: Socket, payload: { attackerId: string }) {
-    this.server.emit('lightning-strike', { 
+    const roomCode = this.playerRoomMap.get(client.id);
+    if (!roomCode) return;
+
+    this.server.to(roomCode).emit('lightning-strike', { 
       attackerId: client.id 
     });
-    console.log(`Lightning Strike: Attacker ID = ${payload.attackerId}`);
+    console.log(`Lightning Strike in room ${roomCode}: Attacker ID = ${payload.attackerId}`);
   }
 
   @SubscribeMessage('spawn_item')
   handleSpawnItem(client: Socket, payload: any) {
-    const newItem = { ...payload, id: `it_${Date.now()}`, ownerId: client.id };
-    client.broadcast.emit('item_spawned', newItem);
+    const roomCode = this.playerRoomMap.get(client.id);
+    if (!roomCode) return;
+
+    const newItem = { ...payload, id: `it_${Date.now()}_${Math.random().toString(36).substr(2,5)}`, ownerId: client.id };
+    client.to(roomCode).emit('item_spawned', newItem);
   }
 
   @SubscribeMessage('remove_item')
   handleRemoveItem(client: Socket, payload: { itemId: string }) {
+    const roomCode = this.playerRoomMap.get(client.id);
+    if (!roomCode) return;
+
     this.gameService.removeItem(payload.itemId);
-    this.server.emit('item_removed', { itemId: payload.itemId });
+    this.server.to(roomCode).emit('item_removed', { itemId: payload.itemId });
   }
 
   @SubscribeMessage('request_room_state')
@@ -187,10 +209,11 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
     
     const room = this.roomData.get(roomCode);
-
     if (!room) return;
+
     client.emit('room_state', {
       roomCode: room.roomCode,
+      roomId: room.roomId,
       isHost: room.hostId === client.id,
       hostId: room.hostId,
       players: room.players,
@@ -208,9 +231,17 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       return;
     }
 
-    // Create new room
+    // Genera roomId unico lato server
+    let roomId = generateRoomId(10);
+    while (this.roomIdToCode.has(roomId)) {
+      roomId = generateRoomId(10);
+    }
+
+    client.join(roomCode);
+
     this.roomData.set(roomCode, {
       roomCode: roomCode,
+      roomId: roomId,
       hostId: client.id,
       players: [{ id: client.id, isHost: true }],
       bots: [],
@@ -218,12 +249,13 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
 
     this.playerRoomMap.set(client.id, roomCode);
+    this.roomIdToCode.set(roomId, roomCode);
     
-    console.log(`Room ${roomCode} created by ${client.id}`);
+    console.log(`Room created — code: ${roomCode}, id: ${roomId}, by: ${client.id}`);
 
-    // Send room state
     client.emit('room_state', {
       roomCode: roomCode,
+      roomId: roomId,
       isHost: true,
       hostId: client.id,
       players: [{ id: client.id, isHost: true }],
@@ -244,23 +276,21 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const room = this.roomData.get(roomCode);
     if (!room) return;
     
-    // Check if already in room
-
-      if (!room) return;
     if (room.players.find(p => p.id === client.id)) {
       console.log(`Player ${client.id} already in room ${roomCode}`);
       return;
     }
 
-    // Add player to room
+    client.join(roomCode);
+
     room.players.push({ id: client.id, isHost: false });
     this.playerRoomMap.set(client.id, roomCode);
     
-    console.log(`Player ${client.id} joined room ${roomCode}`);
+    console.log(`Player ${client.id} joined room ${roomCode} (${room.roomId})`);
 
-    // Send room state to all players in room
-    this.server.emit('room_state', {
+    this.server.to(roomCode).emit('room_state', {
       roomCode: room.roomCode,
+      roomId: room.roomId,
       hostId: room.hostId,
       players: room.players,
       gameState: room.gameState,
@@ -275,23 +305,18 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     const room = this.roomData.get(roomCode);
     if (!room) return;
-    if (!room) return;
     
-    // Only host can select track
     if (room.hostId !== client.id) {
       console.log(`Non-host ${client.id} tried to select track`);
       return;
     }
 
     console.log(`Host ${client.id} selected track for room ${roomCode}:`, payload.track.name);
-    
-    // Save track in room data
     room.selectedTrack = payload.track;
 
-  console.log(`Track selection for room ${roomCode} is now:`, room.selectedTrack?.name);
+    console.log(`Track selection for room ${roomCode} is now:`, room.selectedTrack?.name);
     
-    // Broadcast track selection to all players in room
-    this.server.emit('track_selected', {
+    this.server.to(roomCode).emit('track_selected', {
       roomCode: room.roomCode,
       track: payload.track
     });
@@ -305,20 +330,17 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const room = this.roomData.get(roomCode);
     if (!room) return;
     
-    // Only host can start game
     if (room.hostId !== client.id) {
       console.log(`Non-host ${client.id} tried to start game`);
       return;
     }
 
     console.log(`Host ${client.id} starting game for room ${roomCode}`);
-    
-    // Update game state
     room.gameState = 'RACING';
     
-    // Broadcast game start to all players in room
-    this.server.emit('game_started', {
-      roomCode: roomCode
+    this.server.to(roomCode).emit('game_started', {
+      roomCode: roomCode,
+      roomId: room.roomId
     });
   }
 
@@ -328,21 +350,21 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
     const room = this.roomData.get(roomCode);
-	if (!room) return;
+    if (!room) return;
 
-	if (room.selectedTrack && room.selectedTrack.name) {
-	  console.log(`Track already selected for room ${roomCode}, notifying player ${client.id}`);
-	  client.emit('track_selected', {
-		roomCode: roomCode,
-		track: room.selectedTrack
-	  });
-	  return;
-	}
+    if (room.selectedTrack && room.selectedTrack.name) {
+      console.log(`Track already selected for room ${roomCode}, notifying player ${client.id}`);
+      client.emit('track_selected', {
+        roomCode: roomCode,
+        track: room.selectedTrack
+      });
+      return;
+    }
 
-	if (room.hostId !== client.id) {
-	  console.log(`Non-host ${client.id} is waiting for track`);
-	  return;
-	}
+    if (room.hostId !== client.id) {
+      console.log(`Non-host ${client.id} is waiting for track`);
+      return;
+    }
 
     console.log(`Player ${client.id} is waiting for track in room ${roomCode}`);
   }
@@ -355,8 +377,6 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const room = this.roomData.get(roomCode);
     if (!room) return;
     
-      if (!room) return;
-    // Only host can start race
     if (room.hostId !== client.id) {
       console.log(`Non-host ${client.id} tried to start race`);
       return;
@@ -364,18 +384,15 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     console.log(`Host ${client.id} starting race in room ${roomCode} with ${payload.bots.length} bots`);
     
-    // Store bots and change game state
     room.bots = payload.bots;
     room.gameState = 'INTRO';
 
-    // Notify all players in room
-    this.server.emit('race_start', {
+    this.server.to(roomCode).emit('race_start', {
       roomCode: roomCode,
       bots: payload.bots,
       gameState: 'INTRO'
     });
 
-    // Sync bot positions
     payload.bots.forEach(bot => {
       this.gameService.updatePlayer(bot.id, {
         id: bot.id,
@@ -397,15 +414,12 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     const room = this.roomData.get(roomCode);
     if (!room) return;
-    if (!room) return;
     
-    // Only host can sync game state
     if (room.hostId !== client.id) return;
 
     room.gameState = payload.gameState;
     
-    // Broadcast to all clients in room
-    this.server.emit('game_state_sync', {
+    this.server.to(roomCode).emit('game_state_sync', {
       roomCode: roomCode,
       gameState: payload.gameState,
       countdown: payload.countdown
