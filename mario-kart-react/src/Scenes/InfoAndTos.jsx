@@ -27,13 +27,13 @@ export const InfoAndTos = () => {
   }, []);
 
   const handleBack = () => {
-      playSfx(AUDIO_SFX.BACK);
+      playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
       navigate(-1);
   };
 
   const handleTabChange = (tab) => {
       if (activeTab !== tab) {
-          playSfx(AUDIO_SFX.DECIDE);
+          playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
           setActiveTab(tab);
       }
   };

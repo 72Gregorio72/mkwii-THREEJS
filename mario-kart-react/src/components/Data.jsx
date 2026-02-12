@@ -910,6 +910,7 @@ export const AUDIO_SFX = {
 
     MOVE_IN_MENU: '/SFX/UI/SE_UI_BIN_IN.wav',
     SELECT_IN_MENU: '/SFX/UI/SE_UI_RADIO_IN.wav',
+	BACK_IN_MENU: '/SFX/UI/SE_UI_PAGE_PREV.wav',
     START_RACE: '/SFX/UI/SE_UI_RACE_OK.wav',
 
     COUNTDOWN_RACE: '/SFX/race/321_RACE_COUNT.wav',

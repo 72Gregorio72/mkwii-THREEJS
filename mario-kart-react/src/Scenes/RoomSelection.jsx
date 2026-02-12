@@ -53,25 +53,25 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket }) => {
   }, [socket, navigate]);
 
   const handleCreateRoom = () => {
-    playSfx(AUDIO_SFX.DECIDE);
+    playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     onCreateRoom(code);
   };
 
   const handleJoinClick = () => {
-    playSfx(AUDIO_SFX.DECIDE);
+    playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     setShowJoinInput(true);
   };
 
   const handleConfirmJoin = () => {
     if (roomCode.trim()) {
-      playSfx(AUDIO_SFX.DECIDE);
+      playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
       onJoinRoom(roomCode.trim().toUpperCase());
     }
   };
 
   const handleBack = () => {
-      playSfx(AUDIO_SFX.BACK);
+      playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
       if (showJoinInput) {
           setShowJoinInput(false);
           setRoomCode('');

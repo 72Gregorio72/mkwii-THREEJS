@@ -29,6 +29,7 @@ const TitleScreen = () => {
     const handleStart = () => {
         // Evita attivazioni multiple se è già in corso l'avvio
         if (isStarting) return;
+        console.log("Start button pressed, navigating to menu...");
 
         setIsStarting(true);
 
@@ -38,22 +39,22 @@ const TitleScreen = () => {
         }, 1000);
     };
 
-    useEffect(() => {
-        changeTrack('MENU', 2000);
-        enableSmoothLoop();
-    }, [changeTrack, enableSmoothLoop]);
+    // useEffect(() => {
+    //     changeTrack('MENU', 2000);
+    //     enableSmoothLoop();
+    // }, [changeTrack, enableSmoothLoop]);
 
     // Aggiunge un listener per la tastiera quando il componente viene montato
     useEffect(() => {
         const handleKeyDown = (e) => {
             handleStart();
+            playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isStarting, navigate]); // Aggiunto isStarting alle dipendenze
+    }, [isStarting, navigate]);
 
     return (
         <div 

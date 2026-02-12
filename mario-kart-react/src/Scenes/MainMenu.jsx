@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
@@ -41,16 +41,16 @@ export const MainMenu = () => {
     const [fadeToBlack, setFadeToBlack] = useState(false);
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack } = useAudio();
 
-    useEffect(() => {
-        if (getCurrentTrack() !== 'MENU') {
-            changeTrack('MENU', 100);
-            enableSmoothLoop();
-        }
-        enableSmoothLoop();
-    }, [changeTrack, enableSmoothLoop]);
+    // useEffect(() => {
+    //     if (getCurrentTrack() !== 'MENU') {
+    //         changeTrack('MENU', 100);
+    //         enableSmoothLoop();
+    //     }
+    //     enableSmoothLoop();
+    // }, [changeTrack, enableSmoothLoop]);
 
     const handleNavigate = (path) => {
-        playSfx(AUDIO_SFX.DECIDE);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
 
         // Se è Single Player (/character), fai il fade out nero
         if (path === '/character') {
