@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
@@ -37,15 +37,33 @@ const MenuButton = ({ title, onClick, icon, color = "default" }) => {
 export const MainMenu = () => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
+    
+    // Stato per gestire il fade to black
+    const [fadeToBlack, setFadeToBlack] = useState(false);
 
     const handleNavigate = (path) => {
         playSfx(AUDIO_SFX.DECIDE);
-        navigate(path);
+
+        // Se è Single Player (/character), fai il fade out nero
+        if (path === '/character') {
+            setFadeToBlack(true);
+            setTimeout(() => {
+                navigate(path);
+            }, 700); // 0.7 secondi
+        } else {
+            // Altrimenti naviga subito (Multiplayer, Debug, Back)
+            navigate(path);
+        }
     };
 
     return (
         <div className="w-screen h-screen relative overflow-hidden font-sans select-none">
             
+            {/* --- OVERLAY FADE TO BLACK (Attivo solo per Single Player) --- */}
+            <div 
+                className={`fixed inset-0 bg-black z-[9999] pointer-events-none transition-opacity duration-700 ease-in-out ${fadeToBlack ? 'opacity-100' : 'opacity-0'}`}
+            />
+
             {/* 1. SFONDO SFUOCATO DIETRO */}
             <div 
                 className="absolute inset-0 z-0 bg-cover bg-center scale-110"
@@ -65,7 +83,7 @@ export const MainMenu = () => {
 
             {/* 3. CONTENUTO UI */}
             <div className="relative z-20 w-full h-full flex flex-col">
-            
+                
                 {/* Header Superiore Stile Mario Kart Wii */}
                 <div className="w-full h-[18vh] absolute top-0 left-0 z-30 pointer-events-none">
                     
@@ -94,16 +112,13 @@ export const MainMenu = () => {
                     </div>
 
                     {/* BOTTONE SETTINGS (Posizionato nella curva) */}
-                    {/* Top e Right aggiustati per centrarlo nella curva disegnata dall'SVG */}
                     <div 
                         onClick={() => handleNavigate('/info')}
                         className="absolute top-2 right-2 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
                     >
                         <div className="relative w-16 h-16 md:w-20 md:h-20">
-                            {/* Alone bianco dietro il pulsante per staccarlo dallo sfondo */}
                             <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
 
-                            {/* Cerchio Principale */}
                             <div className="w-full h-full rounded-full bg-gradient-to-b from-[#44ccff] to-[#0088dd] border-[3px] border-white ring-[3px] ring-[#8899ff] shadow-md flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
                                 <div className="absolute top-0 left-0 w-full h-[50%] bg-white/40 rounded-b-full"></div>
                                 <span className="text-4xl text-white drop-shadow-md transform -rotate-12 filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
@@ -112,24 +127,23 @@ export const MainMenu = () => {
                             </div>
                         </div>
 
-                        {/* Etichetta Info */}
                         <div className="absolute -bottom-1 -left-3 bg-[#0088dd] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
                             Info
                         </div>
                     </div>
                 </div>
 
-
                 {/* LISTA PULSANTI CENTRALI (Verticale) */}
                 <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full">
                     
-                    {/* Pulsanti */}
+                    {/* Pulsante Single Player (con Fade Out Nero) */}
                     <MenuButton 
                         title="Single Player" 
                         icon="👤" 
                         onClick={() => handleNavigate('/character')} 
                     />
                     
+                    {/* Pulsanti Standard (Navigazione Immediata) */}
                     <MenuButton 
                         title="Multiplayer" 
                         icon="🌎" 
@@ -146,7 +160,6 @@ export const MainMenu = () => {
 
                 {/* Footer / Tasto Back */}
                 <div className="h-[12vh] w-full flex items-center px-12 relative">
-                    {/* Linea decorativa inferiore */}
                     <div className="absolute bottom-2 left-0 w-full h-1 bg-gradient-to-r from-gray-400 via-gray-200 to-transparent"></div>
                     
                     <button 
