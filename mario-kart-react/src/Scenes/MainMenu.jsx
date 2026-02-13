@@ -165,7 +165,7 @@ export const MainMenu = () => {
                     <MenuButton 
                         title="Debug Race" 
                         icon="🛠️" 
-                        onClick={() => handleNavigate('/game')} 
+                        onClick={() => handleNavigate('/debug')} 
                     />
 
                     <MenuButton 

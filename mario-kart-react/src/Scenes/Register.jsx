@@ -14,33 +14,69 @@ export const Register = () => {
         confirmPassword: ''
     });
 
-    const sendDataToBackend = (data) => {
-        fetch('/api/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data),
-        })
-        .then(res => res.json())
-        .then(console.log)
-        .catch(err => console.error('Error:', err));
+    // Stato per gestire l'errore visuale
+    const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const sendDataToBackend = async (data) => {
+        setIsLoading(true);
+        setError(null); // Resetta errori precedenti
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                // Se c'è un errore (es. 409 Conflict), lanciamo un'eccezione col messaggio del server
+                // NestJS ritorna: { message: "User already exists", ... }
+                throw new Error(result.message || 'Registration failed');
+            }
+
+            // SUCCESSO
+            console.log("Success:", result);
+            // Opzionale: un suono di successo specifico
+            // playSfx(AUDIO_SFX.SUCCESS); 
+            setTimeout(() => navigate('/menu'), 500);
+
+        } catch (err) {
+            console.error('Registration Error:', err);
+            setError(err.message); // Imposta il messaggio da mostrare
+            // Opzionale: suono di errore
+            // playSfx(AUDIO_SFX.ERROR); 
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         playSfx(AUDIO_SFX.DECIDE);
         
-        // Logica di registrazione qui
-        // console.log("Registering:", formData);
-        sendDataToBackend({ name : formData.username, email : formData.email, password : formData.password})
-        // Simulazione successo -> vai al menu
-        setTimeout(() => navigate('/menu'), 500);
+        // Validazione base lato client
+        if (!formData.username || !formData.email || !formData.password) {
+            setError("All fields are required");
+            return;
+        }
+
+        sendDataToBackend({ 
+            username: formData.username, 
+            email: formData.email, 
+            password: formData.password
+        });
     };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        // Pulisce l'errore quando l'utente inizia a scrivere di nuovo
+        if (error) setError(null);
     };
 
     const handleBack = () => {
@@ -81,8 +117,6 @@ export const Register = () => {
                 
                 {/* HEADER (Stile Wii con SVG e Tasto Info) */}
                 <div className="w-full h-[18vh] absolute top-0 left-0 z-30 pointer-events-none">
-                    
-                    {/* SVG Shape */}
                     <div className="absolute top-0 left-0 w-full h-full z-10 filter drop-shadow-md">
                         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-[85%]">
                             <path 
@@ -90,8 +124,6 @@ export const Register = () => {
                                 fill="white" stroke="#8899ff" strokeWidth="1.2" vectorEffect="non-scaling-stroke"
                             />
                         </svg>
-                        
-                        {/* Titolo */}
                         <div className="absolute bottom-15 left-12 z-20">
                             <h1 className="text-5xl text-[#444] font-sans font-bold tracking-tight drop-shadow-sm transform scale-y-110">
                                 New Profile
@@ -99,24 +131,18 @@ export const Register = () => {
                         </div>
                     </div>
 
-                    {/* TASTO INFO / SETTINGS (In alto a destra nell'incavo) */}
+                    {/* TASTO INFO */}
                     <div 
                         onClick={handleInfo}
                         className="absolute top-2 right-2 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
                     >
                         <div className="relative w-16 h-16 md:w-20 md:h-20">
                             <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
-                            
-                            {/* Cerchio Blu Lucido */}
                             <div className="w-full h-full rounded-full bg-gradient-to-b from-[#44ccff] to-[#0088dd] border-[3px] border-white ring-[3px] ring-[#8899ff] shadow-md flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
                                 <div className="absolute top-0 left-0 w-full h-[50%] bg-white/40 rounded-b-full"></div>
-                                <span className="text-4xl text-white drop-shadow-md transform -rotate-12 filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
-                                    🔧
-                                </span>
+                                <span className="text-4xl text-white drop-shadow-md transform -rotate-12 filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">🔧</span>
                             </div>
                         </div>
-
-                        {/* Etichetta Info */}
                         <div className="absolute -bottom-1 -left-3 bg-[#0088dd] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
                             Info
                         </div>
@@ -129,7 +155,6 @@ export const Register = () => {
                     {/* PANNELLO DARK/GOLD */}
                     <div className="w-full max-w-lg bg-black/80 border-4 border-[#aa8800] rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.8)] p-8 backdrop-blur-md relative animate-in zoom-in duration-300">
                         
-                        {/* Sfondo rigato sottile decorativo */}
                         <div className="absolute inset-0 opacity-10 pointer-events-none" 
                              style={{backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,215,0,0.2) 2px, rgba(255,215,0,0.2) 4px)"}}>
                         </div>
@@ -142,10 +167,21 @@ export const Register = () => {
                             <p className="text-[#ddccaa] text-sm mt-1 uppercase tracking-widest">Enter your details</p>
                         </div>
 
+                        {/* === BOX ERRORE === */}
+                        {error && (
+                            <div className="mb-6 relative z-10 animate-pulse">
+                                <div className="bg-gradient-to-b from-[#ff6666] to-[#cc0000] border-2 border-white rounded-lg shadow-[0_0_15px_#ff0000] px-4 py-3 flex items-center gap-3">
+                                    <div className="bg-white text-[#cc0000] rounded-full w-8 h-8 flex items-center justify-center font-black text-xl shadow-inner border border-gray-300">!</div>
+                                    <span className="text-white font-bold uppercase tracking-wide drop-shadow-md text-sm md:text-base">
+                                        {error}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
                         {/* FORM */}
                         <form onSubmit={handleSubmit} className="flex flex-col gap-4 relative z-10">
                             
-                            {/* Username Field */}
                             <div className="group">
                                 <label className="block text-[#ffcc00] text-sm font-bold uppercase mb-1 ml-1 group-focus-within:text-white transition-colors">
                                     Mii Name
@@ -162,7 +198,6 @@ export const Register = () => {
                                 />
                             </div>
 
-                            {/* Email Field */}
                             <div className="group">
                                 <label className="block text-[#ffcc00] text-sm font-bold uppercase mb-1 ml-1 group-focus-within:text-white transition-colors">
                                     Email Address
@@ -178,7 +213,6 @@ export const Register = () => {
                                 />
                             </div>
 
-                            {/* Password Field */}
                             <div className="group">
                                 <label className="block text-[#ffcc00] text-sm font-bold uppercase mb-1 ml-1 group-focus-within:text-white transition-colors">
                                     Password
@@ -197,13 +231,14 @@ export const Register = () => {
                             {/* SUBMIT BUTTON */}
                             <button 
                                 type="submit"
-                                className="group relative w-full mt-6 py-4 bg-[#22c55e] border-y-2 border-x-4 border-[#15803d] rounded-full shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
-                                           flex items-center justify-center overflow-hidden transition-all duration-200 
-                                           hover:scale-105 hover:brightness-110 hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] active:scale-95 cursor-pointer"
+                                disabled={isLoading}
+                                className={`group relative w-full mt-6 py-4 bg-[#0088dd] border-y-2 border-x-4 border-[#8899ff] rounded-full shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
+                                            flex items-center justify-center overflow-hidden transition-all duration-200 
+                                            ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:brightness-110 hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] active:scale-95 cursor-pointer'}`}
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 ease-in-out"></div>
                                 <span className="text-2xl font-black text-white uppercase tracking-widest drop-shadow-md flex items-center gap-2">
-                                    Create Profile
+                                    {isLoading ? 'Wait...' : 'Create Profile'}
                                 </span>
                             </button>
 
