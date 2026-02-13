@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
-import { Characters } from './components/Data'
+import { Characters, VEHICLE_DATABASE, Tracks } from './components/Data'
 import { CharacterSelection } from './Scenes/CharacterSelection'
 import { VehicleSelection } from './Scenes/VehicleSelection'
 import { TrackSelection } from './Scenes/TrackSelection'
@@ -8,83 +8,114 @@ import { InfoAndTos } from './Scenes/InfoAndTos.jsx'
 import { GameScene } from './Scenes/GameScene'
 import { RoomSelection } from './Scenes/RoomSelection'
 import { WaitingRoom } from './Scenes/WaitingRoom'
-import { AudioProvider } from './audio/AudioManager'
+import { AudioProvider, useAudio, AUDIO_SFX } from './audio/AudioManager'
 import { socket } from './multiplayer/socket.js'
-import { VEHICLE_DATABASE } from './components/Data'
-import { Tracks } from './components/Data'
 import { MainMenu } from './Scenes/MainMenu.jsx'
-import { useAudio, AUDIO_SFX } from './audio/AudioManager.jsx';
 
-// Creiamo un piccolo componente per la Home
+// --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
 const TitleScreen = () => {
     const navigate = useNavigate();
-    // Stato per gestire l'avvio e l'animazione
     const [isStarting, setIsStarting] = useState(false);
     const { changeTrack, enableSmoothLoop, playSfx } = useAudio();
 
-    changeTrack('MENU', 2000);
-    enableSmoothLoop();
-    
-    // Funzione per navigare al menu
-    const handleStart = () => {
-        // Evita attivazioni multiple se è già in corso l'avvio
-        if (isStarting) return;
-        console.log("Start button pressed, navigating to menu...");
-
-        setIsStarting(true);
-
-        // Aspetta 500ms (mezzo secondo) per mostrare l'animazione prima di cambiare pagina
-        setTimeout(() => {
-            navigate('/menu');
-        }, 1000);
-    };
-
+    // Setup Audio
     useEffect(() => {
         changeTrack('MENU', 2000);
         enableSmoothLoop();
     }, [changeTrack, enableSmoothLoop]);
+    
+    // Gestione Start
+    const handleStart = () => {
+        if (isStarting) return;
+        
+        setIsStarting(true);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
 
-    // Aggiunge un listener per la tastiera quando il componente viene montato
+        // Attesa breve prima di cambiare pagina
+        setTimeout(() => {
+            navigate('/menu');
+        }, 600);
+    };
+
+    // Listener Tastiera
     useEffect(() => {
-        const handleKeyDown = (e) => {
+        const handleKeyDown = () => {
             handleStart();
-            playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         };
         window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isStarting, navigate]);
+
+    // Stile del testo (Bordo nero netto stile Mario Kart)
+    const textStyle = {
+        WebkitTextStroke: '1.5px black',
+        textShadow: '3px 3px 0 #000'
+    };
 
     return (
         <div 
             onClick={handleStart}
-            className="w-screen h-screen cursor-pointer flex flex-col items-center justify-end pb-16 relative overflow-hidden"
+            // MODIFICA QUI: bg-white invece di bg-black per lo sfondo generale
+            className="w-screen h-screen cursor-pointer flex flex-col items-center justify-end pb-20 relative overflow-hidden bg-white"
         >
-            {/* Immagine di sfondo */}
-            {/* Nota: Ho reimpostato bg-cover come richiesto in precedenza per coprire tutto lo schermo */}
-            <div 
+            {/* INIEZIONE CSS PER ANIMAZIONE GHOST */}
+            <style>{`
+                @keyframes ghostRipple {
+                    0% {
+                        transform: scale(1);
+                        opacity: 0.4;
+                    }
+                    100% {
+                        transform: scale(1.5);
+                        opacity: 0;
+                    }
+                }
+                .animate-ghost-ripple {
+                    animation: ghostRipple 0.6s infinite ease-out;
+                }
+            `}</style>
+
+            {/* DIV IMMAGINE SFONDO */}
+            {/* È impostato su absolute inset-0 per coprire lo schermo stando SOTTO il testo.
+                Ha bg-contain per non tagliare l'immagine e bg-white per riempire i vuoti laterali di bianco. */}
+           <div
                 className="w-screen h-screen bg-white bg-contain bg-center bg-no-repeat flex flex-col items-center justify-end pb-20"
                 style={{ backgroundImage: "url('/sprites/TitleScreen.jpg')" }}
             />
 
-            {/* Scritta lampeggiante */}
-            <h1 
-                className={`
-                    z-10 font-bold text-4xl tracking-wider font-sans uppercase drop-shadow-[0_5px_5px_rgba(0,0,0,1)]
-                    transition-all duration-300 ease-out
-                    ${isStarting 
-                        ? 'scale-130 text-gray-400 opacity-75'  // Stile quando premuto: ingrandisce, diventa giallo, opacità fissa
-                        : 'text-white animate-pulse'                 // Stile normale: bianco che lampeggia
-                    }
-                `}
-            >
-                Press A button
-            </h1>
+            {/* CONTENITORE TESTO (Z-10 per stare sopra lo sfondo) */}
+            <div className="relative z-10 flex justify-center items-center">
+                
+                {/* 1. TESTO GHOST (Effetto "Eco") */}
+                {!isStarting && (
+                    <h1 
+                        className="absolute font-bold text-4xl tracking-wider font-sans uppercase text-white select-none whitespace-nowrap animate-ghost-ripple"
+                        style={textStyle}
+                    >
+                        Press A button
+                    </h1>
+                )}
+
+                {/* 2. TESTO PRINCIPALE (Fisso) */}
+                <h1 
+                    className={`
+                        relative font-bold text-4xl tracking-wider font-sans uppercase text-white select-none whitespace-nowrap
+                        transition-transform duration-100 ease-out
+                        ${isStarting 
+                            ? 'scale-110 opacity-100' // FEEDBACK
+                            : 'animate-pulse'         // IDLE
+                        }
+                    `}
+                    style={textStyle}
+                >
+                    Press A button
+                </h1>
+            </div>
         </div>
     );
 };
 
+// --- APP PRINCIPALE ---
 export default function App() {
     
     // State for selections
@@ -100,7 +131,7 @@ export default function App() {
     // Data source
     const [availableCharacters, ] = useState(Characters)
 
-    // Ascolta room_state per ricevere il roomId dal server
+    // Socket Room Listener
     useEffect(() => {
         if (!socket) return;
         const handleRoomState = (data) => {
@@ -115,7 +146,6 @@ export default function App() {
     const handleCreateRoom = (code) => {
         setRoomCode(code);
         setIsHost(true);
-        // roomId verrà generato dal server e ricevuto via room_state
         socket.emit('create_room', { roomCode: code });
     };
 
@@ -128,15 +158,14 @@ export default function App() {
     return (
         <AudioProvider>
             <BrowserRouter>
+                {/* Il container principale */}
                 <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
                     
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
 
-                        {/* HOME PAGE */}
                         <Route path="/menu" element={<MainMenu />} />
 
-                        {/* ROOM SELECTION */}
                         <Route path="/room" element={
                             <RoomSelection 
                                 onCreateRoom={handleCreateRoom}
@@ -145,13 +174,11 @@ export default function App() {
                                 setSelectedTrack={setSelectedTrack}
                             />
                         } />
-						
-						{/* INFO AND TOS */}
+                        
                         <Route path="/info" element={
                             <InfoAndTos />
                         } />
 
-                        {/* SELEZIONE PERSONAGGIO */}
                         <Route path="/character" element={
                             <CharacterSelection 
                                 onNext={() => {}} 
@@ -160,7 +187,6 @@ export default function App() {
                             />
                         } />
 
-                        {/* SELEZIONE VEICOLO */}
                         <Route path="/vehicle" element={
                             <VehicleSelection 
                                 selectedCharacter={SelectedCharacter}
@@ -168,7 +194,6 @@ export default function App() {
                             />
                         } />
 
-                        {/* SELEZIONE PISTA */}
                         <Route path="/track" element={
                             <TrackSelection
                                 setSelectedTrack={setSelectedTrack}
@@ -178,7 +203,6 @@ export default function App() {
                             />
                         } />
 
-                        {/* WAITING ROOM */}
                         <Route path="/waiting" element={
                             <WaitingRoom
                                 roomCode={roomCode}
@@ -190,7 +214,6 @@ export default function App() {
                             />
                         } />
 
-                        {/* GIOCO */}
                         <Route path="/game" element={
                             <GameScene
                                 socket={socket}

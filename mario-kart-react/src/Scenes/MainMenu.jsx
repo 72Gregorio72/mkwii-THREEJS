@@ -50,7 +50,11 @@ export const MainMenu = () => {
     }, [changeTrack, enableSmoothLoop]);
 
     const handleNavigate = (path) => {
-        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+        if (path !== '/') {
+            playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+        } else {
+            playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+        }
 
         // Se è Single Player (/character), fai il fade out nero
         if (path === '/character') {
