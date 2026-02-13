@@ -13,7 +13,9 @@ import { socket } from './multiplayer/socket.js'
 import { VEHICLE_DATABASE } from './components/Data'
 import { Tracks } from './components/Data'
 import { MainMenu } from './Scenes/MainMenu.jsx'
-import { useAudio, AUDIO_SFX } from './audio/AudioManager.jsx';
+import { useAudio, AUDIO_SFX } from './audio/AudioManager.jsx'
+import { Register } from './Scenes/Register.jsx'
+
 
 // Creiamo un piccolo componente per la Home
 const TitleScreen = () => {
@@ -149,6 +151,10 @@ export default function App() {
 						{/* INFO AND TOS */}
                         <Route path="/info" element={
                             <InfoAndTos />
+                        } />
+
+                        <Route path="/register" element={
+                            <Register />
                         } />
 
                         {/* SELEZIONE PERSONAGGIO */}

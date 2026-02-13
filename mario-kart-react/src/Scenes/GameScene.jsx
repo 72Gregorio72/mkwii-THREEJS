@@ -643,8 +643,9 @@ export function GameScene({
 
     // Checkpoint Trigger
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
-        if (!racerId || !racersData.current[racerId]) return;
+        console.log("[debug] racer id in gamescene for lap: ", racersData.current[racerId]);
 
+        if (!racerId || !racersData.current[racerId]) return;
         const racer = racersData.current[racerId];
         
         if (hitIndex === racer.nextCP && hitIndex !== 0) {

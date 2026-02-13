@@ -147,7 +147,7 @@ export const AudioProvider = ({ children }) => {
     
     // Se è la stessa traccia ma è in pausa, riavviala
     if (currentTrackRef.current === url && bgmRef.current && bgmRef.current.paused) {
-      console.log('[AudioManager] Stessa traccia in pausa, riprendo riproduzione');
+      // console.log('[AudioManager] Stessa traccia in pausa, riprendo riproduzione');
       bgmRef.current.play().catch(e => console.warn("Errore riavvio musica:", e));
       return;
     }
@@ -407,7 +407,7 @@ export const AudioProvider = ({ children }) => {
 
     // Clamp i valori tra 0.5 e 2.0
     const targetPlaybackRate = Math.max(0.5, Math.min(pitch * speed, 2.0));
-    console.log(`[AudioManager] setMusicPitch: ${targetPlaybackRate} (pitch: ${pitch}, speed: ${speed}), audio paused: ${wasPaused}`);
+    // console.log(`[AudioManager] setMusicPitch: ${targetPlaybackRate} (pitch: ${pitch}, speed: ${speed}), audio paused: ${wasPaused}`);
     
     // Applica il cambio di pitch/velocità con fade se fadeDuration è specificato
     if (fadeDuration > 0) {
