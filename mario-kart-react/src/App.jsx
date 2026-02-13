@@ -22,12 +22,14 @@ const TitleScreen = () => {
     const [isStarting, setIsStarting] = useState(false);
     const { changeTrack, enableSmoothLoop, playSfx } = useAudio();
 
-    changeTrack('MENU', 100);
+    changeTrack('MENU', 2000);
     enableSmoothLoop();
+    
     // Funzione per navigare al menu
     const handleStart = () => {
         // Evita attivazioni multiple se è già in corso l'avvio
         if (isStarting) return;
+        console.log("Start button pressed, navigating to menu...");
 
         setIsStarting(true);
 
@@ -38,7 +40,7 @@ const TitleScreen = () => {
     };
 
     useEffect(() => {
-        changeTrack('MENU', 100);
+        changeTrack('MENU', 2000);
         enableSmoothLoop();
     }, [changeTrack, enableSmoothLoop]);
 
@@ -46,13 +48,13 @@ const TitleScreen = () => {
     useEffect(() => {
         const handleKeyDown = (e) => {
             handleStart();
+            playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isStarting, navigate]); // Aggiunto isStarting alle dipendenze
+    }, [isStarting, navigate]);
 
     return (
         <div 

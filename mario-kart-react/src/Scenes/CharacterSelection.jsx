@@ -7,7 +7,8 @@ import { AUDIO_SFX , useAudio } from '../audio/AudioManager.jsx'
 
 export function CharacterSelection({ availableCharacters, setSelectedCharacter }) {
     const navigate = useNavigate();
-    const { changeTrack, enableSmoothLoop, playSfx } = useAudio();
+    const { changeTrack, enableSmoothLoop, playSfx, fadeOutMusic } = useAudio();
+    const [fadeToBlack, setFadeToBlack] = useState(false);
 
     useEffect(() => {
         changeTrack('CHARACTER_KART_SELECT', 100);
@@ -35,6 +36,11 @@ export function CharacterSelection({ availableCharacters, setSelectedCharacter }
         // Main Container with Scanline Background
         <div className="w-screen h-screen absolute top-0 left-0 flex flex-col overflow-hidden font-sans select-none text-white bg-[repeating-linear-gradient(0deg,#050505,#050505_2px,#111_2px,#111_4px)]">
             
+            {/* --- OVERLAY FADE TO BLACK */}
+            <div 
+                className={`fixed inset-0 bg-black z-[9999] pointer-events-none transition-opacity duration-700 ease-in-out ${fadeToBlack ? 'opacity-100' : 'opacity-0'}`}
+            />
+
             {/* Header - Slanted Style */}
             <div className="h-[8vh] bg-white flex items-center pl-[4vw] border-b-[0.6vh] border-[#aaddff] rounded-br-[50px] w-[55%] z-10 shadow-[0_5px_10px_rgba(0,0,0,0.5)]">
                 <h1 className="text-[4vh] font-bold text-[#666] italic uppercase">
@@ -126,8 +132,10 @@ export function CharacterSelection({ availableCharacters, setSelectedCharacter }
             <div className="h-[10vh] flex justify-between px-[4vw] items-center bg-gradient-to-t from-black/90 to-transparent z-20">
                 <button 
                     onClick={() => {
-                        playSfx(AUDIO_SFX.BACK || 'BACK', 10);
-                        navigate('/menu');
+                        playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+                        setFadeToBlack(true);
+                        fadeOutMusic(700);
+                        setTimeout(() => navigate(-1), 700);
                     }}
                     className="py-[1vh] px-[4vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#ccc] text-[#333] hover:bg-white transition-colors active:scale-95"
                 >

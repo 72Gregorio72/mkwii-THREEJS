@@ -158,7 +158,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
                 {/* Footer */}
                 <div className="h-[10vh] flex justify-between px-[4vw] items-center bg-gradient-to-t from-black/80 to-transparent z-20">
                     <button 
-                        onClick={() => navigate('/vehicle')}
+                        onClick={() => {navigate('/vehicle'); playSfx(AUDIO_SFX.BACK_IN_MENU, 10);}}
                         className="py-[1vh] px-[3vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#ccc] text-[#333] hover:bg-white transition-all active:scale-95"
                     >
                         Back

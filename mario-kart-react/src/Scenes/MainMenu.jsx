@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
@@ -27,26 +27,35 @@ const MenuButton = ({ title, onClick, icon, color = "default" }) => {
             </div>
 
             {/* Decorazione Destra (Freccia o simbolo) */}
-            <div className="w-8 flex justify-center">
+            {/* <div className="w-8 flex justify-center">
                 <div className="w-3 h-3 border-t-4 border-r-4 border-[#aa8800] rotate-45 group-hover:border-[#ffcc00] group-hover:translate-x-1 transition-all"></div>
-            </div>
+            </div> */}
         </button>
     );
 };
 
+ ////  0,7 fadeout menu, 0.3 balck screen, start character select music
 export const MainMenu = () => {
-    const navigate = useNavigate();
-    const { playSfx } = useAudio();
-    
+    const navigate = useNavigate();    
     // Stato per gestire il fade to black
     const [fadeToBlack, setFadeToBlack] = useState(false);
+    const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack , fadeOutMusic } = useAudio();
+
+    useEffect(() => {
+        if (getCurrentTrack() !== 'MENU') {
+            changeTrack('MENU', 100);
+            enableSmoothLoop();
+        }
+        enableSmoothLoop();
+    }, [changeTrack, enableSmoothLoop]);
 
     const handleNavigate = (path) => {
-        playSfx(AUDIO_SFX.DECIDE);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
 
         // Se è Single Player (/character), fai il fade out nero
         if (path === '/character') {
             setFadeToBlack(true);
+            fadeOutMusic(700);
             setTimeout(() => {
                 navigate(path);
             }, 700); // 0.7 secondi
@@ -59,7 +68,7 @@ export const MainMenu = () => {
     return (
         <div className="w-screen h-screen relative overflow-hidden font-sans select-none">
             
-            {/* --- OVERLAY FADE TO BLACK (Attivo solo per Single Player) --- */}
+            {/* --- OVERLAY FADE TO BLACK*/}
             <div 
                 className={`fixed inset-0 bg-black z-[9999] pointer-events-none transition-opacity duration-700 ease-in-out ${fadeToBlack ? 'opacity-100' : 'opacity-0'}`}
             />
@@ -136,14 +145,13 @@ export const MainMenu = () => {
                 {/* LISTA PULSANTI CENTRALI (Verticale) */}
                 <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full">
                     
-                    {/* Pulsante Single Player (con Fade Out Nero) */}
+                    {/* Pulsante Single Player */}
                     <MenuButton 
                         title="Single Player" 
                         icon="👤" 
                         onClick={() => handleNavigate('/character')} 
                     />
                     
-                    {/* Pulsanti Standard (Navigazione Immediata) */}
                     <MenuButton 
                         title="Multiplayer" 
                         icon="🌎" 
