@@ -1,0 +1,31 @@
+// to start Prisma GUI do :
+// 1) docker exec -it nestjs-backend sh
+// 2) npx prisma studio --hostname 0.0.0.0 --port 5555 --browser none
+// so go into a browser and open http://localhost:5555
+
+// if prisma is not in sync with the database do: npm prisma db push
+
+// to reset the database do npx prisma db push --force-reset, 
+// the .dbjournal file that will be created is a safe copy of the db that was 
+// deleted and it will be used automatically to restore the db if anything goes wrong
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"] //uso con OpenSSL
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dbFiles/dev.db"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  email     String   @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
