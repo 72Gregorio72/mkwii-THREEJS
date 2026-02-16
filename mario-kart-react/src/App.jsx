@@ -11,6 +11,10 @@ import { WaitingRoom } from './Scenes/WaitingRoom'
 import { AudioProvider, useAudio, AUDIO_SFX } from './audio/AudioManager'
 import { socket } from './multiplayer/socket.js'
 import { MainMenu } from './Scenes/MainMenu.jsx'
+import { Register } from './Scenes/Register.jsx'
+import { Login } from './Scenes/Login.jsx'
+import { Profile } from './Scenes/ProfilePage.jsx'
+
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
 const TitleScreen = () => {
@@ -121,7 +125,15 @@ export default function App() {
     const [roomCode, setRoomCode] = useState(null)
     const [roomId, setRoomId] = useState(null)
     const [isHost, setIsHost] = useState(false)
-    
+
+    const [isLoggedIn, setIsLoggedIn] = useState(() => {
+        return localStorage.getItem('isLoggedIn') === 'true';
+    });
+
+    const handleLogin = () => {
+        localStorage.setItem('isLoggedIn', 'true');
+        setIsLoggedIn(true);
+    };
     // Data source
     const [availableCharacters, ] = useState(Characters)
 
@@ -158,7 +170,7 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
 
-                        <Route path="/menu" element={<MainMenu />} />
+                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} />} /> {/* mettere true loggedIn per testare le gare */}
 
                         <Route path="/room" element={
                             <RoomSelection 
@@ -171,6 +183,18 @@ export default function App() {
                         
                         <Route path="/info" element={
                             <InfoAndTos />
+                        } />
+
+                        <Route path="/register" element={
+                            <Register onRegistrationSuccess={handleLogin}/>
+                        } />
+
+                        <Route path="/login" element={
+                            <Login onLoginSuccess={handleLogin}/>
+                        } />
+
+                        <Route path="/profile" element={
+                            <Profile />
                         } />
 
                         <Route path="/character" element={
@@ -208,21 +232,27 @@ export default function App() {
                             />
                         } />
 
-                        <Route path="/game" element={
-                            <GameScene
-                                socket={socket}
-                                character={SelectedCharacter}
-                                vehicle={SelectedVehicle}
-                                mapPath={SelectedTrack.file} 
-                                checkpointPath={SelectedTrack.checkpoints}
-                                maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
-                                start_pos={SelectedTrack.startPos}
-                                selectedTrack={SelectedTrack}
-                                roomCode={roomCode}
-                                roomId={roomId}
-                                isHostProp={isHost}
+                        {['/game', '/debug'].map((path) => (
+                            <Route 
+                                key={path} // Fondamentale per React
+                                path={path} 
+                                element={
+                                    <GameScene
+                                        socket={socket}
+                                        character={SelectedCharacter}
+                                        vehicle={SelectedVehicle}
+                                        mapPath={SelectedTrack.file} 
+                                        checkpointPath={SelectedTrack.checkpoints}
+                                        maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
+                                        start_pos={SelectedTrack.startPos}
+                                        selectedTrack={SelectedTrack}
+                                        roomCode={roomCode}
+                                        roomId={roomId}
+                                        isHostProp={isHost}
+                                    />
+                                } 
                             />
-                        } />
+                        ))}
                     </Routes>
 
                 </div>

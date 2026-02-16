@@ -56,7 +56,6 @@ export class GameService {
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     };
     
-    // Merge dei dati. Se data.effects esiste, sovrascriverà quello vecchio
     this.players.set(id, { ...existing, ...data });
   }
 
@@ -70,11 +69,11 @@ export class GameService {
 		this.players[playerId].effects.isSmall = true;
 		this.players[playerId].effects.isSpinning = true;
 
-		// Opzionale: il server può gestire il timer per farli tornare grandi
 		setTimeout(() => {
 			if (this.players[playerId]) this.players[playerId].effects.isSmall = false;
 		}, 10000); 
-		setTimeout(() => {
+
+    setTimeout(() => {
 			if (this.players[playerId]) this.players[playerId].effects.isSpinning = false;
 		}, 4500);
 	}

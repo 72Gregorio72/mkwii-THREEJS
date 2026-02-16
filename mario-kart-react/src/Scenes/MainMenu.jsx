@@ -25,19 +25,12 @@ const MenuButton = ({ title, onClick, icon, color = "default" }) => {
                     {title}
                 </span>
             </div>
-
-            {/* Decorazione Destra (Freccia o simbolo) */}
-            {/* <div className="w-8 flex justify-center">
-                <div className="w-3 h-3 border-t-4 border-r-4 border-[#aa8800] rotate-45 group-hover:border-[#ffcc00] group-hover:translate-x-1 transition-all"></div>
-            </div> */}
         </button>
     );
 };
 
- ////  0,7 fadeout menu, 0.3 balck screen, start character select music
-export const MainMenu = () => {
+export const MainMenu = ({ loggedIn }) => {
     const navigate = useNavigate();    
-    // Stato per gestire il fade to black
     const [fadeToBlack, setFadeToBlack] = useState(false);
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack , fadeOutMusic } = useAudio();
 
@@ -56,15 +49,13 @@ export const MainMenu = () => {
             playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
         }
 
-        // Se è Single Player (/character), fai il fade out nero
         if (path === '/character') {
             setFadeToBlack(true);
             fadeOutMusic(700);
             setTimeout(() => {
                 navigate(path);
-            }, 700); // 0.7 secondi
+            }, 700); 
         } else {
-            // Altrimenti naviga subito (Multiplayer, Debug, Back)
             navigate(path);
         }
     };
@@ -72,7 +63,7 @@ export const MainMenu = () => {
     return (
         <div className="w-screen h-screen relative overflow-hidden font-sans select-none">
             
-            {/* --- OVERLAY FADE TO BLACK*/}
+            {/* --- OVERLAY FADE TO BLACK --- */}
             <div 
                 className={`fixed inset-0 bg-black z-[9999] pointer-events-none transition-opacity duration-700 ease-in-out ${fadeToBlack ? 'opacity-100' : 'opacity-0'}`}
             />
@@ -86,7 +77,7 @@ export const MainMenu = () => {
                 }}
             />
 
-            {/* 2. OVERLAY BIANCO "SCANLINES" (Stile Wii) */}
+            {/* 2. OVERLAY BIANCO "SCANLINES" */}
             <div 
                 className="absolute inset-0 z-10 opacity-80"
                 style={{
@@ -100,7 +91,7 @@ export const MainMenu = () => {
                 {/* Header Superiore Stile Mario Kart Wii */}
                 <div className="w-full h-[18vh] absolute top-0 left-0 z-30 pointer-events-none">
                     
-                    {/* SFONDO SVG PER LA FORMA ESATTA */}
+                    {/* SFONDO SVG */}
                     <div className="absolute top-0 left-0 w-full h-full z-10 filter drop-shadow-md">
                         <svg 
                             viewBox="0 0 100 100" 
@@ -124,10 +115,37 @@ export const MainMenu = () => {
                         </div>
                     </div>
 
-                    {/* BOTTONE SETTINGS (Posizionato nella curva) */}
+                    {/* --- TASTO PROFILO / LICENSE (Accanto a Info) --- */}
+                    {loggedIn && (
+                        <div 
+                            onClick={() => handleNavigate('/profile')}
+                            className="absolute top-4 right-28 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                        >
+                            <div className="relative w-14 h-14 md:w-16 md:h-16">
+                                {/* Halo */}
+                                <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
+                                
+                                {/* Cerchio Verde Lucido */}
+                                <div className="w-full h-full rounded-full bg-gradient-to-b from-[#22cc22] to-[#008800] border-[3px] border-white ring-[3px] ring-[#00aa00] shadow-md flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
+                                    {/* Riflesso */}
+                                    <div className="absolute top-0 left-0 w-full h-[50%] bg-white/40 rounded-b-full"></div>
+                                    <span className="text-3xl text-white drop-shadow-md transform filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
+                                        👤
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Label 'License' */}
+                            <div className="absolute -bottom-2 -right-1 bg-[#008800] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
+                                License
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TASTO SETTINGS / INFO (Destra Estrema) */}
                     <div 
                         onClick={() => handleNavigate('/info')}
-                        className="absolute top-2 right-2 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                        className="absolute top-2 right-4 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
                     >
                         <div className="relative w-16 h-16 md:w-20 md:h-20">
                             <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
@@ -146,29 +164,52 @@ export const MainMenu = () => {
                     </div>
                 </div>
 
-                {/* LISTA PULSANTI CENTRALI (Verticale) */}
-                <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full">
-                    
-                    {/* Pulsante Single Player */}
-                    <MenuButton 
-                        title="Single Player" 
-                        icon="👤" 
-                        onClick={() => handleNavigate('/character')} 
-                    />
-                    
-                    <MenuButton 
-                        title="Multiplayer" 
-                        icon="🌎" 
-                        onClick={() => handleNavigate('/room')} 
-                    />
-                    
-                    <MenuButton 
-                        title="Debug Race" 
-                        icon="🛠️" 
-                        onClick={() => handleNavigate('/game')} 
-                    />
+                {/* Lista Pulsanti Centrali */}
+                {loggedIn && (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full pt-[5vh]">
+                        <MenuButton 
+                            title="Single Player" 
+                            icon="👤" 
+                            onClick={() => handleNavigate('/character')} 
+                        />
+                        
+                        <MenuButton 
+                            title="Multiplayer" 
+                            icon="🌎" 
+                            onClick={() => handleNavigate('/room')} 
+                        />
+                        
+                        <MenuButton 
+                            title="Debug Race" 
+                            icon="🛠️" 
+                            onClick={() => handleNavigate('/debug')} 
+                        />
+                    </div>
+                )}
 
-                </div>
+                {!loggedIn && (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full pt-[5vh]">
+
+                        <MenuButton 
+                            title="Register" 
+                            icon="📝" 
+                            onClick={() => handleNavigate('/register')} 
+                        />
+
+                        <MenuButton 
+                            title="Login" 
+                            icon="🔑" 
+                            onClick={() => handleNavigate('/login')} 
+                        />
+
+                        <MenuButton 
+                            title="Play as Guest" 
+                            icon="🎮" 
+                            onClick={() => handleNavigate('/character')} 
+                        />
+
+                    </div>
+                )}
 
                 {/* Footer / Tasto Back */}
                 <div className="h-[12vh] w-full flex items-center px-12 relative">

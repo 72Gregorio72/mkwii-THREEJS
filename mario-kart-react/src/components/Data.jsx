@@ -108,15 +108,27 @@ export const Tracks = {
 		file: './Tracks/PeachGardens/PeachGardens.glb',
 		preview: '/Previews/Peach Gardens.png',
 		startPos: [0, 0, 50],
-		checkpoints: './Tracks/MooMooMeadows/MooMooMeadows_checkpoints.glb',
+		checkpoints: './Tracks/PeachGardens/PeachGardens_checkpos.glb',
         maxCheckpoints: 3,
         soundtrack: 'RACE_PEACH_GARDENS',
-        itemBoxes: './Tracks/MooMooMeadows/MooMooMeadows_itembox.glb',
+        itemBoxes: './Tracks/PeachGardens/PeachGardens_itembox.glb',
         gridpos: './Tracks/PeachGardens/PeachGardens_startpos.glb',
         road: './Tracks/PeachGardens/PeachGardens_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
 
+    'SNES Mario Circuit': {
+        file: './Tracks/SNESMarioCircuit/SNESMarioCircuit.glb',
+		preview: '/Previews/SNES Mario Circuit 3.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_MOO_MOO_MEADOWS',
+        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+        gridpos: './Tracks/SNESMarioCircuit/SNESMarioCircuit_startpos.glb',
+        road: './Tracks/SNESMarioCircuit/SNESMarioCircuit_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
 }
 
 export const Characters = [
