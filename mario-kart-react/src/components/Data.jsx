@@ -104,6 +104,19 @@ export const Tracks = {
         road: './Tracks/MooMooMeadows/MooMooMeadows_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
+	'Peach Gardens': {
+		file: './Tracks/PeachGardens/PeachGardens.glb',
+		preview: '/Previews/Peach Gardens.png',
+		startPos: [0, 0, 50],
+		checkpoints: './Tracks/MooMooMeadows/MooMooMeadows_checkpoints.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_PEACH_GARDENS',
+        itemBoxes: './Tracks/MooMooMeadows/MooMooMeadows_itembox.glb',
+        gridpos: './Tracks/PeachGardens/PeachGardens_startpos.glb',
+        road: './Tracks/PeachGardens/PeachGardens_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
+
 }
 
 export const Characters = [
@@ -886,6 +899,7 @@ export const AUDIO_TRACKS = {
     RACE_YOSHI_FALLS: '/soundTracks/YOSHI_FALLS_ST.mp3',
     RACE_MOO_MOO_MEADOWS: '/soundTracks/MOO_MOO_MEADOWS_ST.mp3',
 	RACE_BOWSER_CASTLE: '/soundTracks/BOWSER_CASTLE_ST.mp3',
+	RACE_PEACH_GARDENS: '/soundTracks/PEACH_GARDENS_ST.mp3',
 	FINISH_FIRST: '/soundTracks/FINISH_1ST.mp3',
 	FINISH_SECOND_FOURTH: '/soundTracks/FINISH_2ND_4TH.mp3',
 	FINISH_FIFTH_TWELFTH: '/soundTracks/FINISH_5TH_12TH.mp3',
