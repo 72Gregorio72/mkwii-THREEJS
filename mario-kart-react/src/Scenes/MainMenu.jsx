@@ -119,7 +119,7 @@ export const MainMenu = ({ loggedIn }) => {
                     {loggedIn && (
                         <div 
                             onClick={() => handleNavigate('/profile')}
-                            className="absolute top-4 right-28 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                            className="absolute top-16 right-30 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
                         >
                             <div className="relative w-14 h-14 md:w-16 md:h-16">
                                 {/* Halo */}
@@ -203,7 +203,7 @@ export const MainMenu = ({ loggedIn }) => {
                         />
 
                         <MenuButton 
-                            title="Play as Guest" 
+                            title="Play as a Guest" 
                             icon="🎮" 
                             onClick={() => handleNavigate('/character')} 
                         />

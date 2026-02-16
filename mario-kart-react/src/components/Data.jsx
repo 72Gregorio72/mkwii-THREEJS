@@ -104,6 +104,7 @@ export const Tracks = {
         road: './Tracks/MooMooMeadows/MooMooMeadows_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
+	
 	'Peach Gardens': {
 		file: './Tracks/PeachGardens/PeachGardens.glb',
 		preview: '/Previews/Peach Gardens.png',
@@ -121,7 +122,7 @@ export const Tracks = {
         file: './Tracks/SNESMarioCircuit/SNESMarioCircuit.glb',
 		preview: '/Previews/SNES Mario Circuit 3.png',
         startPos: [0, 0, 50],
-        checkpoints: './Tracks/DaisyCircuit/DaisyCircuit_checkpoints.glb',
+        checkpoints: './Tracks/DaisyCircuit/SNESMarioCircuit_checkpoint.glb',
         maxCheckpoints: 3,
         soundtrack: 'RACE_MOO_MOO_MEADOWS',
         itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',

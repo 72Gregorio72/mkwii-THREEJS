@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Login = ({ onLoginSuccess }) => {
+export const Login = ({ onLoginSuccess, setUsername }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -34,12 +34,20 @@ export const Login = ({ onLoginSuccess }) => {
             const result = await response.json();
 
             if (!response.ok) {
-                // Se c'è un errore (es. 409 Conflict), lanciamo un'eccezione col messaggio del server
-                // NestJS ritorna: { message: "User already exists", ... }
                 throw new Error(result.message || 'Login failed');
             }
 
             console.log("Success:", result);
+            const finalUsername = result.username;
+
+            sessionStorage.setItem('userName', finalUsername);
+            sessionStorage.setItem('isLoggedIn', 'true');
+
+
+            if (setUsername) {
+                setUsername(finalUsername);
+            }
+
             if (onLoginSuccess) {
                 onLoginSuccess();
             }
