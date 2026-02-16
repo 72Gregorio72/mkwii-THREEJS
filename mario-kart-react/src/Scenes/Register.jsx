@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Register = ({ onRegistrationSuccess }) => {
+export const Register = ({ onRegistrationSuccess, setUsername }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -38,6 +38,14 @@ export const Register = ({ onRegistrationSuccess }) => {
             }
 
             console.log("Success:", result);
+            const finalUsername = result.username;
+
+            sessionStorage.setItem('userName', finalUsername);
+            sessionStorage.setItem('isLoggedIn', 'true');
+
+            if (setUsername) {
+                setUsername(finalUsername);
+            }
             if (onRegistrationSuccess) {
                 onRegistrationSuccess();
             }

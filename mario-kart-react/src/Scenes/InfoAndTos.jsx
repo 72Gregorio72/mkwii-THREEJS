@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
 export const InfoAndTos = () => {
-  // --- 1. LOGICA FUNZIONALE (Invariata) ---
   const [data, setData] = useState(null);
   const [activeTab, setActiveTab] = useState('tos'); 
   const [loading, setLoading] = useState(true);
@@ -126,13 +125,6 @@ export const InfoAndTos = () => {
                         >
                             {/* Bagliore interno */}
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-                            
-                            {/* Icona */}
-                            <div className={`flex items-center justify-center w-14 h-14 rounded-full border-2 shadow-inner transition-colors
-                                ${activeTab === 'tos' ? 'bg-black/50 border-[#ffcc00]' : 'bg-black/30 border-[#aa8800] group-hover:border-[#ffcc00]'}
-                            `}>
-                                <span className="text-2xl filter drop-shadow-md">🏁</span>
-                            </div>
 
                             {/* Testo */}
                             <div className="flex-1 text-right">
@@ -157,12 +149,12 @@ export const InfoAndTos = () => {
                             `}
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-                            
+{/*                             
                             <div className={`flex items-center justify-center w-14 h-14 rounded-full border-2 shadow-inner transition-colors
                                 ${activeTab === 'privacy' ? 'bg-black/50 border-[#ffcc00]' : 'bg-black/30 border-[#aa8800] group-hover:border-[#ffcc00]'}
                             `}>
                                 <span className="text-2xl filter drop-shadow-md">🛡️</span>
-                            </div>
+                            </div> */}
 
                             <div className="flex-1 text-right">
                                 <span className={`text-2xl font-bold uppercase tracking-tight drop-shadow-md

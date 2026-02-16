@@ -127,13 +127,29 @@ export default function App() {
     const [isHost, setIsHost] = useState(false)
 
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
-        return localStorage.getItem('isLoggedIn') === 'true';
+        return sessionStorage.getItem('isLoggedIn') === 'true';
     });
 
-    const handleLogin = () => {
-        localStorage.setItem('isLoggedIn', 'true');
+    const [userName, setUsername] = useState(() => {
+        return sessionStorage.getItem('userName') || null; 
+    });
+
+    const handleLogin = (user) => {
+        sessionStorage.setItem('isLoggedIn', 'true');
+        if(user) {
+            sessionStorage.setItem('userName', user);
+            setUsername(user);
+        }
         setIsLoggedIn(true);
     };
+
+    const handleLogout = () => {
+        sessionStorage.setItem('isLoggedIn', 'false');
+        sessionStorage.removeItem('userName');
+        setUsername(null);
+        setIsLoggedIn(false);
+    };
+
     // Data source
     const [availableCharacters, ] = useState(Characters)
 
@@ -186,15 +202,15 @@ export default function App() {
                         } />
 
                         <Route path="/register" element={
-                            <Register onRegistrationSuccess={handleLogin}/>
+                            <Register onRegistrationSuccess={handleLogin} setUsername={setUsername}/>
                         } />
 
                         <Route path="/login" element={
-                            <Login onLoginSuccess={handleLogin}/>
+                            <Login onLoginSuccess={handleLogin} setUsername={setUsername}/>
                         } />
 
                         <Route path="/profile" element={
-                            <Profile />
+                            <Profile setLoggedIn={handleLogout} userName={userName} isLoggedIn={isLoggedIn}/>
                         } />
 
                         <Route path="/character" element={

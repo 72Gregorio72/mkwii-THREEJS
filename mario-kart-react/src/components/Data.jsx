@@ -104,6 +104,7 @@ export const Tracks = {
         road: './Tracks/MooMooMeadows/MooMooMeadows_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
+	
 	'Peach Gardens': {
 		file: './Tracks/PeachGardens/PeachGardens.glb',
 		preview: '/Previews/Peach Gardens.png',
