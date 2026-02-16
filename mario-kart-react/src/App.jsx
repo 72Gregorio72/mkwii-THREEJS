@@ -78,18 +78,13 @@ const TitleScreen = () => {
                 }
             `}</style>
 
-            {/* DIV IMMAGINE SFONDO */}
-            {/* È impostato su absolute inset-0 per coprire lo schermo stando SOTTO il testo.
-                Ha bg-contain per non tagliare l'immagine e bg-white per riempire i vuoti laterali di bianco. */}
            <div
                 className="w-screen h-screen bg-white bg-contain bg-center bg-no-repeat flex flex-col items-center justify-end pb-20"
                 style={{ backgroundImage: "url('/sprites/TitleScreen.jpg')" }}
             />
 
-            {/* CONTENITORE TESTO (Z-10 per stare sopra lo sfondo) */}
             <div className="relative z-10 flex justify-center items-center">
                 
-                {/* 1. TESTO GHOST (Effetto "Eco") */}
                 {!isStarting && (
                     <h1 
                         className="absolute font-bold text-4xl tracking-wider font-sans uppercase text-white select-none whitespace-nowrap animate-ghost-ripple"
@@ -99,7 +94,6 @@ const TitleScreen = () => {
                     </h1>
                 )}
 
-                {/* 2. TESTO PRINCIPALE (Fisso) */}
                 <h1 
                     className={`
                         relative font-bold text-4xl tracking-wider font-sans uppercase text-white select-none whitespace-nowrap
