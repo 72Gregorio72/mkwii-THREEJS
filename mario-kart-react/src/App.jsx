@@ -170,7 +170,7 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
 
-                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} />} /> {/* mettere true loggedIn per testare le gare */}
+                        <Route path="/menu" element={<MainMenu loggedIn={true} />} /> {/* mettere true loggedIn per testare le gare */}
 
                         <Route path="/room" element={
                             <RoomSelection 

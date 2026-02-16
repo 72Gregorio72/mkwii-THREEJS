@@ -1,0 +1,25 @@
+// to start Prisma GUI do :
+// 1) docker exec -it nestjs-backend sh
+// 2) npx prisma studio --hostname 0.0.0.0 --port 5555 --browser none
+// so go into a browser and open http://localhost:5555
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"] //uso con OpenSSL
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  email     String   @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
