@@ -13,6 +13,7 @@ import { socket } from './multiplayer/socket.js'
 import { MainMenu } from './Scenes/MainMenu.jsx'
 import { Register } from './Scenes/Register.jsx'
 import { Login } from './Scenes/Login.jsx'
+import { Profile } from './Scenes/ProfilePage.jsx'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -169,7 +170,7 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
 
-                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} />} />
+                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} />} /> {/* mettere true loggedIn per testare le gare */}
 
                         <Route path="/room" element={
                             <RoomSelection 
@@ -190,6 +191,10 @@ export default function App() {
 
                         <Route path="/login" element={
                             <Login onLoginSuccess={handleLogin}/>
+                        } />
+
+                        <Route path="/profile" element={
+                            <Profile />
                         } />
 
                         <Route path="/character" element={
