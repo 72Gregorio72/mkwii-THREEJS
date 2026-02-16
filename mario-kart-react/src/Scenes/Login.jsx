@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Login = () => {
+export const Login = ({ onLoginSuccess }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -40,6 +40,9 @@ export const Login = () => {
             }
 
             console.log("Success:", result);
+            if (onLoginSuccess) {
+                onLoginSuccess();
+            }
             setTimeout(() => navigate('/menu'), 500);
 
         } catch (err) {

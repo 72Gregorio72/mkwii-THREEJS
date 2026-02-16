@@ -130,7 +130,15 @@ export default function App() {
     const [roomCode, setRoomCode] = useState(null)
     const [roomId, setRoomId] = useState(null)
     const [isHost, setIsHost] = useState(false)
-    
+
+    const [isLoggedIn, setIsLoggedIn] = useState(() => {
+        return localStorage.getItem('isLoggedIn') === 'true';
+    });
+
+    const handleLogin = () => {
+        localStorage.setItem('isLoggedIn', 'true');
+        setIsLoggedIn(true);
+    };
     // Data source
     const [availableCharacters, ] = useState(Characters)
 
@@ -167,7 +175,7 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
 
-                        <Route path="/menu" element={<MainMenu />} />
+                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} />} />
 
                         <Route path="/room" element={
                             <RoomSelection 
@@ -183,11 +191,11 @@ export default function App() {
                         } />
 
                         <Route path="/register" element={
-                            <Register />
+                            <Register onRegistrationSuccess={handleLogin}/>
                         } />
 
                         <Route path="/login" element={
-                            <Login />
+                            <Login onLoginSuccess={handleLogin}/>
                         } />
 
                         <Route path="/character" element={

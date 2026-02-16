@@ -35,7 +35,7 @@ const MenuButton = ({ title, onClick, icon, color = "default" }) => {
 };
 
  ////  0,7 fadeout menu, 0.3 balck screen, start character select music
-export const MainMenu = () => {
+export const MainMenu = ({ loggedIn }) => {
     const navigate = useNavigate();    
     // Stato per gestire il fade to black
     const [fadeToBlack, setFadeToBlack] = useState(false);
@@ -146,41 +146,52 @@ export const MainMenu = () => {
                     </div>
                 </div>
 
-                {/* LISTA PULSANTI CENTRALI (Verticale) */}
-                <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full">
-                    
-                    {/* Pulsante Single Player */}
-                    <MenuButton 
-                        title="Single Player" 
-                        icon="👤" 
-                        onClick={() => handleNavigate('/character')} 
-                    />
-                    
-                    <MenuButton 
-                        title="Multiplayer" 
-                        icon="🌎" 
-                        onClick={() => handleNavigate('/room')} 
-                    />
-                    
-                    <MenuButton 
-                        title="Debug Race" 
-                        icon="🛠️" 
-                        onClick={() => handleNavigate('/debug')} 
-                    />
+                {/* Pulsanti */}
+                {loggedIn && (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full">
+                        <MenuButton 
+                            title="Single Player" 
+                            icon="👤" 
+                            onClick={() => handleNavigate('/character')} 
+                        />
+                        
+                        <MenuButton 
+                            title="Multiplayer" 
+                            icon="🌎" 
+                            onClick={() => handleNavigate('/room')} 
+                        />
+                        
+                        <MenuButton 
+                            title="Debug Race" 
+                            icon="🛠️" 
+                            onClick={() => handleNavigate('/debug')} 
+                        />
+                    </div>
+                )}
 
-                    <MenuButton 
-                        title="Register" 
-                        icon="🛠️" 
-                        onClick={() => handleNavigate('/register')} 
-                    />
+                {!loggedIn && (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full">
 
-                    <MenuButton 
-                        title="Login" 
-                        icon="🛠️" 
-                        onClick={() => handleNavigate('/login')} 
-                    />
+                        <MenuButton 
+                            title="Register" 
+                            icon="🛠️" 
+                            onClick={() => handleNavigate('/register')} 
+                        />
 
-                </div>
+                        <MenuButton 
+                            title="Login" 
+                            icon="🛠️" 
+                            onClick={() => handleNavigate('/login')} 
+                        />
+
+                        <MenuButton 
+                            title="Play as a guest" 
+                            icon="🛠️" 
+                            onClick={() => handleNavigate('/character')} 
+                        />
+
+                    </div>
+                )}
 
                 {/* Footer / Tasto Back */}
                 <div className="h-[12vh] w-full flex items-center px-12 relative">

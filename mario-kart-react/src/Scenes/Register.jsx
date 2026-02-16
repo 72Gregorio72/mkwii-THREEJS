@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Register = () => {
+export const Register = ({ onRegistrationSuccess }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -34,22 +34,19 @@ export const Register = () => {
             const result = await response.json();
 
             if (!response.ok) {
-                // Se c'è un errore (es. 409 Conflict), lanciamo un'eccezione col messaggio del server
-                // NestJS ritorna: { message: "User already exists", ... }
                 throw new Error(result.message || 'Registration failed');
             }
 
-            // SUCCESSO
             console.log("Success:", result);
-            // Opzionale: un suono di successo specifico
-            // playSfx(AUDIO_SFX.SUCCESS); 
+            if (onRegistrationSuccess) {
+                onRegistrationSuccess();
+            }
+            
             setTimeout(() => navigate('/menu'), 500);
 
         } catch (err) {
             console.error('Registration Error:', err);
             setError(err.message); // Imposta il messaggio da mostrare
-            // Opzionale: suono di errore
-            // playSfx(AUDIO_SFX.ERROR); 
         } finally {
             setIsLoading(false);
         }
