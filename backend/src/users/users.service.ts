@@ -1,9 +1,12 @@
 import { Injectable, ConflictException } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client'
+
 
 export type User = any;
 
 @Injectable()
 export class UsersService {
+
   private readonly users = [
     {
       userId: 1,
@@ -19,11 +22,17 @@ export class UsersService {
     },
   ];
 
-  async findOne(username: string): Promise<User | undefined> {
-    return this.users.find(user => user.username.toLowerCase() === username.toLowerCase());
+  async findOne(username: string): Promise<User | null> {
+    const prisma = new PrismaClient()
+      return prisma.user.findFirst({
+        where: {
+          username: username.toLowerCase()
+        },
+      });
   }
 
   async addUser(data: any): Promise<User> {
+    const prisma = new PrismaClient()
     // Verifica se esiste già
     const existingUser = await this.findOne(data.username);
     
@@ -31,15 +40,28 @@ export class UsersService {
         throw new ConflictException('User already exists');
     }
 
-    const newUser = {
-        userId: this.users.length + 1,
-        username: data.username,
-        password: data.password, 
-        email: data.email 
-    };
-
-    this.users.push(newUser);
-    console.log("Utenti attuali:", this.users);
-    return newUser;
+    // const newUser = {
+    //     userId: this.users.length + 1,
+    //     username: data.username,
+    //     password: data.password, 
+    //     email: data.email 
+    // };
+    try {
+      const newUser = await prisma.user.create({
+        data: {
+          username: data.username,
+          email: data.email,
+          password: data.password,
+        },
+      })
+      return newUser;
+    } catch (e) {
+      console.error('Errore durante la creazione:', e)
+      return null;
+    } finally {
+      await prisma.$disconnect()
+    }
+    // this.users.push(newUser);
+    // console.log("Utenti attuali:", this.users);
   }
 }

@@ -12,13 +12,6 @@ async function main() {
         password: 'superpassword',
       },
     })
-    prisma.user.create({
-      data: {
-        username: 'negrone',
-        email: 'negrone@gmail.com',
-        password: 'superpassword',
-      },
-    })
     console.log('Utente creato con successo:', newUser)
   } catch (e) {
     console.error('Errore durante la creazione:', e)
