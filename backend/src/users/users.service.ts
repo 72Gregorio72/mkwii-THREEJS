@@ -21,13 +21,10 @@ export class UsersService {
     return this.users.find(user => user.username === username);
   }
 
-  // Ora è async perché deve aspettare findOne
   async addUser(data: any): Promise<User> {
-    // IMPORTANTE: Dobbiamo usare 'await', altrimenti l'if è sempre vero (oggetto Promise)
     const existingUser = await this.findOne(data.username);
     
     if (existingUser) {
-        // Lancia un 409 Conflict automaticamente gestito da NestJS
         throw new ConflictException('User already exists');
     }
 

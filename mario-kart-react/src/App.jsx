@@ -12,6 +12,7 @@ import { AudioProvider, useAudio, AUDIO_SFX } from './audio/AudioManager'
 import { socket } from './multiplayer/socket.js'
 import { MainMenu } from './Scenes/MainMenu.jsx'
 import { Register } from './Scenes/Register.jsx'
+import { Login } from './Scenes/Login.jsx'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -183,6 +184,10 @@ export default function App() {
 
                         <Route path="/register" element={
                             <Register />
+                        } />
+
+                        <Route path="/login" element={
+                            <Login />
                         } />
 
                         <Route path="/character" element={

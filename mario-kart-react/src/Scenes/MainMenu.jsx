@@ -174,6 +174,12 @@ export const MainMenu = () => {
                         onClick={() => handleNavigate('/register')} 
                     />
 
+                    <MenuButton 
+                        title="Login" 
+                        icon="🛠️" 
+                        onClick={() => handleNavigate('/login')} 
+                    />
+
                 </div>
 
                 {/* Footer / Tasto Back */}

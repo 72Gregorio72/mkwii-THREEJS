@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Register = () => {
+export const Login = () => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -20,10 +20,10 @@ export const Register = () => {
 
     const sendDataToBackend = async (data) => {
         setIsLoading(true);
-        setError(null); // Resetta errori precedenti
+        setError(null);
 
         try {
-            const response = await fetch('/api/register', {
+            const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -36,20 +36,15 @@ export const Register = () => {
             if (!response.ok) {
                 // Se c'è un errore (es. 409 Conflict), lanciamo un'eccezione col messaggio del server
                 // NestJS ritorna: { message: "User already exists", ... }
-                throw new Error(result.message || 'Registration failed');
+                throw new Error(result.message || 'Login failed');
             }
 
-            // SUCCESSO
             console.log("Success:", result);
-            // Opzionale: un suono di successo specifico
-            // playSfx(AUDIO_SFX.SUCCESS); 
             setTimeout(() => navigate('/menu'), 500);
 
         } catch (err) {
             console.error('Registration Error:', err);
-            setError(err.message); // Imposta il messaggio da mostrare
-            // Opzionale: suono di errore
-            // playSfx(AUDIO_SFX.ERROR); 
+            setError(err.message);
         } finally {
             setIsLoading(false);
         }
@@ -60,14 +55,13 @@ export const Register = () => {
         playSfx(AUDIO_SFX.DECIDE);
         
         // Validazione base lato client
-        if (!formData.username || !formData.email || !formData.password) {
+        if (!formData.username || !formData.password) {
             setError("All fields are required");
             return;
         }
 
         sendDataToBackend({ 
-            username: formData.username, 
-            email: formData.email, 
+            username: formData.username,
             password: formData.password
         });
     };
@@ -126,7 +120,7 @@ export const Register = () => {
                         </svg>
                         <div className="absolute bottom-15 left-12 z-20">
                             <h1 className="text-5xl text-[#444] font-sans font-bold tracking-tight drop-shadow-sm transform scale-y-110">
-                                New Profile
+                                Login page
                             </h1>
                         </div>
                     </div>
@@ -162,7 +156,7 @@ export const Register = () => {
                         {/* Titolo Form */}
                         <div className="text-center mb-6 border-b-2 border-[#aa8800] pb-4 relative z-10">
                             <h2 className="text-3xl font-black text-[#ffcc00] uppercase tracking-wide drop-shadow-md">
-                                Create Profile
+                                Login
                             </h2>
                             <p className="text-[#ddccaa] text-sm mt-1 uppercase tracking-widest">Enter your details</p>
                         </div>
@@ -181,23 +175,7 @@ export const Register = () => {
 
                         {/* FORM */}
                         <form onSubmit={handleSubmit} className="flex flex-col gap-4 relative z-10">
-                            
-                            <div className="group">
-                                <label className="block text-[#ffcc00] text-sm font-bold uppercase mb-1 ml-1 group-focus-within:text-white transition-colors">
-                                    Mii Name
-                                </label>
-                                <input 
-                                    type="text" 
-                                    name="username"
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                    className={inputStyle}
-                                    placeholder="PLAYER 1"
-                                    maxLength={12}
-                                    required
-                                />
-                            </div>
-
+{/*  
                             <div className="group">
                                 <label className="block text-[#ffcc00] text-sm font-bold uppercase mb-1 ml-1 group-focus-within:text-white transition-colors">
                                     Email Address
@@ -209,6 +187,22 @@ export const Register = () => {
                                     onChange={handleChange}
                                     className={inputStyle}
                                     placeholder="MARIO@KART.COM"
+                                    required
+                                />
+                            </div> */}
+
+                            <div className="group">
+                                <label className="block text-[#ffcc00] text-sm font-bold uppercase mb-1 ml-1 group-focus-within:text-white transition-colors">
+                                    Username
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    className={inputStyle}
+                                    placeholder="PLAYER 1"
+                                    maxLength={12}
                                     required
                                 />
                             </div>
@@ -238,7 +232,7 @@ export const Register = () => {
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 ease-in-out"></div>
                                 <span className="text-2xl font-black text-white uppercase tracking-widest drop-shadow-md flex items-center gap-2">
-                                    {isLoading ? 'Wait...' : 'Create Profile'}
+                                    {isLoading ? 'Wait...' : 'Login'}
                                 </span>
                             </button>
 
