@@ -57,8 +57,13 @@ export const BobOmb = memo(function BobOmb({ position, initVelocity = [0, 0, 0],
 
     const handleCollisionEnter = (payload) => {
         if (isLanded || isExploding) return;
-        const name = payload.other.rigidBodyObject?.name || "";
-        if (!name.includes("player") && !name.startsWith("bot") && !name.includes("opponent")) {
+        const targetObj = payload.other.rigidBodyObject;
+        if (!targetObj) return;
+        
+        const userData = targetObj?.userData;
+        // La bomba atterra quando tocca qualcosa che NON è un racer
+        const isRacer = userData?.type === 'racer' || userData?.type === 'opponent';
+        if (!isRacer) {
             setIsLanded(true);
         }
     };
@@ -66,11 +71,16 @@ export const BobOmb = memo(function BobOmb({ position, initVelocity = [0, 0, 0],
     const handleExplosionHit = (payload) => {
         if (!isExploding) return;
         const targetObj = payload.other.rigidBodyObject;
-        const targetName = targetObj?.name || "";
+        if (!targetObj) return;
+        
         const userData = targetObj?.userData;
+        const targetName = targetObj?.name || "";
         const id = userData?.id || targetName;
         
-        if ((targetName === socket.id || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) && !hitList.current.has(id)) {
+        // Identifica se è un racer
+        const isRacer = userData?.type === 'racer' || userData?.type === 'opponent';
+        
+        if (isRacer && !hitList.current.has(id)) {
             hitList.current.add(id);
             window.dispatchEvent(new CustomEvent('banana-hit', { 
                 detail: { victimId: id, type: 'explosion' } 

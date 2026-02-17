@@ -7,9 +7,13 @@ import { AUDIO_SFX } from '../components/Data';
 
 
 function giveItemToPlayer(other) {
-    const userData = other.rigidBodyObject?.userData;
+    const rigidBody = other.rigidBodyObject;
+    if (!rigidBody) return;
+    
+    const userData = rigidBody.userData;
+    if (!userData) return;
 
-    if (userData && userData.type === 'racer') {
+    if (userData.type === 'racer' || userData.type === 'opponent') {
         const racerId = userData.id;
         // console.log(`📦 BOX PRESO DA: ${racerId}`);
 

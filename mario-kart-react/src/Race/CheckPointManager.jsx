@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react'
+import { useRef, useMemo, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF, Text } from '@react-three/drei' // Aggiunto Text per debug visivo
 import { RigidBody } from '@react-three/rapier'
@@ -82,22 +82,29 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
                             onIntersectionEnter={(payload) => {
                                 const otherBody = payload.other.rigidBodyObject;
                                 
+                                // Controllo di sicurezza per evitare errori se rigidBodyObject è null
+                                if (!otherBody) return;
+                                
                                 // DEBUG: Se colpisci qualcosa che NON è un racer, logga comunque per capire cosa succede
-                                if (otherBody && (!otherBody.userData || otherBody.userData.type !== 'racer')) {
+                                if (!otherBody.userData || otherBody.userData.type !== 'racer') {
                                     console.log(`[Debug] Qualcosa ha toccato CP ${box.id} ma non è un racer:`, otherBody.name || 'Unknown');
+                                    return;
                                 }
 
-                                if (otherBody?.userData?.type === 'racer') {
-                                    const racerId = otherBody.userData.id;
-                                    const cpId = box.id;
+                                const racerId = otherBody.userData.id;
+                                if (!racerId) {
+                                    console.warn(`[Checkpoint] Racer senza ID ha toccato CP ${box.id}`);
+                                    return;
+                                }
+                                
+                                const cpId = box.id;
 
-                                    const alreadyInQueue = hitsQueue.current.some(
-                                        hit => hit.cpId === cpId && hit.racerId === racerId
-                                    );
+                                const alreadyInQueue = hitsQueue.current.some(
+                                    hit => hit.cpId === cpId && hit.racerId === racerId
+                                );
 
-                                    if (!alreadyInQueue) {
-                                        hitsQueue.current.push({ cpId, racerId });
-                                    }
+                                if (!alreadyInQueue) {
+                                    hitsQueue.current.push({ cpId, racerId });
                                 }
                             }}
                         >

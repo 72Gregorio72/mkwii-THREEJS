@@ -97,8 +97,15 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
 
     const handleAOE = (payload) => {
         const targetObj = payload.other.rigidBodyObject;
-        const id = targetObj?.userData?.id || targetObj?.name;
-        if (id && !hitList.current.has(id) && (id === socket.id || id.startsWith('bot') || targetObj?.userData?.type === 'opponent')) {
+        if (!targetObj) return;
+        
+        const userData = targetObj?.userData;
+        const id = userData?.id || targetObj?.name;
+        
+        // Verifica se è un racer
+        const isRacer = userData?.type === 'racer' || userData?.type === 'opponent';
+        
+        if (id && !hitList.current.has(id) && isRacer) {
             hitList.current.add(id);
             window.dispatchEvent(new CustomEvent('banana-hit', { detail: { victimId: id, type: 'blue_shell' } }));
         }
