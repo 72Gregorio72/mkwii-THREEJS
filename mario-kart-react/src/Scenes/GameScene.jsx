@@ -247,6 +247,7 @@ export function GameScene({
     maxCheckpoints, 
     selectedTrack,
     roomCode = null,
+    roomId = null,
     isHostProp = false
 }) {
     // 3. HOOK DI NAVIGAZIONE
@@ -348,6 +349,12 @@ export function GameScene({
 
     const [positions, setPositions] = useState(initialPositions);
     const playerRank = positions.find(p => p.id === socket.id)?.position || 1;
+
+    useEffect(() => {
+        if (roomId) {
+            window.history.replaceState(null, '', `/game?roomId=${roomId}`);
+        }
+    }, [roomId]);   
 
     useEffect(() => {
         const handleItemCollected = (e) => {
@@ -636,8 +643,9 @@ export function GameScene({
 
     // Checkpoint Trigger
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
-        if (!racerId || !racersData.current[racerId]) return;
+        console.log("[debug] racer id in gamescene for lap: ", racersData.current[racerId]);
 
+        if (!racerId || !racersData.current[racerId]) return;
         const racer = racersData.current[racerId];
         
         if (hitIndex === racer.nextCP && hitIndex !== 0) {
@@ -682,6 +690,12 @@ export function GameScene({
                     setFinished(true);
                     playSfx(AUDIO_SFX.FINISH_RACE, 3);
                     stopMusic();
+                    if (racer.position === 1)
+                        changeTrack('FINISH_FIRST', 0, false);
+                    else if (racer.position >= 2 && racer.position <= 4)
+                        changeTrack('FINISH_SECOND_FOURTH', 0, false);
+                    else
+                        changeTrack('FINISH_FIFTH_TWELFTH', 0, false);
                 }
             } else if (racerId === socket.id) {
                 setUiLap(racer.lap);
@@ -717,7 +731,7 @@ export function GameScene({
         }
         
         // Aggiungi opponents remoti (solo in multiplayer)
-        if (roomCode && opponents.length > 0) {
+        if (roomCode && opponents.length > 0 && roomCode === opponents[0]?.roomCode) {
             opponents.forEach(opp => {
                 // Verifica che sia il ref che il ref.current esistano
                 if (remoteRefMap.current[opp.id] && remoteRefMap.current[opp.id].current) {
@@ -800,7 +814,6 @@ export function GameScene({
             )}
 
             <Canvas>
-                {/* Audio 3D Listener - DEVE essere prima di qualsiasi kart */}
                 <AudioListenerComponent />
                 
                 <CinematicCamera 
@@ -907,7 +920,14 @@ export function GameScene({
                         // 1. Cerca i dati remoti
                         const remoteCharacter = Characters.find(c => c.id === playerData.charId);
                         const remoteVehicle = VEHICLE_DATABASE[playerData.vehicleId];
+                        
 
+                        const effects = {
+                            isStar: playerData.isStar,
+                            isBulletBill: playerData.isBulletBill,
+                            isMega: playerData.isMega
+
+                        }
                         // 2. FALLBACK DI SICUREZZA:
                         // Se remoteVehicle è undefined, usa 'vehicle' (il tuo locale).
                         // Se anche quello fallisce, prendi il PRIMO veicolo del database.
@@ -924,6 +944,7 @@ export function GameScene({
                                 vehicle={safeVehicle} 
                                 userData={{ type: 'opponent', id: playerData.id }} 
                                 data={playerData}
+                                effects={effects}
                             />
                         );
                     })}

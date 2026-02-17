@@ -9,202 +9,179 @@ const mkwiiFontStyle = `
   }
 `;
 
-export const LobbyScreen = ({ isHost, players, onStartRace, roomId }) => {
+export const LobbyScreen = ({ isHost, players = [], onStartRace, roomId }) => {
   return (
     <>
       <style>{mkwiiFontStyle}</style>
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2000,
-      }}>
-        <div style={{
-          background: 'rgba(20, 20, 40, 0.95)',
-          border: '4px solid #4169E1',
-          borderRadius: '20px',
-          padding: '40px 50px',
-          minWidth: '500px',
-          maxWidth: '700px',
-          boxShadow: '0 10px 50px rgba(0, 0, 0, 0.8)',
-        }}>
-          {/* Title */}
-          <h1 style={{
-            fontFamily: 'MKWii, Arial, sans-serif',
-            fontSize: '48px',
-            color: '#FFD700',
-            textAlign: 'center',
-            marginBottom: '10px',
-            textShadow: '3px 3px 6px rgba(0, 0, 0, 0.8)',
-          }}>
-            RACE LOBBY
-          </h1>
+      
+      {/* Container Principale (Overlay a tutto schermo) */}
+      <div className="fixed inset-0 z-[2000] font-sans select-none text-white overflow-hidden">
+        
+        {/* 1. SFONDO SFUOCATO DIETRO */}
+        <div 
+            className="absolute inset-0 z-0 bg-cover bg-center scale-110"
+            style={{ 
+                backgroundImage: "url('/sprites/TitleScreen.jpg')",
+                filter: "blur(6px)"
+            }}
+        />
 
-          {/* Room ID */}
-          <div style={{
-            textAlign: 'center',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '16px',
-            color: '#AAAAAA',
-            marginBottom: '30px',
-          }}>
-            Room: {roomId || 'N/A'}
-          </div>
+        {/* 2. OVERLAY SCANLINES */}
+        <div 
+            className="absolute inset-0 z-10 opacity-80"
+            style={{
+                background: "repeating-linear-gradient(0deg, rgba(255,255,255,0.6) 0px, rgba(255,255,255,0.6) 4px, rgba(230,230,230,0.8) 4px, rgba(230,230,230,0.8) 8px)"
+            }}
+        />
 
-          {/* Host indicator */}
-          {isHost && (
-            <div style={{
-              background: 'rgba(255, 215, 0, 0.2)',
-              border: '2px solid #FFD700',
-              borderRadius: '10px',
-              padding: '10px',
-              marginBottom: '20px',
-              textAlign: 'center',
-            }}>
-              <span style={{
-                fontFamily: 'MKWii, Arial, sans-serif',
-                fontSize: '20px',
-                color: '#FFD700',
-                fontWeight: 'bold',
-              }}>
-                👑 You are the HOST
-              </span>
-            </div>
-          )}
+        {/* 3. UI CONTENT */}
+        <div className="relative z-20 w-full h-full flex flex-col">
 
-          {/* Players list */}
-          <div style={{
-            marginBottom: '30px',
-          }}>
-            <h3 style={{
-              fontFamily: 'MKWii, Arial, sans-serif',
-              fontSize: '24px',
-              color: '#FFFFFF',
-              marginBottom: '15px',
-              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-            }}>
-              Players ({players.length})
-            </h3>
-            
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-            }}>
-              {players.map((player, index) => (
-                <div key={player.id} style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  padding: '15px 20px',
-                  borderRadius: '10px',
-                  border: player.isHost ? '2px solid #FFD700' : '2px solid transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '15px',
-                  }}>
-                    <span style={{
-                      fontFamily: 'MKWii, Arial, sans-serif',
-                      fontSize: '20px',
-                      color: '#FFFFFF',
-                      fontWeight: 'bold',
-                    }}>
-                      {index + 1}.
-                    </span>
-                    <span style={{
-                      fontFamily: 'MKWii, Arial, sans-serif',
-                      fontSize: '18px',
-                      color: player.isHost ? '#FFD700' : '#FFFFFF',
-                    }}>
-                      Player {index + 1}
-                      {player.isHost && ' 👑'}
-                    </span>
-                  </div>
-                  <div style={{
-                    fontFamily: 'Arial, sans-serif',
-                    fontSize: '14px',
-                    color: '#00FF00',
-                  }}>
-                    ● Ready
-                  </div>
+            {/* HEADER CURVO (Stile MKWii) */}
+            <div className="w-full h-[18vh] absolute top-0 left-0 z-30 pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-full z-10 filter drop-shadow-md">
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-[85%]">
+                        <path 
+                            d="M 0,0 L 100,0 L 100,35 C 96,35 94,88 82,98 L 0,98 Z" 
+                            fill="white" stroke="#8899ff" strokeWidth="1.2" vectorEffect="non-scaling-stroke"
+                        />
+                    </svg>
+                    <div className="absolute bottom-15 left-12 z-20">
+                        <h1 className="text-5xl text-[#444] font-sans font-bold tracking-tight drop-shadow-sm transform scale-y-110">
+                            Race Lobby
+                        </h1>
+                    </div>
                 </div>
-              ))}
             </div>
-          </div>
 
-          {/* Waiting message or start button */}
-          {isHost ? (
-            <button
-              onClick={onStartRace}
-              style={{
-                width: '100%',
-                padding: '20px',
-                fontFamily: 'MKWii, Arial, sans-serif',
-                fontSize: '28px',
-                fontWeight: 'bold',
-                color: '#FFFFFF',
-                background: 'linear-gradient(180deg, #00CC00 0%, #008800 100%)',
-                border: '3px solid #00FF00',
-                borderRadius: '15px',
-                cursor: 'pointer',
-                boxShadow: '0 5px 15px rgba(0, 255, 0, 0.3)',
-                transition: 'all 0.2s',
-                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'scale(1.05)';
-                e.target.style.boxShadow = '0 8px 20px rgba(0, 255, 0, 0.5)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'scale(1)';
-                e.target.style.boxShadow = '0 5px 15px rgba(0, 255, 0, 0.3)';
-              }}
-            >
-              START RACE
-            </button>
-          ) : (
-            <div style={{
-              padding: '20px',
-              textAlign: 'center',
-              background: 'rgba(255, 165, 0, 0.2)',
-              border: '2px solid #FFA500',
-              borderRadius: '10px',
-            }}>
-              <span style={{
-                fontFamily: 'MKWii, Arial, sans-serif',
-                fontSize: '20px',
-                color: '#FFA500',
-                fontWeight: 'bold',
-              }}>
-                ⏳ Waiting for host to start the race...
-              </span>
+            {/* AREA CENTRALE */}
+            <div className="flex-1 flex flex-col items-center justify-center pt-[15vh] pb-4 px-8 w-full">
+                
+                {/* PANNELLO PRINCIPALE (Stile Dark/Gold) */}
+                <div className="w-full max-w-4xl h-[70vh] bg-black/80 border-4 border-[#aa8800] rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col p-6 backdrop-blur-md relative overflow-hidden">
+                    
+                    {/* Background Rigato Sottile Pannello */}
+                    <div className="absolute inset-0 opacity-10 pointer-events-none" 
+                            style={{backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,215,0,0.2) 2px, rgba(255,215,0,0.2) 4px)"}}>
+                    </div>
+
+                    {/* Header Pannello (Room ID & Host Status) */}
+                    <div className="flex justify-between items-center border-b-2 border-[#aa8800] pb-4 mb-4 z-10">
+                        <div className="flex flex-col">
+                            <span className="text-[#aa8800] text-sm font-bold uppercase tracking-widest">Room ID</span>
+                            <span className="text-3xl font-mono font-bold text-white tracking-wider drop-shadow-md">
+                                {roomId || 'N/A'}
+                            </span>
+                        </div>
+
+                        {isHost && (
+                            <div className="bg-[#ffcc00] text-black px-4 py-1 rounded-full border-2 border-white shadow-md animate-pulse">
+                                <span className="font-black uppercase tracking-wide text-sm">👑 You are Host</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* LISTA GIOCATORI */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 z-10">
+                        <div className="flex justify-between items-end mb-2 px-2">
+                            <h3 className="text-2xl font-black text-[#ffcc00] uppercase tracking-wide drop-shadow-md">
+                                Racers
+                            </h3>
+                            <span className="text-[#ddccaa] font-bold text-lg">
+                                {players.length} / 12
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2">
+                            {players.map((player, index) => (
+                                <div 
+                                    key={player.id || index} 
+                                    className={`
+                                        group relative h-14 flex items-center px-4 rounded border-l-4 shadow-sm transition-all
+                                        ${player.isHost 
+                                            ? 'bg-gradient-to-r from-[#332200] to-transparent border-[#ffcc00]' 
+                                            : 'bg-gradient-to-r from-[#111] to-transparent border-[#666]'
+                                        }
+                                    `}
+                                >
+                                    {/* Numero */}
+                                    <div className="w-8 text-[#666] font-mono text-xl font-bold mr-4">
+                                        {index + 1}.
+                                    </div>
+
+                                    {/* Nome & Icona */}
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <span className="text-2xl filter drop-shadow-sm">{player.isHost ? '👑' : '🏎️'}</span>
+                                        <span className={`text-xl font-bold tracking-wide ${player.isHost ? 'text-[#ffcc00]' : 'text-white'}`}>
+                                            Player {index + 1}
+                                        </span>
+                                    </div>
+
+                                    {/* Status Ready */}
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#00ff00] shadow-[0_0_8px_#00ff00] animate-pulse"></div>
+                                        <span className="text-[#00ff00] font-bold uppercase text-xs tracking-wider">Ready</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* FOOTER ACTIONS (Start Button / Waiting Message) */}
+                    <div className="mt-6 pt-4 border-t border-[#aa8800]/50 z-10 flex justify-center">
+                        {isHost ? (
+                            <button
+                                onClick={onStartRace}
+                                className="group relative w-full md:w-2/3 py-4 bg-[#22c55e] border-y-2 border-x-4 border-[#15803d] rounded-full shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
+                                           flex items-center justify-center overflow-hidden transition-all duration-200 
+                                           hover:scale-105 hover:brightness-110 hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] active:scale-95"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 ease-in-out"></div>
+                                <span className="text-3xl font-black text-white uppercase tracking-widest drop-shadow-md flex items-center gap-3">
+                                    🏁 Start Race
+                                </span>
+                            </button>
+                        ) : (
+                            <div className="w-full md:w-2/3 py-4 bg-black/40 border-2 border-[#ffcc00] rounded-full flex items-center justify-center gap-3 animate-pulse">
+                                <span className="w-3 h-3 bg-[#ffcc00] rounded-full"></span>
+                                <span className="text-[#ffcc00] font-bold uppercase tracking-wider text-lg">
+                                    Waiting for Host...
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                </div>
             </div>
-          )}
+            
+            {/* Footer Text */}
+            <div className="h-[8vh] flex justify-center items-start z-20">
+                 <span className="text-gray-400 font-mono text-sm bg-black/50 px-4 py-1 rounded-full border border-gray-600">
+                    {isHost ? 'Waiting for players...' : 'Prepare your engines!'}
+                 </span>
+            </div>
 
-          {/* Info message */}
-          <div style={{
-            marginTop: '20px',
-            textAlign: 'center',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '14px',
-            color: '#888888',
-            fontStyle: 'italic',
-          }}>
-            {isHost 
-              ? 'Click "START RACE" when everyone is ready'
-              : 'The host will start the race soon'}
-          </div>
         </div>
       </div>
+
+      {/* Scrollbar Custom CSS (Dorata) */}
+      <style>{`
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 10px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: rgba(0,0,0,0.4);
+                border-left: 1px solid #aa8800;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: linear-gradient(to bottom, #aa8800, #ffcc00, #aa8800);
+                border: 2px solid #332200;
+                border-radius: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #ffcc00;
+            }
+      `}</style>
     </>
   );
 };

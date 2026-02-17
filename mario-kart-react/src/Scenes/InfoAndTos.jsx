@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'; 
+import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
 export const InfoAndTos = () => {
   const [data, setData] = useState(null);
@@ -25,223 +25,209 @@ export const InfoAndTos = () => {
       });
   }, []);
 
-  const styles = {
-    container: {
-      width: '100vw', 
-      height: '100vh', 
-      position: 'absolute', 
-      top: 0, 
-      left: 0,
-      background: `repeating-linear-gradient(0deg, #050505, #050505 2px, #111 2px, #111 4px)`,
-      display: 'flex', 
-      flexDirection: 'column', 
-      overflow: 'hidden', 
-      fontFamily: 'sans-serif',
-      color: 'white',
-      userSelect: 'none'
-    },
-    header: {
-      height: '8vh', 
-      background: 'white', 
-      display: 'flex', 
-      alignItems: 'center', 
-      paddingLeft: '4vw',
-      borderBottom: '0.6vh solid #aaddff', 
-      borderBottomRightRadius: '50px', 
-      width: '55%',
-      fontSize: '4vh', 
-      fontWeight: 'bold', 
-      color: '#666', 
-      fontStyle: 'italic', 
-      zIndex: 10,
-      boxShadow: '0 5px 10px rgba(0,0,0,0.5)',
-      flexShrink: 0
-    },
-    content: {
-      flex: 1, 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      padding: '2vh 4vh',
-      overflow: 'hidden' 
-    },
-    tabsContainer: {
-        display: 'flex',
-        gap: '20px',
-        marginBottom: '2vh',
-        width: '80%',
-        maxWidth: '800px',
-        justifyContent: 'center',
-        flexShrink: 0
-    },
-    tabButton: (isActive, color) => ({
-        flex: 1,
-        padding: '1vh 1vw',
-        fontSize: '2.5vh',
-        fontWeight: 'bold',
-        borderRadius: '50px',
-        border: isActive ? `0.4vh solid ${color}` : '0.3vh solid #555',
-        background: isActive ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.5)',
-        color: isActive ? color : '#888',
-        cursor: 'pointer',
-        textTransform: 'uppercase',
-        boxShadow: isActive ? `0 0 15px ${color}` : 'none',
-        transition: 'all 0.2s',
-        textAlign: 'center'
-    }),
-    textBoxWrapper: {
-        flex: 1, 
-        width: '80%',
-        maxWidth: '1000px',
-        background: 'rgba(255,255,255,0.05)',
-        border: '0.2vh solid #444',
-        borderRadius: '1vh',
-        padding: '3vh',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)'
-    },
-    titleBar: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        borderBottom: '1px solid #555',
-        paddingBottom: '1vh',
-        marginBottom: '1vh',
-        flexShrink: 0
-    },
-    scrollableText: {
-        flex: 1,
-        overflowY: 'auto', 
-        paddingRight: '10px',
-        fontSize: '2.2vh',
-        lineHeight: '1.6',
-        color: '#ddd',
-        whiteSpace: 'pre-line',
-        textAlign: 'left'
-    },
-    footer: {
-      height: '10vh', 
-      display: 'flex', 
-      justifyContent: 'center', // CENTERED
-      alignItems: 'center',
-      background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
-      flexShrink: 0,
-      width: '100%'
-    },
-    backButton: {
-      padding: '1vh 6vw', // Wider button
-      fontSize: '2.5vh', 
-      fontWeight: 'bold', 
-      borderRadius: '50px',
-      border: '0.3vh solid white', 
-      cursor: 'pointer', 
-      textTransform: 'uppercase',
-      background: '#ccc', 
-      color: '#333',
-      boxShadow: '0 4px 5px rgba(0,0,0,0.5)',
-      transition: 'transform 0.1s'
-    }
+  const handleBack = () => {
+      playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+      navigate(-1);
   };
 
+  const handleTabChange = (tab) => {
+      if (activeTab !== tab) {
+          playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+          setActiveTab(tab);
+      }
+  };
+
+  // --- 2. RENDER STILE MKWII (Dark/Gold) ---
+
+  // Loading State
   if (loading) return (
-    <div style={styles.container}>
-        <div style={{...styles.header, width: '100%'}}>LOADING...</div>
+    <div className="w-screen h-screen flex items-center justify-center bg-black text-[#ffcc00] font-sans font-bold text-3xl tracking-widest uppercase">
+        <div className="animate-pulse">Loading Data...</div>
     </div>
   );
 
+  // Error State
   if (!data) return (
-    <div style={styles.container}>
-         <div style={{...styles.header, width: '100%', color: 'red'}}>ERROR CONNECTION</div>
+    <div className="w-screen h-screen flex flex-col items-center justify-center bg-black text-white gap-6">
+         <h1 className="text-4xl font-bold text-red-500 tracking-wider">CONNECTION ERROR</h1>
+         <button 
+            onClick={handleBack} 
+            className="px-8 py-3 bg-gray-800 border-2 border-gray-500 text-white rounded-full hover:bg-gray-700 hover:border-white transition-all uppercase font-bold"
+         >
+            Return to Menu
+         </button>
     </div>
   );
 
   const currentContent = activeTab === 'tos' ? data.tos : data.privacy;
-  const activeColor = activeTab === 'tos' ? '#22c55e' : '#00aeff'; 
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        Information Board
-      </div>
-
-      <div style={styles.content}>
+    <div className="w-screen h-screen relative overflow-hidden font-sans select-none text-white">
         
-        {/* Tabs */}
-        <div style={styles.tabsContainer}>
-            <button 
-                style={styles.tabButton(activeTab === 'tos', '#22c55e')}
-                onClick={() => {
-                    setActiveTab('tos');
-                    playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
-                }}
-            >
-                🏁 Rules & TOS
-            </button>
-            <button 
-                style={styles.tabButton(activeTab === 'privacy', '#00aeff')}
-                onClick={() => {
-                    setActiveTab('privacy');
-                    playSfx(AUDIO_SFX.MOVE_IN_MENU, 10);
-                }}
-            >
-                🛡️ Privacy
-            </button>
-        </div>
+        {/* BACKGROUND LAYER */}
+        <div 
+            className="absolute inset-0 z-0 bg-cover bg-center scale-110"
+            style={{ 
+                backgroundImage: "url('/sprites/TitleScreen.jpg')",
+                filter: "blur(6px)"
+            }}
+        />
 
-        {/* Text Content */}
-        <div style={styles.textBoxWrapper}>
-            <div style={styles.titleBar}>
-                <span style={{fontSize: '3vh', color: '#ffe600', fontWeight: 'bold'}}>
-                    {currentContent.title}
-                </span>
-                <span style={{fontSize: '1.5vh', color: '#888', fontFamily: 'monospace'}}>
-                    Updated: {currentContent.lastUpdated}
-                </span>
-            </div>
+        {/* SCANLINES OVERLAY */}
+        <div 
+            className="absolute inset-0 z-10 opacity-80"
+            style={{
+                background: "repeating-linear-gradient(0deg, rgba(255,255,255,0.6) 0px, rgba(255,255,255,0.6) 4px, rgba(230,230,230,0.8) 4px, rgba(230,230,230,0.8) 8px)"
+            }}
+        />
+
+        {/* UI CONTENT */}
+        <div className="relative z-20 w-full h-full flex flex-col">
             
-            <div className="custom-scrollbar" style={styles.scrollableText}>
-                {currentContent.content}
+            {/* HEADER CURVO (Stile MKWii con SVG corretto) */}
+            <div className="w-full h-[18vh] absolute top-0 left-0 z-30 pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-full z-10 filter drop-shadow-md">
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-[85%]">
+                        {/* Curva che 'evita' il tasto in alto a destra */}
+                        <path 
+                            d="M 0,0 L 100,0 L 100,35 C 96,35 94,88 82,98 L 0,98 Z" 
+                            fill="white" stroke="#8899ff" strokeWidth="1.2" vectorEffect="non-scaling-stroke"
+                        />
+                    </svg>
+                    <div className="absolute bottom-15 left-12 z-20">
+                        <h1 className="text-5xl text-[#444] font-sans font-bold tracking-tight drop-shadow-sm transform scale-y-110">
+                            Privacy Policy and TOS
+                        </h1>
+                    </div>
+                </div>
+            </div>
+
+            {/* AREA CENTRALE (Pannello Dati) */}
+            <div className="flex-1 flex flex-col items-center justify-center pt-[15vh] pb-4 px-8 w-full">
+                
+                {/* CONTAINER PRINCIPALE (Stile Dark/Gold) */}
+                <div className="w-full max-w-6xl h-[65vh] flex gap-6">
+                    
+                    {/* COLONNA SINISTRA (Tabs / Pulsanti) */}
+                    <div className="w-1/3 flex flex-col gap-6 pt-4">
+                        
+                        {/* Tab Button: Rules */}
+                        <button
+                            onClick={() => handleTabChange('tos')}
+                            className={`
+                                group relative w-full h-24 border-y-2 border-x-4 rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
+                                flex items-center justify-between px-6 overflow-hidden transition-all duration-200
+                                ${activeTab === 'tos' 
+                                    ? 'bg-black/80 border-[#ffcc00] shadow-[0_0_20px_rgba(255,215,0,0.6)] scale-105 z-10' 
+                                    : 'bg-black/60 border-[#aa8800] hover:border-[#ffeebb] hover:bg-black/70 hover:scale-105'
+                                }
+                            `}
+                        >
+                            {/* Bagliore interno */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+
+                            {/* Testo */}
+                            <div className="flex-1 text-right">
+                                <span className={`text-2xl font-bold uppercase tracking-tight drop-shadow-md
+                                    ${activeTab === 'tos' ? 'text-white' : 'text-[#ddccaa] group-hover:text-white'}
+                                `}>
+                                    Rules & TOS
+                                </span>
+                            </div>
+                        </button>
+
+                        {/* Tab Button: Privacy */}
+                        <button
+                            onClick={() => handleTabChange('privacy')}
+                            className={`
+                                group relative w-full h-24 border-y-2 border-x-4 rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
+                                flex items-center justify-between px-6 overflow-hidden transition-all duration-200
+                                ${activeTab === 'privacy' 
+                                    ? 'bg-black/80 border-[#ffcc00] shadow-[0_0_20px_rgba(255,215,0,0.6)] scale-105 z-10' 
+                                    : 'bg-black/60 border-[#aa8800] hover:border-[#ffeebb] hover:bg-black/70 hover:scale-105'
+                                }
+                            `}
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+{/*                             
+                            <div className={`flex items-center justify-center w-14 h-14 rounded-full border-2 shadow-inner transition-colors
+                                ${activeTab === 'privacy' ? 'bg-black/50 border-[#ffcc00]' : 'bg-black/30 border-[#aa8800] group-hover:border-[#ffcc00]'}
+                            `}>
+                                <span className="text-2xl filter drop-shadow-md">🛡️</span>
+                            </div> */}
+
+                            <div className="flex-1 text-right">
+                                <span className={`text-2xl font-bold uppercase tracking-tight drop-shadow-md
+                                    ${activeTab === 'privacy' ? 'text-white' : 'text-[#ddccaa] group-hover:text-white'}
+                                `}>
+                                    Privacy
+                                </span>
+                            </div>
+                        </button>
+
+                    </div>
+
+                    {/* COLONNA DESTRA (Contenuto Testuale) */}
+                    <div className="flex-1 h-full bg-black/60 border-4 border-[#aa8800] rounded-lg shadow-[0_0_40px_rgba(0,0,0,0.6)] flex flex-col relative backdrop-blur-md overflow-hidden">
+                        
+                        {/* Background Rigato Sottile */}
+                        <div className="absolute inset-0 opacity-10 pointer-events-none" 
+                             style={{backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,215,0,0.2) 2px, rgba(255,215,0,0.2) 4px)"}}>
+                        </div>
+
+                        {/* Header Contenuto */}
+                        <div className="h-24 border-b-2 border-[#aa8800] flex flex-col justify-center px-8 bg-black/40 z-10">
+                            <h2 className="text-3xl font-black text-[#ffcc00] uppercase tracking-wide drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
+                                {currentContent?.title}
+                            </h2>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-[#aa8800] uppercase font-bold tracking-wider">Last Updated:</span>
+                                <span className="text-sm text-white font-mono">{currentContent?.lastUpdated}</span>
+                            </div>
+                        </div>
+
+                        {/* Testo Scrollabile */}
+                        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar z-10">
+                            <p className="whitespace-pre-line text-xl text-[#eee] leading-relaxed font-medium drop-shadow-md">
+                                {currentContent?.content}
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {/* FOOTER / BACK BUTTON */}
+            <div className="h-[12vh] w-full flex items-center px-12 relative z-30">
+                <div className="absolute bottom-2 left-0 w-full h-1 bg-gradient-to-r from-gray-400 via-gray-200 to-transparent"></div>
+                <button 
+                    onClick={handleBack}
+                    className="flex items-center gap-3 bg-white px-8 py-2 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer"
+                >
+                    <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50">B</div>
+                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Back</span>
+                </button>
             </div>
         </div>
-      </div>
 
-      <div style={styles.footer}>
-        <button 
-            style={styles.backButton}
-            onClick={() => {
-                playSfx(AUDIO_SFX.BACK, 10);
-                navigate(-1);
-            }} 
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-        >
-            Back
-        </button>
-      </div>
-
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.3);
-            border-radius: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: ${activeColor};
-            border-radius: 5px;
-            border: 2px solid rgba(0,0,0,0.3);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: white;
-        }
-      `}</style>
+        {/* Scrollbar Custom CSS (Stile Dorato) */}
+        <style>{`
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 14px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: rgba(0,0,0,0.4);
+                border-left: 1px solid #aa8800;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: linear-gradient(to bottom, #aa8800, #ffcc00, #aa8800);
+                border: 2px solid #332200;
+                border-radius: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #ffcc00;
+            }
+        `}</style>
     </div>
   );
 };
-
-export default InfoAndTos;

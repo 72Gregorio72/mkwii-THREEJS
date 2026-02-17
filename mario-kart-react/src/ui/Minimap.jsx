@@ -54,7 +54,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                 const botCharacter = Characters.find(c => c.id === botId);
                 if (botCharacter?.icon) {
                     const iconPath = botCharacter.icon.replace('./icons/', '/Icons/');
-                    console.log(`[Minimap] Bot ${botId} icon path:`, iconPath);
+                    // console.log(`[Minimap] Bot ${botId} icon path:`, iconPath);
                     imagesToLoad.push({ key: botId, src: iconPath });
                 }
             });
@@ -66,7 +66,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
             opponents.forEach(opp => {
                 if (opp.characterIcon) {
                     const iconPath = opp.characterIcon.replace('./icons/', '/Icons/');
-                    console.log(`[Minimap] Opponent ${opp.id} icon path:`, iconPath);
+                    // console.log(`[Minimap] Opponent ${opp.id} icon path:`, iconPath);
                     imagesToLoad.push({ key: opp.id, src: iconPath });
                 }
             });
@@ -84,7 +84,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
         imagesToLoad.forEach(({ key, src }) => {
             const img = new Image();
             img.onload = () => {
-                console.log(`[Minimap] ✓ Loaded icon for ${key}:`, src);
+                // console.log(`[Minimap] ✓ Loaded icon for ${key}:`, src);
                 loadedImages[key] = img;
                 loadedCount++;
                 if (loadedCount === imagesToLoad.length) {
@@ -93,7 +93,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                 }
             };
             img.onerror = (e) => {
-                console.error(`[Minimap] ✗ Failed to load icon for ${key}:`, src, e);
+                // console.error(`[Minimap] ✗ Failed to load icon for ${key}:`, src, e);
                 loadedCount++;
                 if (loadedCount === imagesToLoad.length) {
                     //console.log('[Minimap] Finished loading (with errors):', Object.keys(loadedImages));
@@ -281,7 +281,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                 ref={canvasRef}
                 width={300}
                 height={300}
-                style={{ width: '100%', height: '100%' }}
+                style={{ position: 'relative', width: '100%', height: '100%' }}
             />
         </div>
     );

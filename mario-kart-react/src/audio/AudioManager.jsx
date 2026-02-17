@@ -147,7 +147,7 @@ export const AudioProvider = ({ children }) => {
     
     // Se è la stessa traccia ma è in pausa, riavviala
     if (currentTrackRef.current === url && bgmRef.current && bgmRef.current.paused) {
-      console.log('[AudioManager] Stessa traccia in pausa, riprendo riproduzione');
+      // console.log('[AudioManager] Stessa traccia in pausa, riprendo riproduzione');
       bgmRef.current.play().catch(e => console.warn("Errore riavvio musica:", e));
       return;
     }
@@ -407,7 +407,7 @@ export const AudioProvider = ({ children }) => {
 
     // Clamp i valori tra 0.5 e 2.0
     const targetPlaybackRate = Math.max(0.5, Math.min(pitch * speed, 2.0));
-    console.log(`[AudioManager] setMusicPitch: ${targetPlaybackRate} (pitch: ${pitch}, speed: ${speed}), audio paused: ${wasPaused}`);
+    // console.log(`[AudioManager] setMusicPitch: ${targetPlaybackRate} (pitch: ${pitch}, speed: ${speed}), audio paused: ${wasPaused}`);
     
     // Applica il cambio di pitch/velocità con fade se fadeDuration è specificato
     if (fadeDuration > 0) {
@@ -498,6 +498,35 @@ export const AudioProvider = ({ children }) => {
   }, [isMuted]);
 
   // ============================================
+  // FUNZIONE: fadeOutMusic()
+  // Esegue un fade out della musica corrente
+  // Default: 700ms (0.7 secondi)
+  // ============================================
+  const fadeOutMusic = useCallback((fadeDuration = 700) => {
+    if (!bgmRef.current || bgmRef.current.paused) return;
+
+    // Pulisci eventuali fade in corso
+    if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
+    if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
+
+    const audio = bgmRef.current;
+    const startVolume = audio.volume;
+    const intervalMs = 30;
+    const step = startVolume / (fadeDuration / intervalMs);
+
+    fadeOutIntervalRef.current = setInterval(() => {
+      if (audio.volume > step) {
+        audio.volume -= step;
+      } else {
+        audio.volume = 0;
+        audio.pause();
+        clearInterval(fadeOutIntervalRef.current);
+        fadeOutIntervalRef.current = null;
+      }
+    }, intervalMs);
+  }, []);
+
+  // ============================================
   // EFFETTI (useEffect)
   // ============================================
 
@@ -548,6 +577,7 @@ export const AudioProvider = ({ children }) => {
     getCurrentTrack,
     duckMusicVolume,
     restoreMusicVolume,
+    fadeOutMusic,
   };
 
   return (

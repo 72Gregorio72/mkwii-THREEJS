@@ -133,11 +133,11 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
                                     {/* Image Box */}
                                     <div 
                                         className="flex-1 w-full bg-cover bg-center relative"
-                                        style={{ backgroundImage: `url(${track.preview || '/placeholder_track.png'})` }}
+                                        style={{ backgroundImage: `url("${track.preview || '/placeholder_track.png'}")` }}
                                     >
                                         {!track.preview && (
                                             <div className="absolute top-[40%] w-full text-center opacity-50 font-bold">
-                                                NO PREVIEW
+                                                
                                             </div>
                                         )}
                                     </div>
@@ -156,12 +156,14 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
                 </div>
 
                 {/* Footer */}
-                <div className="h-[10vh] flex justify-between px-[4vw] items-center bg-gradient-to-t from-black/80 to-transparent z-20">
+                <div className="h-[12vh] flex justify-between px-12 items-center relative z-20">
+                    <div className="absolute bottom-2 left-0 w-full h-1 bg-gradient-to-r from-gray-400 via-gray-200 to-transparent"></div>
                     <button 
-                        onClick={() => navigate('/vehicle')}
-                        className="py-[1vh] px-[3vw] text-[2.5vh] font-bold rounded-full border-[0.3vh] border-white cursor-pointer uppercase shadow-md bg-[#ccc] text-[#333] hover:bg-white transition-all active:scale-95"
+                        onClick={() => {navigate('/vehicle'); playSfx(AUDIO_SFX.BACK_IN_MENU, 10);}}
+                        className="flex items-center gap-3 bg-white px-8 py-2 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer"
                     >
-                        Back
+                        <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50">B</div>
+                        <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Back</span>
                     </button>
                     <button 
                         onClick={() => { handleConfirm(); playSfx(AUDIO_SFX.START_RACE, 10); }}
