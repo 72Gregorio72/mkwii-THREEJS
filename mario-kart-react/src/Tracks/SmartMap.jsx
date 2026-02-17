@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
@@ -28,6 +28,26 @@ export function SmartMap({ modelPath, scale = 1 }) {
     
     return clone
   }, [scene])
+
+  // Cleanup: disposa risorse quando il componente viene smontato
+  useEffect(() => {
+    return () => {
+      if (visualScene) {
+        visualScene.traverse((child) => {
+          if (child.isMesh) {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(mat => mat.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+          }
+        });
+      }
+    };
+  }, [visualScene]);
 
   return (
     <group scale={[scale, scale, scale]}>

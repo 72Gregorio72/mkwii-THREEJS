@@ -1,12 +1,14 @@
 import { useRef, useMemo, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { useGLTF, Text } from '@react-three/drei' // Aggiunto Text per debug visivo
+import { useGLTF, Text } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
+
+const DEBUG_CHECKPOINTS = false; // Disabilita visualizzazione per performance
 
 export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
     const { scene } = useGLTF(url);
     const hitsQueue = useRef([]);
-    const [lastHit, setLastHit] = useState(null); // Stato locale solo per il feedback visivo del debug
+    const [lastHit, setLastHit] = useState(null);
 
     const sensors = useMemo(() => {
         const boxes = [];
@@ -17,9 +19,6 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
                 const id = parseInt(numberOnly);
                 
                 if (!isNaN(id)) {
-                    // Logga in console cosa sta trovando il sistema al caricamento
-                    // console.log(`[Checkpoint Debug] Creato sensore ID: ${id} dalla mesh: ${rawName}`);
-                    
                     boxes.push({
                         id: id,
                         position: child.position.clone(),
@@ -44,8 +43,9 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
     useFrame(() => {
         if (hitsQueue.current.length > 0) {
             hitsQueue.current.forEach((hit) => {
-                setLastHit({ cpId: hit.cpId, racerId: hit.racerId, time: Date.now() });
-                
+                if (DEBUG_CHECKPOINTS) {
+                    setLastHit({ cpId: hit.cpId, racerId: hit.racerId, time: Date.now() });
+                }
                 onCheckpointTrigger(hit.cpId, hit.racerId);
             });
             hitsQueue.current = [];
@@ -55,21 +55,22 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
     return (
         <group>
             {sensors.map((box, index) => {
-                // Cambia colore se è stato l'ultimo colpito negli ultimi 500ms
-                const isRecentlyHit = lastHit?.cpId === box.id && (Date.now() - lastHit.time < 500);
+                const isRecentlyHit = DEBUG_CHECKPOINTS && lastHit?.cpId === box.id && (Date.now() - lastHit.time < 500);
                 
                 return (
                     <group key={`debug-group-${box.id}-${index}`}>
-                        {/* Etichetta testuale sopra il checkpoint */}
-                        <Text
-                            position={[box.position.x, box.position.y + 2, box.position.z]}
-                            fontSize={0.5}
-                            color="white"
-                            anchorX="center"
-                            anchorY="middle"
-                        >
-                            {`CP ${box.id}`}
-                        </Text>
+                        {/* Etichetta testuale solo in debug mode */}
+                        {DEBUG_CHECKPOINTS && (
+                            <Text
+                                position={[box.position.x, box.position.y + 2, box.position.z]}
+                                fontSize={0.5}
+                                color="white"
+                                anchorX="center"
+                                anchorY="middle"
+                            >
+                                {`CP ${box.id}`}
+                            </Text>
+                        )}
 
                         <RigidBody
                             type="fixed" 
@@ -82,18 +83,14 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
                             onIntersectionEnter={(payload) => {
                                 const otherBody = payload.other.rigidBodyObject;
                                 
-                                // Controllo di sicurezza per evitare errori se rigidBodyObject è null
                                 if (!otherBody) return;
                                 
-                                // DEBUG: Se colpisci qualcosa che NON è un racer, logga comunque per capire cosa succede
                                 if (!otherBody.userData || otherBody.userData.type !== 'racer') {
-                                    console.log(`[Debug] Qualcosa ha toccato CP ${box.id} ma non è un racer:`, otherBody.name || 'Unknown');
                                     return;
                                 }
 
                                 const racerId = otherBody.userData.id;
                                 if (!racerId) {
-                                    console.warn(`[Checkpoint] Racer senza ID ha toccato CP ${box.id}`);
                                     return;
                                 }
                                 
@@ -108,15 +105,17 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
                                 }
                             }}
                         >
-                            <mesh geometry={box.geometry}>
-                                <meshBasicMaterial 
-                                    visible={true} 
-                                    color={isRecentlyHit ? "yellow" : "red"} 
-                                    wireframe 
-                                    transparent
-                                    opacity={0.5}
-                                />
-                            </mesh>
+                            {DEBUG_CHECKPOINTS && (
+                                <mesh geometry={box.geometry}>
+                                    <meshBasicMaterial 
+                                        visible={true} 
+                                        color={isRecentlyHit ? "yellow" : "red"} 
+                                        wireframe 
+                                        transparent
+                                        opacity={0.5}
+                                    />
+                                </mesh>
+                            )}
                         </RigidBody>
                     </group>
                 );

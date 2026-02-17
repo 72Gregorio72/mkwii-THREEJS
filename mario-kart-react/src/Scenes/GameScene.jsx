@@ -29,10 +29,11 @@ import { GreenShell } from '../Items/GreenShell';
 import { RedShell } from '../Items/RedShell';
 import { BobOmb } from '../Items/BobOmb.jsx'
 import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
+import { useWebGLContext, useWebGLMemoryMonitor } from '../utils/WebGLContextManager.jsx';
 import { gsap } from 'gsap'
 
 const TOTAL_LAPS = 3;
-const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
+const BOT_COUNT = 7; // Ridotto da 11 a 7 per performance (1 Player + 7 Bots = 8 Racers totali)
 
 // --- HELPERS ---
 
@@ -122,6 +123,13 @@ function CinematicCamera({ gameState, playerStartPos, playerStartRot }) {
         }
     });
 
+    return null;
+}
+
+// Componente per gestire sicurezza WebGL
+function WebGLSafetyManager() {
+    useWebGLContext();
+    useWebGLMemoryMonitor();
     return null;
 }
 
@@ -323,9 +331,9 @@ export function GameScene({
 
     // 2. SETUP STATI GARA
     const { initialRacersData, initialPositions } = useMemo(() => {
-        const data = {
-            player: { id: socket.id, lap: 1, nextCP: 1, score: 0 }
-        };
+        const data = {};
+        // Usa socket.id come chiave invece di 'player'
+        data[socket.id] = { id: socket.id, lap: 1, nextCP: 1, score: 0, position: 1, name: character.name };
         const positions = [{ id: socket.id, position: 1 }]; // Player parte primo in multiplayer
         
         // In multiplayer (roomCode presente) non creiamo bot
@@ -333,13 +341,13 @@ export function GameScene({
         if (!roomCode && botConfigurations.length > 0) {
             botConfigurations.forEach((botConfig, i) => {
                 const botId = botConfig.character.id;
-                data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0 };
+                data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0, position: i + 2, name: botConfig.character.name };
                 positions.push({ id: botId, position: i + 2 });
             });
         }
 
         return { initialRacersData: data, initialPositions: positions };
-    }, [roomCode, botConfigurations]);
+    }, [roomCode, botConfigurations, character]);
 
 	const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
 	const startingGridPlayed = useRef(false);
@@ -587,7 +595,9 @@ export function GameScene({
                     lap: 1, 
                     nextCP: 1, 
                     score: 0,
-                    isRemote: true 
+                    position: 99,
+                    isRemote: true,
+                    name: opp.character?.name || 'Unknown'
                 };
             }
         });
@@ -643,8 +653,6 @@ export function GameScene({
 
     // Checkpoint Trigger
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
-        console.log("[debug] racer id in gamescene for lap: ", racersData.current[racerId]);
-
         if (!racerId || !racersData.current[racerId]) return;
         const racer = racersData.current[racerId];
         
@@ -654,8 +662,17 @@ export function GameScene({
         } 
         else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
             racer.lap += 1;
+            console.log(`[Checkpoint] Racer ${racerId} completed lap ${racer.lap - 1}, now on lap ${racer.lap}`);
             
+            // Aggiorna UI se è il player
             if (racerId === socket.id) {
+                setUiLap(racer.lap);
+                
+                // Invia lap aggiornato via socket
+                if (roomCode) {
+                    socket.emit('update_lap', { lap: racer.lap });
+                }
+                
                 if (racer.lap === 2) {
                     playSfx(AUDIO_SFX.SECOND_LAP, 3);
                 }
@@ -701,7 +718,7 @@ export function GameScene({
                 setUiLap(racer.lap);
             }
         }
-    }, [maxCheckpoints, playSfx, setMusicPitch, stopMusic]);
+    }, [maxCheckpoints, playSfx, setMusicPitch, stopMusic, changeTrack, socket, roomCode]);
 
     // Calcolo Targets per Gusci (Red/Blue)
 
@@ -813,8 +830,27 @@ export function GameScene({
                 </div>
             )}
 
-            <Canvas>
+            <Canvas
+                gl={{
+                    powerPreference: "high-performance",
+                    antialias: true,
+                    stencil: false,
+                    depth: true,
+                    alpha: false,
+                    preserveDrawingBuffer: false,
+                    failIfMajorPerformanceCaveat: false
+                }}
+                dpr={[1, 2]} // Limita pixel ratio per performance
+                frameloop="always"
+                performance={{ min: 0.5 }} // Degrada performance se necessario
+                onCreated={({ gl }) => {
+                    gl.toneMapping = THREE.ACESFilmicToneMapping;
+                    gl.toneMappingExposure = 1.0;
+                    gl.outputColorSpace = THREE.SRGBColorSpace;
+                }}
+            >
                 <AudioListenerComponent />
+                <WebGLSafetyManager />
                 
                 <CinematicCamera 
                     gameState={gameState} 
@@ -1027,8 +1063,7 @@ export function GameScene({
                                     trackRef={trackRef} 
                                     trackConfig={selectedTrack} 
                                     isBot={true}
-                                    paths={selectedTrack.Waypoints} 
-                                    onCheckpoint={(idx) => handleCheckpointTrigger(idx, botId)}
+                                    paths={selectedTrack.Waypoints}
 									roomCode={roomCode}
                                 /> 
                             </group>
