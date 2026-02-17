@@ -24,11 +24,23 @@ export class UsersService {
 
   async findOne(username: string): Promise<User | null> {
     const prisma = new PrismaClient()
-      return prisma.user.findFirst({
-        where: {
-          username: username.toLowerCase()
-        },
-      });
+
+    const userFound = await prisma.user.findUnique({
+      where: {
+        username: username.toLowerCase(),
+          },
+        });
+        if (!userFound) {
+          return null;
+        }
+        return userFound;
+
+    // const prisma = new PrismaClient()
+    //   return prisma.user.findFirst({
+    //     where: {
+    //       username: username.toLowerCase()
+    //     },
+    //   });
   }
 
   async addUser(data: any): Promise<User> {
