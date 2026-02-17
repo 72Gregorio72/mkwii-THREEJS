@@ -33,7 +33,7 @@ import { useWebGLContext, useWebGLMemoryMonitor } from '../utils/WebGLContextMan
 import { gsap } from 'gsap'
 
 const TOTAL_LAPS = 3;
-const BOT_COUNT = 7; // Ridotto da 11 a 7 per performance (1 Player + 7 Bots = 8 Racers totali)
+const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
 
 // --- HELPERS ---
 
@@ -652,73 +652,85 @@ export function GameScene({
     }, [selectedTrack, changeTrack, gameState, finished, stopMusic, setMusicPitch]);
 
     // Checkpoint Trigger
-    const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
-        if (!racerId || !racersData.current[racerId]) return;
-        const racer = racersData.current[racerId];
-        
-        if (hitIndex === racer.nextCP && hitIndex !== 0) {
-            racer.nextCP += 1;
-            if (racerId === socket.id) setNextCheck(racer.nextCP);
-        } 
-        else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
-            racer.lap += 1;
-            console.log(`[Checkpoint] Racer ${racerId} completed lap ${racer.lap - 1}, now on lap ${racer.lap}`);
-            
-            // Aggiorna UI se è il player
-            if (racerId === socket.id) {
-                setUiLap(racer.lap);
-                
-                // Invia lap aggiornato via socket
-                if (roomCode) {
-                    socket.emit('update_lap', { lap: racer.lap });
-                }
-                
-                if (racer.lap === 2) {
-                    playSfx(AUDIO_SFX.SECOND_LAP, 3);
-                }
-                else if (racer.lap === 3) {
-                    isFinalLap.current = true;
-                    playSfx(AUDIO_SFX.FINAL_LAP, 3);
-                    setMusicPitch(1.10, 1.10, 2000); // pitch 1.15x, speed 1.15x, fade 500ms
-                    setTimeout(() => {
-                        setMusicPitch(1.15, 1.15, 2000);
-                    }, 100);
-                }
-            }
-            
-            racer.nextCP = 1;
-            
-            // Check if racer finished the race
-            if (racer.lap > TOTAL_LAPS) {
-                // Add to finishers list
-                setFinishers(prev => {
-                    // Check if already in the list
-                    if (prev.some(f => f.id === racerId)) return prev;
-                    
-                    const finishPosition = prev.length + 1;
-                    return [...prev, { 
-                        id: racerId, 
-                        position: finishPosition,
-                        finishTime: null // Can add time later
-                    }];
-                });
-                
-                if (racerId === socket.id) {
-                    setFinished(true);
-                    playSfx(AUDIO_SFX.FINISH_RACE, 3);
-                    stopMusic();
-                    if (racer.position === 1)
-                        changeTrack('FINISH_FIRST', 0, false);
-                    else if (racer.position >= 2 && racer.position <= 4)
-                        changeTrack('FINISH_SECOND_FOURTH', 0, false);
-                    else
-                        changeTrack('FINISH_FIFTH_TWELFTH', 0, false);
-                }
-            } else if (racerId === socket.id) {
-                setUiLap(racer.lap);
-            }
-        }
-    }, [maxCheckpoints, playSfx, setMusicPitch, stopMusic, changeTrack, socket, roomCode]);
+	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
+		if (!racerId || !racersData.current[racerId]) return;
+		const racer = racersData.current[racerId];
+		console.log(`[Checkpoint] Racer ${racerId} hit checkpoint ${hitIndex}, expected ${racer.nextCP}`);
+		
+		if (hitIndex === racer.nextCP && hitIndex !== 0) {
+			racer.nextCP += 1;
+			if (racerId === socket.id) setNextCheck(racer.nextCP);
+		} 
+		else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
+			racer.lap += 1;
+			console.log(`[Checkpoint] Racer ${racerId} completed lap ${racer.lap - 1}, now on lap ${racer.lap}`);
+			
+			// Aggiorna UI se è il player
+			if (racerId === socket.id) {
+				setUiLap(racer.lap);
+				
+				// Invia lap aggiornato via socket
+				if (roomCode) {
+					socket.emit('update_lap', { lap: racer.lap });
+				}
+				
+				if (racer.lap === 2) {
+					playSfx(AUDIO_SFX.SECOND_LAP, 3);
+				}
+				else if (racer.lap === 3) {
+					isFinalLap.current = true;
+					playSfx(AUDIO_SFX.FINAL_LAP, 3);
+					setMusicPitch(1.10, 1.10, 2000);
+					setTimeout(() => {
+						setMusicPitch(1.15, 1.15, 2000);
+					}, 100);
+				}
+			}
+			
+			racer.nextCP = 1;
+			
+			// Check if racer finished the race
+			if (racer.lap > TOTAL_LAPS) {
+				// Add to finishers list
+				setFinishers(prev => {
+					// Check if already in the list
+					if (prev.some(f => f.id === racerId)) return prev;
+					
+					const finishPosition = prev.length + 1;
+					const finisherEntry = { 
+						id: racerId, 
+						position: finishPosition,
+						finishTime: null,
+						name: racer.name || 'Unknown'
+					};
+					
+					return [...prev, finisherEntry];
+				});
+				
+				if (racerId === socket.id) {
+					setFinished(true);
+					playSfx(AUDIO_SFX.FINISH_RACE, 3);
+					stopMusic();
+					if (racer.position === 1)
+						changeTrack('FINISH_FIRST', 0, false);
+					else if (racer.position >= 2 && racer.position <= 4)
+						changeTrack('FINISH_SECOND_FOURTH', 0, false);
+					else
+						changeTrack('FINISH_FIFTH_TWELFTH', 0, false);
+				}
+				
+				// Stop bot AI if it's a bot
+				if (!roomCode && botRefs.current[racerId]?.current) {
+					const botRef = botRefs.current[racerId].current;
+					if (botRef.stopAI) {
+						botRef.stopAI();
+					}
+				}
+			} else if (racerId === socket.id) {
+				setUiLap(racer.lap);
+			}
+		}
+	}, [maxCheckpoints, playSfx, setMusicPitch, stopMusic, changeTrack, socket, roomCode, botRefs]);
 
     // Calcolo Targets per Gusci (Red/Blue)
 
@@ -964,9 +976,6 @@ export function GameScene({
                             isMega: playerData.isMega
 
                         }
-                        // 2. FALLBACK DI SICUREZZA:
-                        // Se remoteVehicle è undefined, usa 'vehicle' (il tuo locale).
-                        // Se anche quello fallisce, prendi il PRIMO veicolo del database.
                         const safeVehicle = remoteVehicle || vehicle || VEHICLE_DATABASE['StandardKartS'];
                         const safeCharacter = remoteCharacter || character || Characters[0];
                         return (

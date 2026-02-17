@@ -464,7 +464,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const spinTimer = useRef(0);
   const frameCounter = useRef(Math.floor(Math.random() * 3)); 
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)
-  const racerId = (isBot ? "bot" : socket.id);
+  const racerId = userData?.id || (isBot ? "bot" : socket?.id);
 
   const billVisualsRef = useRef();
 

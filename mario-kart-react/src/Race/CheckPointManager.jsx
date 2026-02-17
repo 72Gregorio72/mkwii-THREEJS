@@ -105,17 +105,15 @@ export function CheckpointSystem({ url, onCheckpointTrigger, onSystemReady }) {
                                 }
                             }}
                         >
-                            {DEBUG_CHECKPOINTS && (
-                                <mesh geometry={box.geometry}>
-                                    <meshBasicMaterial 
-                                        visible={true} 
-                                        color={isRecentlyHit ? "yellow" : "red"} 
-                                        wireframe 
-                                        transparent
-                                        opacity={0.5}
-                                    />
-                                </mesh>
-                            )}
+                            <mesh geometry={box.geometry}>
+                                <meshBasicMaterial 
+                                    visible={DEBUG_CHECKPOINTS} 
+                                    color={isRecentlyHit ? "yellow" : "red"} 
+                                    wireframe 
+                                    transparent
+                                    opacity={0.5}
+                                />
+                            </mesh>
                         </RigidBody>
                     </group>
                 );
