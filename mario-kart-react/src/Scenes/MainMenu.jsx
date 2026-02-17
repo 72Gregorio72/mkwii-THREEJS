@@ -3,24 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
 // Componente per il singolo Pulsante del Menu (Stile MKWii Options)
-const MenuButton = ({ title, onClick, icon, color = "default" }) => {
+const MenuButton = ({ title, onClick, bgImage }) => {
     return (
         <button 
             onClick={onClick}
             className="group relative w-full max-w-2xl h-20 md:h-24 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
-                       flex items-center justify-between px-8 overflow-hidden transition-all duration-200 
+                       flex items-center justify-center px-8 overflow-hidden transition-all duration-200 
                        hover:scale-105 hover:border-[#ffeebb] hover:shadow-[0_0_15px_rgba(255,215,0,0.6)] hover:bg-black/70"
         >
+            {/* Immagine di sfondo del bottone */}
+            {bgImage && (
+                <div 
+                    className="absolute inset-0 z-0 opacity-40 group-hover:opacity-60 scale-[1.25] group-hover:scale-[1.0] transition-all duration-300"
+                    style={{ 
+                        backgroundImage: `url('${bgImage}')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center center'
+                    }}
+                />
+            )}
+
             {/* Effetto bagliore interno dorato su hover */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-            
-            {/* Contenitore Icona (Sinistra) */}
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-[#886600] group-hover:border-[#ffcc00] shadow-inner">
-                <span className="text-3xl filter drop-shadow-md group-hover:scale-110 transition-transform">{icon}</span>
-            </div>
+            <div className="absolute inset-0 z-[1] bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
 
             {/* Testo Centrale */}
-            <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="relative z-[2] flex-1 flex flex-col items-center justify-center">
                 <span className="text-3xl md:text-4xl font-bold font-sans text-[#ddccaa] tracking-tight drop-shadow-[2px_2px_0_rgba(0,0,0,1)] uppercase group-hover:text-white transition-colors">
                     {title}
                 </span>
@@ -169,19 +176,18 @@ export const MainMenu = ({ loggedIn }) => {
                     <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full pt-[5vh]">
                         <MenuButton 
                             title="Single Player" 
-                            icon="👤" 
-                            onClick={() => handleNavigate('/character')} 
+                            onClick={() => handleNavigate('/character')}
+                            bgImage="/buttonsImg/chara_6_peach_00.png"
                         />
                         
                         <MenuButton 
                             title="Multiplayer" 
-                            icon="🌎" 
-                            onClick={() => handleNavigate('/room')} 
+                            onClick={() => handleNavigate('/room')}
+                            bgImage="/buttonsImg/chara_6_donkey_00.png"
                         />
                         
                         <MenuButton 
                             title="Debug Race" 
-                            icon="🛠️" 
                             onClick={() => handleNavigate('/debug')} 
                         />
                     </div>
@@ -192,20 +198,20 @@ export const MainMenu = ({ loggedIn }) => {
 
                         <MenuButton 
                             title="Register" 
-                            icon="📝" 
-                            onClick={() => handleNavigate('/register')} 
+                            onClick={() => handleNavigate('/register')}
+                            bgImage="/buttonsImg/chara_6_mario_00.png"
                         />
 
                         <MenuButton 
                             title="Login" 
-                            icon="🔑" 
-                            onClick={() => handleNavigate('/login')} 
+                            onClick={() => handleNavigate('/login')}
+                            bgImage="/buttonsImg/chara_6_luigi_00.png"
                         />
 
                         <MenuButton 
                             title="Play as a Guest" 
-                            icon="🎮" 
-                            onClick={() => handleNavigate('/character')} 
+                            onClick={() => handleNavigate('/character')}
+                            bgImage="/buttonsImg/chara_6_yoshi_00.png"
                         />
 
                     </div>
