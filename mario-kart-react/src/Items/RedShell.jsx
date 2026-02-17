@@ -41,19 +41,17 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
             homingAudioRef.current.play();
         }
         
-        // Ritarda l'inizializzazione per assicurarsi che il RigidBody sia pronto
-        const initTimer = setTimeout(() => {
-            if (rb.current) {
-                try {
-                    rb.current.wakeUp(); // Fondamentale: sveglia il corpo rigido
-                    if (initVelocity) {
-                        rb.current.setLinvel(new THREE.Vector3(...initVelocity), true);
-                    }
-                } catch (e) {
-                    console.warn('Failed to initialize RedShell physics:', e);
+        // Inizializzazione immediata della fisica
+        if (rb.current) {
+            try {
+                rb.current.wakeUp(); // Fondamentale: sveglia il corpo rigido
+                if (initVelocity) {
+                    rb.current.setLinvel(new THREE.Vector3(...initVelocity), true);
                 }
+            } catch (e) {
+                console.warn('Failed to initialize RedShell physics:', e);
             }
-        }, 0);
+        }
         
         // Calcola waypoint più vicino allo spawn
         if (waypoints && waypoints.length > 0) {
@@ -79,7 +77,6 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         
         // Cleanup
         return () => {
-            clearTimeout(initTimer);
             clearTimeout(timer);
         };
     }, [waypoints]);

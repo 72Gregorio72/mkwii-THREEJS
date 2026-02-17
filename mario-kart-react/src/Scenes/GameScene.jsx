@@ -286,6 +286,7 @@ export function GameScene({
     const [finishers, setFinishers] = useState([]); // Lista dei corridori che hanno finito in ordine
 
     const [networkItems, setNetworkItems] = useState([]);
+    const itemIdCounter = useRef(0);
 
     const handleRequestSpawn = useCallback((type, position, velocity, extra = {}) => {
         const getCoords = (val) => {
@@ -294,26 +295,25 @@ export function GameScene({
             return [0, 0, 0];
         };
 
-        setTimeout(() => {
-            const posArray = getCoords(position);
-            const velArray = getCoords(velocity);
-            const localId = `local_${Date.now()}`;
+        const posArray = getCoords(position);
+        const velArray = getCoords(velocity);
+        // ID univoco: timestamp + counter + random
+        const localId = `local_${Date.now()}_${++itemIdCounter.current}_${Math.random().toString(36).substr(2, 5)}`;
 
-            setNetworkItems(prev => [...prev, {
-                id: localId,
-                type,
-                position: posArray,
-                velocity: velArray,
-                isLocal: true,
-                ownerId: socket?.id || 'local',
-                ...extra
-            }]);
+        setNetworkItems(prev => [...prev, {
+            id: localId,
+            type,
+            position: posArray,
+            velocity: velArray,
+            isLocal: true,
+            ownerId: socket?.id || 'local',
+            ...extra
+        }]);
 
-            // Invia al server solo se in multiplayer
-            if (socket && roomCode) {
-                socket.emit('spawn_item', { id: localId, type, position: posArray, velocity: velArray, ...extra });
-            }
-        }, 0);
+        // Invia al server solo se in multiplayer
+        if (socket && roomCode) {
+            socket.emit('spawn_item', { id: localId, type, position: posArray, velocity: velArray, ...extra });
+        }
     }, [socket, roomCode]);
 
     const handleRequestRemove = useCallback((itemId) => {
