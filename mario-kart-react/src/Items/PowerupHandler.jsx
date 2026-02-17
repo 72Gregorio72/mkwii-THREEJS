@@ -141,7 +141,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    setCurrentItem(ITEMS.STAR);
+    setCurrentItem(ITEMS.GREEN_SHELL);
   };
 
   const useMushroom = () => {
@@ -252,11 +252,11 @@ export const usePowerupHandler = ({
         // ... (calcoli posizione esistenti) ...
         const currentPos = position.current;
         const currentRot = rotation.current;
-        const offsetDistance = 3.0; 
+        const offsetDistance = 8.0; // Aumentato da 3.0 a 8.0 per evitare autodistruzione
         const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
         const spawnY = currentPos.y + 0.5;
-        const speed = 60;
+        const speed = 80; // Aumentato da 60 a 80 per partire più velocemente
         
         onSpawnGreenShell([spawnX, spawnY, spawnZ], [-Math.sin(currentRot) * speed, 0, -Math.cos(currentRot) * speed]);
     }
@@ -268,11 +268,11 @@ export const usePowerupHandler = ({
         // ... (calcoli esistenti) ...
         const currentPos = position.current;
         const currentRot = rotation.current;
-        const offsetDistance = 6; 
+        const offsetDistance = 10; // Aumentato da 6 a 10 per evitare autodistruzione
         const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
         const spawnY = currentPos.y + 0.8;
-        const initSpeed = 20;
+        const initSpeed = 50; // Aumentato da 20 a 50 per partire più velocemente
 
         onSpawnRedShell([spawnX, spawnY, spawnZ], [-Math.sin(currentRot) * initSpeed, 0, -Math.cos(currentRot) * initSpeed]);
     }
@@ -284,11 +284,11 @@ export const usePowerupHandler = ({
         // ... (calcoli esistenti) ...
         const currentPos = position.current;
         const currentRot = rotation.current;
-        const offsetDistance = 6; 
+        const offsetDistance = 10; // Aumentato da 6 a 10 per evitare autodistruzione
         const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
         const spawnY = currentPos.y + 0.8;
-        const initSpeed = 20; 
+        const initSpeed = 50; // Aumentato da 20 a 50 per partire più velocemente
 
         onSpawnBlueShell([spawnX, spawnY, spawnZ], [-Math.sin(currentRot) * initSpeed, 0, -Math.cos(currentRot) * initSpeed]);
     }

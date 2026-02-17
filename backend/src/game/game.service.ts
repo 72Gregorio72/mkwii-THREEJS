@@ -9,6 +9,7 @@ export interface Player {
   charId?: string;
   vehicleId?: string;
   isBot?: boolean;
+  lap?: number;
   steer?: number;
   drift?: number;
   velocity?: any;
