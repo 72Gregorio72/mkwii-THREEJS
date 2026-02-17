@@ -524,7 +524,7 @@ export const InsideDriftBike = forwardRef((props, ref) => {
      const rootObj = payload.other.rigidBodyObject;
      if (!rootObj) return;
      const name = rootObj.name;
-     if (name === 'player' || name === 'bot') return;
+     if (name === socket.id || name === 'bot') return;
      isGrounded.current = true;
      let foundName = '';
      let curr = rootObj;

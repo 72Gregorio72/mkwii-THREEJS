@@ -5,22 +5,23 @@ import * as THREE from 'three'
 
 const AI_CONFIG = {
   lookAheadDist: 1.0,
-  minLookAhead: 1.0,  // Ridotto da 4.0 per curve strette
-  maxLookAhead: 12.0,  // Massimo su rettilinei
-  curveThreshold: 0.3,  // Soglia per rilevare curve (radianti)
-  obstacleLookAhead: 1.0,  // Look ahead quando ostacolo davanti
-  maxLaneOffset: 0.0,  // Ridotto da 0.1 a 0.02 per seguire meglio la linea
-  laneSwitchInterval: 50.0,  // Aumentato da 8 a 20 per guida più consistente
-  laneSwitchSpeed: 0.05,  // Più lento per transizioni graduali
-  steerReaction: 18.0,  // Aumentato da 15 per reazioni più rapide
-  rayLength: 8.0,  // Aumentato da 5 per rilevare ostacoli prima
+  minLookAhead: 1.0,
+  maxLookAhead: 12.0,
+  curveThreshold: 0.3,
+  obstacleLookAhead: 1.0,
+  maxLaneOffset: 0.0,
+  laneSwitchInterval: 50.0,
+  laneSwitchSpeed: 0.05,
+  steerReaction: 18.0,
+  rayLength: 8.0,
   stuckTime: 1.5,
   debugEnabled: false,
-  logicUpdateRate: 6,
+  logicUpdateRate: 10,  // Aumentato da 6 a 10 (logica ogni 10 frames = 6fps invece di 10fps)
   itemUseChance: 1,
   minDistanceToAttack: 20,
-  raycastInterval: 2,
-  pathSwitchDistance: 3.0,  // Distanza minima per cambiare path
+  raycastInterval: 5,  // Aumentato da 2 a 5 (meno raycast)
+  pathSwitchDistance: 3.0,
+  waypointCheckRange: 15,  // Ridotto da 25 a 15 per ricerca waypoint
 }
 
 export function useBotAI({ isBot, rigidBody, paths, currentItem, triggerItemInput }) {
@@ -182,11 +183,12 @@ export function useBotAI({ isBot, rigidBody, paths, currentItem, triggerItemInpu
     v.forward.set(0, 0, -1).applyQuaternion(q).normalize()
     v.rayOrigin.copy(v.pos).add(new THREE.Vector3(0, 0.35, 0))
 
-    // 1. Find Closest WP
+    // 1. Find Closest WP - Ottimizzato con range ridotto
     let bestDist = Infinity
     let checkIndex = closestWpIndex.current
     const pathLen = currentPath.length
-    for(let i = -5; i < 25; i++) {
+    const searchRange = AI_CONFIG.waypointCheckRange; // Usa range configurabile
+    for(let i = -5; i < searchRange; i++) {
         let idx = (closestWpIndex.current + i);
         if (idx < 0) idx += pathLen;
         idx = idx % pathLen;
@@ -196,34 +198,42 @@ export function useBotAI({ isBot, rigidBody, paths, currentItem, triggerItemInpu
     }
     closestWpIndex.current = checkIndex
 
-    // 2. Analisi Curvatura - Rileva se prossimi waypoint formano una curva
-    const checkCurvature = () => {
+    // 2. Analisi Curvatura - Cache risultato, ricalcola solo ogni 3 update logici
+    let curveAngle = 0;
+    let isInCurve = false;
+    
+    if (!cachedLogic.current.curveCache || frameCounter.current % 30 === 0) {
         const wp1 = currentPath[closestWpIndex.current];
         const wp2Index = (closestWpIndex.current + 3) % pathLen;
         const wp3Index = (closestWpIndex.current + 6) % pathLen;
         const wp2 = currentPath[wp2Index];
         const wp3 = currentPath[wp3Index];
         
-        // Vettori tra waypoint
-        const v1 = new THREE.Vector2(wp2.x - wp1.x, wp2.z - wp1.z).normalize();
-        const v2 = new THREE.Vector2(wp3.x - wp2.x, wp3.z - wp2.z).normalize();
+        // Vettori tra waypoint - riusa v.temp per evitare allocazioni
+        const v1x = wp2.x - wp1.x;
+        const v1z = wp2.z - wp1.z;
+        const len1 = Math.sqrt(v1x*v1x + v1z*v1z);
+        const v2x = wp3.x - wp2.x;
+        const v2z = wp3.z - wp2.z;
+        const len2 = Math.sqrt(v2x*v2x + v2z*v2z);
         
-        // Angolo tra vettori (dot product)
-        const dotProduct = v1.dot(v2);
-        const angle = Math.acos(THREE.MathUtils.clamp(dotProduct, -1, 1));
+        // Dot product normalizzato
+        const dotProduct = (v1x*v2x + v1z*v2z) / (len1 * len2);
+        curveAngle = Math.acos(THREE.MathUtils.clamp(dotProduct, -1, 1));
+        isInCurve = curveAngle > AI_CONFIG.curveThreshold;
         
-        return angle; // Ritorna angolo in radianti (0 = dritto, π = 180°)
-    };
-    
-    const curveAngle = checkCurvature();
-    const isInCurve = curveAngle > AI_CONFIG.curveThreshold;
+        // Cache per 3 update
+        cachedLogic.current.curveCache = { curveAngle, isInCurve };
+    } else {
+        curveAngle = cachedLogic.current.curveCache.curveAngle;
+        isInCurve = cachedLogic.current.curveCache.isInCurve;
+    }
 
     // 3. Target Calculation con LookAhead Dinamico
     let dynamicLookAhead = AI_CONFIG.maxLookAhead;
     
-    // Riduci lookAhead in curva (più stretta la curva, meno guarda avanti)
     if (isInCurve) {
-        const curveFactor = Math.min(curveAngle / Math.PI, 1.0); // 0-1
+        const curveFactor = Math.min(curveAngle / Math.PI, 1.0);
         dynamicLookAhead = THREE.MathUtils.lerp(AI_CONFIG.maxLookAhead, AI_CONFIG.minLookAhead, curveFactor);
     }
     

@@ -201,9 +201,15 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         if (!isActive) return;
         
         const targetObj = payload.other.rigidBodyObject;
-        const victimId = targetObj?.userData?.id || targetObj?.name;
+        if (!targetObj) return;
+        
+        const userData = targetObj?.userData;
+        const victimId = userData?.id || targetObj?.name;
 
-        if (victimId && victimId !== ownerId && (targetObj.name === 'player' || targetObj.name.startsWith('bot') || targetObj.userData?.type === 'opponent')) {
+        // Verifica se è un racer e non è il proprietario
+        const isRacer = userData?.type === 'racer' || userData?.type === 'opponent';
+        
+        if (victimId && victimId !== ownerId && isRacer) {
             setIsActive(false);
             
             window.dispatchEvent(new CustomEvent('banana-hit', { detail: { victimId } }));

@@ -48,12 +48,17 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0],
         if (isHit) return;
         
         const targetObj = payload.other.rigidBodyObject;
-        const targetName = targetObj?.name || "";
+        if (!targetObj) return;
+        
         const userData = targetObj?.userData;
+        const targetName = targetObj?.name || "";
         
 		// console.log(`Banana hit detected with ${targetName}`);
 
-        if (targetName === 'player' || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) {
+        // Identifica se è un racer (player, bot o opponent)
+        const isRacer = userData?.type === 'racer' || userData?.type === 'opponent';
+        
+        if (isRacer) {
             setIsHit(true);
             
             window.dispatchEvent(new CustomEvent('banana-hit', { 
