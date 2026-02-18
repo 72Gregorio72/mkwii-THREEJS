@@ -268,9 +268,9 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
                 {edit && (
                     <div className="flex-1 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full">
                          {/* Contenitore allargato a max-w-5xl per ospitare la griglia */}
-                         <div className="bg-gradient-to-b from-[#e0e0e0] to-[#b0b0b0] border-[6px] border-[#888] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 w-full max-w-5xl flex flex-col gap-4 relative animate-in zoom-in duration-300">
+                         <div className="bg-gradient-to-b from-[#000050] to-[#000060] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 w-full max-w-5xl flex flex-col gap-4 relative animate-in zoom-in duration-300">
                             
-                            <h2 className="text-4xl text-[#333] font-black italic text-center drop-shadow-sm uppercase">Select Character</h2>
+                            <h2 className="text-5xl font-black text-white italic drop-shadow-[3px_3px_0_#0000ff] stroke-black tracking-wide z-10 uppercase text-center">Select Character</h2>
 
                             <form onSubmit={handleSubmit} className="flex flex-col gap-4 relative z-10 h-full">
                                 
@@ -289,11 +289,6 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
                                                         : 'border-transparent hover:border-white hover:scale-105 bg-gradient-to-b from-black/80 to-black/40'}
                                                 `}
                                             >
-                                                {/* Nome personaggio in hover (opzionale) */}
-                                                <div className="absolute top-0 left-0 w-full text-[10px] text-center text-white/80 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {iconName.replace('.png', '')}
-                                                </div>
-
                                                 <img 
                                                     src={`./sprites/${iconName}`} 
                                                     alt={iconName} 
