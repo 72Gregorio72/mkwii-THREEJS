@@ -127,6 +127,7 @@ export default function App() {
     const [roomId, setRoomId] = useState(null)
     const [isHost, setIsHost] = useState(false)
 
+    const [ccsSpeed, setCcsSpeed] = useState(40)
 
     const [isTimeTrial, setIsTimeTrial] = useState(false)
 
@@ -226,7 +227,7 @@ export default function App() {
                         } />
 
                         <Route path="/single_player" element={
-                            <SinglePlayer isLoggedIn={isLoggedIn} setIsTimeTrial={setIsTimeTrial}
+                            <SinglePlayer isLoggedIn={isLoggedIn} setIsTimeTrial={setIsTimeTrial} setCcs={setCcsSpeed}
                             />
                         } />
                         <Route path="/vehicle" element={
@@ -274,6 +275,7 @@ export default function App() {
                                         roomId={roomId}
                                         isHostProp={isHost}
                                         isTimeTrial={isTimeTrial}
+                                        ccs={ccsSpeed}
                                     />
                                 } 
                             />

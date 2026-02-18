@@ -257,7 +257,8 @@ export function GameScene({
     roomCode = null,
     roomId = null,
     isHostProp = false,
-    isTimeTrial
+    isTimeTrial,
+    ccs
 }) {
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
@@ -266,7 +267,7 @@ export function GameScene({
     const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
 
     // Calculate player start position early (before useEffect hooks)
-    const playerStartPos = gridPositions[12] || start_pos; 
+    const playerStartPos = isTimeTrial ? gridPositions[1] : gridPositions[12]
     const playerStartRot = gridRotations[12] || [0, Math.PI / 2, 0];
 
     // Lobby state
@@ -280,7 +281,7 @@ export function GameScene({
         return generateBotConfigurations(BOT_COUNT, character, vehicle);
     }, [roomCode, character, vehicle]);
 
-    const [gameState, setGameState] = useState(roomCode ? 'LOBBY' : 'INTRO'); // Se no room, parte subito
+    const [gameState, setGameState] = useState(roomCode ? 'LOBBY' : isTimeTrial ? 'COUNTDOWN' : 'INTRO'); // Se no room, parte subito
     const [countdown, setCountdown] = useState(null);
     const [finished, setFinished] = useState(false);
     const [raceExited, setRaceExited] = useState(false);
@@ -415,7 +416,10 @@ export function GameScene({
             
             console.log('Race starting');
             setIsInLobby(false);
-            setGameState('INTRO');
+            if (!isTimeTrial)
+                setGameState('INTRO');
+            else
+                setGameState('COUNTDOWN')
             
             // Start intro animation
             if (!introPlayed.current) {
@@ -954,7 +958,9 @@ export function GameScene({
                     </group>
                     
                     <RoadWalls modelPath={selectedTrack.road} wallHeight={10} thresholdAngle={20} debug={false} />
-                    <ItemBoxesMap mapModelPath={selectedTrack.itemBoxes} triggerName="Cube" />
+                    {!isTimeTrial &&
+                        <ItemBoxesMap mapModelPath={selectedTrack.itemBoxes} triggerName="Cube" />
+                    }
                     
                     {checkpointPath && (
                         <CheckpointSystem 
@@ -1042,6 +1048,8 @@ export function GameScene({
                                 }}
                                 socket={socket}
 								roomCode={roomCode}
+                                maxSpeed={ccs}
+                                isTimeTrial={isTimeTrial}
                             />
                         )}
                     </group>
@@ -1075,6 +1083,8 @@ export function GameScene({
                                     isBot={true}
                                     paths={selectedTrack.Waypoints}
 									roomCode={roomCode}
+                                    maxSpeed={ccs}
+                                    isTimeTrial={false}
                                 /> 
                             </group>
                         );

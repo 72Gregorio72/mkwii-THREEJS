@@ -77,6 +77,7 @@ export const usePowerupHandler = ({
   isLocalPlayer = false,
   socket,
   roomCode,
+  isTimeTrial
 }) => {
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
@@ -141,8 +142,14 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    setCurrentItem(ITEMS.GREEN_SHELL);
+  //   setCurrentItem(ITEMS.GREEN_SHELL);
   };
+
+  useEffect(() => {
+    if (isTimeTrial) {
+      setCurrentItem(ITEMS.TRIPLE_MUSHROOM);
+    }
+  }, [isTimeTrial]);
 
   const useMushroom = () => {
     if (!boostTime) return;

@@ -35,10 +35,11 @@ const MenuButton = ({ title, onClick, bgImage, setIsTimeTrial }) => {
     );
 };
 
-export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial }) => {
+export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
 
     const navigate = useNavigate();   
     const [fadeToBlack, setFadeToBlack] = useState(false);
+    const [grandPrix, setGrandPrix] = useState(false);
     const { playSfx, fadeOutMusic } = useAudio();
     
     const handleNavigate = (path) => {
@@ -50,7 +51,8 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial }) => {
 
         if (path === '/character') {
             setFadeToBlack(true);
-            setIsTimeTrial(true);
+            if (!grandPrix)
+                setIsTimeTrial(true);
             fadeOutMusic(700);
             setTimeout(() => {
                 navigate(path);
@@ -60,6 +62,19 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial }) => {
             navigate(path);
         }
     };
+
+    const handleBack = () => {
+        if (grandPrix)
+            setGrandPrix(false);
+        else
+            handleNavigate('/menu')
+    }
+
+    const handleSpeed = (speed) => {
+        setCcs(speed)
+        setIsTimeTrial(false)
+        handleNavigate('/character')
+    }
 
     return (
         <div className="w-screen h-screen relative overflow-hidden font-sans select-none">
@@ -157,28 +172,50 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial }) => {
                 <div className="flex-1 flex flex-col items-center justify-center p-8 w-full">
                     
                     {/* SELEZIONE MODALITÀ */}
-                    <div className="flex flex-col gap-8 w-full max-w-3xl animate-in fade-in zoom-in duration-300">
-                        <MenuButton 
-                            title="Time Trial" 
-                            // CORRETTO: Uso della funzione freccia per evitare loop infinito
-                            onClick={() => handleNavigate('/character')}
-                            bgImage="/buttonsImg/chara_6_mario_00.png"
-                        />
-                        <MenuButton 
-                            title="Grand prix" 
-                            // CORRETTO: Uso della funzione freccia
-                            onClick={() => handleNavigate('/grand_prix')}
-                            bgImage="/buttonsImg/chara_6_donkey_00.png"
-                        />
-                    </div>
+                    {!grandPrix && (
+                        <div className="flex flex-col gap-8 w-full max-w-3xl animate-in fade-in zoom-in duration-300">
+                            <MenuButton 
+                                title="Time Trial" 
+                                // CORRETTO: Uso della funzione freccia per evitare loop infinito
+                                onClick={() => handleNavigate('/character')}
+                                bgImage="/buttonsImg/chara_6_mario_00.png"
+                            />
+                            <MenuButton 
+                                title="Grand prix" 
+                                onClick={() => setGrandPrix(true)}
+                                bgImage="/buttonsImg/chara_6_donkey_00.png"
+                            />
+                        </div>
+                    )}
+
+                    {grandPrix && (
+                        <div className="flex flex-col gap-8 w-full max-w-3xl animate-in fade-in zoom-in duration-300">
+                            <MenuButton 
+                                title="50cc" 
+                                // CORRETTO: Uso della funzione freccia per evitare loop infinito
+                                onClick={() => handleSpeed(30)}
+                                bgImage="/buttonsImg/chara_6_mario_00.png"
+                            />
+                            <MenuButton 
+                                title="100cc" 
+                                onClick={() => handleSpeed(35)}
+                                bgImage="/buttonsImg/chara_6_donkey_00.png"
+                            />
+                            <MenuButton 
+                                title="150cc" 
+                                onClick={() => handleSpeed(40)}
+                                bgImage="/buttonsImg/chara_6_luigi_00.png"
+                            />
+                        </div>
+                    )}
+                    
                 </div>
 
                 {/* FOOTER / BACK BUTTON */}
                 <div className="h-[12vh] w-full flex items-center px-12 relative">
                     <div className="absolute bottom-2 left-0 w-full h-1 bg-gradient-to-r from-gray-400 via-gray-200 to-transparent"></div>
                     <button 
-                        // CORRETTO: Uso della funzione freccia
-                        onClick={() => handleNavigate('/menu')}
+                        onClick={handleBack}
                         className="flex items-center gap-3 bg-white px-8 py-2 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all"
                     >
                         <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50">B</div>
