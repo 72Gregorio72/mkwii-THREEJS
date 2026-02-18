@@ -176,7 +176,7 @@ export const MainMenu = ({ loggedIn }) => {
                     <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full pt-[5vh]">
                         <MenuButton 
                             title="Single Player" 
-                            onClick={() => handleNavigate('/character')}
+                            onClick={() => handleNavigate('/single_player')}
                             bgImage="/buttonsImg/chara_6_peach_00.png"
                         />
                         

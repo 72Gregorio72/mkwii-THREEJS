@@ -256,7 +256,8 @@ export function GameScene({
     selectedTrack,
     roomCode = null,
     roomId = null,
-    isHostProp = false
+    isHostProp = false,
+    isTimeTrial
 }) {
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
@@ -1046,7 +1047,7 @@ export function GameScene({
                     </group>
 
                     {/* BOTS (AI) - Renderizza solo se NON siamo in multiplayer */}
-                    {!roomCode && botConfigurations.map((botConfig, i) => {
+                    {!roomCode && !isTimeTrial && botConfigurations.map((botConfig, i) => {
                         const botId = botConfig.character.id;
                         const gridIndex = i + 1; 
                         

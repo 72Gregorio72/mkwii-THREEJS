@@ -14,6 +14,7 @@ import { MainMenu } from './Scenes/MainMenu.jsx'
 import { Register } from './Scenes/Register.jsx'
 import { Login } from './Scenes/Login.jsx'
 import { Profile } from './Scenes/ProfilePage.jsx'
+import { SinglePlayer } from './Scenes/SinglePlayer.jsx'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -126,6 +127,9 @@ export default function App() {
     const [roomId, setRoomId] = useState(null)
     const [isHost, setIsHost] = useState(false)
 
+
+    const [isTimeTrial, setIsTimeTrial] = useState(false)
+
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
         return sessionStorage.getItem('isLoggedIn') === 'true';
     });
@@ -221,6 +225,10 @@ export default function App() {
                             />
                         } />
 
+                        <Route path="/single_player" element={
+                            <SinglePlayer isLoggedIn={isLoggedIn} setIsTimeTrial={setIsTimeTrial}
+                            />
+                        } />
                         <Route path="/vehicle" element={
                             <VehicleSelection 
                                 selectedCharacter={SelectedCharacter}
@@ -265,6 +273,7 @@ export default function App() {
                                         roomCode={roomCode}
                                         roomId={roomId}
                                         isHostProp={isHost}
+                                        isTimeTrial={isTimeTrial}
                                     />
                                 } 
                             />
