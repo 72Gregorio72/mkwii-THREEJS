@@ -188,11 +188,11 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
                         </div>
                     )}
 
+
                     {grandPrix && (
-                        <div className="flex flex-col gap-8 w-full max-w-3xl animate-in fade-in zoom-in duration-300">
+                        <div className="flex flex-col items-center justify-center gap-8 w-full max-w-3xl animate-in fade-in zoom-in duration-300 mx-auto">
                             <MenuButton 
                                 title="50cc" 
-                                // CORRETTO: Uso della funzione freccia per evitare loop infinito
                                 onClick={() => handleSpeed(30)}
                                 bgImage="/buttonsImg/chara_6_mario_00.png"
                             />
