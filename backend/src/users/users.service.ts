@@ -1,63 +1,62 @@
-import { Injectable, ConflictException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client'
-import * as bcrypt from 'bcrypt';
-
+import { Injectable, ConflictException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 
 export type User = any;
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnModuleInit, OnModuleDestroy {
+  private prisma = new PrismaClient();
 
-  private readonly users = [
-    {
-      userId: 1,
-      username: 'john',
-      password: 'changeme',
-      email: 'john@test.com'
-    },
-    {
-      userId: 2,
-      username: 'maria',
-      password: 'guess',
-      email: 'maria@test.com'
-    },
-  ];
+  async onModuleInit() {
+    await this.prisma.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.prisma.$disconnect();
+  }
 
   async findOne(username: string): Promise<User | null> {
-    const prisma = new PrismaClient()
-
-    const userFound = await prisma.user.findUnique({
+    const userFound = await this.prisma.user.findUnique({
       where: {
-        username: username.toLowerCase(),
-          },
-        });
-        if (!userFound) {
-          return null;
-        }
-        return userFound;
+        username: username,
+      },
+    });
+
+    return userFound;
   }
 
   async addUser(data: any): Promise<User> {
-    const prisma = new PrismaClient()
-  
     try {
-      const newUser = await prisma.user.create({
+      const newUser = await this.prisma.user.create({
         data: {
           username: data.username,
           email: data.email,
           password: data.password,
+          icon: "Mario.png"
         },
-      })
+      });
       return newUser;
     } catch (e: any) {
       if (e.code === 'P2002') {
         throw new ConflictException('Username o Email già in uso');
       }
-      return null;
-    } finally {
-      await prisma.$disconnect()
+      throw e;
     }
-    // this.users.push(newUser);
-    // console.log("Utenti attuali:", this.users);
+  }
+
+  async updateIcon(username: string, iconName: string): Promise<User> {
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: {
+          username: username,
+        },
+        data: {
+          icon: iconName,
+        },
+      });
+      return updatedUser;
+    } catch (error) {
+      throw new ConflictException('Impossibile aggiornare l\'icona. Utente non trovato?');
+    }
   }
 }

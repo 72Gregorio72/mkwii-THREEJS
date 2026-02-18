@@ -1,4 +1,4 @@
-import { Controller, Get, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Query, NotFoundException, Patch, Body } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 @Controller('')
@@ -14,5 +14,10 @@ export class UsersController {
         const { password, ...result } = user; // remove password from the user
         
         return result; 
+    }
+
+    @Patch('profile')
+    async updateIcon(@Query('userName') userName: string, @Body() body: any) {
+        return await this.userService.updateIcon(userName, body.icon);
     }
 }

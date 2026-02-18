@@ -107,7 +107,7 @@ export const Tracks = {
 	
 	'Peach Gardens': {
 		file: './Tracks/PeachGardens/PeachGardens.glb',
-		preview: '/Previews/Peach Gardens.png',
+		preview: '/Previews/DS Peach Gardens.png',
 		startPos: [0, 0, 50],
 		checkpoints: './Tracks/PeachGardens/PeachGardens_checkpos.glb',
         maxCheckpoints: 3,
@@ -122,7 +122,7 @@ export const Tracks = {
         file: './Tracks/SNESMarioCircuit/SNESMarioCircuit.glb',
 		preview: '/Previews/SNES Mario Circuit 3.png',
         startPos: [0, 0, 50],
-        checkpoints: './Tracks/DaisyCircuit/SNESMarioCircuit_checkpoint.glb',
+        checkpoints: './Tracks/SNESMarioCircuit/SNESMarioCircuit_checkpoint.glb',
         maxCheckpoints: 3,
         soundtrack: 'RACE_MOO_MOO_MEADOWS',
         itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
