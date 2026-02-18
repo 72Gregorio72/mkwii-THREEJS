@@ -9,10 +9,11 @@ import { AuthService } from './auth/auth.service';
 import { AuthController } from './auth/auth.controller';
 import { UsersModule } from './users/users.module';
 import { UsersService } from './users/users.service';
+import { HashService } from './hash/hash.service';
 
 @Module({
   imports: [GameModule, AuthModule, UsersModule],
   controllers: [AppController, InfoController, AuthController],
-  providers: [AppService, InfoService, AuthService, UsersService],
+  providers: [AppService, InfoService, AuthService, UsersService, HashService],
 })
 export class AppModule {}

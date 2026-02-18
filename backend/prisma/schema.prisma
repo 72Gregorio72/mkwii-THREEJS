@@ -9,6 +9,10 @@
 // the .dbjournal file that will be created is a safe copy of the db that was 
 // deleted and it will be used automatically to restore the db if anything goes wrong
 
+// default accounts
+// utente debug, pw debug
+// utente test, pw test
+
 generator client {
   provider = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"] //uso con OpenSSL

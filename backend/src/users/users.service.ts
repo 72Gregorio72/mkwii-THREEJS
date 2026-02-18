@@ -1,5 +1,6 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client'
+import * as bcrypt from 'bcrypt';
 
 
 export type User = any;
@@ -34,30 +35,11 @@ export class UsersService {
           return null;
         }
         return userFound;
-
-    // const prisma = new PrismaClient()
-    //   return prisma.user.findFirst({
-    //     where: {
-    //       username: username.toLowerCase()
-    //     },
-    //   });
   }
 
   async addUser(data: any): Promise<User> {
     const prisma = new PrismaClient()
-    // Verifica se esiste già
-    // const existingUser = await this.findOne(data.username);
-    
-    // if (existingUser) {
-    //     throw new ConflictException('User already exists');
-    // }
-
-    // const newUser = {
-    //     userId: this.users.length + 1,
-    //     username: data.username,
-    //     password: data.password, 
-    //     email: data.email 
-    // };
+  
     try {
       const newUser = await prisma.user.create({
         data: {
