@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
 import { RigidBody, MeshCollider } from '@react-three/rapier'
@@ -8,8 +8,9 @@ export function RoadWalls({ modelPath }) {
     const { nodes } = useGLTF(modelPath)
 
     // Trasformiamo i nodi del GLTF in un array di componenti fisici
-    const colliders = useMemo(() => {
+    const { colliders, geometries } = useMemo(() => {
         const elements = [];
+        const geomsToCleanup = [];
         
         Object.values(nodes).forEach((node) => {
             if (node.isMesh && node.geometry) {
@@ -17,6 +18,8 @@ export function RoadWalls({ modelPath }) {
                 let geometry = node.geometry.clone();
                 node.updateWorldMatrix(true, false);
                 geometry.applyMatrix4(node.matrixWorld);
+                
+                geomsToCleanup.push(geometry);
                 
                 elements.push(
                     <RigidBody 
@@ -35,8 +38,17 @@ export function RoadWalls({ modelPath }) {
             }
         });
         
-        return elements;
+        return { colliders: elements, geometries: geomsToCleanup };
     }, [nodes]);
+
+    // Cleanup geometrie quando il componente viene smontato
+    useEffect(() => {
+        return () => {
+            geometries.forEach(geom => {
+                if (geom) geom.dispose();
+            });
+        };
+    }, [geometries]);
 
     return <group>{colliders}</group>;
 }

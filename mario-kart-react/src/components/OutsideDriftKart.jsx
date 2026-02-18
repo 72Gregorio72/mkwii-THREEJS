@@ -464,7 +464,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const spinTimer = useRef(0);
   const frameCounter = useRef(Math.floor(Math.random() * 3)); 
   const smoothedY = useRef(START_POS ? START_POS[1] : 0)
-  const racerId = (isBot ? "bot" : socket.id);
+  const racerId = userData?.id || (isBot ? "bot" : socket?.id);
 
   const billVisualsRef = useRef();
 
@@ -975,7 +975,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         // Raycast Anti-Wall & Gravity
         frameCounter.current++;
         let isHittingVerticalWall = false
-        if (world && rapier && (!isBot || frameCounter.current % 3 === 0)) {
+        if (world && rapier && (!isBot || frameCounter.current % 5 === 0)) {
             v.forwardGlobal.set(0, 0, -1).applyAxisAngle(new Vector3(0,1,0), rotation.current).normalize()
             v.rayOrigin.copy(currentPosition.current).add(new Vector3(0, 0.5, 0))
             const ray = new rapier.Ray(v.rayOrigin, v.forwardGlobal)

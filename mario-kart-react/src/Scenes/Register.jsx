@@ -199,6 +199,7 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
                                     className={inputStyle}
                                     placeholder="PLAYER 1"
                                     maxLength={12}
+                                    autoComplete='off'
                                     required
                                 />
                             </div>
@@ -215,6 +216,7 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
                                     className={inputStyle}
                                     placeholder="MARIO@KART.COM"
                                     required
+                                    autoComplete='off'
                                 />
                             </div>
 

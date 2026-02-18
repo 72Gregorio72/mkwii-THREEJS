@@ -29,6 +29,7 @@ import { GreenShell } from '../Items/GreenShell';
 import { RedShell } from '../Items/RedShell';
 import { BobOmb } from '../Items/BobOmb.jsx'
 import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
+import { useWebGLContext, useWebGLMemoryMonitor } from '../utils/WebGLContextManager.jsx';
 import { gsap } from 'gsap'
 
 const TOTAL_LAPS = 3;
@@ -122,6 +123,13 @@ function CinematicCamera({ gameState, playerStartPos, playerStartRot }) {
         }
     });
 
+    return null;
+}
+
+// Componente per gestire sicurezza WebGL
+function WebGLSafetyManager() {
+    useWebGLContext();
+    useWebGLMemoryMonitor();
     return null;
 }
 
@@ -278,6 +286,7 @@ export function GameScene({
     const [finishers, setFinishers] = useState([]); // Lista dei corridori che hanno finito in ordine
 
     const [networkItems, setNetworkItems] = useState([]);
+    const itemIdCounter = useRef(0);
 
     const handleRequestSpawn = useCallback((type, position, velocity, extra = {}) => {
         const getCoords = (val) => {
@@ -286,26 +295,25 @@ export function GameScene({
             return [0, 0, 0];
         };
 
-        setTimeout(() => {
-            const posArray = getCoords(position);
-            const velArray = getCoords(velocity);
-            const localId = `local_${Date.now()}`;
+        const posArray = getCoords(position);
+        const velArray = getCoords(velocity);
+        // ID univoco: timestamp + counter + random
+        const localId = `local_${Date.now()}_${++itemIdCounter.current}_${Math.random().toString(36).substr(2, 5)}`;
 
-            setNetworkItems(prev => [...prev, {
-                id: localId,
-                type,
-                position: posArray,
-                velocity: velArray,
-                isLocal: true,
-                ownerId: socket?.id || 'local',
-                ...extra
-            }]);
+        setNetworkItems(prev => [...prev, {
+            id: localId,
+            type,
+            position: posArray,
+            velocity: velArray,
+            isLocal: true,
+            ownerId: socket?.id || 'local',
+            ...extra
+        }]);
 
-            // Invia al server solo se in multiplayer
-            if (socket && roomCode) {
-                socket.emit('spawn_item', { id: localId, type, position: posArray, velocity: velArray, ...extra });
-            }
-        }, 0);
+        // Invia al server solo se in multiplayer
+        if (socket && roomCode) {
+            socket.emit('spawn_item', { id: localId, type, position: posArray, velocity: velArray, ...extra });
+        }
     }, [socket, roomCode]);
 
     const handleRequestRemove = useCallback((itemId) => {
@@ -323,23 +331,23 @@ export function GameScene({
 
     // 2. SETUP STATI GARA
     const { initialRacersData, initialPositions } = useMemo(() => {
-        const data = {
-            player: { id: 'player', lap: 1, nextCP: 1, score: 0 }
-        };
-        const positions = [{ id: 'player', position: 1 }]; // Player parte primo in multiplayer
+        const data = {};
+        // Usa socket.id come chiave invece di 'player'
+        data[socket.id] = { id: socket.id, lap: 1, nextCP: 1, score: 0, position: 1, name: character.name };
+        const positions = [{ id: socket.id, position: 1 }]; // Player parte primo in multiplayer
         
         // In multiplayer (roomCode presente) non creiamo bot
         // In single player usiamo gli ID dei character dai botConfigurations
         if (!roomCode && botConfigurations.length > 0) {
             botConfigurations.forEach((botConfig, i) => {
                 const botId = botConfig.character.id;
-                data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0 };
+                data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0, position: i + 2, name: botConfig.character.name };
                 positions.push({ id: botId, position: i + 2 });
             });
         }
 
         return { initialRacersData: data, initialPositions: positions };
-    }, [roomCode, botConfigurations]);
+    }, [roomCode, botConfigurations, character]);
 
 	const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
 	const startingGridPlayed = useRef(false);
@@ -348,7 +356,7 @@ export function GameScene({
     const introPlayed = useRef(false);
 
     const [positions, setPositions] = useState(initialPositions);
-    const playerRank = positions.find(p => p.id === 'player')?.position || 1;
+    const playerRank = positions.find(p => p.id === socket.id)?.position || 1;
 
     useEffect(() => {
         if (roomId) {
@@ -360,7 +368,7 @@ export function GameScene({
         const handleItemCollected = (e) => {
             const { racerId } = e.detail;
             
-            if (racerId === 'player') {
+            if (racerId === socket.id) {
                 playerRef.current?.triggerItemRoulette(playerRank);
             } else if (botRefs.current[racerId]) {
                 // È un bot (usa character ID)
@@ -587,7 +595,9 @@ export function GameScene({
                     lap: 1, 
                     nextCP: 1, 
                     score: 0,
-                    isRemote: true 
+                    position: 99,
+                    isRemote: true,
+                    name: opp.character?.name || 'Unknown'
                 };
             }
         });
@@ -596,7 +606,7 @@ export function GameScene({
         const opponentIds = opponents.map(o => o.id);
         const botIds = botConfigurations.map(bc => bc.character.id);
         Object.keys(racersData.current).forEach(id => {
-            if (id !== 'player' && !botIds.includes(id) && !opponentIds.includes(id)) {
+            if (id !== socket.id && !botIds.includes(id) && !opponentIds.includes(id)) {
                 delete racersData.current[id];
             }
         });
@@ -642,66 +652,85 @@ export function GameScene({
     }, [selectedTrack, changeTrack, gameState, finished, stopMusic, setMusicPitch]);
 
     // Checkpoint Trigger
-    const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
-        console.log("[debug] racer id in gamescene for lap: ", racersData.current[racerId]);
-
-        if (!racerId || !racersData.current[racerId]) return;
-        const racer = racersData.current[racerId];
-        
-        if (hitIndex === racer.nextCP && hitIndex !== 0) {
-            racer.nextCP += 1;
-            if (racerId === 'player') setNextCheck(racer.nextCP);
-        } 
-        else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
-            racer.lap += 1;
-            
-            if (racerId === 'player') {
-                if (racer.lap === 2) {
-                    playSfx(AUDIO_SFX.SECOND_LAP, 3);
-                }
-                else if (racer.lap === 3) {
-                    isFinalLap.current = true;
-                    playSfx(AUDIO_SFX.FINAL_LAP, 3);
-                    setMusicPitch(1.10, 1.10, 2000); // pitch 1.15x, speed 1.15x, fade 500ms
-                    setTimeout(() => {
-                        setMusicPitch(1.15, 1.15, 2000);
-                    }, 100);
-                }
-            }
-            
-            racer.nextCP = 1;
-            
-            // Check if racer finished the race
-            if (racer.lap > TOTAL_LAPS) {
-                // Add to finishers list
-                setFinishers(prev => {
-                    // Check if already in the list
-                    if (prev.some(f => f.id === racerId)) return prev;
-                    
-                    const finishPosition = prev.length + 1;
-                    return [...prev, { 
-                        id: racerId, 
-                        position: finishPosition,
-                        finishTime: null // Can add time later
-                    }];
-                });
-                
-                if (racerId === 'player') {
-                    setFinished(true);
-                    playSfx(AUDIO_SFX.FINISH_RACE, 3);
-                    stopMusic();
-                    if (racer.position === 1)
-                        changeTrack('FINISH_FIRST', 0, false);
-                    else if (racer.position >= 2 && racer.position <= 4)
-                        changeTrack('FINISH_SECOND_FOURTH', 0, false);
-                    else
-                        changeTrack('FINISH_FIFTH_TWELFTH', 0, false);
-                }
-            } else if (racerId === 'player') {
-                setUiLap(racer.lap);
-            }
-        }
-    }, [maxCheckpoints, playSfx, setMusicPitch, stopMusic]);
+	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
+		if (!racerId || !racersData.current[racerId]) return;
+		const racer = racersData.current[racerId];
+		console.log(`[Checkpoint] Racer ${racerId} hit checkpoint ${hitIndex}, expected ${racer.nextCP}`);
+		
+		if (hitIndex === racer.nextCP && hitIndex !== 0) {
+			racer.nextCP += 1;
+			if (racerId === socket.id) setNextCheck(racer.nextCP);
+		} 
+		else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
+			racer.lap += 1;
+			console.log(`[Checkpoint] Racer ${racerId} completed lap ${racer.lap - 1}, now on lap ${racer.lap}`);
+			
+			// Aggiorna UI se è il player
+			if (racerId === socket.id) {
+				setUiLap(racer.lap);
+				
+				// Invia lap aggiornato via socket
+				if (roomCode) {
+					socket.emit('update_lap', { lap: racer.lap });
+				}
+				
+				if (racer.lap === 2) {
+					playSfx(AUDIO_SFX.SECOND_LAP, 3);
+				}
+				else if (racer.lap === 3) {
+					isFinalLap.current = true;
+					playSfx(AUDIO_SFX.FINAL_LAP, 3);
+					setMusicPitch(1.10, 1.10, 2000);
+					setTimeout(() => {
+						setMusicPitch(1.15, 1.15, 2000);
+					}, 100);
+				}
+			}
+			
+			racer.nextCP = 1;
+			
+			// Check if racer finished the race
+			if (racer.lap > TOTAL_LAPS) {
+				// Add to finishers list
+				setFinishers(prev => {
+					// Check if already in the list
+					if (prev.some(f => f.id === racerId)) return prev;
+					
+					const finishPosition = prev.length + 1;
+					const finisherEntry = { 
+						id: racerId, 
+						position: finishPosition,
+						finishTime: null,
+						name: racer.name || 'Unknown'
+					};
+					
+					return [...prev, finisherEntry];
+				});
+				
+				if (racerId === socket.id) {
+					setFinished(true);
+					playSfx(AUDIO_SFX.FINISH_RACE, 3);
+					stopMusic();
+					if (racer.position === 1)
+						changeTrack('FINISH_FIRST', 0, false);
+					else if (racer.position >= 2 && racer.position <= 4)
+						changeTrack('FINISH_SECOND_FOURTH', 0, false);
+					else
+						changeTrack('FINISH_FIFTH_TWELFTH', 0, false);
+				}
+				
+				// Stop bot AI if it's a bot
+				if (!roomCode && botRefs.current[racerId]?.current) {
+					const botRef = botRefs.current[racerId].current;
+					if (botRef.stopAI) {
+						botRef.stopAI();
+					}
+				}
+			} else if (racerId === socket.id) {
+				setUiLap(racer.lap);
+			}
+		}
+	}, [maxCheckpoints, playSfx, setMusicPitch, stopMusic, changeTrack, socket, roomCode, botRefs]);
 
     // Calcolo Targets per Gusci (Red/Blue)
 
@@ -717,7 +746,7 @@ export function GameScene({
     // Liste Bersagli (per Gusci Rossi/Blu)
     const targets = useMemo(() => {
         const list = [];
-        if (playerRef.current) list.push({ id: 'player', ref: playerRef });
+        if (playerRef.current) list.push({ id: socket.id, ref: playerRef });
         
         // Aggiungi bot locali (solo in single player)
         if (!roomCode && botConfigurations.length > 0) {
@@ -789,11 +818,12 @@ export function GameScene({
                     remoteRefMap={remoteRefMap}
                     opponents={opponentsWithIcons}
                     playerRank={playerRank}
+					socket={socket}
                 />
             )}
 
             {/* RACE RESULTS - Mostra solo quando il player ha finito */}
-            {finished && finishers.length > 0 && <RaceResults finishers={finishers} />}
+            {finished && finishers.length > 0 && <RaceResults finishers={finishers} socket={socket} />}
 
             {countdown && (
                 <div style={{
@@ -812,8 +842,27 @@ export function GameScene({
                 </div>
             )}
 
-            <Canvas>
+            <Canvas
+                gl={{
+                    powerPreference: "high-performance",
+                    antialias: true,
+                    stencil: false,
+                    depth: true,
+                    alpha: false,
+                    preserveDrawingBuffer: false,
+                    failIfMajorPerformanceCaveat: false
+                }}
+                dpr={[1, 2]} // Limita pixel ratio per performance
+                frameloop="always"
+                performance={{ min: 0.5 }} // Degrada performance se necessario
+                onCreated={({ gl }) => {
+                    gl.toneMapping = THREE.ACESFilmicToneMapping;
+                    gl.toneMappingExposure = 1.0;
+                    gl.outputColorSpace = THREE.SRGBColorSpace;
+                }}
+            >
                 <AudioListenerComponent />
+                <WebGLSafetyManager />
                 
                 <CinematicCamera 
                     gameState={gameState} 
@@ -927,9 +976,6 @@ export function GameScene({
                             isMega: playerData.isMega
 
                         }
-                        // 2. FALLBACK DI SICUREZZA:
-                        // Se remoteVehicle è undefined, usa 'vehicle' (il tuo locale).
-                        // Se anche quello fallisce, prendi il PRIMO veicolo del database.
                         const safeVehicle = remoteVehicle || vehicle || VEHICLE_DATABASE['StandardKartS'];
                         const safeCharacter = remoteCharacter || character || Characters[0];
                         return (
@@ -953,7 +999,7 @@ export function GameScene({
                         {vehicle.isBike ? (
                             <InsideDriftBike 
                                 ref={playerRef} 
-                                userData={{ type: 'racer', id: 'player' }}
+                                userData={{ type: 'racer', id: socket.id }}
                                 characterConfig={character.modelConfig}
                                 selectedCharacter={character}
                                 vehicleConfig={vehicle} 
@@ -966,7 +1012,7 @@ export function GameScene({
                         ) : (
                             <OutsideDriftKart 
                                 ref={playerRef} 
-                                userData={{ type: 'racer', id: 'player' }}
+                                userData={{ type: 'racer', id: socket.id }}
                                 characterConfig={character.modelConfig}
                                 selectedCharacter={character}
                                 botRefs={botRefs}
@@ -1026,8 +1072,7 @@ export function GameScene({
                                     trackRef={trackRef} 
                                     trackConfig={selectedTrack} 
                                     isBot={true}
-                                    paths={selectedTrack.Waypoints} 
-                                    onCheckpoint={(idx) => handleCheckpointTrigger(idx, botId)}
+                                    paths={selectedTrack.Waypoints}
 									roomCode={roomCode}
                                 /> 
                             </group>

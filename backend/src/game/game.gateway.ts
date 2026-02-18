@@ -125,6 +125,14 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.gameService.updatePlayer(client.id, payload);
   }
 
+  @SubscribeMessage('update_lap')
+  handleUpdateLap(client: Socket, payload: { lap: number }) {
+    console.log(`Player ${client.id} updated lap to ${payload.lap}`);
+    this.gameService.updatePlayer(client.id, {
+      lap: payload.lap
+    });
+  }
+
   @SubscribeMessage('bot_update')
   handleBotUpdate(client: Socket, payload: { botId: string, position: any, rotation: any, velocity: any }) {
     const roomCode = this.playerRoomMap.get(client.id);

@@ -3,33 +3,35 @@ import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
 // Componente Pulsante Menu (Stile MKWii Options riutilizzato)
-const MenuButton = ({ title, onClick, icon, color = "default" }) => {
+const MenuButton = ({ title, onClick, bgImage }) => {
     return (
         <button 
             onClick={onClick}
             className="group relative w-full h-24 md:h-32 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
-                       flex items-center justify-between px-8 overflow-hidden transition-all duration-200 
+                       flex items-center justify-center px-8 overflow-hidden transition-all duration-200 
                        hover:scale-105 hover:border-[#ffeebb] hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:bg-black/70 active:scale-95"
         >
+            {/* Immagine di sfondo del bottone */}
+            {bgImage && (
+                <div 
+                    className="absolute inset-0 z-0 opacity-40 group-hover:opacity-60 scale-[1.25] group-hover:scale-[1.0] transition-all duration-300"
+                    style={{ 
+                        backgroundImage: `url('${bgImage}')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center center'
+                    }}
+                />
+            )}
+
             {/* Effetto bagliore interno */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-            
-            {/* Icona Sinistra */}
-            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-[#886600] group-hover:border-[#ffcc00] shadow-inner">
-                <span className="text-4xl filter drop-shadow-md group-hover:scale-110 transition-transform">{icon}</span>
-            </div>
+            <div className="absolute inset-0 z-[1] bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
 
             {/* Testo Centrale */}
-            <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="relative z-[2] flex-1 flex flex-col items-center justify-center">
                 <span className="text-3xl md:text-5xl font-bold font-sans text-[#ddccaa] tracking-tight drop-shadow-[2px_2px_0_rgba(0,0,0,1)] uppercase group-hover:text-white transition-colors">
                     {title}
                 </span>
             </div>
-
-            {/* Freccia Destra */}
-            {/* <div className="w-8 flex justify-center">
-                <div className="w-4 h-4 border-t-4 border-r-4 border-[#aa8800] rotate-45 group-hover:border-[#ffcc00] group-hover:translate-x-1 transition-all"></div>
-            </div> */}
         </button>
     );
 };
@@ -144,13 +146,13 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket }) => {
                     <div className="flex flex-col gap-8 w-full max-w-3xl animate-in fade-in zoom-in duration-300">
                         <MenuButton 
                             title="Create Room" 
-                            icon="🏁" 
-                            onClick={handleCreateRoom} 
+                            onClick={handleCreateRoom}
+                            bgImage="/buttonsImg/chara_6_diddy_00.png"
                         />
                         <MenuButton 
                             title="Join Room" 
-                            icon="🚪" 
-                            onClick={handleJoinClick} 
+                            onClick={handleJoinClick}
+                            bgImage="/buttonsImg/chara_6_koopa_00.png"
                         />
                     </div>
                 ) : (

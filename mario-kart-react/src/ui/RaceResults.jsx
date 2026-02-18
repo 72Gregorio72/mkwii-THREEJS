@@ -9,7 +9,7 @@ const mkwiiFontStyle = `
   }
 `;
 
-export const RaceResults = ({ finishers }) => {
+export const RaceResults = ({ finishers, socket }) => {
   if (!finishers || finishers.length === 0) return null;
 
   // Split finishers into two columns
@@ -25,7 +25,7 @@ export const RaceResults = ({ finishers }) => {
 
     // Format the racer name
     let displayName = finisher.id;
-    if (finisher.id === 'player') {
+    if (finisher.id === socket.id) {
       displayName = 'YOU';
     } else if (finisher.id.startsWith('bot_')) {
       const botNumber = parseInt(finisher.id.split('_')[1]) + 1;
@@ -40,7 +40,7 @@ export const RaceResults = ({ finishers }) => {
         background: 'rgba(255, 255, 255, 0.1)',
         padding: '10px 15px',
         borderRadius: '10px',
-        border: finisher.id === 'player' ? '2px solid #00FF00' : '2px solid transparent',
+        border: finisher.id === socket.id ? '2px solid #00FF00' : '2px solid transparent',
         animation: 'fadeIn 0.3s ease-in',
       }}>
         <div style={{
@@ -61,8 +61,8 @@ export const RaceResults = ({ finishers }) => {
           <span style={{
             fontFamily: 'MKWii, Arial, sans-serif',
             fontSize: '20px',
-            color: finisher.id === 'player' ? '#00FF00' : '#FFFFFF',
-            fontWeight: finisher.id === 'player' ? 'bold' : 'normal',
+            color: finisher.id === socket.id ? '#00FF00' : '#FFFFFF',
+            fontWeight: finisher.id === socket.id ? 'bold' : 'normal',
             textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
           }}>
             {displayName}

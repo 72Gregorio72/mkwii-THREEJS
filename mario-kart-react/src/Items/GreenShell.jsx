@@ -21,17 +21,15 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
             homingAudioRef.current.play();
         }
         
-        // Ritarda l'inizializzazione della fisica per assicurarsi che il RigidBody sia pronto
-        const initTimer = setTimeout(() => {
-            if (rb.current) {
-                try {
-                    rb.current.wakeUp();
-                    rb.current.setLinvel(velocityVec, true);
-                } catch (e) {
-                    console.warn('Failed to initialize GreenShell physics:', e);
-                }
+        // Inizializzazione immediata della fisica
+        if (rb.current) {
+            try {
+                rb.current.wakeUp();
+                rb.current.setLinvel(velocityVec, true);
+            } catch (e) {
+                console.warn('Failed to initialize GreenShell physics:', e);
             }
-        }, 0);
+        }
         
         const timer = setTimeout(() => {
             setIsActive(false);
@@ -43,7 +41,6 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
         
         // Cleanup
         return () => {
-            clearTimeout(initTimer);
             clearTimeout(timer);
         };
     }, []);
@@ -68,10 +65,15 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
         if (!isActive) return;
         
         const targetObj = payload.other.rigidBodyObject;
-        const targetName = targetObj?.name || "";
+        if (!targetObj) return;
+        
         const userData = targetObj?.userData;
+        const targetName = targetObj?.name || "";
 
-        if (targetName === 'player' || targetName.startsWith('bot') || (userData && userData.type === 'opponent')) {
+        // Verifica se è un racer
+        const isRacer = userData?.type === 'racer' || userData?.type === 'opponent';
+        
+        if (isRacer) {
             setIsActive(false);
             
             window.dispatchEvent(new CustomEvent('banana-hit', { 

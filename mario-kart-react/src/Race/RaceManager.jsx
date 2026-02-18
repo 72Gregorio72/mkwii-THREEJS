@@ -2,8 +2,8 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 
-const UPDATE_INTERVAL = 0.1;
-const LAP_BONUS = 100000; // Punti per ogni giro completato
+const UPDATE_INTERVAL = 0.15; // Aumentato da 0.1 a 0.15 per ridurre frequenza update
+const LAP_BONUS = 100000;
 
 export function RaceManager({ 
 	racersData, 
@@ -15,6 +15,7 @@ export function RaceManager({
 	trackPath,
 	opponentsDataRef,
 	remoteRefMap,
+	socket,
 }) {
 	
 	// --- 1. DATI TRACCIATO (Pre-calcolati una volta sola) ---
@@ -45,7 +46,7 @@ export function RaceManager({
 		let minDistSq = Infinity;
 
 		// Cerca nei waypoint vicini (ottimizzazione)
-		const searchRange = Math.min(20, totalWaypoints);
+		const searchRange = Math.min(15, totalWaypoints); // Ridotto da 20 a 15
 		
 		for (let i = 0; i < searchRange; i++) {
 			const currentIndex = (startIndex + i) % totalWaypoints;
@@ -80,11 +81,21 @@ export function RaceManager({
 
 		const allRacers = racersData.current;
 
+		// Debug: Log racersData structure ogni 5 secondi
+		if (Math.random() < 0.02) { // ~2% chance = circa ogni 5 secondi
+			console.log('[RaceManager] racersData:', Object.keys(allRacers).map(id => ({
+				id,
+				lap: allRacers[id].lap,
+				score: allRacers[id].score,
+				lapBonus: ((allRacers[id].lap || 1) - 1) * LAP_BONUS
+			})));
+		}
+
 		// --- 4. AGGIORNA SCORE PER OGNI PILOTA ---
 		Object.keys(allRacers).forEach((racerId) => {
 			let currentPos = null;
 
-			if (racerId === 'player') {
+			if (racerId === socket.id) {
 				if (playerRef.current?.translation) {
 					const t = playerRef.current.translation();
 					currentPos = new THREE.Vector3(t.x, t.y, t.z);
@@ -113,9 +124,9 @@ export function RaceManager({
 						}
 					}
 				}
-
-				// Sincronizza lap da remoto
-				if (opponentsDataRef.current[racerId]?.lap) {
+				
+				// Sincronizza lap da remoto per giocatori online
+				if (opponentsDataRef.current[racerId]?.lap !== undefined) {
 					allRacers[racerId].lap = opponentsDataRef.current[racerId].lap;
 				}
 			}
@@ -130,6 +141,11 @@ export function RaceManager({
 
 		// --- 5. ORDINAMENTO PER SCORE (più alto = primo posto) ---
 		const sorted = Object.values(allRacers).sort((a, b) => b.score - a.score);
+
+		// Aggiorna posizione in ogni racer
+		sorted.forEach((racer, index) => {
+			allRacers[racer.id].position = index + 1;
+		});
 
 		// Aggiorna solo se cambiato
 		const hasChanged = sorted.some((r, i) => positions[i]?.id !== r.id);

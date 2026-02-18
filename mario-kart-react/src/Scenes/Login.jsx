@@ -214,6 +214,7 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
                                     className={inputStyle}
                                     placeholder="PLAYER 1"
                                     maxLength={12}
+                                    autoComplete='off'
                                     required
                                 />
                             </div>

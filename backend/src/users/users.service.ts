@@ -24,21 +24,33 @@ export class UsersService {
 
   async findOne(username: string): Promise<User | null> {
     const prisma = new PrismaClient()
-      return prisma.user.findFirst({
-        where: {
-          username: username.toLowerCase()
-        },
-      });
+
+    const userFound = await prisma.user.findUnique({
+      where: {
+        username: username.toLowerCase(),
+          },
+        });
+        if (!userFound) {
+          return null;
+        }
+        return userFound;
+
+    // const prisma = new PrismaClient()
+    //   return prisma.user.findFirst({
+    //     where: {
+    //       username: username.toLowerCase()
+    //     },
+    //   });
   }
 
   async addUser(data: any): Promise<User> {
     const prisma = new PrismaClient()
     // Verifica se esiste già
-    const existingUser = await this.findOne(data.username);
+    // const existingUser = await this.findOne(data.username);
     
-    if (existingUser) {
-        throw new ConflictException('User already exists');
-    }
+    // if (existingUser) {
+    //     throw new ConflictException('User already exists');
+    // }
 
     // const newUser = {
     //     userId: this.users.length + 1,
@@ -55,8 +67,10 @@ export class UsersService {
         },
       })
       return newUser;
-    } catch (e) {
-      console.error('Errore durante la creazione:', e)
+    } catch (e: any) {
+      if (e.code === 'P2002') {
+        throw new ConflictException('Username o Email già in uso');
+      }
       return null;
     } finally {
       await prisma.$disconnect()
