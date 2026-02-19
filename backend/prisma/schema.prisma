@@ -3,7 +3,7 @@
 // 2) npx prisma studio --hostname 0.0.0.0 --port 5555 --browser none
 // so go into a browser and open http://localhost:5555
 
-// if prisma is not in sync with the database do: npm prisma db push
+// if prisma is not in sync with the database do: npm prisma db push || npx prisma db push
 
 // to reset the database do npx prisma db push --force-reset, 
 // the .dbjournal file that will be created is a safe copy of the db that was 
@@ -24,11 +24,13 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
-  email     String   @unique
-  icon      String   @default("Mario.png")
+  id        	Int			@id @default(autoincrement())
+  username  	String		@unique
+  password  	String
+  email     	String		@unique
+  icon      	String		@default("Mario.png")
+  onlineWins	Int			@default(0)
+  offlineWins	Int			@default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

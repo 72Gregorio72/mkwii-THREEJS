@@ -205,17 +205,17 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
                             <MenuButton 
                                 title="50cc" 
                                 onClick={() => handleSpeed(30)}
-                                bgImage="/buttonsImg/chara_6_mario_00.png"
+                                bgImage="/buttonsImg/chara_6_yoshi_00.png"
                             />
                             <MenuButton 
                                 title="100cc" 
                                 onClick={() => handleSpeed(35)}
-                                bgImage="/buttonsImg/chara_6_donkey_00.png"
+                                bgImage="/buttonsImg/chara_6_diddy_00.png"
                             />
                             <MenuButton 
                                 title="150cc" 
                                 onClick={() => handleSpeed(40)}
-                                bgImage="/buttonsImg/chara_6_luigi_00.png"
+                                bgImage="/buttonsImg/chara_6_koopa_00.png"
                             />
                         </div>
                     )}

@@ -45,7 +45,9 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
     });
 
     const [formData, setFormData] = useState({
-        icon: AVAILABLE_ICONS[0]
+        icon: AVAILABLE_ICONS[0],
+		onlineWins: 0,
+		offlineWins: 0
     });
 
     useEffect(() => {
@@ -58,10 +60,16 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
         .then((json) => {
             const updatedData = {
                 ...json,
-                fullIconPath: `./sprites/${json.icon}` 
+                fullIconPath: `./sprites/${json.icon}`,
+				onlineWins: json.onlineWins || 0,
+				offlineWins: json.offlineWins || 0 
             };
             setData(updatedData);
-            setFormData({ icon: json.icon || AVAILABLE_ICONS[0] });
+            setFormData({ 
+				icon: json.icon || AVAILABLE_ICONS[0],
+				onlineWins: json.onlineWins || 0,
+				offlineWins: json.offlineWins || 0
+			});
         })
         .catch((err) => console.error("Fetch error:", err));
     }, [userName, isLoggedIn]);
@@ -103,7 +111,7 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    icon: formData.icon 
+                    icon: formData.icon
                 }),
             });
 
@@ -116,7 +124,9 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
             setData(prev => ({
                 ...prev,
                 icon: formData.icon,
-                fullIconPath: `./sprites/${formData.icon}`
+                fullIconPath: `./sprites/${formData.icon}`,
+				onlineWins: updatedUser.onlineWins || prev.onlineWins,
+				offlineWins: updatedUser.offlineWins || prev.offlineWins
             }));
 
             setEdit(false);
@@ -241,19 +251,19 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
                                     <div className="col-span-2 bg-[#001133] border border-[#004488] p-2 flex flex-col justify-center px-4 relative">
                                         <div className="flex justify-between text-xs font-bold uppercase mb-1 z-10">
                                             <span className="text-[#00aeff]">Online Wins</span>
-                                            <span className="text-white">{userStats.onlineWins}%</span>
+                                            <span className="text-white">{data?.onlineWins ?? userStats.onlineWins}%</span>
                                         </div>
                                         <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#004488] z-10">
-                                            <div className="h-full bg-gradient-to-r from-[#004488] to-[#00aeff]" style={{width: `${userStats.onlineWins}%`}}></div>
+                                            <div className="h-full bg-gradient-to-r from-[#004488] to-[#00aeff]" style={{width: `${data?.onlineWins ?? userStats.onlineWins}%`}}></div>
                                         </div>
                                     </div>
                                     <div className="col-span-2 bg-[#332200] border border-[#886600] p-2 flex flex-col justify-center px-4 relative">
                                         <div className="flex justify-between text-xs font-bold uppercase mb-1 z-10">
                                             <span className="text-[#ffcc00]">Offline Wins</span>
-                                            <span className="text-white">{userStats.offlineWins}%</span>
+                                            <span className="text-white">{data?.offlineWins ?? userStats.offlineWins}%</span>
                                         </div>
                                         <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#886600] z-10">
-                                            <div className="h-full bg-gradient-to-r from-[#886600] to-[#ffcc00]" style={{width: `${userStats.offlineWins}%`}}></div>
+                                            <div className="h-full bg-gradient-to-r from-[#886600] to-[#ffcc00]" style={{width: `${data?.offlineWins ?? userStats.offlineWins}%`}}></div>
                                         </div>
                                     </div>
                                 </div>

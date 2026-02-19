@@ -59,4 +59,24 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
       throw new ConflictException('Impossibile aggiornare l\'icona. Utente non trovato?');
     }
   }
+
+  async updateWins(username: string, onlyOffline: boolean): Promise<User> {
+	if (onlyOffline) {
+		try {
+		const updatedUser = await this.prisma.user.update({
+			where: {
+				username: username,
+			},
+			data: {
+				offlineWins: {
+					increment: 1,
+				},
+			}
+		});
+		return updatedUser;
+		} catch (error) {
+			throw new ConflictException('Impossibile aggiornare le vittorie. Utente non trovato?');
+		}
+	}
+  }
 }

@@ -20,4 +20,9 @@ export class UsersController {
     async updateIcon(@Query('userName') userName: string, @Body() body: any) {
         return await this.userService.updateIcon(userName, body.icon);
     }
+
+	@Patch('updateWins')
+	async updateWins(@Query('userName') userName: string, @Body() body: any) {
+		return await this.userService.updateWins(userName, body.onlyOffline);
+	}
 }

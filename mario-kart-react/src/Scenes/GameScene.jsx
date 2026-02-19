@@ -258,7 +258,8 @@ export function GameScene({
     roomId = null,
     isHostProp = false,
     isTimeTrial,
-    ccs
+    ccs,
+	username
 }) {
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
@@ -656,6 +657,23 @@ export function GameScene({
         // Non c'è più cleanup che chiama stopMusic durante RACING
     }, [selectedTrack, changeTrack, gameState, finished, stopMusic, setMusicPitch]);
 
+	// Update wins
+	const sendOfflineWinToServer = useCallback(() => {
+		fetch('/api/update_wins', {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ username : username, onlyOffline: true })
+		})
+		.then(response => response.json())
+		.then(data => {
+			console.log('Wins updated:', data);
+		})
+		.catch(error => {
+			console.error('Error updating wins:', error);
+		});
+	}, [username]);
+
+
     // Checkpoint Trigger
 	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
 		if (!racerId || !racersData.current[racerId]) return;
@@ -716,8 +734,12 @@ export function GameScene({
 					setFinished(true);
 					playSfx(AUDIO_SFX.FINISH_RACE, 3);
 					stopMusic();
-					if (racer.position === 1)
+					if (racer.position === 1) {
 						changeTrack('FINISH_FIRST', 0, false);
+						if (!isTimeTrial && !roomCode) {
+							sendOfflineWinToServer();
+						}
+					}
 					else if (racer.position >= 2 && racer.position <= 4)
 						changeTrack('FINISH_SECOND_FOURTH', 0, false);
 					else
@@ -742,9 +764,8 @@ export function GameScene({
     // 4. GESTIONE USCITA AGGIORNATA
     const handleExitRace = useCallback(() => {
         setRaceExited(true);
-        // Ritardo minimo per animazioni opzionali, poi navigazione
         setTimeout(() => { 
-            navigate('/track'); // Torna alla selezione pista
+            navigate('/track');
         }, 50);
     }, [navigate]);
     

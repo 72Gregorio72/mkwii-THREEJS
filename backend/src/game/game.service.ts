@@ -64,7 +64,7 @@ export class GameService {
     this.players.delete(id);
   }
 
-  applyLightningEffect(attackerId: string) {
+  /*applyLightningEffect(attackerId: string) {
 	for (let playerId in this.players) {
 		if (playerId !== attackerId) {
 		this.players[playerId].effects.isSmall = true;
@@ -79,5 +79,5 @@ export class GameService {
 		}, 4500);
 	}
 	}
-}
+}*/
 }
