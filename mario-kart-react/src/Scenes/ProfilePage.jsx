@@ -67,35 +67,33 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
     }, [userName, isLoggedIn]);
 
     const handleBack = () => {
-        playSfx(AUDIO_SFX.BACK);
+        playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
         if (edit) {
             setEdit(false);
         } else {
-            navigate('/menu');
+            navigate(-1);
         }
     };
 
     const handleLogout = () => {
-        playSfx(AUDIO_SFX.BACK); 
+        playSfx(AUDIO_SFX.BACK_IN_MENU, 10); 
         if (setLoggedIn) setLoggedIn(false);
         navigate('/');
     };
 
     const handleChangeIcon = () => {
-        playSfx(AUDIO_SFX.DECIDE);
+		playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         setEdit(true); 
     };
 
-    // Funzione per selezionare l'icona dalla griglia
     const handleSelectIcon = (iconName) => {
-        // Riproduce un suono diverso se clicchi sulla stessa icona o su una nuova
-        playSfx(AUDIO_SFX.DECIDE); 
+		playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         setFormData({ ...formData, icon: iconName });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        playSfx(AUDIO_SFX.DECIDE);
+		playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         setIsLoading(true);
 
         try {
