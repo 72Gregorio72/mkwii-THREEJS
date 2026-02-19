@@ -15,6 +15,7 @@ import { Register } from './Scenes/Register.jsx'
 import { Login } from './Scenes/Login.jsx'
 import { Profile } from './Scenes/ProfilePage.jsx'
 import { SinglePlayer } from './Scenes/SinglePlayer.jsx'
+import { GrandPrix } from './Scenes/GrandPrix.jsx'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -230,6 +231,11 @@ export default function App() {
                             <SinglePlayer isLoggedIn={isLoggedIn} setIsTimeTrial={setIsTimeTrial} setCcs={setCcsSpeed}
                             />
                         } />
+
+						<Route path="/grandprix" element={
+							<GrandPrix />
+						} />
+
                         <Route path="/vehicle" element={
                             <VehicleSelection 
                                 selectedCharacter={SelectedCharacter}

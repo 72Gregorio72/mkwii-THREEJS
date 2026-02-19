@@ -64,6 +64,7 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
     };
 
     const handleBack = () => {
+		playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
         if (grandPrix)
             setGrandPrix(false);
         else
@@ -73,7 +74,7 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
     const handleSpeed = (speed) => {
         setCcs(speed)
         setIsTimeTrial(false)
-        handleNavigate('/character')
+        handleNavigate('/grandprix')
     }
 
     return (
@@ -169,7 +170,7 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
                 </div>
     
                 {/* AREA CENTRALE */}
-                <div className="flex-1 flex flex-col items-center justify-center p-8 w-full">
+                <div className="flex-1 flex flex-col items-center justify-center px-8 pb-8 pt-[18vh] w-ful">
                     
                     {/* SELEZIONE MODALITÀ */}
                     {!grandPrix && (
@@ -182,7 +183,10 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
                             />
                             <MenuButton 
                                 title="Grand prix" 
-                                onClick={() => setGrandPrix(true)}
+                                onClick={() => {
+									setGrandPrix(true)
+									playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+								}}
                                 bgImage="/buttonsImg/chara_6_donkey_00.png"
                             />
                         </div>
