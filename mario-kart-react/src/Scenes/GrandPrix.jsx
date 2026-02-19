@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
 export const GrandPrix = () => {
     const navigate = useNavigate();
-    const { playSfx } = useAudio();
+	const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+
+	useEffect(() => {
+	if (getCurrentTrack() !== 'MENU') {
+		changeTrack('MENU', 100);
+		enableSmoothLoop();
+	}
+	}, [changeTrack, enableSmoothLoop]);
 
     const grandPrixList = [
         {

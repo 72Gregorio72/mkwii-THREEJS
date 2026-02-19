@@ -40,7 +40,14 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
     const navigate = useNavigate();   
     const [fadeToBlack, setFadeToBlack] = useState(false);
     const [grandPrix, setGrandPrix] = useState(false);
-    const { playSfx, fadeOutMusic } = useAudio();
+  	const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+
+	useEffect(() => {
+		if (getCurrentTrack() !== 'MENU') {
+			changeTrack('MENU', 100);
+			enableSmoothLoop();
+		}
+	}, [changeTrack, enableSmoothLoop]);
     
     const handleNavigate = (path) => {
         if (path === '/menu') {
