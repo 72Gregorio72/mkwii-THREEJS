@@ -176,33 +176,33 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
             </div>
 
             {/* FOOTER / QUIT BUTTON */}
-            <div className="h-[12vh] w-full flex items-center justify-end px-12 relative z-30">
-                
-                <button 
-                    onClick={handleQuit}
-                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group"
-                >
-                    <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">
-                        ➜
-                    </div>
-                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">
-                        Quit
-                    </span>
-                </button>
-
+            <div className="h-[25vh] w-full flex flex-col items-end justify-center px-12 gap-4 relative z-30">
+    
                 {isTimeTrial && (
                     <button 
                         onClick={handlePlayAgain}
-                        className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[8px] hover:bg-[#f0f0f0] transition-all cursor-pointer group"
+                        className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-64 justify-between"
                     >
-                        <div className="w-8 h-8 rounded-full bg-[#ff44ff] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">
-                            ➜
-                        </div>
                         <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">
                             Play Again
                         </span>
+                        <div className="w-10 h-10 rounded-full bg-[#22cc22] text-white flex items-center justify-center font-bold text-xl shadow-inner border border-white/50 group-hover:rotate-180 transition-transform duration-500">
+                            ↻
+                        </div>
                     </button>
                 )}
+
+                <button 
+                    onClick={handleQuit}
+                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-64 justify-between"
+                >
+                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">
+                        Quit
+                    </span>
+                    <div className="w-10 h-10 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">
+                        ➜
+                    </div>
+                </button>
 
             </div>
 
