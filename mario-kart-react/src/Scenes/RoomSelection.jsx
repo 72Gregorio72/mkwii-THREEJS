@@ -36,7 +36,7 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket }) => {
+export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket, username }) => {
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [fadeToBlack, setFadeToBlack] = useState(false);
@@ -68,7 +68,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket }) => {
   const handleCreateRoom = () => {
     playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    onCreateRoom(code);
+    onCreateRoom(code, username);
   };
 
   const handleJoinClick = () => {
@@ -79,7 +79,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket }) => {
   const handleConfirmJoin = () => {
     if (roomCode.trim()) {
       playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
-      onJoinRoom(roomCode.trim().toUpperCase());
+      onJoinRoom(roomCode.trim().toUpperCase(), username);
     }
   };
 

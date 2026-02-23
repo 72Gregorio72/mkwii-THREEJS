@@ -171,16 +171,16 @@ export default function App() {
         return () => socket.off('room_state', handleRoomState);
     }, []);
 
-    const handleCreateRoom = (code) => {
+    const handleCreateRoom = (code, username) => {
         setRoomCode(code);
         setIsHost(true);
-        socket.emit('create_room', { roomCode: code });
+        socket.emit('create_room', { roomCode: code, username: username });
     };
 
-    const handleJoinRoom = (code) => {
+    const handleJoinRoom = (code, username) => {
         setRoomCode(code);
         setIsHost(false);
-        socket.emit('join_room', { roomCode: code });
+        socket.emit('join_room', { roomCode: code, username: username });
     };
 
     return (
@@ -200,6 +200,7 @@ export default function App() {
                                 onJoinRoom={handleJoinRoom}
                                 socket={socket}
                                 setSelectedTrack={setSelectedTrack}
+                                username={userName}
                             />
                         } />
                         

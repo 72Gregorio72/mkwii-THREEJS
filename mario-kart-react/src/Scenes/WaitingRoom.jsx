@@ -230,7 +230,7 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
 
                                     {/* Name */}
                                     <span className={`text-xl font-bold tracking-wide ${player.isHost ? 'text-[#ffcc00]' : 'text-white'}`}>
-                                        Player {index + 1}
+                                        {player.username || `Player ${index + 1}`}
                                         {player.id === socket?.id && <span className="text-[#88aaff] text-sm ml-2">(YOU)</span>}
                                     </span>
 

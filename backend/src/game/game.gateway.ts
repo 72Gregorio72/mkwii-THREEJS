@@ -231,7 +231,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('create_room')
-  handleCreateRoom(client: Socket, payload: { roomCode: string }) {
+  handleCreateRoom(client: Socket, payload: { roomCode: string, username: string }) {
     const roomCode = payload.roomCode;
     
     if (this.roomData.has(roomCode)) {
@@ -251,7 +251,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       roomCode: roomCode,
       roomId: roomId,
       hostId: client.id,
-      players: [{ id: client.id, isHost: true }],
+      players: [{ id: client.id, isHost: true, username: payload.username }],
       bots: [],
       gameState: 'LOBBY'
     });
@@ -273,7 +273,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('join_room')
-  handleJoinRoom(client: Socket, payload: { roomCode: string }) {
+  handleJoinRoom(client: Socket, payload: { roomCode: string, username: string }) {
     const roomCode = payload.roomCode;
     
     if (!this.roomData.has(roomCode)) {
@@ -291,7 +291,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     client.join(roomCode);
 
-    room.players.push({ id: client.id, isHost: false });
+    room.players.push({ id: client.id, isHost: false, username: payload.username });
     this.playerRoomMap.set(client.id, roomCode);
     
     console.log(`Player ${client.id} joined room ${roomCode} (${room.roomId})`);
