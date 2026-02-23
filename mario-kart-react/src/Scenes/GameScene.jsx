@@ -658,11 +658,11 @@ export function GameScene({
     }, [selectedTrack, changeTrack, gameState, finished, stopMusic, setMusicPitch]);
 
 	// Update wins
-	const sendOfflineWinToServer = useCallback(() => {
+	const sendWinToServer = useCallback((isOffline) => {
 		fetch(`/api/updateWins?userName=${username}`, {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ onlyOffline: true })
+			body: JSON.stringify({ onlyOffline: isOffline })
 		})
 		.then(response => response.json())
 		.then(data => {
@@ -735,11 +735,12 @@ export function GameScene({
 					playSfx(AUDIO_SFX.FINISH_RACE, 3);
 					stopMusic();
 					if (racer.position === 1) {
-                        console.log('Player finished first!');
 						changeTrack('FINISH_FIRST', 0, false);
 						if (!isTimeTrial && !roomCode) {
-							sendOfflineWinToServer();
-						}
+							sendWinToServer(true);
+						} else if (!isTimeTrial && roomCode) {
+                            sendWinToServer(false);
+                        }
 					}
 					else if (racer.position >= 2 && racer.position <= 4)
 						changeTrack('FINISH_SECOND_FOURTH', 0, false);

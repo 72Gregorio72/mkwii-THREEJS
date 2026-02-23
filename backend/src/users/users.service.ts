@@ -61,23 +61,40 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
   }
 
   async updateWins(username: string, onlyOffline: boolean): Promise<User> {
-	if (onlyOffline) {
-		try {
-    console.log(`Updating offline wins for user: ${username}`);
-		const updatedUser = await this.prisma.user.update({
-			where: {
-				username: username,
-			},
-			data: {
-				offlineWins: {
-					increment: 1,
-				},
-			}
-		});
-		return updatedUser;
-		} catch (error) {
-			throw new ConflictException('Impossibile aggiornare le vittorie. Utente non trovato?');
-		}
-	}
+    if (onlyOffline) {
+      try {
+      console.log(`Updating offline wins for user: ${username}`);
+      const updatedUser = await this.prisma.user.update({
+        where: {
+          username: username,
+        },
+        data: {
+          offlineWins: {
+            increment: 1,
+          },
+        }
+      });
+      return updatedUser;
+      } catch (error) {
+        throw new ConflictException('Impossibile aggiornare le vittorie. Utente non trovato?');
+      }
+    } else {
+      try {
+      console.log(`Updating offline wins for user: ${username}`);
+      const updatedUser = await this.prisma.user.update({
+        where: {
+          username: username,
+        },
+        data: {
+          onlineWins: {
+            increment: 1,
+          },
+        }
+      });
+      return updatedUser;
+      } catch (error) {
+        throw new ConflictException('Impossibile aggiornare le vittorie. Utente non trovato?');
+      }
+    }
   }
 }
