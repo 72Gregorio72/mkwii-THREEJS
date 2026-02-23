@@ -25,4 +25,4 @@ export class UsersController {
 	async updateWins(@Query('userName') userName: string, @Body() body: any) {
 		return await this.userService.updateWins(userName, body.onlyOffline);
 	}
-}
+}   

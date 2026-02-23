@@ -282,7 +282,7 @@ export default function App() {
                                         isHostProp={isHost}
                                         isTimeTrial={isTimeTrial}
                                         ccs={ccsSpeed}
-										userName={userName}
+										username={userName}
                                     />
                                 } 
                             />

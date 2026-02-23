@@ -49,7 +49,7 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
             }
 
             if (onLoginSuccess) {
-                onLoginSuccess();
+                onLoginSuccess(finalUsername);
             }
             setTimeout(() => navigate('/menu'), 500);
 

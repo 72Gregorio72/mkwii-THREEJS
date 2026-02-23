@@ -659,10 +659,10 @@ export function GameScene({
 
 	// Update wins
 	const sendOfflineWinToServer = useCallback(() => {
-		fetch('/api/update_wins', {
+		fetch(`/api/updateWins?userName=${username}`, {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ username : username, onlyOffline: true })
+			body: JSON.stringify({ onlyOffline: true })
 		})
 		.then(response => response.json())
 		.then(data => {
@@ -735,6 +735,7 @@ export function GameScene({
 					playSfx(AUDIO_SFX.FINISH_RACE, 3);
 					stopMusic();
 					if (racer.position === 1) {
+                        console.log('Player finished first!');
 						changeTrack('FINISH_FIRST', 0, false);
 						if (!isTimeTrial && !roomCode) {
 							sendOfflineWinToServer();

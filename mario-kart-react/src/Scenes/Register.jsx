@@ -20,7 +20,7 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
 
     const sendDataToBackend = async (data) => {
         setIsLoading(true);
-        setError(null); // Resetta errori precedenti
+        setError(null);
 
         try {
             const response = await fetch('/api/register', {
@@ -46,8 +46,9 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
             if (setUsername) {
                 setUsername(finalUsername);
             }
+
             if (onRegistrationSuccess) {
-                onRegistrationSuccess();
+                onRegistrationSuccess(finalUsername);
             }
             
             setTimeout(() => navigate('/menu'), 500);
