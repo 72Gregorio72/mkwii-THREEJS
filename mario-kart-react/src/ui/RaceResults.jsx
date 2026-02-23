@@ -12,7 +12,7 @@ const mkwiiFontStyle = `
   }
 `;
 
-export const RaceResults = ({ finishers, socket }) => {
+export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIsTimeTrial }) => {
   const navigate = useNavigate();
   const { playSfx } = useAudio();
 
@@ -25,7 +25,20 @@ export const RaceResults = ({ finishers, socket }) => {
 
   const handleQuit = () => {
     playSfx(AUDIO_SFX.BACK);
+    if (isTimeTrial) {
+        setIsTimeTrial(false);
+    }
     navigate('/menu');
+  };
+
+  const handlePlayAgain = () => {   
+    playSfx(AUDIO_SFX.CONFIRM);
+    if (onPlayAgain) {
+        setIsTimeTrial(true);
+        onPlayAgain();
+    } else {
+        navigate('/game');
+    }
   };
 
   const RenderRow = ({ finisher, index, offset = 0 }) => {
@@ -164,7 +177,6 @@ export const RaceResults = ({ finishers, socket }) => {
 
             {/* FOOTER / QUIT BUTTON */}
             <div className="h-[12vh] w-full flex items-center justify-end px-12 relative z-30">
-                 {/* Nota: Ho rimosso la linea di sfondo del footer per lasciare la gara visibile sotto */}
                 
                 <button 
                     onClick={handleQuit}
@@ -177,6 +189,21 @@ export const RaceResults = ({ finishers, socket }) => {
                         Quit
                     </span>
                 </button>
+
+                {isTimeTrial && (
+                    <button 
+                        onClick={handlePlayAgain}
+                        className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[8px] hover:bg-[#f0f0f0] transition-all cursor-pointer group"
+                    >
+                        <div className="w-8 h-8 rounded-full bg-[#ff44ff] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">
+                            ➜
+                        </div>
+                        <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">
+                            Play Again
+                        </span>
+                    </button>
+                )}
+
             </div>
 
         </div>

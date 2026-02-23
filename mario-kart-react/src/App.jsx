@@ -284,6 +284,10 @@ export default function App() {
                                         isTimeTrial={isTimeTrial}
                                         ccs={ccsSpeed}
 										username={userName}
+                                        setCharacter={setSelectedCharacter}
+                                        setVehicle={setSelectedVehicle}
+                                        setTrack={setSelectedTrack}
+                                        setIsTimeTrial={setIsTimeTrial}
                                     />
                                 } 
                             />

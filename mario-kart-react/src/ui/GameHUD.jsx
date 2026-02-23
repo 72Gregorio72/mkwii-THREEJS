@@ -37,6 +37,10 @@ const ITEM_SPRITES = {
   [ITEMS.BULLET_BILL]: '/itemSprites/BulletBill.png',
 };
 
+// Costanti Tailwind per stili di testo riutilizzati (Stroke + Gradient MKWii)
+const textGradientStroke = "bg-[linear-gradient(180deg,#FFE135_0%,#FFD000_40%,#E5A000_100%)] bg-clip-text text-transparent [filter:drop-shadow(-2px_-2px_0_#000)_drop-shadow(2px_-2px_0_#000)_drop-shadow(-2px_2px_0_#000)_drop-shadow(2px_2px_0_#000)]";
+const smallTextGradientStroke = "bg-[linear-gradient(180deg,#FFE135_0%,#FFD000_40%,#E5A000_100%)] bg-clip-text text-transparent [filter:drop-shadow(-1px_-1px_0_#000)_drop-shadow(1px_-1px_0_#000)_drop-shadow(-1px_1px_0_#000)_drop-shadow(1px_1px_0_#000)]";
+
 export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player", gameState = 'INTRO', finished = false }) => {
   
   // --- STATI LOCALI ---
@@ -56,6 +60,26 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
   // --- FREEZE & FLASH STATE ---
   const [isFrozen, setIsFrozen] = useState(false);
   const [frozenTimeValue, setFrozenTimeValue] = useState(0);
+
+  // 0. GESTIONE RESET (Quando si clicca Play Again e lo stato torna a INTRO/COUNTDOWN)
+  useEffect(() => {
+    if (gameState === 'INTRO' || gameState === 'COUNTDOWN') {
+      hasStarted.current = false;
+      setRaceTime(0);
+      setFrozenTimeValue(0);
+      setIsFrozen(false);
+      lastLapRef.current = 1;
+      
+      // Reset visuale dell'oggetto nell'HUD
+      setCurrentItem(ITEMS.NONE);
+      setIsSpinning(false);
+
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+  }, [gameState]);
 
   // 1. GESTIONE TIMER GENERALE
   useEffect(() => {
@@ -77,7 +101,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
     };
   }, [gameState]);
 
-  // Ferma il timer quando la gara finisce
+  // 2. Ferma il timer quando la gara finisce
   useEffect(() => {
     if (finished && timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
@@ -85,7 +109,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
     }
   }, [finished]);
 
-  // 2. GESTIONE CAMBIO GIRO (Blocco 2s + Fade in/out Rosso)
+  // 3. GESTIONE CAMBIO GIRO (Blocco 2s + Fade in/out Rosso)
   useEffect(() => {
     if (lap > lastLapRef.current && hasStarted.current) {
       
@@ -123,7 +147,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
   const displayTime = isFrozen ? frozenTimeValue : raceTime;
   const timeFormatted = formatTime(displayTime);
 
-  // GESTIONE UPDATE HUD
+  // 4. GESTIONE UPDATE HUD (Custom Event ricevuto dal Kart/Moto)
   useEffect(() => {
     const handleHudUpdate = (e) => {
         if (!e.detail) return;
@@ -146,7 +170,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
     return () => window.removeEventListener('hud-update', handleHudUpdate);
   }, [playerId]);
 
-  // Animazione Item
+  // Animazione Item Pop-in
   useEffect(() => {
     if (currentItem !== ITEMS.NONE) {
       setAnimClass('pop-in');
@@ -160,14 +184,13 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
   const spinningAnim = isSpinning ? 'roulette-blur' : '';
   const safeRender = (val) => (isNaN(val) || val === null || val === undefined) ? 0 : val;
 
-  // Classe CSS condizionale
+  // Classe CSS condizionale per il "freeze" di fine giro
   const flashClass = isFrozen ? 'flash-red' : '';
 
   return (
-    <div style={styles.container}>
+    <div className="absolute top-0 left-0 w-full h-full pointer-events-none font-['MKWii',_'Arial_Black',_Gadget,_sans-serif] not-italic select-none overflow-hidden z-10">
       <style>{mkwiiFontStyle}</style>
       
-      {/* AGGIORNATA LA SEZIONE CSS SOTTOSTANTE */}
       <style>{`
         .pop-in { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop {
@@ -195,181 +218,62 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
       `}</style>
       
       {/* --- ITEM BOX --- */}
-      <div style={styles.itemBoxContainer}>
-        <div style={styles.itemBoxBg}></div>
+      <div className="absolute top-[30px] left-[30px] w-[140px] h-[120px] flex justify-center items-center drop-shadow-[5px_5px_0px_rgba(0,0,0,0.5)]">
+        <div className="absolute w-full h-full bg-[radial-gradient(circle,_rgba(0,0,0,0.6)_20%,_rgba(0,0,0,0)_70%)] border-4 border-[rgba(255,255,255,0.3)] rounded-[20px] bg-[rgba(0,0,0,0.2)] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] -skew-x-[10deg]"></div>
         {itemImage && (
           <img 
             src={itemImage} 
             alt="Item" 
-            className={`${finalItemAnim} ${spinningAnim}`}
-            style={{
-              ...styles.itemImage,
-              filter: isSpinning ? 'blur(2px) brightness(1.2)' : styles.itemImage.filter
-            }} 
+            className={`w-[90%] h-[90%] object-contain z-[2] ${finalItemAnim} ${spinningAnim} ${isSpinning ? 'blur-[2px] brightness-[1.2]' : 'drop-shadow-[0px_0px_10px_rgba(255,255,255,0.6)]'}`}
           />
         )}
       </div>
 
       {/* --- TOP RIGHT: TIME / LAP --- */}
-      <div style={styles.topRight}>
-        <div style={styles.mkwiiRow}>
-          <span style={styles.mkwiiLabel}>TIME</span>
-          <div style={styles.mkwiiTimeContainer}>
-            <span className={flashClass} style={styles.mkwiiNumber}>{timeFormatted.minutes}</span>
-            <span className={flashClass} style={styles.mkwiiSeparator}>'</span>
-            <span className={flashClass} style={styles.mkwiiNumber}>{timeFormatted.seconds}</span>
-            <span className={flashClass} style={styles.mkwiiSeparator}>"</span>
-            <span className={flashClass} style={styles.mkwiiMillis}>{timeFormatted.milliseconds}</span>
+      <div className="absolute top-[15px] right-[15px] text-right flex flex-col gap-0 font-['MKWii',_'Arial_Black',_sans-serif] pr-[10px]">
+        <div className="flex justify-end items-center gap-[8px]">
+          <span className={`font-['MKWii',_'Arial_Black',_sans-serif] text-[53px] font-bold tracking-[1px] italic pr-[20px] pb-[10px] ${textGradientStroke}`}>
+            TIME
+          </span>
+          <div className="flex items-baseline pr-[5px]">
+            <span className={`${flashClass} font-['Digital7',_monospace] text-[42px] font-bold not-italic tracking-[3px] ${textGradientStroke}`}>{timeFormatted.minutes}</span>
+            <span className={`${flashClass} font-['Digital7',_monospace] text-[42px] mx-[1px] not-italic font-bold ${textGradientStroke}`}>'</span>
+            <span className={`${flashClass} font-['Digital7',_monospace] text-[42px] font-bold not-italic tracking-[3px] ${textGradientStroke}`}>{timeFormatted.seconds}</span>
+            <span className={`${flashClass} font-['Digital7',_monospace] text-[42px] mx-[1px] not-italic font-bold ${textGradientStroke}`}>"</span>
+            <span className={`${flashClass} font-['Digital7',_monospace] text-[34px] font-bold not-italic tracking-[3px] ${textGradientStroke}`}>{timeFormatted.milliseconds}</span>
           </div>
         </div>
         
-        <div style={styles.mkwiiRow}>
-          <span style={styles.mkwiiLabel}>LAP</span>
-          <div style={styles.mkwiiLapContainer}>
-            <span style={styles.mkwiiLapNumber}>{lap}</span>
-            <span style={styles.mkwiiLapSeparator}>/</span>
-            <span style={styles.mkwiiLapTotal}>{totalLaps}</span>
+        <div className="flex justify-end items-center gap-[8px]">
+          <span className={`font-['MKWii',_'Arial_Black',_sans-serif] text-[53px] font-bold tracking-[1px] italic pr-[20px] pb-[10px] ${textGradientStroke}`}>
+            LAP
+          </span>
+          <div className="flex items-baseline pb-[5px]">
+            <span className={`font-['Digital7',_monospace] text-[50px] font-bold not-italic tracking-[3px] ${textGradientStroke}`}>{lap}</span>
+            <span className={`font-['Digital7',_monospace] text-[42px] mx-[2px] not-italic font-bold ${textGradientStroke}`}>/</span>
+            <span className={`font-['Digital7',_monospace] text-[38px] font-bold not-italic tracking-[3px] ${textGradientStroke}`}>{totalLaps}</span>
           </div>
         </div>
       </div>
 
       {/* --- RANK --- */}
-      <div style={styles.rankContainer}>
+      <div className="absolute bottom-[40px] left-[30px] text-[#E0E0E0] [text-shadow:4px_4px_0_#000,_-1px_-1px_0_#000] leading-[0.8]">
         <img 
           src={`/RankSprites/rank${safeRender(rank)}.png`} 
           alt={`Rank ${rank}`}
-          style={{ width: '120px', height: 'auto', filter: 'drop-shadow(4px 4px 0px black)' }}
+          className="w-[120px] h-auto drop-shadow-[4px_4px_0px_black]"
         />
       </div>
 
       {/* --- SPEEDOMETER --- */}
-      <div style={styles.speedContainer}>
-        <span style={styles.speedValue}>{speed}</span>
-        <span style={styles.speedUnit}>km/h</span>
+      <div className="absolute bottom-[40px] right-[50px] text-right">
+        <span className={`font-['Digital7',_monospace] text-[60px] font-bold tracking-[3px] ${textGradientStroke}`}>
+          {speed}
+        </span>
+        <span className={`font-['MKWii',_'Arial_Black',_sans-serif] text-[20px] ml-[5px] ${smallTextGradientStroke}`}>
+          km/h
+        </span>
       </div>
     </div>
   );
-};
-
-// ... Styles (invariati)
-const styles = {
-  container: {
-    position: 'absolute',
-    top: 0, left: 0,
-    width: '100%', height: '100%',
-    pointerEvents: 'none',
-    fontFamily: '"MKWii", "Arial Black", Gadget, sans-serif',
-    fontStyle: 'normal',
-    userSelect: 'none',
-    overflow: 'hidden',
-    zIndex: 10
-  },
-  itemBoxContainer: {
-    position: 'absolute',
-    top: '30px', left: '30px',
-    width: '140px', height: '120px',
-    display: 'flex', justifyContent: 'center', alignItems: 'center',
-    filter: 'drop-shadow(5px 5px 0px rgba(0,0,0,0.5))'
-  },
-  itemBoxBg: {
-    position: 'absolute',
-    width: '100%', height: '100%',
-    background: 'radial-gradient(circle, rgba(0,0,0,0.6) 20%, rgba(0,0,0,0) 70%)',
-    border: '4px solid rgba(255,255,255,0.3)',
-    borderRadius: '20px',
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)',
-    transform: 'skewX(-10deg)',
-  },
-  itemImage: {
-    width: '90%', height: '90%', objectFit: 'contain', zIndex: 2,
-    filter: 'drop-shadow(0px 0px 10px rgba(255,255,255,0.6))'
-  },
-  topRight: {
-    position: 'absolute',
-    top: '15px', right: '15px',
-    textAlign: 'right',
-    display: 'flex', flexDirection: 'column', gap: '0px',
-    fontFamily: '"MKWii", "Arial Black", sans-serif',
-    paddingRight: '10px',
-  },
-  mkwiiRow: {
-    display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px',
-  },
-  mkwiiLabel: {
-    fontFamily: '"MKWii", "Arial Black", sans-serif', fontSize: '53px',
-    background: 'linear-gradient(180deg, #FFE135 0%, #FFD000 40%, #E5A000 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-    filter: 'drop-shadow(-2px -2px 0 #000) drop-shadow(2px -2px 0 #000) drop-shadow(-2px 2px 0 #000) drop-shadow(2px 2px 0 #000)',
-    fontWeight: 'bold', letterSpacing: '1px', fontStyle: 'italic',
-    paddingRight: '20px', paddingBottom: '10px'
-  },
-  mkwiiTimeContainer: {
-    display: 'flex', alignItems: 'baseline', paddingRight: '5px',
-  },
-  mkwiiNumber: {
-    fontFamily: '"Digital7", monospace', fontSize: '42px',
-    background: 'linear-gradient(180deg, #FFE135 0%, #FFD000 40%, #E5A000 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-    filter: 'drop-shadow(-2px -2px 0 #000) drop-shadow(2px -2px 0 #000) drop-shadow(-2px 2px 0 #000) drop-shadow(2px 2px 0 #000)',
-    fontWeight: 'bold', fontStyle: 'normal', letterSpacing: '3px',
-  },
-  mkwiiSeparator: {
-    fontFamily: '"Digital7", monospace', fontSize: '42px',
-    background: 'linear-gradient(180deg, #FFE135 0%, #FFD000 40%, #E5A000 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-    filter: 'drop-shadow(-2px -2px 0 #000) drop-shadow(2px -2px 0 #000) drop-shadow(-2px 2px 0 #000) drop-shadow(2px 2px 0 #000)',
-    margin: '0 1px', fontStyle: 'normal', fontWeight: 'bold',
-  },
-  mkwiiMillis: {
-    fontFamily: '"Digital7", monospace', fontSize: '34px',
-    background: 'linear-gradient(180deg, #FFE135 0%, #FFD000 40%, #E5A000 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-    filter: 'drop-shadow(-2px -2px 0 #000) drop-shadow(2px -2px 0 #000) drop-shadow(-2px 2px 0 #000) drop-shadow(2px 2px 0 #000)',
-    fontWeight: 'bold', fontStyle: 'normal', letterSpacing: '3px',
-  },
-  mkwiiLapContainer: {
-    display: 'flex', alignItems: 'baseline', paddingBottom: '5px'
-  },
-  mkwiiLapNumber: {
-    fontFamily: '"Digital7", monospace', fontSize: '50px',
-    background: 'linear-gradient(180deg, #FFE135 0%, #FFD000 40%, #E5A000 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-    filter: 'drop-shadow(-2px -2px 0 #000) drop-shadow(2px -2px 0 #000) drop-shadow(-2px 2px 0 #000) drop-shadow(2px 2px 0 #000)',
-    fontWeight: 'bold', fontStyle: 'normal', letterSpacing: '3px',
-  },
-  mkwiiLapSeparator: {
-    fontFamily: '"Digital7", monospace', fontSize: '42px',
-    background: 'linear-gradient(180deg, #FFE135 0%, #FFD000 40%, #E5A000 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-    filter: 'drop-shadow(-2px -2px 0 #000) drop-shadow(2px -2px 0 #000) drop-shadow(-2px 2px 0 #000) drop-shadow(2px 2px 0 #000)',
-    margin: '0 2px', fontStyle: 'normal', fontWeight: 'bold',
-  },
-  mkwiiLapTotal: {
-    fontFamily: '"Digital7", monospace', fontSize: '38px',
-    background: 'linear-gradient(180deg, #FFE135 0%, #FFD000 40%, #E5A000 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-    filter: 'drop-shadow(-2px -2px 0 #000) drop-shadow(2px -2px 0 #000) drop-shadow(-2px 2px 0 #000) drop-shadow(2px 2px 0 #000)',
-    fontWeight: 'bold', fontStyle: 'normal', letterSpacing: '3px',
-  },
-  rankContainer: {
-    position: 'absolute', bottom: '40px', left: '30px',
-    color: '#E0E0E0', textShadow: '4px 4px 0 #000, -1px -1px 0 #000', lineHeight: '0.8'
-  },
-  speedContainer: {
-    position: 'absolute', bottom: '40px', right: '50px', textAlign: 'right',
-  },
-  speedValue: {
-    fontFamily: '"Digital7", monospace', fontSize: '60px', fontWeight: 'bold',
-    background: 'linear-gradient(180deg, #FFE135 0%, #FFD000 40%, #E5A000 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-    filter: 'drop-shadow(-2px -2px 0 #000) drop-shadow(2px -2px 0 #000) drop-shadow(-2px 2px 0 #000) drop-shadow(2px 2px 0 #000)',
-    letterSpacing: '3px',
-  },
-  speedUnit: {
-    fontFamily: '"MKWii", "Arial Black", sans-serif', fontSize: '20px', marginLeft: '5px',
-    background: 'linear-gradient(180deg, #FFE135 0%, #FFD000 40%, #E5A000 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-    filter: 'drop-shadow(-1px -1px 0 #000) drop-shadow(1px -1px 0 #000) drop-shadow(-1px 1px 0 #000) drop-shadow(1px 1px 0 #000)',
-  },
 };

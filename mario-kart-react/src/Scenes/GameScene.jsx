@@ -259,7 +259,8 @@ export function GameScene({
     isHostProp = false,
     isTimeTrial,
     ccs,
-	username
+	username,
+    setIsTimeTrial,
 }) {
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
@@ -291,6 +292,11 @@ export function GameScene({
     const [networkItems, setNetworkItems] = useState([]);
     const itemIdCounter = useRef(0);
 
+    // 1. Aggiungi questo stato vicino agli altri (es. sotto const [finished, setFinished] = useState(false);)
+    const [restartTrigger, setRestartTrigger] = useState(0);
+
+    // 2. Crea la funzione di reset
+    
     const handleRequestSpawn = useCallback((type, position, velocity, extra = {}) => {
         const getCoords = (val) => {
             if (Array.isArray(val)) return val;
@@ -480,30 +486,37 @@ export function GameScene({
         socket.emit('start_race', { bots: [], roomCode });
     }, [socket, isHost, roomCode]);
 
+
+    
     useEffect(() => {
-        if (isInLobby || introPlayed.current) return;
-            introPlayed.current = true;
+        // Se siamo in gara o l'intro è già partita (in questo ciclo), esci
+        if (isInLobby || introPlayed.current || gameState === 'RACING') return;
+        
+        introPlayed.current = true;
 
-            // Prima fase: camera iniziale panoramica (0-5 secondi)
-            gsap.fromTo(cameraTarget.current, 
-                { x: 0, y: 0, z: 0 }, 
-                { x: 0, y: 8, z: 0, duration: 5 }
-            );
+        // Assicurati di uccidere vecchie animazioni pendenti in caso di riavvio rapido
+        gsap.killTweensOf(cameraTarget.current);
 
-            const timeline = gsap.timeline({
-                onComplete: () => startCountdown()
-            });
+        gsap.fromTo(cameraTarget.current, 
+            { x: 0, y: 0, z: 0 }, 
+            { x: 0, y: 8, z: 0, duration: 5 }
+        );
 
-            // Seconda fase: avvicinamento al player (5-12 secondi = 7 secondi)
-            timeline.to(cameraTarget.current, {
-                x: playerStartPos[0],
-                y: playerStartPos[1] + 2,
-                z: playerStartPos[2],
-                duration: 7,
-                ease: "power2.inOut",
-                delay: 5  // Inizia dopo la prima fase
-            });
-    }, []);
+        const timeline = gsap.timeline({
+            onComplete: () => startCountdown()
+        });
+
+        timeline.to(cameraTarget.current, {
+            x: playerStartPos[0],
+            y: playerStartPos[1] + 2,
+            z: playerStartPos[2],
+            duration: 7,
+            ease: "power2.inOut",
+            delay: 5
+        });
+        
+    // AGGIUNGI restartTrigger QUI
+    }, [isInLobby, playerStartPos, restartTrigger]);
 
     const startCountdown = () => {
         setGameState('COUNTDOWN');
@@ -798,7 +811,7 @@ export function GameScene({
         }
         
         return list;
-    }, [roomCode, opponents, gameState]); // Aggiungi gameState per ricalcolare quando la gara inizia
+    }, [roomCode, opponents, gameState]);
 
     const blueShellTargets = useMemo(() => {
         return targets.map(t => {
@@ -810,6 +823,65 @@ export function GameScene({
             };
         });
     }, [targets, positions]);
+
+    const handleRestartRace = useCallback(() => {
+        stopMusic();
+        // A. Reset degli stati UI/Logica di React
+        setFinished(false);
+        setFinishers([]);
+        setRaceExited(false);
+        setUiLap(1);
+        setNextCheck(1);
+        setPositions(initialPositions);
+        setNetworkItems([]);
+        setCountdown(null);
+        setGameState(isTimeTrial ? 'COUNTDOWN' : 'INTRO');
+
+        introPlayed.current = false;
+        introMusicPlayed.current = false;
+        startingGridPlayed.current = false;
+        racingMusicStarted.current = false;
+        isFinalLap.current = false;
+        itemIdCounter.current = 0;
+
+        // C. Reset dei dati della corsa (Giri, Checkpoint, Punteggio)
+        Object.keys(racersData.current).forEach(id => {
+            racersData.current[id].lap = 1;
+            racersData.current[id].nextCP = 1;
+            racersData.current[id].score = 0;
+            // opzionale: reset AI dei bot se hanno uno stato interno
+            if (botRefs.current[id]?.current?.startAI) {
+                botRefs.current[id].current.startAI();
+            }
+        });
+
+        // D. Teletrasporto Fisico - Player
+        if (playerRef.current && playerRef.current.resetPosition) {
+            playerRef.current.resetPosition(playerStartPos, playerStartRot);
+        }
+
+        // E. Teletrasporto Fisico - Bots
+        if (!roomCode && botConfigurations.length > 0) {
+            botConfigurations.forEach((botConfig, i) => {
+                const botId = botConfig.character.id;
+                const gridIndex = i + 1;
+                const botPos = gridPositions[gridIndex] || getGridPosition(start_pos, i);
+                const botRot = gridRotations[gridIndex] || [0, Math.PI / 2, 0];
+
+                if (botRefs.current[botId]?.current?.resetPosition) {
+                    botRefs.current[botId].current.resetPosition(botPos, botRot);
+                }
+            });
+        }
+
+        // F. Innesca di nuovo l'animazione della telecamera
+        setRestartTrigger(prev => prev + 1);
+
+        window.dispatchEvent(new CustomEvent('race-restarted'));
+        
+    }, [isTimeTrial, roomCode, botConfigurations, gridPositions, gridRotations, start_pos, initialPositions, playerStartPos, playerStartRot, stopMusic]);
+
+
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
 
@@ -851,7 +923,14 @@ export function GameScene({
             )}
 
             {/* RACE RESULTS - Mostra solo quando il player ha finito */}
-            {finished && finishers.length > 0 && <RaceResults finishers={finishers} socket={socket} />}
+            {finished && finishers.length > 0 && 
+                <RaceResults 
+                    finishers={finishers}
+                    socket={socket}
+                    isTimeTrial={isTimeTrial}
+                    onPlayAgain={handleRestartRace}
+                    setIsTimeTrial={setIsTimeTrial}
+                />}
 
             {countdown && (
                 <div style={{

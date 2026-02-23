@@ -145,11 +145,41 @@ export const usePowerupHandler = ({
   //   setCurrentItem(ITEMS.GREEN_SHELL);
   };
 
-  useEffect(() => {
-    if (isTimeTrial) {
-      setCurrentItem(ITEMS.TRIPLE_MUSHROOM);
-    }
-  }, [isTimeTrial]);
+useEffect(() => {
+    const setupInitialItems = () => {
+        // Pulizia timer precedenti
+        if (goldenTimerRef.current) clearTimeout(goldenTimerRef.current);
+        setIsGoldenActive(false);
+        setIsRoulette(false);
+        
+        if (isTimeTrial) {
+            setCurrentItem(ITEMS.TRIPLE_MUSHROOM);
+            setTripleCount(3);
+            
+            // Ritardo di 100ms: diamo tempo all'HUD di fare il suo reset a NONE,
+            // per poi sovrascriverlo e forzare l'icona dei 3 funghi.
+            if (isLocalPlayer) {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('hud-update', { 
+                        detail: { item: ITEMS.TRIPLE_MUSHROOM, isSpinning: false, targetRacerId: racerId } 
+                    }));
+                }, 100);
+            }
+        } else {
+            setCurrentItem(ITEMS.NONE);
+        }
+    };
+
+    // 1. Esegui al montaggio del componente
+    setupInitialItems();
+
+    // 2. Mettiti in ascolto del tasto "Play Again"
+    window.addEventListener('race-restarted', setupInitialItems);
+    
+    return () => {
+        window.removeEventListener('race-restarted', setupInitialItems);
+    };
+  }, [isTimeTrial, isLocalPlayer, racerId]);
 
   const useMushroom = () => {
     if (!boostTime) return;
