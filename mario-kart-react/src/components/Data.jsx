@@ -145,6 +145,36 @@ export const Tracks = {
     },
 }
 
+export const grandPrixList = [
+		{
+			id: 'mushroom',
+			name: 'Mushroom Cup',
+			icon: <img src="/itemSprites/Mushroom.png" alt="Mushroom Cup" className="w-30 h-30" />, // Sostituibile con <img src="/sprites/mushroom_cup.png" /> se hai lo sprite
+			bgColor: 'from-[#ff4444] to-[#aa0000]',
+			ringColor: 'ring-[#ff8888]',
+			tracks: [
+				"Luigi Circuit",
+				"Moo Moo Meadows",
+				"Delfino Square",
+				"Daisy Circuit"
+			]
+		},
+		{
+			id: 'shell',
+			name: 'Shell Cup',
+			icon: <img src="/itemSprites/GreenShell.png" alt="Shell Cup" className="w-30 h-30" />, // Sostituibile con lo sprite del guscio verde
+			bgColor: 'from-[#44cc44] to-[#008800]',
+			ringColor: 'ring-[#88ff88]',
+			tracks: [
+				"SNES Mario Circuit",
+				"Yoshi Falls",
+				"Peach Gardens",
+				"Bowser Castle"
+			]
+		}
+];
+
+
 export const Characters = [
 	// === RIGA 1: PICCOLI (Baby) ===
 	{ 

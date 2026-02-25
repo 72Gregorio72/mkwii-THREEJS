@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { grandPrixList } from '../components/Data.jsx';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const GrandPrix = () => {
+export const GrandPrix = ({ setSelectedGrandPrix }) => {
     const navigate = useNavigate();
 	const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
 
@@ -13,34 +14,6 @@ export const GrandPrix = () => {
 	}
 	}, [changeTrack, enableSmoothLoop]);
 
-    const grandPrixList = [
-        {
-            id: 'mushroom',
-            name: 'Mushroom Cup',
-            icon: <img src="/itemSprites/Mushroom.png" alt="Mushroom Cup" className="w-30 h-30" />, // Sostituibile con <img src="/sprites/mushroom_cup.png" /> se hai lo sprite
-            bgColor: 'from-[#ff4444] to-[#aa0000]',
-            ringColor: 'ring-[#ff8888]',
-            tracks: [
-                "Luigi Circuit",
-                "Moo Moo Meadows",
-                "Yoshi Falls",
-                "Daisy Circuit"
-            ]
-        },
-        {
-            id: 'shell',
-            name: 'Shell Cup',
-            icon: <img src="/itemSprites/GreenShell.png" alt="Shell Cup" className="w-30 h-30" />, // Sostituibile con lo sprite del guscio verde
-            bgColor: 'from-[#44cc44] to-[#008800]',
-            ringColor: 'ring-[#88ff88]',
-            tracks: [
-                "SNES Mario Circuit",
-                "Delfino Square",
-                "Peach Gardens",
-                "Bowser Castle"
-            ]
-        }
-    ];
 
     const handleBack = () => {
         playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
@@ -49,10 +22,9 @@ export const GrandPrix = () => {
 
     const handleSelectCup = (cupId) => {
         playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
-        // Naviga alla lobby o alla schermata di selezione personaggio passando il cupId
         console.log(`Selected Cup: ${cupId}`);
+        setSelectedGrandPrix(cupId);
 		navigate(`/character`);
-        // navigate(`/room?cup=${cupId}`);
     };
 
     return (

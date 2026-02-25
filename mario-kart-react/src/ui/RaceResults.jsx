@@ -1,5 +1,5 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react'; // Rimosso 'use' che non serve
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
 // Font Injection (se non già presente globalmente)
@@ -12,9 +12,11 @@ const mkwiiFontStyle = `
   }
 `;
 
-export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIsTimeTrial }) => {
+export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIsTimeTrial, isGrandPrix, setIsGrandPrix }) => {
   const navigate = useNavigate();
   const { playSfx } = useAudio();
+
+  const [isGrandPrixFinished, setIsGrandPrixFinished] = useState(isGrandPrix ? false : true);
 
   // Se non ci sono risultati, non mostrare nulla
   if (!finishers || finishers.length === 0) return null;
@@ -28,6 +30,10 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
     if (isTimeTrial) {
         setIsTimeTrial(false);
     }
+    if (isGrandPrix) {
+        setIsGrandPrixFinished(true);
+        setIsGrandPrix(false);
+    }
     navigate('/menu');
   };
 
@@ -40,6 +46,11 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
         navigate('/game');
     }
   };
+
+  const handleNextRace = () => {
+    playSfx(AUDIO_SFX.CONFIRM);
+    window.dispatchEvent(new CustomEvent('next_gran_prix_race')); // Dispatch evento per passare alla prossima gara del GP    
+  }
 
   const RenderRow = ({ finisher, index, offset = 0 }) => {
     const position = index + 1 + offset;
@@ -203,6 +214,20 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
                         ➜
                     </div>
                 </button>
+
+                {isGrandPrix && !isGrandPrixFinished && (
+                    <button 
+                        onClick={handleNextRace}
+                        className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-64 justify-between"
+                    >
+                        <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">
+                            Next Race
+                        </span>
+                        <div className="w-10 h-10 rounded-full bg-[#ffff44] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">
+                            ➜
+                        </div>
+                    </button>
+                )}
 
             </div>
 

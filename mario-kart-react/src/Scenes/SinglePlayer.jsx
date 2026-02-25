@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'; // Rimosso 'use' che non ser
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-const MenuButton = ({ title, onClick, bgImage, setIsTimeTrial }) => {
+const MenuButton = ({ title, onClick, bgImage }) => {
     return (
         <button 
             onClick={onClick}
@@ -35,11 +35,10 @@ const MenuButton = ({ title, onClick, bgImage, setIsTimeTrial }) => {
     );
 };
 
-export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
+export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs, setIsGrandPrix, isGrandPrix }) => {
 
     const navigate = useNavigate();   
     const [fadeToBlack, setFadeToBlack] = useState(false);
-    const [grandPrix, setGrandPrix] = useState(false);
   	const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
 
 	useEffect(() => {
@@ -58,7 +57,7 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
 
         if (path === '/character') {
             setFadeToBlack(true);
-            if (!grandPrix)
+            if (!isGrandPrix)
                 setIsTimeTrial(true);
             fadeOutMusic(700);
             setTimeout(() => {
@@ -72,8 +71,9 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
 
     const handleBack = () => {
 		playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
-        if (grandPrix)
-            setGrandPrix(false);
+        if (isGrandPrix) {
+            setIsGrandPrix(false);
+        }
         else
             handleNavigate('/menu')
     }
@@ -180,7 +180,7 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
                 <div className="flex-1 flex flex-col items-center justify-center px-8 pb-8 pt-[18vh] w-ful">
                     
                     {/* SELEZIONE MODALITÀ */}
-                    {!grandPrix && (
+                    {!isGrandPrix && (
                         <div className="flex flex-col gap-8 w-full max-w-3xl animate-in fade-in zoom-in duration-300">
                             <MenuButton 
                                 title="Time Trial" 
@@ -190,7 +190,7 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
                             <MenuButton 
                                 title="Grand prix" 
                                 onClick={() => {
-									setGrandPrix(true)
+                                    setIsGrandPrix(true)
 									playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
 								}}
                                 bgImage="/buttonsImg/chara_6_donkey_00.png"
@@ -199,7 +199,7 @@ export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs }) => {
                     )}
 
 
-                    {grandPrix && (
+                    {isGrandPrix && (
                         <div className="flex flex-col items-center justify-center gap-8 w-full max-w-3xl animate-in fade-in zoom-in duration-300 mx-auto">
                             <MenuButton 
                                 title="50cc" 

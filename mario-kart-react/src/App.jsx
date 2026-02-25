@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
-import { Characters, VEHICLE_DATABASE, Tracks } from './components/Data'
+import { Characters, VEHICLE_DATABASE, Tracks, grandPrixList } from './components/Data'
 import { CharacterSelection } from './Scenes/CharacterSelection'
 import { VehicleSelection } from './Scenes/VehicleSelection'
 import { TrackSelection } from './Scenes/TrackSelection'
@@ -123,6 +123,9 @@ export default function App() {
     const [SelectedVehicle, setSelectedVehicle] = useState(VEHICLE_DATABASE.StandardKartS)
     const [SelectedTrack, setSelectedTrack] = useState(Tracks['Daisy Circuit'])
     
+    // State for Grand Prix
+    const [selectedGrandPrix, setSelectedGrandPrix] = useState(null)
+
     // Room state
     const [roomCode, setRoomCode] = useState(null)
     const [roomId, setRoomId] = useState(null)
@@ -131,6 +134,7 @@ export default function App() {
     const [ccsSpeed, setCcsSpeed] = useState(40)
 
     const [isTimeTrial, setIsTimeTrial] = useState(false)
+    const [isGrandPrix, setIsGrandPrix] = useState(false)
 
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
         return sessionStorage.getItem('isLoggedIn') === 'true';
@@ -229,12 +233,12 @@ export default function App() {
                         } />
 
                         <Route path="/single_player" element={
-                            <SinglePlayer isLoggedIn={isLoggedIn} setIsTimeTrial={setIsTimeTrial} setCcs={setCcsSpeed}
+                            <SinglePlayer isLoggedIn={isLoggedIn} setIsTimeTrial={setIsTimeTrial} setCcs={setCcsSpeed} setIsGrandPrix={setIsGrandPrix} isGrandPrix={isGrandPrix}
                             />
                         } />
 
 						<Route path="/grandprix" element={
-							<GrandPrix />
+							<GrandPrix setSelectedGrandPrix={setSelectedGrandPrix}/>
 						} />
 
                         <Route path="/vehicle" element={
@@ -285,7 +289,10 @@ export default function App() {
                                         ccs={ccsSpeed}
 										username={userName}
                                         setIsTimeTrial={setIsTimeTrial}
-                                    />
+                                        selectedGrandPrix={selectedGrandPrix}
+                                        isGrandPrix={isGrandPrix}
+                                        setIsGrandPrix={setIsGrandPrix}
+                                    />  
                                 } 
                             />
                         ))}
