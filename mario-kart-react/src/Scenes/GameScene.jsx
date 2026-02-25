@@ -924,8 +924,8 @@ export function GameScene({
             }
         };
 
-        window.addEventListener('next_gran_prix_race', handleNextRace);
-        return () => window.removeEventListener('next_gran_prix_race', handleNextRace);
+        window.addEventListener('nextGrandPrixRace', handleNextRace);
+        return () => window.removeEventListener('nextGrandPrixRace', handleNextRace);
     }, [isGrandPrix, currentGrandPrixObj, gpTrackIndex, handleExitRace, setIsGrandPrix, selectedGrandPrix]);
 
     // Riavvia in automatico quando cambia la pista (dopo il caricamento)
