@@ -49,8 +49,9 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
 
   const handleNextRace = () => {
     playSfx(AUDIO_SFX.CONFIRM);
-    window.dispatchEvent(new CustomEvent('nextGrandPrixRace')); // Dispatch evento per passare alla prossima gara del GP    
-  }
+      // Dispatch dell'evento dopo 1 secondo per permettere il caricamento
+    window.dispatchEvent(new CustomEvent('nextGrandPrixRace'));
+  };
 
   const RenderRow = ({ finisher, index, offset = 0 }) => {
     const position = index + 1 + offset;

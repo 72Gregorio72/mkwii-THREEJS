@@ -57,7 +57,7 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
     )
 }
 
-export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
+export function VehicleSelection({ selectedCharacter, setSelectedVehicle, isGrandPrix }) {
     const navigate = useNavigate();
     const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
     
@@ -79,7 +79,10 @@ export function VehicleSelection({ selectedCharacter, setSelectedVehicle }) {
 
     const handleConfirm = () => {
         setSelectedVehicle(localSelection);
-        navigate('/track'); 
+        if (!isGrandPrix)
+            navigate('/track'); 
+        else
+            navigate('/game');
     };
 
     const totalSlots = 12;

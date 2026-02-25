@@ -172,34 +172,57 @@ function BotSynchronizer({ socket, isHost, botRefs, remoteBots }) {
     return null;
 }
 
-// Hook per estrarre posizioni e rotazioni dai nodi "start_X" del GLB
 function useGridPositions(url) {
-    const { scene } = useGLTF(url || ""); // Gestione caso url nullo
+    const { scene } = useGLTF(url || ""); 
     
     const gridData = useMemo(() => {
-        if (!url) return { positions: {}, rotations: {} };
+        if (!url || !scene) return { positions: {}, rotations: {}, url: null }; 
 
         const positions = {};
         const rotations = {};
+        let foundCount = 0;
+        const nodeNames = []; // Array per il debug
+
+        scene.updateMatrixWorld(true);
 
         scene.traverse((obj) => {
-            if (obj.name.startsWith('start_')) {
-                const parts = obj.name.split('_');
-                const index = parseInt(parts[1]);
+            nodeNames.push(obj.name);
+            const nameLower = obj.name.toLowerCase();
+            
+            const match = nameLower.match(/(?:start|spawn|pos|grid).*?(\d+)/);
 
-                if (!isNaN(index)) {
-                    positions[index] = [obj.position.x, obj.position.y, obj.position.z];
-                    const euler = new THREE.Euler().setFromQuaternion(obj.quaternion);
+            if (match && !nameLower.includes("scene")) {
+                const index = parseInt(match[1], 10);
+
+                const worldPos = new THREE.Vector3();
+                const worldQuat = new THREE.Quaternion();
+                
+                obj.getWorldPosition(worldPos);
+                obj.getWorldQuaternion(worldQuat);
+
+                // Evitiamo di sovrascrivere se il nodo padre e il figlio (mesh) hanno lo stesso numero
+                if (!positions[index]) {
+                    positions[index] = [worldPos.x, worldPos.y, worldPos.z];
+                    
+                    const euler = new THREE.Euler().setFromQuaternion(worldQuat);
                     rotations[index] = [euler.x, euler.y, euler.z];
+                    foundCount++;
                 }
             }
         });
-        return { positions, rotations };
+        
+        if (foundCount === 0) {
+            console.error(`❌ [Griglia] NESSUNA POSIZIONE TROVATA in ${url}!`);
+            console.warn(`Nomi dei nodi presenti nel file (controllali in Blender):`, nodeNames.filter(n => n.length > 0));
+        } else {
+            console.log(`✅ [Griglia] Trovate ${foundCount} posizioni in ${url}`);
+        }
+
+        return { positions, rotations, url }; 
     }, [scene, url]);
 
     return gridData;
 }
-
 // Funzione per generare configurazioni bot random e uniche
 function generateBotConfigurations(botCount, playerCharacter, playerVehicle) {
     const usedCharacters = new Set([playerCharacter.id]);
@@ -269,7 +292,6 @@ export function GameScene({
     const navigate = useNavigate();
 
     // --- GESTIONE GRAND PRIX DINAMICA ---
-// --- GESTIONE GRAND PRIX DINAMICA ---
     const [gpTrackIndex, setGpTrackIndex] = useState(0);
 
     // 1. Trova l'oggetto completo del Grand Prix usando la stringa passata (id o nome)
@@ -293,8 +315,11 @@ export function GameScene({
     const activeStartPos = activeTrackConfig?.startPos || start_pos;
     const activeMaxCheckpoints = activeTrackConfig?.maxCheckpoints || maxCheckpoints;
 
-    // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid) - Ora usa la pista attiva
-    const { positions: gridPositions, rotations: gridRotations } = useGridPositions(activeTrackConfig?.gridpos);
+
+    // Aggiungi questo stato sotto a quello di "gameState"
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
+    const { positions: gridPositions, rotations: gridRotations, url: loadedGridUrl } = useGridPositions(activeTrackConfig?.gridpos);
 
     // Calculate player start position early (before useEffect hooks)
     const fallbackStartPos = activeStartPos || [0, 0, 0];
@@ -490,8 +515,6 @@ export function GameScene({
         socket.on('room_state', handleRoomState);
         socket.on('race_start', handleRaceStart);
         socket.on('game_state_sync', handleGameStateSync);
-
-        // Request initial room state
         socket.emit('request_room_state', { roomCode });
 
         return () => {
@@ -515,7 +538,7 @@ export function GameScene({
     
     useEffect(() => {
         // Se siamo in gara o l'intro è già partita (in questo ciclo), esci
-        if (isInLobby || introPlayed.current || gameState === 'RACING') return;
+        if (isInLobby || introPlayed.current || gameState === 'RACING' || gameState === 'LOADING') return;
         
         introPlayed.current = true;
 
@@ -904,38 +927,61 @@ export function GameScene({
     }, [isTimeTrial, roomCode, botConfigurations, gridPositions, gridRotations, activeStartPos, initialPositions, playerStartPos, playerStartRot, stopMusic]);
 
 
-    // --- GESTIONE EVENTI GRAND PRIX ---
-// --- GESTIONE EVENTI GRAND PRIX ---
+    // --- GESTIONE EVENTI GRAND PRIX (HARD RESET) ---
     useEffect(() => {
         const handleNextRace = () => {
-            // Usa l'oggetto mappato invece della prop diretta
             if (isGrandPrix && currentGrandPrixObj?.tracks) {
                 if (gpTrackIndex < currentGrandPrixObj.tracks.length - 1) {
+                    
+                    // 1. Ferma tutto e metti la schermata nera
+                    setIsTransitioning(true);
+                    setGameState('LOADING');
+                    stopMusic();
+                    
+                    // 2. CANCELLA TUTTI I DATI DELLA GARA PRECEDENTE
+                    setFinished(false);
+                    setFinishers([]);
+                    setRaceExited(false);
+                    setUiLap(1);
+                    setNextCheck(1);
+                    setPositions(initialPositions);
+                    setNetworkItems([]); // Elimina i vecchi gusci/banane
+                    setCountdown(null);
+
+                    // Reset dati interni dei corridori
+                    Object.keys(racersData.current).forEach(id => {
+                        racersData.current[id].lap = 1;
+                        racersData.current[id].nextCP = 1;
+                        racersData.current[id].score = 0;
+                    });
+
+                    // 3. Cambia l'indice della pista (inizia a caricare la nuova in background)
                     setGpTrackIndex(prev => prev + 1);
+
+                    // 4. Pausa di 3 secondi per distruggere il mondo 3D e ricaricarlo pulito
+                    setTimeout(() => {
+                        introPlayed.current = false;
+                        introMusicPlayed.current = false;
+                        startingGridPlayed.current = false;
+                        racingMusicStarted.current = false;
+                        isFinalLap.current = false;
+                        itemIdCounter.current = 0;
+                        
+                        setRestartTrigger(prev => prev + 1); // Fa ripartire la telecamera
+                        setGameState('INTRO');
+                        setIsTransitioning(false); // Rimuovi schermata nera
+                    }, 3000);
+
                 } else {
-                    // Fine del Grand Prix, esce dalla gara
                     setIsGrandPrix(false);
                     handleExitRace();
                 }
-            } else {
-                console.warn("Attenzione: Impossibile trovare i dati del Grand Prix per la stringa:", selectedGrandPrix);
-                setIsGrandPrix(false);
-                handleExitRace();
             }
         };
 
         window.addEventListener('nextGrandPrixRace', handleNextRace);
         return () => window.removeEventListener('nextGrandPrixRace', handleNextRace);
-    }, [isGrandPrix, currentGrandPrixObj, gpTrackIndex, handleExitRace, setIsGrandPrix, selectedGrandPrix]);
-
-    // Riavvia in automatico quando cambia la pista (dopo il caricamento)
-    const currentTrackNameRef = useRef(activeTrackConfig?.name);
-    useEffect(() => {
-        if (isGrandPrix && activeTrackConfig && currentTrackNameRef.current !== activeTrackConfig.name) {
-            currentTrackNameRef.current = activeTrackConfig.name;
-            handleRestartRace();
-        }
-    }, [activeTrackConfig, isGrandPrix, handleRestartRace]);
+    }, [isGrandPrix, currentGrandPrixObj, gpTrackIndex, handleExitRace, setIsGrandPrix, stopMusic, initialPositions]);
 
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
@@ -951,6 +997,16 @@ export function GameScene({
                     onStartRace={handleStartRace}
                     roomId={roomCode || 'N/A'}
                 />
+            )}
+
+            {/* SCHERMATA DI CARICAMENTO TRANSIZIONE GARE */}
+            {isTransitioning && (
+                <div className="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center text-white">
+                    <h1 className="text-5xl font-black italic tracking-widest text-[#ffcc00] drop-shadow-md mb-8">
+                        LOADING NEXT RACE...
+                    </h1>
+                    <div className="w-16 h-16 border-8 border-gray-600 border-t-[#ffcc00] rounded-full animate-spin"></div>
+                </div>
             )}
 
             {/* HUD PRINCIPALE */}
@@ -1057,7 +1113,7 @@ export function GameScene({
                     />
                 )}
 
-                <Physics debug={false} gravity={[0, -20, 0]}>
+                <Physics key={activeTrackConfig.name} debug={false} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {

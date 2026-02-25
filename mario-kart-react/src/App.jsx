@@ -244,7 +244,8 @@ export default function App() {
                         <Route path="/vehicle" element={
                             <VehicleSelection 
                                 selectedCharacter={SelectedCharacter}
-                                setSelectedVehicle={setSelectedVehicle} 
+                                setSelectedVehicle={setSelectedVehicle}
+                                isGrandPrix={isGrandPrix}
                             />
                         } />
 
