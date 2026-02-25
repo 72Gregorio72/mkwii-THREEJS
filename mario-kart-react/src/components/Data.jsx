@@ -135,10 +135,10 @@ export const Tracks = {
         file: './Tracks/N64MarioRaceway/N64_Mario_Raceway.glb',
 		preview: '/Previews/N64 Mario Raceway.png',
         startPos: [0, 0, 50],
-        checkpoints: './Tracks/SNESMarioCircuit/SNESMarioCircuit_checkpoints.glb',
+        checkpoints: './Tracks/N64MarioRaceway/N64_Mario_Raceway_checkpoints.glb',
         maxCheckpoints: 3,
         soundtrack: 'RACE_N64_MARIO_RACEWAY',
-        itemBoxes: './Tracks/SNESMarioCircuit/SNESMarioCircuit_itembox.glb',
+        itemBoxes: './Tracks//SNESMarioCircuit/SNESMarioCircuit_itembox.glb',
         gridpos: './Tracks/N64MarioRaceway/N64_Mario_Raceway_startpos.glb',
         road: './Tracks/N64MarioRaceway/N64_Mario_Raceway_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
