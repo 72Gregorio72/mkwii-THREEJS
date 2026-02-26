@@ -394,7 +394,7 @@ export function GameScene({
     const { initialRacersData, initialPositions } = useMemo(() => {
         const data = {};
         // Usa socket.id come chiave invece di 'player'
-        data[socket.id] = { id: socket.id, lap: 1, nextCP: 1, score: 0, position: 1, name: character.name };
+        data[socket.id] = { id: socket.id, lap: 1, nextCP: 1, score: 0, position: 1, name: character.name, points: 0 };
         const positions = [{ id: socket.id, position: 1 }]; // Player parte primo in multiplayer
         
         // In multiplayer (roomCode presente) non creiamo bot
@@ -402,7 +402,7 @@ export function GameScene({
         if (!roomCode && botConfigurations.length > 0) {
             botConfigurations.forEach((botConfig, i) => {
                 const botId = botConfig.character.id;
-                data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0, position: i + 2, name: botConfig.character.name };
+                data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0, position: i + 2, name: botConfig.character.name, points: 0 };
                 positions.push({ id: botId, position: i + 2 });
             });
         }
@@ -1039,6 +1039,7 @@ export function GameScene({
                     setIsTimeTrial={setIsTimeTrial}
                     isGrandPrix={isGrandPrix}
                     setIsGrandPrix={setIsGrandPrix}
+					racersData={racersData.current}
                 />}
 
             {countdown && (
