@@ -318,6 +318,7 @@ export function GameScene({
 
     // Aggiungi questo stato sotto a quello di "gameState"
     const [isTransitioning, setIsTransitioning] = useState(false);
+	const [raceAttempt, setRaceAttempt] = useState(0);
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations, url: loadedGridUrl } = useGridPositions(activeTrackConfig?.gridpos);
 
@@ -869,63 +870,58 @@ export function GameScene({
         });
     }, [targets, positions]);
 
-    const handleRestartRace = useCallback(() => {
+	const handleRestartRace = useCallback(() => {
+        // 1. Ferma tutto e metti la schermata di caricamento/transizione
+        setIsTransitioning(true);
+        setGameState('LOADING');
         stopMusic();
-        // A. Reset degli stati UI/Logica di React
+
+		setRaceAttempt(prev => prev + 1);
+
+        // 2. Cancella tutti i dati della gara corrente
         setFinished(false);
         setFinishers([]);
         setRaceExited(false);
         setUiLap(1);
         setNextCheck(1);
         setPositions(initialPositions);
-        setNetworkItems([]);
+        setNetworkItems([]); // Elimina i vecchi gusci/banane
         setCountdown(null);
-        setGameState(isTimeTrial ? 'COUNTDOWN' : 'INTRO');
 
-        introPlayed.current = false;
-        introMusicPlayed.current = false;
-        startingGridPlayed.current = false;
-        racingMusicStarted.current = false;
-        isFinalLap.current = false;
-        itemIdCounter.current = 0;
-
-        // C. Reset dei dati della corsa (Giri, Checkpoint, Punteggio)
+        // Reset dei dati interni dei corridori (Giri, Checkpoint, Punteggio)
         Object.keys(racersData.current).forEach(id => {
             racersData.current[id].lap = 1;
             racersData.current[id].nextCP = 1;
             racersData.current[id].score = 0;
-            // opzionale: reset AI dei bot se hanno uno stato interno
+            // Reset AI dei bot se hanno uno stato interno
             if (botRefs.current[id]?.current?.startAI) {
                 botRefs.current[id].current.startAI();
             }
         });
 
-        // D. Teletrasporto Fisico - Player
-        if (playerRef.current && playerRef.current.resetPosition) {
-            playerRef.current.resetPosition(playerStartPos, playerStartRot);
-        }
+        // 3. Pausa di 3 secondi per "distruggere" il mondo 3D e ricaricarlo pulito
+        setTimeout(() => {
+            introPlayed.current = false;
+            introMusicPlayed.current = false;
+            startingGridPlayed.current = false;
+            racingMusicStarted.current = false;
+            isFinalLap.current = false;
+            itemIdCounter.current = 0;
 
-        // E. Teletrasporto Fisico - Bots
-        if (!roomCode && botConfigurations.length > 0) {
-            botConfigurations.forEach((botConfig, i) => {
-                const botId = botConfig.character.id;
-                const gridIndex = i + 1;
-                const botPos = gridPositions[gridIndex] || getGridPosition(activeStartPos, i);
-                const botRot = gridRotations[gridIndex] || [0, Math.PI / 2, 0];
+            // Innesca di nuovo l'animazione della telecamera
+            setRestartTrigger(prev => prev + 1);
+            
+            // Fai ripartire lo stato di gioco appropriato
+            setGameState(isTimeTrial ? 'COUNTDOWN' : 'INTRO');
+            
+            // Rimuovi schermata nera di transizione
+            setIsTransitioning(false);
 
-                if (botRefs.current[botId]?.current?.resetPosition) {
-                    botRefs.current[botId].current.resetPosition(botPos, botRot);
-                }
-            });
-        }
-
-        // F. Innesca di nuovo l'animazione della telecamera
-        setRestartTrigger(prev => prev + 1);
-
-        window.dispatchEvent(new CustomEvent('race-restarted'));
+            // Notifica al resto dell'app che la gara è ricominciata
+            window.dispatchEvent(new CustomEvent('race-restarted'));
+        }, 3000);
         
-    }, [isTimeTrial, roomCode, botConfigurations, gridPositions, gridRotations, activeStartPos, initialPositions, playerStartPos, playerStartRot, stopMusic]);
-
+    }, [isTimeTrial, initialPositions, stopMusic, setIsTransitioning]);
 
     // --- GESTIONE EVENTI GRAND PRIX (HARD RESET) ---
     useEffect(() => {
@@ -1113,7 +1109,8 @@ export function GameScene({
                     />
                 )}
 
-                <Physics key={activeTrackConfig.name} debug={false} gravity={[0, -20, 0]}>
+
+				<Physics key={`${activeTrackConfig.name}-${raceAttempt}`} debug={false} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
