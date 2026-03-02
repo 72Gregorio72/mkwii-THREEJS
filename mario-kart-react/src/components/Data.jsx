@@ -138,9 +138,22 @@ export const Tracks = {
         checkpoints: './Tracks/N64MarioRaceway/N64_Mario_Raceway_checkpoints.glb',
         maxCheckpoints: 3,
         soundtrack: 'RACE_N64_MARIO_RACEWAY',
-        itemBoxes: './Tracks//SNESMarioCircuit/SNESMarioCircuit_itembox.glb',
+        itemBoxes: './Tracks/N64MarioRaceway/N64_Mario_Raceway_itembox.glb',
         gridpos: './Tracks/N64MarioRaceway/N64_Mario_Raceway_startpos.glb',
         road: './Tracks/N64MarioRaceway/N64_Mario_Raceway_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
+
+	'GCN Mario Circuit': {
+        file: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit.glb',
+		preview: '/Previews/GCN Mario Circuit.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_checkpoints.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_GCN_MARIO_CIRCUIT',
+		itemBoxes: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_itembox.glb',
+        gridpos: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_startpos.glb',
+        road: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
 }
@@ -169,7 +182,7 @@ export const grandPrixList = [
 				"SNES Mario Circuit",
 				"Yoshi Falls",
 				"Peach Gardens",
-				"Bowser Castle"
+				"GCN Mario Circuit"
 			]
 		}
 ];
@@ -953,6 +966,7 @@ export const AUDIO_TRACKS = {
     RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
 	RACE_SNES_MARIO_CIRCUIT: '/soundTracks/SNES_MARIO_CIRCUIT3_ST.mp3',
 	RACE_N64_MARIO_RACEWAY: '/soundTracks/N64_MARIO_RACEWAY_ST.mp3',
+	RACE_GCN_MARIO_CIRCUIT: '/soundTracks/GCN_MARIO_CIRCUIT_ST.mp3',
     RACE_DELPHINO_SQUARE: '/soundTracks/DELPHINO_SQUARE_ST.mp3',
     RACE_YOSHI_FALLS: '/soundTracks/YOSHI_FALLS_ST.mp3',
     RACE_MOO_MOO_MEADOWS: '/soundTracks/MOO_MOO_MEADOWS_ST.mp3',

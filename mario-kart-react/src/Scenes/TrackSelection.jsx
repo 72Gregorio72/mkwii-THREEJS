@@ -111,7 +111,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
                 <>
                 {/* Content Area */}
                 <div className="flex-1 flex justify-center items-center p-[4vh] overflow-hidden">
-                    <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-[3vh] w-[80%] h-[80%] overflow-y-auto p-[2vh] custom-scrollbar">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-[7vh] w-[80%] h-[80%] overflow-y-auto p-[2vh] custom-scrollbar">
                         {tracksList.map((track, index) => {
                             const isActive = localSelection && localSelection.name === track.name;
                             return (
