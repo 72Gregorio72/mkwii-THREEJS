@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, setSelectedTrack }) => {
+export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, setSelectedTrack, resetRoomState }) => {
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [trackInfo, setTrackInfo] = useState(selectedTrack);
@@ -52,12 +52,19 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
     socket.on('room_state', handleRoomState);
     socket.on('game_started', handleGameStarted);
     socket.on('track_selected', handleTrackSelected);
+    socket.on('room_closed', () => {
+      playSfx(AUDIO_SFX.BACK);
+      alert('The host has closed the room.');
+      resetRoomState();
+      navigate('/menu', { replace: true });
+    });
     socket.emit('request_room_state', { roomCode });
 
     return () => {
       socket.off('room_state', handleRoomState);
       socket.off('game_started', handleGameStarted);
       socket.off('track_selected', handleTrackSelected);
+      socket.off('room_closed');
     };
   }, [socket, roomCode, navigate, setSelectedTrack, playSfx]);
 
@@ -84,7 +91,9 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
 
   const handleLeave = () => {
       playSfx(AUDIO_SFX.BACK);
-      navigate('/menu');
+      socket.emit('leave_room', { roomCode });
+      resetRoomState();
+      navigate('/menu', { replace: true });
   };
 
   return (

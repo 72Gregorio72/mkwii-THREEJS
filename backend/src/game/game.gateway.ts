@@ -80,7 +80,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
   }
 
-  handleDisconnect(client: Socket) {
+ handleDisconnect(client: Socket) {
     console.log(`Player left: ${client.id}`);
     this.gameService.removePlayer(client.id);
 
@@ -93,29 +93,37 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       const room = this.roomData.get(roomCode);
       if (!room) return;
       
-      room.players = room.players.filter(p => p.id !== client.id);
-
-      if (room.hostId === client.id && room.players.length > 0) {
-        room.hostId = room.players[0].id;
-        room.players[0].isHost = true;
-        console.log(`New host for room ${roomCode} (${room.roomId}): ${room.hostId}`);
-      }
-
-      if (room.players.length === 0) {
-        // Rimuovi anche i bot dal game service
+      if (room.hostId === client.id) {
+        console.log(`Host disconnected. Closing room ${roomCode} (${room.roomId})`);
+        
+        // Avvisiamo gli altri client nella stanza
+        this.server.to(roomCode).emit('room_closed', { message: 'The host has left the game.' });
+        
+        // Pulizia dati
         (room.bots || []).forEach(bot => this.gameService.removePlayer(bot.id));
+        room.players.forEach(p => this.playerRoomMap.delete(p.id));
         this.roomIdToCode.delete(room.roomId);
         this.roomData.delete(roomCode);
-        console.log(`Room ${roomCode} (${room.roomId}) deleted`);
+        this.server.socketsLeave(roomCode);
       } else {
-        this.server.to(roomCode).emit('room_state', {
-          roomCode: room.roomCode,
-          roomId: room.roomId,
-          hostId: room.hostId,
-          players: room.players,
-          gameState: room.gameState,
-          selectedTrack: room.selectedTrack
-        });
+        // Un GIOCATORE NORMALE è uscito
+        room.players = room.players.filter(p => p.id !== client.id);
+
+        if (room.players.length === 0) {
+          (room.bots || []).forEach(bot => this.gameService.removePlayer(bot.id));
+          this.roomIdToCode.delete(room.roomId);
+          this.roomData.delete(roomCode);
+          console.log(`Room ${roomCode} (${room.roomId}) deleted`);
+        } else {
+          this.server.to(roomCode).emit('room_state', {
+            roomCode: room.roomCode,
+            roomId: room.roomId,
+            hostId: room.hostId,
+            players: room.players,
+            gameState: room.gameState,
+            selectedTrack: room.selectedTrack
+          });
+        }
       }
     }
   }
@@ -304,6 +312,56 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       gameState: room.gameState,
       selectedTrack: room.selectedTrack
     });
+  }
+
+  // When the host leaves the room, the room is closed for everyone and all data is cleaned up.
+  @SubscribeMessage('leave_room')
+  handleLeaveRoom(client: Socket, payload: { roomCode: string }) {
+    const roomCode = payload.roomCode;
+    if (!roomCode) return;
+
+    this.playerRoomMap.delete(client.id);
+
+    if (this.roomData.has(roomCode)) {
+      const room = this.roomData.get(roomCode);
+      if (!room) return;
+      
+      if (room.hostId === client.id) {
+        // L'HOST ha abbandonato: Chiudiamo la stanza per tutti
+        console.log(`Host left voluntarily. Closing room ${roomCode} (${room.roomId})`);
+        
+        this.server.to(roomCode).emit('room_closed', { message: 'The host has closed the room.' });
+        
+        (room.bots || []).forEach(bot => this.gameService.removePlayer(bot.id));
+        room.players.forEach(p => this.playerRoomMap.delete(p.id));
+        this.roomIdToCode.delete(room.roomId);
+        this.roomData.delete(roomCode);
+        
+        this.server.socketsLeave(roomCode);
+      } else {
+        // Un GIOCATORE NORMALE ha abbandonato
+        room.players = room.players.filter(p => p.id !== client.id);
+        
+        // Rimuove il client dal canale broadcast della stanza
+        client.leave(roomCode);
+
+        if (room.players.length === 0) {
+          (room.bots || []).forEach(bot => this.gameService.removePlayer(bot.id));
+          this.roomIdToCode.delete(room.roomId);
+          this.roomData.delete(roomCode);
+          console.log(`Room ${roomCode} (${room.roomId}) deleted`);
+        } else {
+          this.server.to(roomCode).emit('room_state', {
+            roomCode: room.roomCode,
+            roomId: room.roomId,
+            hostId: room.hostId,
+            players: room.players,
+            gameState: room.gameState,
+            selectedTrack: room.selectedTrack
+          });
+        }
+      }
+    }
   }
 
   @SubscribeMessage('select_track')

@@ -187,6 +187,17 @@ export default function App() {
         socket.emit('join_room', { roomCode: code, username: username });
     };
 
+    const resetRoomState = () => {
+        setRoomCode('');
+        setRoomId('');
+        setIsHost(false);
+        setSelectedTrack(Tracks['Daisy Circuit']);
+        setSelectedCharacter(Characters[0]);
+        setSelectedVehicle(VEHICLE_DATABASE.StandardKartS);
+        setIsGrandPrix(false);
+        setIsTimeTrial(false);
+    };
+
     return (
         <AudioProvider>
             <BrowserRouter>
@@ -266,6 +277,7 @@ export default function App() {
                                 socket={socket}
                                 selectedTrack={SelectedTrack}
                                 setSelectedTrack={setSelectedTrack}
+                                resetRoomState={resetRoomState}
                             />
                         } />
 

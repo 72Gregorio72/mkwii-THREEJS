@@ -195,7 +195,11 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
         setIsGrandPrixFinished(true);
         setIsGrandPrix(false);
     }
-    navigate('/menu');
+    if (socket) {
+        navigate('/waiting');
+    } else {
+        navigate('/menu');
+    }
   };
 
   const handlePlayAgain = () => {   
@@ -350,7 +354,7 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
             {isTimeTrial && (
                 <button 
                     onClick={handlePlayAgain}
-                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-64 justify-between"
+                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-94 justify-between"
                 >
                     <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Play Again</span>
                     <div className="w-10 h-10 rounded-full bg-[#22cc22] text-white flex items-center justify-center font-bold text-xl shadow-inner border border-white/50 group-hover:rotate-180 transition-transform duration-500">↻</div>
@@ -365,7 +369,7 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
                         playSfx(AUDIO_SFX.CONFIRM);
                         setPointsData(calculatePoints(racersData));
                     }}
-                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-64 justify-between"
+                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-94 justify-between"
                 >
                     <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Leaderboard</span>
                     <div className="w-10 h-10 rounded-full bg-[#ffcc00] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">★</div>
@@ -376,7 +380,7 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
             {isGrandPrix && !isGrandPrixFinished && showResults && (
                 <button 
                     onClick={handleNextRace}
-                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-64 justify-between"
+                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-94 justify-between"
                 >
                     <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Next Race</span>
                     <div className="w-10 h-10 rounded-full bg-[#ffff44] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">➜</div>
@@ -386,7 +390,7 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
             {/* 4. Bottone QUIT (Sempre presente) */}
             <button 
                 onClick={handleQuit}
-                className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-64 justify-between"
+                className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-94 justify-between"
             >
                 <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Quit</span>
                 <div className="w-10 h-10 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">✖</div>
