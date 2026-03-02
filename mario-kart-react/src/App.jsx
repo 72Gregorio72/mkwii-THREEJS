@@ -133,6 +133,8 @@ export default function App() {
 
     const [ccsSpeed, setCcsSpeed] = useState(40)
 
+    const [ hostLeft, setHostLeft ] = useState(false) 
+
     const [isTimeTrial, setIsTimeTrial] = useState(false)
     const [isGrandPrix, setIsGrandPrix] = useState(false)
 
@@ -207,7 +209,7 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
 
-                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} />} /> {/* mettere true loggedIn per testare le gare */}
+                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} hostLeft={hostLeft} setHostLeft={setHostLeft} />} /> {/* mettere true loggedIn per testare le gare */}
 
                         <Route path="/room" element={
                             <RoomSelection 
@@ -278,6 +280,7 @@ export default function App() {
                                 selectedTrack={SelectedTrack}
                                 setSelectedTrack={setSelectedTrack}
                                 resetRoomState={resetRoomState}
+                                setHostLeft={setHostLeft}
                             />
                         } />
 

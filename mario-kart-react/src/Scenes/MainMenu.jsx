@@ -36,7 +36,7 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const MainMenu = ({ loggedIn }) => {
+export const MainMenu = ({ loggedIn, hostLeft, setHostLeft }) => {
     const navigate = useNavigate();    
     const [fadeToBlack, setFadeToBlack] = useState(false);
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack , fadeOutMusic } = useAudio();
@@ -48,6 +48,14 @@ export const MainMenu = ({ loggedIn }) => {
         }
         enableSmoothLoop();
     }, [changeTrack, enableSmoothLoop]);
+
+    useEffect(() => {
+        setTimeout(() => {
+            if (hostLeft) {
+                setHostLeft(false);
+            }
+        }, 3000);
+    }, [hostLeft]);
 
     const handleNavigate = (path) => {
         if (path !== '/') {
@@ -170,6 +178,19 @@ export const MainMenu = ({ loggedIn }) => {
                         </div>
                     </div>
                 </div>
+
+                {/* Messaggio di Errore (Host Left) */}
+                {hostLeft && (
+                    <div className="absolute top-[20vh] left-0 w-full flex justify-center z-40 animate-pulse px-4 pointer-events-none">
+                        <div className="bg-gradient-to-b from-[#ff6666] to-[#cc0000] border-2 border-white rounded-lg shadow-[0_0_15px_#ff0000] px-6 py-3 flex items-center gap-3 pointer-events-auto">
+                            <div className="bg-white text-[#cc0000] rounded-full w-8 h-8 min-w-[32px] flex items-center justify-center font-black text-xl shadow-inner border border-gray-300">!</div>
+                            <span className="text-white font-bold uppercase tracking-wide drop-shadow-md text-sm md:text-lg">
+                                Host left the room
+                            </span>
+                        </div>
+                    </div>
+                )}
+
 
                 {/* Lista Pulsanti Centrali */}
                 {loggedIn && (

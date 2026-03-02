@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import React, { useState, useEffect } from 'react'; // Rimosso 'use' che non serve
+import React, { useState, useEffect, use } from 'react'; // Rimosso 'use' che non serve
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
 // Font Injection (se non già presente globalmente)
@@ -179,6 +179,8 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
   const [isGrandPrixFinished, setIsGrandPrixFinished] = useState(isGrandPrix ? false : true);
   const [pointsData, setPointsData] = useState([]);
 
+  const [ showLeaderboard, setShowLeaderboard ] = useState(false);
+
   // Se non ci sono risultati, non mostrare nulla
   if (!finishers || finishers.length === 0) return null;
 
@@ -217,6 +219,14 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
       // Dispatch dell'evento dopo 1 secondo per permettere il caricamento
     window.dispatchEvent(new CustomEvent('nextGrandPrixRace'));
   };
+
+  useEffect(() => {
+    if (isGrandPrix) {
+        setTimeout(() => {
+            setShowLeaderboard(true);
+        }, 5000);
+    }
+  }, [isGrandPrix]);
 
   const RenderRow = ({ finisher, index, offset = 0 }) => {
     const position = index + 1 + offset;
@@ -362,7 +372,7 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
             )}
 
             {/* 2. Bottone SEE LEADERBOARD (Solo Grand Prix, se non ancora premuto) */}
-            {isGrandPrix && !isGrandPrixFinished && !showResults && (
+            {isGrandPrix && !isGrandPrixFinished && !showResults && showLeaderboard && (
                 <button 
                     onClick={() => {
                         setShowResults(true);
