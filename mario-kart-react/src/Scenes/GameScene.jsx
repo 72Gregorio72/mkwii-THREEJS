@@ -31,6 +31,7 @@ import { BobOmb } from '../Items/BobOmb.jsx'
 import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
 import { useWebGLContext, useWebGLMemoryMonitor } from '../utils/WebGLContextManager.jsx';
 import { gsap } from 'gsap'
+import { CustomWiiSky } from '../components/CustomeWiiSky.jsx'
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -1091,12 +1092,14 @@ export function GameScene({
                 />
                 <LightningAtmosphere />
                 <Stats />
-                <PerspectiveCamera makeDefault position={[0, 5, -10]} />
+                <PerspectiveCamera makeDefault position={[0, 5, -10]} far={500000}/>
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
                 
                 {/* MODIFICA: preset city MA senza sfondo (background={false}) */}
-                <Environment preset="city" background={false} />
+                <Environment preset="city" background={false} blur={0.1}/>
+
+                <CustomWiiSky trackName={activeTrackConfig?.name}/>
 
                 {/* NETWORK MANAGER - Solo in multiplayer */}
                 {roomCode && (
