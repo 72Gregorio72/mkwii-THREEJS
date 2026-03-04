@@ -134,7 +134,7 @@ export const MainMenu = ({ loggedIn, hostLeft, setHostLeft }) => {
                     {loggedIn && (
                         <div 
                             onClick={() => handleNavigate('/profile')}
-                            className="absolute top-16 right-30 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                            className="absolute top-18 right-28 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
                         >
                             <div className="relative w-14 h-14 md:w-16 md:h-16">
                                 {/* Halo */}
@@ -185,7 +185,7 @@ export const MainMenu = ({ loggedIn, hostLeft, setHostLeft }) => {
                         <div className="bg-gradient-to-b from-[#ff6666] to-[#cc0000] border-2 border-white rounded-lg shadow-[0_0_15px_#ff0000] px-6 py-3 flex items-center gap-3 pointer-events-auto">
                             <div className="bg-white text-[#cc0000] rounded-full w-8 h-8 min-w-[32px] flex items-center justify-center font-black text-xl shadow-inner border border-gray-300">!</div>
                             <span className="text-white font-bold uppercase tracking-wide drop-shadow-md text-sm md:text-lg">
-                                Host left the room
+                                Host closed the room
                             </span>
                         </div>
                     </div>

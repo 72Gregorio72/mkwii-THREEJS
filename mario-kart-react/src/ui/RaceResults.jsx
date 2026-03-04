@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, use } from 'react'; // Rimosso 'use' che non serve
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { formatTime } from './GameHUD.jsx';
 
 // Font Injection (se non già presente globalmente)
 const mkwiiFontStyle = `
@@ -174,7 +175,6 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
   const navigate = useNavigate();
   const { playSfx } = useAudio();
 
-
   const [showResults, setShowResults] = useState(false);
   const [isGrandPrixFinished, setIsGrandPrixFinished] = useState(isGrandPrix ? false : true);
   const [pointsData, setPointsData] = useState([]);
@@ -231,7 +231,8 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
   const RenderRow = ({ finisher, index, offset = 0 }) => {
     const position = index + 1 + offset;
     const isMe = finisher.id === socket?.id;
-    
+
+    const formattedTime = finisher.finishTime ? formatTime(finisher.finishTime) : null;
     // Colori Rank
     let rankColor = 'text-white';
     let rankIcon = null;
@@ -299,8 +300,19 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
             </div>
 
             {/* Tempo */}
-            <div className="font-mono text-white/90 text-lg tracking-wider font-bold drop-shadow-sm bg-black/40 px-2 py-1 rounded">
-                {finisher.finishTime || '--:--:---'}
+            <div className="font-mono tabular-nums text-white text-lg tracking-wider font-bold drop-shadow-[2px_2px_0_#000] bg-black/40 px-3 py-1.5 rounded-md border border-white/10 flex items-baseline justify-end min-w-[140px]">
+                {formattedTime ? (
+                    <>
+                        <span>{formattedTime.minutes}</span>
+                        <span className="text-white/50 mx-[2px]">:</span>
+                        <span>{formattedTime.seconds}</span>
+                        <span className="text-white/50 mx-[2px]">.</span>
+                        {/* I millisecondi leggermente più piccoli e con un tono che richiama l'oro della UI */}
+                        <span className="text-[#FFD000] text-base ml-[1px]">{formattedTime.milliseconds}</span>
+                    </>
+                ) : (
+                    <span className="text-white/40 tracking-[4px]">--:--.---</span>
+                )}
             </div>
         </div>
     );

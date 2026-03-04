@@ -296,7 +296,7 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
                     className="flex items-center gap-3 bg-white px-8 py-2 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer"
                 >
                     <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50">B</div>
-                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Leave Room</span>
+                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">{isHost ? 'Close Room' : 'Leave Room'}</span>
                 </button>
             </div>
 

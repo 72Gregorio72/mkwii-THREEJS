@@ -1,23 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ITEMS } from '../Items/PowerupHandler';
 
-// Font face per Mario Kart Wii + Digital Clock Font
-const mkwiiFontStyle = `
-  @font-face {
-    font-family: 'MKWii';
-    src: url('/font/mkwiiFont.otf') format('opentype');
-    font-weight: normal;
-    font-style: normal;
-  }
-  
-  @font-face {
-    font-family: 'Digital7';
-    src: url('/font/digital7.woff2') format('woff2');
-    font-weight: bold;
-    font-style: normal;
-  }
-`;
-
 const ITEM_SPRITES = {
   [ITEMS.NONE]: null,
   [ITEMS.MUSHROOM]: '/itemSprites/Mushroom.png',
@@ -37,16 +20,28 @@ const ITEM_SPRITES = {
   [ITEMS.BULLET_BILL]: '/itemSprites/BulletBill.png',
 };
 
-// Costanti Tailwind per stili di testo riutilizzati (Stroke + Gradient MKWii)
+// Costanti Tailwind per stili di testo riutilizzati
 const textGradientStroke = "bg-[linear-gradient(180deg,#FFE135_0%,#FFD000_40%,#E5A000_100%)] bg-clip-text text-transparent [filter:drop-shadow(-2px_-2px_0_#000)_drop-shadow(2px_-2px_0_#000)_drop-shadow(-2px_2px_0_#000)_drop-shadow(2px_2px_0_#000)]";
 const smallTextGradientStroke = "bg-[linear-gradient(180deg,#FFE135_0%,#FFD000_40%,#E5A000_100%)] bg-clip-text text-transparent [filter:drop-shadow(-1px_-1px_0_#000)_drop-shadow(1px_-1px_0_#000)_drop-shadow(-1px_1px_0_#000)_drop-shadow(1px_1px_0_#000)]";
+
+export const formatTime = (ms) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    const milliseconds = Math.floor((ms % 1000) / 10);
+    
+    return {
+      minutes: String(minutes).padStart(2, '0'),
+      seconds: String(seconds).padStart(2, '0'),
+      milliseconds: String(milliseconds).padStart(3, '0')
+    };
+};
+
 
 export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player", gameState = 'INTRO', finished = false }) => {
   
   // --- STATI LOCALI ---
   const [speed, setSpeed] = useState(0);
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
-  const [animClass, setAnimClass] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
   
   // --- TIMER STATE ---
@@ -61,7 +56,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
   const [isFrozen, setIsFrozen] = useState(false);
   const [frozenTimeValue, setFrozenTimeValue] = useState(0);
 
-  // 0. GESTIONE RESET (Quando si clicca Play Again e lo stato torna a INTRO/COUNTDOWN)
+  // 0. GESTIONE RESET
   useEffect(() => {
     if (gameState === 'INTRO' || gameState === 'COUNTDOWN') {
       hasStarted.current = false;
@@ -70,7 +65,6 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
       setIsFrozen(false);
       lastLapRef.current = 1;
       
-      // Reset visuale dell'oggetto nell'HUD
       setCurrentItem(ITEMS.NONE);
       setIsSpinning(false);
 
@@ -95,9 +89,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
     }
 
     return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   }, [gameState]);
 
@@ -112,42 +104,23 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
   // 3. GESTIONE CAMBIO GIRO (Blocco 2s + Fade in/out Rosso)
   useEffect(() => {
     if (lap > lastLapRef.current && hasStarted.current) {
-      
-      // Calcola il tempo del giro appena completato (non il tempo totale)
       const now = Date.now();
       const lapTime = now - lapStartTimeRef.current;
-      setFrozenTimeValue(lapTime); // Salva il tempo del giro
-      setIsFrozen(true);            // Blocca l'UI
+      setFrozenTimeValue(lapTime);
+      setIsFrozen(true);
       
-      lapStartTimeRef.current = now; // Reset per il prossimo giro
+      lapStartTimeRef.current = now;
       lastLapRef.current = lap;
 
-      // Sblocca dopo 2 secondi
-      const timer = setTimeout(() => {
-        setIsFrozen(false);
-      }, 2000);
-
+      const timer = setTimeout(() => setIsFrozen(false), 2000);
       return () => clearTimeout(timer);
     }
-  }, [lap]); // Dipendenza solo da [lap] per evitare loop infiniti
-
-  // Formatta il tempo
-  const formatTime = (ms) => {
-    const minutes = Math.floor(ms / 60000);
-    const seconds = Math.floor((ms % 60000) / 1000);
-    const milliseconds = Math.floor((ms % 1000) / 10);
-    
-    return {
-      minutes: String(minutes).padStart(2, '0'),
-      seconds: String(seconds).padStart(2, '0'),
-      milliseconds: String(milliseconds).padStart(3, '0')
-    };
-  };
+  }, [lap]);
 
   const displayTime = isFrozen ? frozenTimeValue : raceTime;
   const timeFormatted = formatTime(displayTime);
 
-  // 4. GESTIONE UPDATE HUD (Custom Event ricevuto dal Kart/Moto)
+  // 4. GESTIONE UPDATE HUD
   useEffect(() => {
     const handleHudUpdate = (e) => {
         if (!e.detail) return;
@@ -170,67 +143,59 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
     return () => window.removeEventListener('hud-update', handleHudUpdate);
   }, [playerId]);
 
-  // Animazione Item Pop-in
-  useEffect(() => {
-    if (currentItem !== ITEMS.NONE) {
-      setAnimClass('pop-in');
-      const t = setTimeout(() => setAnimClass(''), 500);
-      return () => clearTimeout(t);
-    }
-  }, [currentItem]);
-
   const itemImage = ITEM_SPRITES[currentItem];
-  const finalItemAnim = (!isSpinning && currentItem !== ITEMS.NONE) ? 'pop-in' : '';
-  const spinningAnim = isSpinning ? 'roulette-blur' : '';
   const safeRender = (val) => (isNaN(val) || val === null || val === undefined) ? 0 : val;
 
-  // Classe CSS condizionale per il "freeze" di fine giro
-  const flashClass = isFrozen ? 'flash-red' : '';
+  // Classi condizionali convertite in puro Tailwind
+  const finalItemAnim = (!isSpinning && currentItem !== ITEMS.NONE) ? 'animate-[pop_0.3s_cubic-bezier(0.175,0.885,0.32,1.275)]' : '';
+  const spinningAnim = isSpinning ? 'blur-[2px] brightness-[1.2]' : 'drop-shadow-[0px_0px_10px_rgba(255,255,255,0.6)]';
+  
+  // Classe Tailwind per il "freeze" di fine giro con `!important` nativi di Tailwind
+  const flashClass = isFrozen 
+    ? '!bg-none ![text-fill-color:red] !text-red-600 ![text-shadow:2px_2px_0px_black] animate-[flashRedFade_0.5s_ease-in-out_infinite]' 
+    : '';
 
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none font-['MKWii',_'Arial_Black',_Gadget,_sans-serif] not-italic select-none overflow-hidden z-10">
-      <style>{mkwiiFontStyle}</style>
       
+      {/* Definizione dei Font e dei Keyframes (necessari qui se non configurati in tailwind.config.js) */}
       <style>{`
-        .pop-in { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @font-face {
+          font-family: 'MKWii';
+          src: url('/font/mkwiiFont.otf') format('opentype');
+          font-weight: normal; font-style: normal;
+        }
+        @font-face {
+          font-family: 'Digital7';
+          src: url('/font/digital7.woff2') format('woff2');
+          font-weight: bold; font-style: normal;
+        }
         @keyframes pop {
           0% { transform: scale(0) rotate(-45deg); opacity: 0; }
           100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
-        
-        /* NUOVA ANIMAZIONE FADE ROSSO */
         @keyframes flashRedFade {
-          0% { opacity: 1; }
-          50% { opacity: 0; } /* Diventa invisibile */
-          100% { opacity: 1; }
-        }
-        
-        .flash-red {
-          /* Forza il colore rosso */
-          background: none !important; 
-          -webkit-text-fill-color: red !important;
-          color: red !important;
-          text-shadow: 2px 2px 0px black !important;
-          
-          /* Applica il Fade In / Fade Out - 0.5s significa 4 lampeggi in 2 secondi */
-          animation: flashRedFade 0.5s ease-in-out infinite;
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
         }
       `}</style>
       
       {/* --- ITEM BOX --- */}
       <div className="absolute top-[30px] left-[30px] w-[140px] h-[120px] flex justify-center items-center drop-shadow-[5px_5px_0px_rgba(0,0,0,0.5)]">
-        <div className="absolute w-full h-full bg-[radial-gradient(circle,_rgba(0,0,0,0.6)_20%,_rgba(0,0,0,0)_70%)] border-4 border-[rgba(255,255,255,0.3)] rounded-[20px] bg-[rgba(0,0,0,0.2)] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] -skew-x-[10deg]"></div>
+        <div className="absolute w-full h-full border-4 border-[rgba(255,255,255,0.3)] rounded-[20px] bg-[rgba(0,0,0,0.2)] bg-[radial-gradient(circle,_rgba(0,0,0,0.6)_20%,_rgba(0,0,0,0)_70%)] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] -skew-x-[10deg]"></div>
         {itemImage && (
           <img 
             src={itemImage} 
             alt="Item" 
-            className={`w-[90%] h-[90%] object-contain z-[2] ${finalItemAnim} ${spinningAnim} ${isSpinning ? 'blur-[2px] brightness-[1.2]' : 'drop-shadow-[0px_0px_10px_rgba(255,255,255,0.6)]'}`}
+            className={`w-[90%] h-[90%] object-contain z-[2] ${finalItemAnim} ${spinningAnim}`}
           />
         )}
       </div>
 
       {/* --- TOP RIGHT: TIME / LAP --- */}
       <div className="absolute top-[15px] right-[15px] text-right flex flex-col gap-0 font-['MKWii',_'Arial_Black',_sans-serif] pr-[10px]">
+        
+        {/* TIME */}
         <div className="flex justify-end items-center gap-[8px]">
           <span className={`font-['MKWii',_'Arial_Black',_sans-serif] text-[53px] font-bold tracking-[1px] italic pr-[20px] pb-[10px] ${textGradientStroke}`}>
             TIME
@@ -244,6 +209,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
           </div>
         </div>
         
+        {/* LAP */}
         <div className="flex justify-end items-center gap-[8px]">
           <span className={`font-['MKWii',_'Arial_Black',_sans-serif] text-[53px] font-bold tracking-[1px] italic pr-[20px] pb-[10px] ${textGradientStroke}`}>
             LAP

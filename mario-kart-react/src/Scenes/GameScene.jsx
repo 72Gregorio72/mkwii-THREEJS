@@ -212,10 +212,10 @@ function useGridPositions(url) {
         });
         
         if (foundCount === 0) {
-            console.error(`❌ [Griglia] NESSUNA POSIZIONE TROVATA in ${url}!`);
+            // console.error(`❌ [Griglia] NESSUNA POSIZIONE TROVATA in ${url}!`);
             console.warn(`Nomi dei nodi presenti nel file (controllali in Blender):`, nodeNames.filter(n => n.length > 0));
         } else {
-            console.log(`✅ [Griglia] Trovate ${foundCount} posizioni in ${url}`);
+            // console.log(`✅ [Griglia] Trovate ${foundCount} posizioni in ${url}`);
         }
 
         return { positions, rotations, url }; 
@@ -315,6 +315,7 @@ export function GameScene({
     const activeStartPos = activeTrackConfig?.startPos || start_pos;
     const activeMaxCheckpoints = activeTrackConfig?.maxCheckpoints || maxCheckpoints;
 
+    const raceStartTime = useRef(null);
 
     // Aggiungi questo stato sotto a quello di "gameState"
     const [isTransitioning, setIsTransitioning] = useState(false);
@@ -585,6 +586,7 @@ export function GameScene({
                     playSfx(AUDIO_SFX.FINISH_COUNTDOWN, 5);
                     setCountdown('START!');
                     setGameState('RACING');
+                    raceStartTime.current = Date.now();
                 } else {
                     setCountdown(null);
                     clearInterval(interval);
@@ -720,6 +722,7 @@ export function GameScene({
 
     // Update wins
     const sendWinToServer = useCallback((isOffline) => {
+        if (!username) return;
         fetch(`/api/updateWins?userName=${username}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -784,7 +787,7 @@ export function GameScene({
                     const finisherEntry = { 
                         id: racerId, 
                         position: finishPosition,
-                        finishTime: null,
+                        finishTime: Date.now() - raceStartTime.current,
                         name: racer.name || 'Unknown'
                     };
                     
