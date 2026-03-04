@@ -306,7 +306,7 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
                         <span>{formattedTime.minutes}</span>
                         <span className="text-white/50 mx-[2px]">:</span>
                         <span>{formattedTime.seconds}</span>
-                        <span className="text-white/50 mx-[2px]">.</span>
+                        <span className="text-white/50 mx-[2px]">:</span>
                         {/* I millisecondi leggermente più piccoli e con un tono che richiama l'oro della UI */}
                         <span className="text-[#FFD000] text-base ml-[1px]">{formattedTime.milliseconds}</span>
                     </>
