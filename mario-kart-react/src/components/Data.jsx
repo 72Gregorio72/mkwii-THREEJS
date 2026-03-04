@@ -156,6 +156,19 @@ export const Tracks = {
         road: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
+
+	'Mario Circuit': {
+        file: './Tracks/MarioCircuit/Mario_Circuit.glb',
+		preview: '/Previews/Mario Circuit.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/MarioCircuit/Mario_Circuit_checkpoints.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_GCN_MARIO_CIRCUIT',
+		itemBoxes: './Tracks/MarioCircuit/Mario_Circuit_itembox.glb',
+        gridpos: './Tracks/MarioCircuit/Mario_Circuit_startpos.glb',
+        road: './Tracks/MarioCircuit/Mario_Circuit_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
 }
 
 export const grandPrixList = [
