@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { grandPrixList } from '../components/Data.jsx';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
@@ -6,6 +6,7 @@ import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 export const GrandPrix = ({ setSelectedGrandPrix }) => {
     const navigate = useNavigate();
 	const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+	const [fadeToBlack, setFadeToBlack] = useState(false);
 
 	useEffect(() => {
 	if (getCurrentTrack() !== 'MENU') {
@@ -22,14 +23,23 @@ export const GrandPrix = ({ setSelectedGrandPrix }) => {
 
     const handleSelectCup = (cupId) => {
         playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
-        console.log(`Selected Cup: ${cupId}`);
+        // console.log(`Selected Cup: ${cupId}`);
         setSelectedGrandPrix(cupId);
-		navigate(`/character`);
+		setFadeToBlack(true);
+		fadeOutMusic(700);
+		setTimeout(() => {
+			navigate('/character');
+		}, 700); 
     };
 
     return (
         <div className="w-screen h-screen relative overflow-hidden font-sans select-none text-white">
             
+			{/* --- OVERLAY FADE TO BLACK */}
+            <div 
+                className={`fixed inset-0 bg-black z-[9999] pointer-events-none transition-opacity duration-700 ease-in-out ${fadeToBlack ? 'opacity-100' : 'opacity-0'}`}
+            />
+
             {/* 1. BACKGROUND LAYER */}
             <div 
                 className="absolute inset-0 z-0 bg-cover bg-center scale-110"
