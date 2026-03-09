@@ -38,7 +38,6 @@ export const Stats = ({ userName }) => {
 
     const handleSelectTrack = (trackName) => {
         setSelectedTrack(trackName);
-        
         fetch(`/api/getRecordTime?userName=${userName}&trackName=${trackName}`)
         .then(response => {
             return response.text().then(text => {
