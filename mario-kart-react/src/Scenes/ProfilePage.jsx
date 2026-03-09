@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { Tracks } from '../components/Data.jsx';
+import { formatTime } from '../ui/GameHUD.jsx';
 
 const AVAILABLE_ICONS = [
     "BabyDaisy.png",
@@ -29,12 +31,141 @@ const AVAILABLE_ICONS = [
     "Yoshi.png"
 ].sort();
 
+export const Stats = ({ userName }) => {
+    const [selectedTrack, setSelectedTrack] = useState(null);
+    const [bestTime, setBestTime] = useState(null);
+    const [showBestTime, setShowBestTime] = useState(false);
+
+    const handleSelectTrack = (trackName) => {
+        setSelectedTrack(trackName);
+        
+        fetch(`/api/getRecordTime?userName=${userName}&trackName=${trackName}`)
+        .then(response => {
+            return response.text().then(text => {
+                return text ? JSON.parse(text) : null; 
+            });
+        })
+        .then(data => {
+            if (data) {
+                setBestTime(data.time);
+            } else {
+                setBestTime(null);
+            }
+            setShowBestTime(true); 
+        })
+        .catch(error => {
+            console.error('Errore durante il recupero del tempo:', error);
+            setBestTime(null);
+            setShowBestTime(true); 
+        });
+    };
+
+    return (
+        <div className="flex-1 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full relative z-20">
+            
+            <div className="bg-gradient-to-b from-[#000050] to-[#000060] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 w-full max-w-6xl flex flex-col gap-4 relative animate-in zoom-in duration-300">
+            
+                <h2 className="text-5xl font-black text-white italic drop-shadow-[3px_3px_0_#0000ff] stroke-black tracking-wide z-10 uppercase text-center mb-2">
+                    {showBestTime ? "Track Record" : "Select Track Record"}
+                </h2>
+
+                <div className="flex flex-col gap-4 relative z-10 h-full">
+                    
+                    {/* VISTA DETTAGLIO RECORD */}
+                    {showBestTime && selectedTrack ? (
+                        <div className="flex flex-col items-center gap-6 p-4 bg-[#222]/50 rounded-lg inner-shadow">
+                            
+                            {/* Nome Pista */}
+                            <h3 className="text-4xl font-bold text-[#ffff00] drop-shadow-md uppercase tracking-wider text-center border-b-2 border-white/20 pb-2 w-full">
+                                {selectedTrack}
+                            </h3>
+
+                            <div className="flex flex-col md:flex-row gap-8 items-center w-full max-w-4xl">
+                                {/* Preview Immagine Grande */}
+                                <div className="flex-1 w-full aspect-video border-4 border-[#8899ff] rounded-lg shadow-lg overflow-hidden relative">
+                                    <img 
+                                        src={Tracks[selectedTrack].preview} 
+                                        alt={selectedTrack} 
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                </div>
+
+                                {/* Box Statistiche */}
+                                <div className="flex-1 w-full flex flex-col gap-6">
+                                    <div className="bg-gradient-to-b from-[#0000aa] to-[#000066] border-4 border-white rounded-xl p-6 shadow-inner text-center">
+                                        <span className="block text-[#88aaff] text-sm uppercase font-bold tracking-widest mb-2">
+                                            Current Record
+                                        </span>
+                                        <span className="text-5xl font-mono font-black text-[#ffff00] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                            {bestTime ? `${formatTime(bestTime).minutes}:${formatTime(bestTime).seconds}:${formatTime(bestTime).milliseconds}` : "--:--:---"}
+                                        </span>
+                                    </div>
+
+                                    {/* Bottone per tornare alla griglia all'interno del componente */}
+                                    <button 
+                                        onClick={() => setShowBestTime(false)}
+                                        className="w-full py-4 bg-[#444] border-2 border-[#888] rounded-full text-white font-bold text-xl uppercase tracking-wider hover:bg-[#555] active:scale-95 transition-all shadow-md"
+                                    >
+                                        Back to Tracks
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    ) : (
+                        /* GRIGLIA DI SELEZIONE PISTE */
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-[#222]/50 rounded-lg inner-shadow overflow-y-auto max-h-[60vh] custom-scrollbar">
+                            {Object.keys(Tracks).map((trackName) => {
+                                const trackData = Tracks[trackName];
+
+                                return (
+                                    <div 
+                                        key={trackName}
+                                        onClick={() => handleSelectTrack(trackName)}
+                                        className="group relative aspect-video rounded-lg cursor-pointer overflow-hidden border-[3px] border-transparent hover:border-white hover:scale-105 bg-gradient-to-b from-black/80 to-black/40 transition-all duration-100"
+                                    >
+                                        <img 
+                                            src={trackData.preview} 
+                                            alt={trackName} 
+                                            className="w-full h-full object-cover filter brightness-75 group-hover:brightness-100 transition-all duration-200"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.parentElement.classList.add('flex', 'items-center', 'justify-center', 'bg-gray-800');
+                                            }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90 pointer-events-none transition-opacity group-hover:opacity-100"></div>
+                                        <div className="absolute bottom-1 left-0 w-full text-center pointer-events-none p-1">
+                                            <span className="text-white font-bold text-sm tracking-wider uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+                                                {trackName}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+            
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 5px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #0088dd; border: 1px solid #fff; border-radius: 5px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #44ccff; }
+            `}</style>
+        </div>
+    );
+};
+
+
 export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
     const [data, setData] = useState(null);
     const [edit, setEdit] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [showStats, setShowStats] = useState(false);
 
     // Dati simulati statistiche
     const [userStats] = useState({
@@ -46,8 +177,8 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
 
     const [formData, setFormData] = useState({
         icon: AVAILABLE_ICONS[0],
-		onlineWins: 0,
-		offlineWins: 0
+        onlineWins: 0,
+        offlineWins: 0
     });
 
     useEffect(() => {
@@ -61,15 +192,15 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
             const updatedData = {
                 ...json,
                 fullIconPath: `./sprites/${json.icon}`,
-				onlineWins: json.onlineWins || 0,
-				offlineWins: json.offlineWins || 0 
+                onlineWins: json.onlineWins || 0,
+                offlineWins: json.offlineWins || 0 
             };
             setData(updatedData);
             setFormData({ 
-				icon: json.icon || AVAILABLE_ICONS[0],
-				onlineWins: json.onlineWins || 0,
-				offlineWins: json.offlineWins || 0
-			});
+                icon: json.icon || AVAILABLE_ICONS[0],
+                onlineWins: json.onlineWins || 0,
+                offlineWins: json.offlineWins || 0
+            });
         })
         .catch((err) => console.error("Fetch error:", err));
     }, [userName, isLoggedIn]);
@@ -78,9 +209,18 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
         playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
         if (edit) {
             setEdit(false);
+        } else if (showStats) {
+            // Nota: Se sei dentro la vista di dettaglio record in Stats, questo bottone tornerà alla patente principale.
+            // Se vuoi che torni prima alla griglia, la logica andrebbe modificata, ma ho aggiunto un tasto back interno a Stats per quello.
+            setShowStats(false);
         } else {
             navigate(-1);
         }
+    };
+
+    const handleStats = () => {
+        playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+        setShowStats(true);
     };
 
     const handleLogout = () => {
@@ -90,18 +230,18 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
     };
 
     const handleChangeIcon = () => {
-		playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         setEdit(true); 
     };
 
     const handleSelectIcon = (iconName) => {
-		playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         setFormData({ ...formData, icon: iconName });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-		playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         setIsLoading(true);
 
         try {
@@ -125,8 +265,8 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
                 ...prev,
                 icon: formData.icon,
                 fullIconPath: `./sprites/${formData.icon}`,
-				onlineWins: updatedUser.onlineWins || prev.onlineWins,
-				offlineWins: updatedUser.offlineWins || prev.offlineWins
+                onlineWins: updatedUser.onlineWins || prev.onlineWins,
+                offlineWins: updatedUser.offlineWins || prev.offlineWins
             }));
 
             setEdit(false);
@@ -182,7 +322,7 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
                 </div>
 
                 {/* VISTA PROFILO (READ ONLY) */}
-                {!edit && (
+                {!edit && !showStats &&(
                     <div className="flex-1 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full">
                         <div className="bg-gradient-to-b from-[#000050] to-[#000066] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-3 w-full max-w-3xl flex gap-3 relative animate-in zoom-in duration-300">
                             
@@ -224,6 +364,15 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 ease-in-out"></div>
                                     <span className="font-bold text-sm uppercase tracking-wider text-white relative z-10">Edit Icon</span>
                                 </button>
+
+                                <button 
+                                    onClick={handleStats} 
+                                    className="group relative w-full py-2 bg-gradient-to-b from-[#44ccff] to-[#0088dd] border-2 border-white/50 rounded shadow flex items-center justify-center gap-2 overflow-hidden transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 cursor-pointer"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 ease-in-out"></div>
+                                    <span className="font-bold text-sm uppercase tracking-wider text-white relative z-10">Stats</span>
+                                </button>
+
                             </div>
 
                             {/* COLONNA DESTRA */}
@@ -275,7 +424,6 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
                 {/* VISTA EDIT (GRID SELECTION) */}
                 {edit && (
                     <div className="flex-1 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full">
-                         {/* Contenitore allargato a max-w-5xl per ospitare la griglia */}
                          <div className="bg-gradient-to-b from-[#000050] to-[#000060] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 w-full max-w-5xl flex flex-col gap-4 relative animate-in zoom-in duration-300">
                             
                             <h2 className="text-5xl font-black text-white italic drop-shadow-[3px_3px_0_#0000ff] stroke-black tracking-wide z-10 uppercase text-center">Select Character</h2>
@@ -330,6 +478,8 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
                         </div>
                     </div>
                 )}
+
+                {showStats && <Stats userName={userName}/>}
 
                 {/* FOOTER */}
                 <div className="h-[12vh] w-full flex items-center px-12 relative z-30">

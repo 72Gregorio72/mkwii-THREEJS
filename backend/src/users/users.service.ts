@@ -98,11 +98,16 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async saveBestTime(userName: string, trackName: string, newTime: number) {
-    // 1. Cerca se esiste già un tempo
-    const existingRecord = await this.prisma.recordTimes.findUnique({
+  async getBestTime(userName: string, trackName: string): Promise<any | null> {
+    const record = await this.prisma.recordTimes.findUnique({
       where: { userName_trackName: { userName, trackName } }
     });
+    return record;
+  }
+
+  async saveBestTime(userName: string, trackName: string, newTime: number) {
+    // 1. Cerca se esiste già un tempo
+    const existingRecord = await this.getBestTime(userName, trackName);
 
     // 2. Se esiste ed è migliore (minore) del nuovo tempo, non fare nulla!
     if (existingRecord && existingRecord.time <= newTime) {

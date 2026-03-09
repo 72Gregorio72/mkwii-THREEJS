@@ -30,4 +30,9 @@ export class UsersController {
     async updateRecordTime(@Query('userName') userName: string, @Body() body: any) {
         return await this.userService.saveBestTime(userName, body.trackname, body.time);
     }
+
+    @Get('getRecordTime')
+    async getRecordTime(@Query('userName') userName: string, @Query('trackName') trackName: string) {
+        return await this.userService.getBestTime(userName, trackName);
+    }
 }   
