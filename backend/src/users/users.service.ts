@@ -97,4 +97,23 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
       }
     }
   }
+
+  async saveBestTime(userName: string, trackName: string, newTime: number) {
+    // 1. Cerca se esiste già un tempo
+    const existingRecord = await this.prisma.recordTimes.findUnique({
+      where: { userName_trackName: { userName, trackName } }
+    });
+
+    // 2. Se esiste ed è migliore (minore) del nuovo tempo, non fare nulla!
+    if (existingRecord && existingRecord.time <= newTime) {
+      return existingRecord; // Oppure lancia un'eccezione, a seconda della tua logica
+    }
+
+      // 3. Altrimenti (se non esiste o se il nuovo tempo è migliore), salva usando upsert
+    return this.prisma.recordTimes.upsert({
+      where: { userName_trackName: { userName, trackName } },
+      update: { time: newTime },
+      create: { userName, trackName, time: newTime },
+    });
+  }
 }

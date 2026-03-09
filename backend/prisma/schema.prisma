@@ -25,7 +25,7 @@ datasource db {
 
 model User {
   id        	Int			@id @default(autoincrement())
-  username  	String		@unique
+  username  	String		@unique // qualsiasi stringa unique puo essere usata come foregn key
   password  	String
   email     	String		@unique
   icon      	String		@default("Mario.png")
@@ -34,5 +34,21 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // relazione virtuale --> non crea colonna nella tabella
+  times RecordTimes[] // relazione con RecordTimes, un utente può avere più record times --> one-to-many
 }
 
+model RecordTimes {
+  id        	Int			@id @default(autoincrement())
+  userName  	String  // userName è la chiave esterna che fa riferimento al nome dell'utente
+  time      	Int     // tempo in ms
+  trackName     	String  // nome del circuito
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userName], references: [username], onUpdate: Cascade) // relazione con User, ogni record times è associato a un utente
+  
+  @@unique([userName, trackName]) // un utente può avere un solo record time per ogni circuito
+}

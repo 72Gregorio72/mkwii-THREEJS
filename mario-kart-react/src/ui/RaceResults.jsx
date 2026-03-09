@@ -171,7 +171,7 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
   );
 }
 
-export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIsTimeTrial, isGrandPrix, setIsGrandPrix, racersData }) => {
+export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIsTimeTrial, isGrandPrix, setIsGrandPrix, racersData, userName, trackName }) => {
   const navigate = useNavigate();
   const { playSfx } = useAudio();
 
@@ -188,10 +188,30 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
   const leftColumn = finishers.slice(0, 6);
   const rightColumn = finishers.slice(6, 12);
 
+  const updateRecordTimes = () => {
+  
+    if (isTimeTrial && finishers[0] && finishers[0].id === socket?.id) {
+        const bestTime = finishers[0].finishTime;
+            fetch(`/api/updateRecordTime?userName=${userName}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trackname: trackName, time: bestTime })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Time updated:', data);
+            })
+            .catch(error => {
+                console.error('Error updating time:', error);
+            });
+        }
+    };
+
   const handleQuit = () => {
     playSfx(AUDIO_SFX.BACK);
     if (isTimeTrial) {
         setIsTimeTrial(false);
+        updateRecordTimes();
     }
     if (isGrandPrix) {
         setIsGrandPrixFinished(true);
@@ -206,6 +226,7 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
 
   const handlePlayAgain = () => {   
     playSfx(AUDIO_SFX.CONFIRM);
+    updateRecordTimes();
     if (onPlayAgain) {
         setIsTimeTrial(true);
         onPlayAgain();

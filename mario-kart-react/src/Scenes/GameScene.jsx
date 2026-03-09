@@ -1044,6 +1044,8 @@ export function GameScene({
                     isGrandPrix={isGrandPrix}
                     setIsGrandPrix={setIsGrandPrix}
 					racersData={racersData.current}
+                    userName={username}
+                    trackName={activeTrackConfig?.name}
                 />}
 
             {countdown && (
@@ -1062,6 +1064,10 @@ export function GameScene({
                     {countdown}
                 </div>
             )}
+
+            {/* <WaypointsVisualizer waypoints={activeTrackConfig.Waypoints[0]} />
+            <WaypointsVisualizer waypoints={activeTrackConfig.Waypoints[1]} color="blue" />
+            <WaypointsVisualizer waypoints={activeTrackConfig.Waypoints[2]} color="green" /> */}
 
             <Canvas
                 gl={{

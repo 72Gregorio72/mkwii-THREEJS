@@ -1,4 +1,4 @@
-import { Controller, Get, Query, NotFoundException, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Query, NotFoundException, Patch, Body, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 @Controller('')
@@ -25,4 +25,9 @@ export class UsersController {
 	async updateWins(@Query('userName') userName: string, @Body() body: any) {
 		return await this.userService.updateWins(userName, body.onlyOffline);
 	}
+
+    @Post('updateRecordTime')
+    async updateRecordTime(@Query('userName') userName: string, @Body() body: any) {
+        return await this.userService.saveBestTime(userName, body.trackname, body.time);
+    }
 }   
