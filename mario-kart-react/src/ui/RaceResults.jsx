@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import React, { useState, useEffect, use } from 'react'; // Rimosso 'use' che non serve
+import React, { useState, useEffect } from 'react'; 
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { formatTime } from './GameHUD.jsx';
 
@@ -20,7 +20,6 @@ const calculatePoints = (racersDataObj) => {
     const racersArray = Object.values(racersDataObj);
 
     // 2. Ordina i corridori in base alla loro posizione attuale nella gara
-    // Chi ha posizione 1 sarà all'indice 0, posizione 2 all'indice 1, ecc.
     racersArray.sort((a, b) => {
         const posA = a.position || 99;
         const posB = b.position || 99;
@@ -57,90 +56,98 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
   // Ordina i corridori per punti (in ordine decrescente)
   const sortedRacers = [...racersData].sort((a, b) => (b.points || 0) - (a.points || 0));
 
-  // Split colonne (1-6 a sinistra, 7-12 a destra)
-  const leftColumn = sortedRacers.slice(0, 6);
-  const rightColumn = sortedRacers.slice(6, 12);
-
-  const RenderRow = ({ racer, index, offset = 0 }) => {
-    const position = index + 1 + offset;
+  const RenderRow = ({ racer, index }) => {
+    const position = index + 1;
     
-    // Colori Rank
-    let rankColor = 'text-white';
-    let rankIcon = null;
+    // Calcolo suffisso posizione (1st, 2nd, 3rd, th)
+    const suffix = position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th';
+    
     let bgGradient = 'from-black/60 to-transparent';
     let borderColor = 'border-gray-600';
+    let rankColor = 'text-white';
 
     if (position === 1) {
         rankColor = 'text-[#FFD700]'; // Oro
-        rankIcon = '🏆';
         bgGradient = 'from-[#332200] to-transparent';
         borderColor = 'border-[#FFD700]';
     } else if (position === 2) {
         rankColor = 'text-[#C0C0C0]'; // Argento
-        rankIcon = '🥈';
         bgGradient = 'from-[#1a1a1a] to-transparent';
         borderColor = 'border-[#C0C0C0]';
     } else if (position === 3) {
         rankColor = 'text-[#CD7F32]'; // Bronzo
-        rankIcon = '🥉';
         bgGradient = 'from-[#1a0f00] to-transparent';
         borderColor = 'border-[#CD7F32]';
     }
 
-    // Nome Display
+    // Nome Display e Evidenziazione Giocatore
     let displayName = racer.id;
-	if (displayName === socket?.id) displayName = 'PLAYER';
-    else if (displayName && displayName.startsWith('bot_')) {
+    const isMe = displayName === socket?.id;
+
+	if (isMe) {
+        displayName = 'PLAYER';
+        bgGradient = 'from-[#0033aa] to-transparent'; 
+        borderColor = 'border-[#00aeff]';
+    } else if (displayName && displayName.startsWith('bot_')) {
        const parts = displayName.split('_');
        const botNum = parseInt(parts[1]) + 1;
        displayName = `CPU ${botNum}`;
     }
 
+    // Ricava il nome del personaggio per l'icona (se non c'è usa Mario di default)
+    const rawName = racer.name || 'Mario';
+
+    const characterName = rawName
+        .split(/[^a-zA-Z0-9]+/) // Divide la stringa ad ogni spazio o segno di punteggiatura (es. il punto in "Jr.")
+        .filter(Boolean)        // Rimuove eventuali stringhe vuote generate dal divisione
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalizza la prima lettera di ogni parola
+        .join('');              // Unisce tutto in un'unica stringa senza spazi
+
     return (
         <div 
             className={`
-                flex items-center justify-between p-3 rounded-r-lg border-l-4 mb-2 shadow-sm
+                flex items-center justify-between py-1.5 px-3 md:py-2 md:px-4 rounded-r-lg border-l-4 mb-1 shadow-sm
                 bg-gradient-to-r ${bgGradient} ${borderColor}
                 animate-in slide-in-from-left duration-500
             `}
             style={{ animationDelay: `${index * 100}ms` }}
         >
-            <div className="flex items-center gap-4">
-                {/* Posizione */}
-                <div className={`w-12 text-3xl font-black italic ${rankColor} drop-shadow-md text-center`}>
-                    {position}<span className="text-sm align-top opacity-70">.</span>
+            <div className="flex items-center gap-4 md:gap-6">
+                {/* Posizione (es: 1st, 2nd) */}
+                <div className={`w-16 text-3xl font-black italic ${rankColor} drop-shadow-md text-right pr-2`}>
+                    {position}<span className="text-lg align-top opacity-80">{suffix}</span>
                 </div>
                 
-                {/* Icona & Nome */}
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xl filter drop-shadow-md">
-                            {rankIcon || '🏎️'}
-                        </span>
-                        <span className="text-xl font-bold uppercase tracking-wide drop-shadow-md text-white">
-                            {displayName}
-                        </span>
-                    </div>
-                </div>
+                {/* Icona Personaggio */}
+                <img 
+                    src={`/sprites/${characterName}.png`} 
+                    alt={characterName} 
+                    className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-md"
+                    onError={(e) => { e.target.style.display='none'; }}
+                />
+
+                {/* Nome */}
+                <span className={`text-xl md:text-2xl font-bold uppercase tracking-wide drop-shadow-md ${isMe ? 'text-[#00aeff]' : 'text-white'}`}>
+                    {displayName}
+                </span>
             </div>
 
             {/* Punteggio */}
-            <div className="font-mono text-[#ffcc00] text-2xl tracking-wider font-bold drop-shadow-sm bg-black/60 px-3 py-1 rounded border border-[#aa8800]/50">
-                {racer.points || 0} pts
+            <div className="font-mono text-[#ffcc00] text-2xl tracking-wider font-bold drop-shadow-sm bg-black/60 px-4 py-1 rounded border border-[#aa8800]/50 min-w-[120px] text-right">
+                {racer.points || 0} <span className="text-sm">pts</span>
             </div>
         </div>
     );
   };
 
   return (
-    // Restituisce DIRETTAMENTE il box scuro, senza div fixed o sfondi a tutto schermo
-    <div className="w-full max-w-7xl bg-black/90 border-4 border-[#aa8800] rounded-xl shadow-[0_0_60px_rgba(0,0,0,0.9)] p-6 relative overflow-hidden flex flex-col animate-in zoom-in duration-300">
+    <div className="w-full max-w-4xl bg-black/90 border-4 border-[#aa8800] rounded-xl shadow-[0_0_60px_rgba(0,0,0,0.9)] p-4 md:p-6 relative flex flex-col animate-in zoom-in duration-300 max-h-full">
         
         <div className="absolute inset-0 opacity-10 pointer-events-none" 
              style={{backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 1px, #fff 1px, #fff 2px), repeating-linear-gradient(90deg, transparent, transparent 1px, #fff 1px, #fff 2px)", backgroundSize: "40px 40px"}}>
         </div>
 
-        <div className="flex justify-between items-center border-b-2 border-[#aa8800] pb-4 mb-4 z-10">
+        <div className="flex justify-between items-center border-b-2 border-[#aa8800] pb-3 mb-3 z-10">
             <h2 className="text-3xl font-black text-[#ffcc00] uppercase tracking-wide drop-shadow-md">
                 {finished ? "Final Grand Prix Standings" : "Leaderboard"}
             </h2>
@@ -149,22 +156,11 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
             </span>
         </div>
 
-        {/* Grid Colonne */}
-        <div className="flex-1 overflow-y-auto z-10 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 content-start custom-scrollbar">
-            
-            {/* Colonna Sinistra */}
-            <div className="flex flex-col">
-                {leftColumn.map((racer, index) => (
-                    <RenderRow key={racer.id} racer={racer} index={index} offset={0} />
-                ))}
-            </div>
-
-            {/* Colonna Destra */}
-            <div className="flex flex-col">
-                {rightColumn.map((racer, index) => (
-                    <RenderRow key={racer.id} racer={racer} index={index} offset={6} />
-                ))}
-            </div>
+        {/* Colonna Singola con overflow corretto */}
+        <div className="flex-1 overflow-y-auto z-10 flex flex-col content-start custom-scrollbar pr-2 min-h-0">
+            {sortedRacers.map((racer, index) => (
+                <RenderRow key={racer.id} racer={racer} index={index} />
+            ))}
         </div>
 
     </div>
@@ -184,12 +180,7 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
   // Se non ci sono risultati, non mostrare nulla
   if (!finishers || finishers.length === 0) return null;
 
-  // Split colonne (1-6 a sinistra, 7-12 a destra)
-  const leftColumn = finishers.slice(0, 6);
-  const rightColumn = finishers.slice(6, 12);
-
   const updateRecordTimes = () => {
-  
     if (isTimeTrial && finishers[0] && finishers[0].id === socket?.id) {
         const bestTime = finishers[0].finishTime;
             fetch(`/api/updateRecordTime?userName=${userName}`, {
@@ -249,41 +240,38 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
     }
   }, [isGrandPrix]);
 
-  const RenderRow = ({ finisher, index, offset = 0 }) => {
-    const position = index + 1 + offset;
+  const RenderRow = ({ finisher, index }) => {
+    const position = index + 1;
     const isMe = finisher.id === socket?.id;
 
+    // Calcolo suffisso posizione (1st, 2nd, 3rd, th)
+    const suffix = position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th';
+
     const formattedTime = finisher.finishTime ? formatTime(finisher.finishTime) : null;
-    // Colori Rank
-    let rankColor = 'text-white';
-    let rankIcon = null;
+    
     let bgGradient = 'from-black/60 to-transparent';
     let borderColor = 'border-gray-600';
+    let rankColor = 'text-white';
 
     if (position === 1) {
-        rankColor = 'text-[#FFD700]'; // Oro
-        rankIcon = '🏆';
+        rankColor = 'text-[#FFD700]';
         bgGradient = 'from-[#332200] to-transparent';
         borderColor = 'border-[#FFD700]';
     } else if (position === 2) {
-        rankColor = 'text-[#C0C0C0]'; // Argento
-        rankIcon = '🥈';
+        rankColor = 'text-[#C0C0C0]';
         bgGradient = 'from-[#1a1a1a] to-transparent';
         borderColor = 'border-[#C0C0C0]';
     } else if (position === 3) {
-        rankColor = 'text-[#CD7F32]'; // Bronzo
-        rankIcon = '🥉';
+        rankColor = 'text-[#CD7F32]';
         bgGradient = 'from-[#1a0f00] to-transparent';
         borderColor = 'border-[#CD7F32]';
     }
 
-    // Override per il giocatore corrente
     if (isMe) {
-        bgGradient = 'from-[#0033aa] to-transparent'; // Blu MKWii highlight
+        bgGradient = 'from-[#0033aa] to-transparent';
         borderColor = 'border-[#00aeff]';
     }
 
-    // Nome Display
     let displayName = finisher.id;
     if (isMe) displayName = 'YOU';
     else if (finisher.id.startsWith('bot_')) {
@@ -292,43 +280,53 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
        displayName = `CPU ${botNum}`;
     }
 
+    // Ricava il nome del personaggio per l'icona
+    // console.log('Finisher Data:', finisher); // Debug: vedi i dati del finisher
+    const rawName = finisher.name || 'Mario';
+
+    const characterName = rawName
+        .split(/[^a-zA-Z0-9]+/) // Divide la stringa ad ogni spazio o segno di punteggiatura (es. il punto in "Jr.")
+        .filter(Boolean)        // Rimuove eventuali stringhe vuote generate dal divisione
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalizza la prima lettera di ogni parola
+        .join('');              // Unisce tutto in un'unica stringa senza spazi
+
     return (
         <div 
             className={`
-                flex items-center justify-between p-3 rounded-r-lg border-l-4 mb-2 shadow-sm
+                flex items-center justify-between py-1.5 px-3 md:py-2 md:px-4 rounded-r-lg border-l-4 mb-1 shadow-sm
                 bg-gradient-to-r ${bgGradient} ${borderColor}
                 animate-in slide-in-from-left duration-500
             `}
             style={{ animationDelay: `${index * 100}ms` }}
         >
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 md:gap-6">
                 {/* Posizione */}
-                <div className={`w-12 text-3xl font-black italic ${rankColor} drop-shadow-md text-center`}>
-                    {position}<span className="text-sm align-top opacity-70">.</span>
+                <div className={`w-16 text-3xl font-black italic ${rankColor} drop-shadow-md text-right pr-2`}>
+                    {position}<span className="text-lg align-top opacity-80">{suffix}</span>
                 </div>
                 
-                {/* Icona & Nome */}
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xl filter drop-shadow-md">
-                            {rankIcon || (isMe ? '👤' : '🏎️')}
-                        </span>
-                        <span className={`text-xl font-bold uppercase tracking-wide drop-shadow-md ${isMe ? 'text-[#00aeff]' : 'text-white'}`}>
-                            {displayName}
-                        </span>
-                    </div>
-                </div>
+                {/* Icona Personaggio */}
+                <img 
+                    src={`/sprites/${characterName}.png`} 
+                    alt={characterName} 
+                    className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-md"
+                    onError={(e) => { e.target.style.display='none'; }}
+                />
+
+                {/* Nome */}
+                <span className={`text-xl md:text-2xl font-bold uppercase tracking-wide drop-shadow-md ${isMe ? 'text-[#00aeff]' : 'text-white'}`}>
+                    {displayName}
+                </span>
             </div>
 
             {/* Tempo */}
-            <div className="font-mono tabular-nums text-white text-lg tracking-wider font-bold drop-shadow-[2px_2px_0_#000] bg-black/40 px-3 py-1.5 rounded-md border border-white/10 flex items-baseline justify-end min-w-[140px]">
+            <div className="font-mono tabular-nums text-white text-lg md:text-xl tracking-wider font-bold drop-shadow-[2px_2px_0_#000] bg-black/40 px-3 py-1.5 rounded-md border border-white/10 flex items-baseline justify-end min-w-[140px]">
                 {formattedTime ? (
                     <>
                         <span>{formattedTime.minutes}</span>
                         <span className="text-white/50 mx-[2px]">:</span>
                         <span>{formattedTime.seconds}</span>
                         <span className="text-white/50 mx-[2px]">:</span>
-                        {/* I millisecondi leggermente più piccoli e con un tono che richiama l'oro della UI */}
                         <span className="text-[#FFD000] text-base ml-[1px]">{formattedTime.milliseconds}</span>
                     </>
                 ) : (
@@ -344,27 +342,23 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
       <style>{mkwiiFontStyle}</style>
       
       {/* CONTAINER PRINCIPALE */}
-      <div className="fixed inset-0 z-[2000] font-sans select-none text-white flex flex-col bg-black/40 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[2000] font-sans select-none text-white flex flex-col bg-black/40 backdrop-blur-sm p-4 md:p-8">
         
         <div className="relative w-full h-full flex flex-col">
 
-          {/* AREA CENTRALE (Sostituzione dinamica tra Tempi e Classifica Punti) */}
-          <div className="flex-1 flex items-center justify-center pt-[15vh] pb-4 px-8 w-full">
+          {/* AREA CENTRALE - Modificati items-start e pt-[4vh] per stare più in alto */}
+          <div className="flex-1 flex items-start justify-center pt-[4vh] pb-[2vh] px-2 md:px-8 w-full min-h-0">
             
             {isGrandPrix && showResults ? (
-                /* MOSTRA LA LEADERBOARD DEI PUNTI */
                 <LeaderBoard finished={isGrandPrixFinished} racersData={pointsData} socket={socket} />
             ) : (
-                /* MOSTRA I RISULTATI DELLA GARA APPENA FINITA */
-                <div className="w-full max-w-7xl bg-black/90 border-4 border-[#aa8800] rounded-xl shadow-[0_0_60px_rgba(0,0,0,0.9)] p-6 relative overflow-hidden flex flex-col animate-in zoom-in duration-300">
+                <div className="w-full max-w-4xl bg-black/90 border-4 border-[#aa8800] rounded-xl shadow-[0_0_60px_rgba(0,0,0,0.9)] p-4 md:p-6 relative flex flex-col animate-in zoom-in duration-300 max-h-full">
                     
-                    {/* Sfondo Griglia Decorativa */}
                     <div className="absolute inset-0 opacity-10 pointer-events-none" 
                          style={{backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 1px, #fff 1px, #fff 2px), repeating-linear-gradient(90deg, transparent, transparent 1px, #fff 1px, #fff 2px)", backgroundSize: "40px 40px"}}>
                     </div>
 
-                    {/* Titolo Tabella */}
-                    <div className="flex justify-between items-center border-b-2 border-[#aa8800] pb-4 mb-4 z-10">
+                    <div className="flex justify-between items-center border-b-2 border-[#aa8800] pb-3 mb-3 z-10">
                         <h2 className="text-3xl font-black text-[#ffcc00] uppercase tracking-wide drop-shadow-md">
                             Final Standing
                         </h2>
@@ -373,38 +367,31 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
                         </span>
                     </div>
 
-                    {/* Grid Colonne Tempi */}
-                    <div className="flex-1 overflow-y-auto z-10 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 content-start custom-scrollbar">
-                        <div className="flex flex-col">
-                            {leftColumn.map((finisher, index) => (
-                                <RenderRow key={finisher.id} finisher={finisher} index={index} offset={0} />
-                            ))}
-                        </div>
-                        <div className="flex flex-col">
-                            {rightColumn.map((finisher, index) => (
-                                <RenderRow key={finisher.id} finisher={finisher} index={index} offset={6} />
-                            ))}
-                        </div>
+                    {/* Colonna Singola Tempi con min-h-0 per permettere l'overflow scroll */}
+                    <div className="flex-1 overflow-y-auto z-10 flex flex-col content-start custom-scrollbar pr-2 min-h-0">
+                        {finishers.map((finisher, index) => (
+                            <RenderRow key={finisher.id} finisher={finisher} index={index} />
+                        ))}
                     </div>
                 </div>
             )}
           </div>
 
-          {/* FOOTER / AREA BOTTONI (Sempre visibile in basso) */}
-          <div className="h-[25vh] w-full flex flex-col items-end justify-center px-12 gap-4 relative z-30">
+          {/* FOOTER / AREA BOTTONI - Modificato in absolute per non "mangiare" spazio verticale vitale */}
+          <div className="absolute bottom-6 right-8 flex flex-col items-end gap-3 z-30 pointer-events-none">
             
             {/* 1. Bottone PLAY AGAIN (Solo Time Trial) */}
             {isTimeTrial && (
                 <button 
                     onClick={handlePlayAgain}
-                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-94 justify-between"
+                    className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
                 >
-                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Play Again</span>
-                    <div className="w-10 h-10 rounded-full bg-[#22cc22] text-white flex items-center justify-center font-bold text-xl shadow-inner border border-white/50 group-hover:rotate-180 transition-transform duration-500">↻</div>
+                    <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Play Again</span>
+                    <div className="w-8 h-8 rounded-full bg-[#22cc22] text-white flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:rotate-180 transition-transform duration-500">↻</div>
                 </button>
             )}
 
-            {/* 2. Bottone SEE LEADERBOARD (Solo Grand Prix, se non ancora premuto) */}
+            {/* 2. Bottone SEE LEADERBOARD */}
             {isGrandPrix && !isGrandPrixFinished && !showResults && showLeaderboard && (
                 <button 
                     onClick={() => {
@@ -412,31 +399,31 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
                         playSfx(AUDIO_SFX.CONFIRM);
                         setPointsData(calculatePoints(racersData));
                     }}
-                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-94 justify-between"
+                    className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
                 >
-                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Leaderboard</span>
-                    <div className="w-10 h-10 rounded-full bg-[#ffcc00] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">★</div>
+                    <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Leaderboard</span>
+                    <div className="w-8 h-8 rounded-full bg-[#ffcc00] text-white flex items-center justify-center font-bold text-sm shadow-inner border border-white/50 group-hover:scale-110 transition-transform">★</div>
                 </button>
             )}
 
-            {/* 3. Bottone NEXT RACE (Solo Grand Prix, dopo aver visto la classifica) */}
+            {/* 3. Bottone NEXT RACE */}
             {isGrandPrix && !isGrandPrixFinished && showResults && (
                 <button 
                     onClick={handleNextRace}
-                    className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-94 justify-between"
+                    className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
                 >
-                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Next Race</span>
-                    <div className="w-10 h-10 rounded-full bg-[#ffff44] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">➜</div>
+                    <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Next Race</span>
+                    <div className="w-8 h-8 rounded-full bg-[#ffff44] text-gray-700 flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:scale-110 transition-transform">➜</div>
                 </button>
             )}
 
-            {/* 4. Bottone QUIT (Sempre presente) */}
+            {/* 4. Bottone QUIT */}
             <button 
                 onClick={handleQuit}
-                className="flex items-center gap-3 bg-white px-10 py-3 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-94 justify-between"
+                className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
             >
-                <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Quit</span>
-                <div className="w-10 h-10 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50 group-hover:scale-110 transition-transform">✖</div>
+                <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Quit</span>
+                <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:scale-110 transition-transform">✖</div>
             </button>
 
           </div>
@@ -445,8 +432,8 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
       </div>
 
       <style>{`
-          .custom-scrollbar::-webkit-scrollbar { width: 10px; }
-          .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-left: 1px solid #aa8800; }
+          .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-left: 1px solid #aa8800; border-radius: 4px; }
           .custom-scrollbar::-webkit-scrollbar-thumb { background: #aa8800; border: 1px solid #ffcc00; border-radius: 4px; }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #ffcc00; }
       `}</style>
