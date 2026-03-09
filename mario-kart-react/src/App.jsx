@@ -164,7 +164,9 @@ export default function App() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ username: userName }),
-        });
+        }).catch((error) => {
+			console.error('Logout error:', error);
+		});
         setUsername(null);
         setIsLoggedIn(false);
     };

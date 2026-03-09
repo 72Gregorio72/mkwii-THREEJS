@@ -8,6 +8,6 @@ import { HashService } from 'src/hash/hash.service';
 @Module({
   imports: [UsersModule],
   controllers: [AuthController],
-  providers: [AuthService, HashService],
+  providers: [AuthService, HashService, UsersService],
 })
 export class AuthModule {}

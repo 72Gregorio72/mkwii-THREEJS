@@ -25,6 +25,7 @@ export class AuthController {
 
     @Post('logout')
     async logoutUser(@Body() body: any) {
+		console.log(`Logging out user: ${body.username}`);
         return await this.authService.usersService.updateLoginStatus(body.username, false);
     }
 }
