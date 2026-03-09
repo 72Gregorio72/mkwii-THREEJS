@@ -25,6 +25,13 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     return userFound;
   }
 
+  async updateLoginStatus(username: string, status: boolean) {
+    return this.prisma.user.update({
+      where: { username: username },
+      data: { isLoggedIn: status },
+    });
+  }
+  
   async addUser(data: any): Promise<User> {
     try {
       const newUser = await this.prisma.user.create({
@@ -32,7 +39,8 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
           username: data.username,
           email: data.email,
           password: data.password,
-          icon: "Mario.png"
+          icon: "Mario.png",
+          isLoggedIn: true
         },
       });
       return newUser;
@@ -80,15 +88,15 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
       }
     } else {
       try {
-      console.log(`Updating offline wins for user: ${username}`);
-      const updatedUser = await this.prisma.user.update({
-        where: {
-          username: username,
-        },
-        data: {
-          onlineWins: {
-            increment: 1,
+        console.log(`Updating offline wins for user: ${username}`);
+        const updatedUser = await this.prisma.user.update({
+          where: {
+            username: username,
           },
+          data: {
+            onlineWins: {
+              increment: 1,
+            },
         }
       });
       return updatedUser;

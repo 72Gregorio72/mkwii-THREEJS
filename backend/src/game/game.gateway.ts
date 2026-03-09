@@ -9,6 +9,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { getLocalIpAddress } from 'src/utils';
+import { UsersService } from 'src/users/users.service';
 
 const myIP = getLocalIpAddress();
 
@@ -34,7 +35,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   @WebSocketServer()
   server!: Server;
 
-  constructor(private readonly gameService: GameService) {}
+  constructor(private readonly gameService: GameService, private readonly usersService: UsersService) {}
 
   private items = new Map<string, any>();
   private roomData = new Map<string, { 
@@ -83,6 +84,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
  handleDisconnect(client: Socket) {
     console.log(`Player left: ${client.id}`);
     this.gameService.removePlayer(client.id);
+    this.usersService.updateLoginStatus(client.id, false);
 
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;

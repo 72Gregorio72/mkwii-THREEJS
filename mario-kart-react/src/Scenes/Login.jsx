@@ -23,6 +23,16 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
         setError(null);
 
         try {
+            const checkResponse = await fetch(`/api/checklogin?username=${data.username}`);
+            const checkData = await checkResponse.text();
+            const parsedCheckData = checkData ? JSON.parse(checkData) : null;
+
+            if (parsedCheckData && parsedCheckData.isLoggedIn) {
+                setError("User already logged in");
+                setIsLoading(false);
+                return;
+            }
+
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
@@ -43,18 +53,13 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
             sessionStorage.setItem('userName', finalUsername);
             sessionStorage.setItem('isLoggedIn', 'true');
 
-
-            if (setUsername) {
-                setUsername(finalUsername);
-            }
-
-            if (onLoginSuccess) {
-                onLoginSuccess(finalUsername);
-            }
+            if (setUsername) setUsername(finalUsername);
+            if (onLoginSuccess) onLoginSuccess(finalUsername);
+            
             setTimeout(() => navigate('/menu'), 500);
 
         } catch (err) {
-            console.error('Registration Error:', err);
+            console.error('Login Error:', err);
             setError(err.message);
         } finally {
             setIsLoading(false);

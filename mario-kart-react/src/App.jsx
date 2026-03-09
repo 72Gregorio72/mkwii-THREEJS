@@ -158,6 +158,13 @@ export default function App() {
     const handleLogout = () => {
         sessionStorage.setItem('isLoggedIn', 'false');
         sessionStorage.removeItem('userName');
+        const response = fetch('/api/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username: userName }),
+        });
         setUsername(null);
         setIsLoggedIn(false);
     };
