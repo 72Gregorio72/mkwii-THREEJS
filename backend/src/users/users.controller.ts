@@ -35,4 +35,9 @@ export class UsersController {
     async getRecordTime(@Query('userName') userName: string, @Query('trackName') trackName: string) {
         return await this.userService.getBestTime(userName, trackName);
     }
+
+	@Get('getIsLoggedIn')
+	async getIsLoggedIn(@Query('socketId') socketId: string) {
+		return await this.userService.getUserBySocketId(socketId);
+	}
 }   

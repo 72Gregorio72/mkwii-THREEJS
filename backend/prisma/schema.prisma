@@ -33,6 +33,7 @@ model User {
   offlineWins	Int			@default(0)
   isLoggedIn 	Boolean		@default(false)
 
+  socketId  	String?     @unique// campo opzionale per memorizzare l'ID del socket dell'utente
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

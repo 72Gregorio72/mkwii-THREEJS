@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Register = ({ onRegistrationSuccess, setUsername }) => {
+export const Register = ({ onRegistrationSuccess, setUsername, socket }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -74,7 +74,8 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
         sendDataToBackend({ 
             username: formData.username, 
             email: formData.email, 
-            password: formData.password
+            password: formData.password,
+			socketId: socket ? socket.id : null
         });
     };
 

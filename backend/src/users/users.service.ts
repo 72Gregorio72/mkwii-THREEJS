@@ -31,7 +31,33 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
       data: { isLoggedIn: status },
     });
   }
+
+  async updateLoginStatusBySocketId(socketId: string, status: boolean) {
+    return this.prisma.user.update({
+      where: { socketId: socketId },
+      data: { isLoggedIn: status },
+    });
+  }
+
+  async updateSocketId(username: string, socketId: string) {
+    return this.prisma.user.update({
+      where: { username: username },
+      data: { socketId: socketId },
+    });
+  }
   
+  async getUserBySocketId(socketId: string): Promise<User | null> {
+	try {
+		const user = await this.prisma.user.findUnique({
+		where: { socketId: socketId },
+		});
+		return user;
+	}catch (error) {
+		console.error('Error fetching user by socketId:', error);
+		return null;
+	}
+  }
+
   async addUser(data: any): Promise<User> {
     try {
       const newUser = await this.prisma.user.create({
@@ -40,7 +66,8 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
           email: data.email,
           password: data.password,
           icon: "Mario.png",
-          isLoggedIn: true
+          isLoggedIn: true,
+		  socketId: data.socketId || null
         },
       });
       return newUser;

@@ -12,7 +12,7 @@ export class AuthController {
 
     @Post('login')
     async loginUser(@Body() body: any) {
-        const result = await this.authService.validateUser(body.username, body.password);
+        const result = await this.authService.validateUser(body.username, body.password, body.socketId);
         if (!result)
             throw new ConflictException('Wrong password or email');
         return result;

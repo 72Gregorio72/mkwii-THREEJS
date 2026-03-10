@@ -71,7 +71,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   handleConnection(client: Socket) {
     console.log(`Player connected: ${client.id}`);
-    
+	// TODO: implementare JWT
+    // this.usersService.updateSocketId(client.id, client.id); // Aggiorna il socketId dell'utente al momento della connessione
     this.gameService.updatePlayer(client.id, { 
       id: client.id, 
       x: 0, 
@@ -81,10 +82,10 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
   }
 
- handleDisconnect(client: Socket) {
+ async handleDisconnect(client: Socket) {
     console.log(`Player left: ${client.id}`);
     this.gameService.removePlayer(client.id);
-    this.usersService.updateLoginStatus(client.id, false);
+	await this.usersService.updateLoginStatusBySocketId(client.id, false);
 
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;

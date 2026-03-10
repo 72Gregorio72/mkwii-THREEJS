@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Login = ({ onLoginSuccess, setUsername }) => {
+export const Login = ({ onLoginSuccess, setUsername, socket }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -78,7 +78,8 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
 
         sendDataToBackend({ 
             username: formData.username,
-            password: formData.password
+            password: formData.password,
+			socketId: socket ? socket.id : null
         });
     };
 

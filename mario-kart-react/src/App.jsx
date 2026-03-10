@@ -235,11 +235,11 @@ export default function App() {
                         } />
 
                         <Route path="/register" element={
-                            <Register onRegistrationSuccess={handleLogin} setUsername={setUsername}/>
+                            <Register onRegistrationSuccess={handleLogin} setUsername={setUsername} socket={socket}/>
                         } />
 
                         <Route path="/login" element={
-                            <Login onLoginSuccess={handleLogin} setUsername={setUsername}/>
+                            <Login onLoginSuccess={handleLogin} setUsername={setUsername} socket={socket}/>
                         } />
 
                         <Route path="/profile" element={
