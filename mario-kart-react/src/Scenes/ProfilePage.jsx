@@ -158,13 +158,15 @@ export const Stats = ({ userName }) => {
 };
 
 
-export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
+export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
     const [data, setData] = useState(null);
     const [edit, setEdit] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showStats, setShowStats] = useState(false);
+    const [isEditingUsername, setIsEditingUsername] = useState(false);
+    const [newUsername, setNewUsername] = useState("");
 
     // Dati simulati statistiche
     const [userStats] = useState({
@@ -278,6 +280,56 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
         }
     };
 
+    const handleUpdateUsername = async (e) => {
+        if (e.key === 'Enter') {
+            const trimmedName = newUsername.trim();
+            if (!trimmedName || trimmedName === data?.username) {
+                setIsEditingUsername(false);
+                return; // Esce senza fare nulla se è vuoto o identico
+            }
+
+            try {
+                // Fetch al tuo endpoint PATCH
+                const response = await fetch(`/api/updateusername?userName=${userName}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ newUsername: trimmedName }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Errore durante l\'aggiornamento dello username');
+                }
+
+                const resData = await response.json(); 
+
+                if (resData.token) {
+                    sessionStorage.setItem('accessToken', resData.token);
+                    
+                    if (socket) {
+                        socket.disconnect();
+                        socket.connect();
+                    }
+                }
+
+                setData(prev => ({
+                    ...prev,
+                    username: trimmedName
+                }));
+                setUsername(trimmedName);
+                setIsEditingUsername(false);
+
+            } catch (error) {
+                console.error("Errore update username:", error);
+                alert("Impossibile aggiornare lo username. Riprova.");
+            }
+        } else if (e.key === 'Escape') {
+            // Annulla l'editing se preme Esc
+            setIsEditingUsername(false);
+        }
+    };
+
     return (
         <div className="w-screen h-screen relative overflow-hidden font-sans select-none text-white">
             
@@ -376,14 +428,37 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn }) => {
 
                             {/* COLONNA DESTRA */}
                             <div className="flex-1 flex flex-col gap-3">
+
                                 <div className="w-full h-24 border-4 border-[#ffff] shadow-md flex items-center justify-center px-6 relative overflow-hidden"
                                      style={{
                                         backgroundImage: "conic-gradient(#000088 90deg, #000044 90deg 180deg, #000088 180deg 270deg, #000044 270deg)",
                                         backgroundSize: "24px 24px"
                                      }}>
-                                    <h2 className="text-5xl font-black text-white italic drop-shadow-[3px_3px_0_#0000ff] stroke-black tracking-wide z-10">
-                                        {data?.username || "Player"}
-                                    </h2>
+                                    
+                                    {isEditingUsername ? (
+                                        <input
+                                            type="text"
+                                            value={newUsername}
+                                            onChange={(e) => setNewUsername(e.target.value)}
+                                            onKeyDown={handleUpdateUsername}
+                                            onBlur={() => setIsEditingUsername(false)}
+                                            autoFocus
+                                            maxLength={15}
+                                            className="text-4xl font-black text-[#ffff00] italic drop-shadow-[3px_3px_0_#000000] stroke-black tracking-wide z-10 bg-black/40 border-b-4 border-white text-center w-full outline-none px-2 py-1 rounded-md"
+                                        />
+                                    ) : (
+                                        <h2 
+                                            onDoubleClick={() => {
+                                                setNewUsername(data?.username || "Player");
+                                                setIsEditingUsername(true);
+                                            }}
+                                            title="Double click to edit"
+                                            className="text-5xl font-black text-white italic drop-shadow-[3px_3px_0_#0000ff] stroke-black tracking-wide z-10 cursor-text hover:text-[#ffff00] transition-colors duration-200"
+                                        >
+                                            {data?.username || "Player"}
+                                        </h2>
+                                    )}
+
                                 </div>
 
                                 <div className="flex-1 bg-[#222] border-4 border-[#ffff] shadow-inner p-4 grid grid-cols-2 gap-4 relative overflow-hidden">

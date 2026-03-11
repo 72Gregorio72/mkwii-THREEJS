@@ -278,7 +278,7 @@ export default function App() {
                         } />
 
                         <Route path="/profile" element={
-                            <Profile setLoggedIn={handleLogout} userName={userName} isLoggedIn={isLoggedIn}/>
+                            <Profile setLoggedIn={handleLogout} userName={userName} isLoggedIn={isLoggedIn} setUsername={setUsername} socket={socket}/>
                         } />
 
                         <Route path="/character" element={

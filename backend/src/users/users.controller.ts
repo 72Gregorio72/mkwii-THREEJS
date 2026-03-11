@@ -1,9 +1,9 @@
 import { Controller, Get, Query, NotFoundException, Patch, Body, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
-
+import { JwtService } from '@nestjs/jwt';
 @Controller('')
 export class UsersController {
-    constructor(private readonly userService: UsersService) {}
+    constructor(private readonly userService: UsersService, private readonly jwtService: JwtService) {}
 
     @Get('profile')
     async getUser(@Query('userName') userName: string) {
@@ -24,6 +24,19 @@ export class UsersController {
 	@Patch('updateWins')
 	async updateWins(@Query('userName') userName: string, @Body() body: any) {
 		return await this.userService.updateWins(userName, body.onlyOffline);
+	}
+
+    @Patch('updateusername')
+	async updateusername(@Query('userName') userName: string, @Body() body: any) {
+		const updatedUser = await this.userService.updateusername(userName, body.newUsername);
+        
+        const payload = { username: updatedUser.username, sub: updatedUser.id };
+        const newToken = this.jwtService.sign(payload);
+
+        return {
+            user: updatedUser,
+            token: newToken
+        };
 	}
 
     @Post('updateRecordTime')

@@ -72,6 +72,23 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async updateusername(username: string, newUsername: string): Promise<User> {
+    // TODO: check if newUsername is already taken
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: {
+          username: username,
+        },
+        data: {
+          username: newUsername,
+        },
+      });
+      return updatedUser;
+    } catch (error) {
+      throw new ConflictException('Impossibile aggiornare il nome utente. Utente non trovato?');
+    }
+  }
+
   async updateWins(username: string, onlyOffline: boolean): Promise<User> {
     if (onlyOffline) {
       try {
