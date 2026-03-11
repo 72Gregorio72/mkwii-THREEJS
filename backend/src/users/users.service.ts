@@ -26,7 +26,7 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
   }
 
   async updateSocketAndLoginStatus(username: string, socketId: string, status: boolean) {
-    return this.prisma.user.update({
+    return this.prisma.user.updateMany({
       where: { username: username },
       data: { 
         socketId: socketId, 
@@ -58,7 +58,7 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
 
   async updateIcon(username: string, iconName: string): Promise<User> {
     try {
-      const updatedUser = await this.prisma.user.update({
+      const updatedUser = await this.prisma.user.updateMany({
         where: {
           username: username,
         },
@@ -73,7 +73,6 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
   }
 
   async updateusername(username: string, newUsername: string): Promise<User> {
-    // TODO: check if newUsername is already taken
     try {
       const updatedUser = await this.prisma.user.update({
         where: {
@@ -149,7 +148,7 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
   }
 
   async updateLoginStatus(username: string, status: boolean) {
-    return this.prisma.user.update({
+    return this.prisma.user.updateMany({
       where: { username: username },
       data: { isLoggedIn: status },
     });
@@ -163,14 +162,26 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
   }
   
   async getUserBySocketId(socketId: string): Promise<User | null> {
-	try {
-		const user = await this.prisma.user.findUnique({
-      where: { socketId: socketId },
-    });
-		return user;
-	}catch (error) {
-		console.error('Error fetching user by socketId:', error);
-		return null;
-	}
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { socketId: socketId },
+      });
+      return user;
+    }catch (error) {
+      console.error('Error fetching user by socketId:', error);
+      return null;
+    }
+  }
+
+  async deleteUser(username: string) {
+    try {
+      // await this.updateLoginStatus(username, false);
+      await this.prisma.user.delete({
+        where: { username: username },
+      });
+      return { message: 'User deleted successfully' };
+    } catch (error) {
+      throw new ConflictException('Impossibile eliminare l\'utente. Utente non trovato?');
+    }
   }
 }

@@ -167,6 +167,12 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
     const [showStats, setShowStats] = useState(false);
     const [isEditingUsername, setIsEditingUsername] = useState(false);
     const [newUsername, setNewUsername] = useState("");
+    
+    const [updateError, setUpdateError] = useState(null);
+
+    // stati per l'eliminazione dell'account
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Dati simulati statistiche
     const [userStats] = useState({
@@ -183,7 +189,7 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
     });
 
     useEffect(() => {
-        if (!isLoggedIn) return;
+        if (!isLoggedIn || !userName) return;
         fetch(`/api/profile?userName=${userName}`)
         .then((res) => {
             if (!res.ok) throw new Error(`Server responded with ${res.status}`);
@@ -211,8 +217,6 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
         if (edit) {
             setEdit(false);
         } else if (showStats) {
-            // Nota: Se sei dentro la vista di dettaglio record in Stats, questo bottone tornerà alla patente principale.
-            // Se vuoi che torni prima alla griglia, la logica andrebbe modificata, ma ho aggiunto un tasto back interno a Stats per quello.
             setShowStats(false);
         } else {
             navigate(-1);
@@ -246,7 +250,7 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
         setIsLoading(true);
 
         try {
-            const response = await fetch(`/api/profile?userName=${userName}`, {
+            const response = await fetch(`/api/updateIcon?userName=${userName}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -285,11 +289,10 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
             const trimmedName = newUsername.trim();
             if (!trimmedName || trimmedName === data?.username) {
                 setIsEditingUsername(false);
-                return; // Esce senza fare nulla se è vuoto o identico
+                return; 
             }
 
             try {
-                // Fetch al tuo endpoint PATCH
                 const response = await fetch(`/api/updateusername?userName=${userName}`, {
                     method: 'PATCH',
                     headers: {
@@ -299,7 +302,10 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
                 });
 
                 if (!response.ok) {
-                    throw new Error('Errore durante l\'aggiornamento dello username');
+                    if (response.status === 409) {
+                        throw new Error("Username already taken!");
+                    }
+                    throw new Error("Failed to update username.");
                 }
 
                 const resData = await response.json(); 
@@ -322,11 +328,44 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
 
             } catch (error) {
                 console.error("Errore update username:", error);
-                alert("Impossibile aggiornare lo username. Riprova.");
+                setUpdateError(error.message || "Impossibile aggiornare lo username.");
+                setTimeout(() => setUpdateError(null), 3000);
             }
         } else if (e.key === 'Escape') {
-            // Annulla l'editing se preme Esc
             setIsEditingUsername(false);
+            setUpdateError(null);
+        }
+    };
+
+    const confirmDeleteAccount = async () => {
+        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+        setIsDeleting(true);
+
+        try {
+            const response = await fetch(`/api/deleteUser?userName=${userName}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error("Errore durante l'eliminazione dell'account");
+            }
+
+            sessionStorage.removeItem('accessToken');
+
+            if (socket) {
+                socket.disconnect();
+            }
+            setUsername('');
+            if (setLoggedIn) setLoggedIn(false);
+            
+            // Reindirizzamento
+            navigate('/');
+
+        } catch (error) {
+            console.error("Errore eliminazione account:", error);
+            alert("Impossibile eliminare l'account. Riprova più tardi.");
+            setIsDeleting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -371,6 +410,18 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
                         Info
                     </div>
                 </div>
+
+                {/* --- Messaggio di Errore Update Username --- */}
+                {updateError && (
+                    <div className="absolute top-[20vh] left-0 w-full flex justify-center z-[100] animate-pulse px-4 pointer-events-none">
+                        <div className="bg-gradient-to-b from-[#ff6666] to-[#cc0000] border-2 border-white rounded-lg shadow-[0_0_15px_#ff0000] px-6 py-3 flex items-center gap-3 pointer-events-auto">
+                            <div className="bg-white text-[#cc0000] rounded-full w-8 h-8 min-w-[32px] flex items-center justify-center font-black text-xl shadow-inner border border-gray-300">!</div>
+                            <span className="text-white font-bold uppercase tracking-wide drop-shadow-md text-sm md:text-lg">
+                                {updateError}
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 {/* VISTA PROFILO (READ ONLY) */}
                 {!edit && !showStats &&(
@@ -498,13 +549,13 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
                 {/* VISTA EDIT (GRID SELECTION) */}
                 {edit && (
                     <div className="flex-1 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full">
+                         {/* Il resto del codice edit rimane invariato, l'ho omesso per brevità nel focus se vuoi, altrimenti lo rimetto: */}
                          <div className="bg-gradient-to-b from-[#000050] to-[#000060] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 w-full max-w-5xl flex flex-col gap-4 relative animate-in zoom-in duration-300">
                             
                             <h2 className="text-5xl font-black text-white italic drop-shadow-[3px_3px_0_#0000ff] stroke-black tracking-wide z-10 uppercase text-center">Select Character</h2>
 
                             <form onSubmit={handleSubmit} className="flex flex-col gap-4 relative z-10 h-full">
                                 
-                                {/* GRIGLIA DI SELEZIONE ICONE */}
                                 <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3 p-2 bg-[#222]/50 rounded-lg inner-shadow overflow-y-auto max-h-[50vh]">
                                     {AVAILABLE_ICONS.map((iconName) => {
                                         const isSelected = formData.icon === iconName;
@@ -533,7 +584,6 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
                                     })}
                                 </div>
 
-                                {/* SUBMIT BUTTON */}
                                 <div className="flex justify-center mt-2">
                                     <button 
                                         type="submit"
@@ -555,13 +605,61 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
 
                 {showStats && <Stats userName={userName}/>}
 
-                {/* FOOTER */}
-                <div className="h-[12vh] w-full flex items-center px-12 relative z-30">
+                {/* MODALE DI CONFERMA DELETE (OVERLAY) */}
+                {showDeleteConfirm && (
+                    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-gradient-to-b from-[#500000] to-[#200000] border-[4px] border-[#ff4444] rounded-xl shadow-[0_10px_40px_rgba(255,0,0,0.5)] p-8 max-w-md w-full flex flex-col items-center gap-6 animate-in zoom-in duration-300">
+                            <h2 className="text-3xl font-black text-white italic drop-shadow-[2px_2px_0_#000000] tracking-wide text-center uppercase">
+                                Delete Account?
+                            </h2>
+                            <p className="text-center text-gray-200 text-lg">
+                                Are you sure you want to permanently delete your account? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-4 w-full mt-4">
+                                <button 
+                                    onClick={() => {
+                                        playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+                                        setShowDeleteConfirm(false);
+                                    }}
+                                    className="flex-1 py-3 bg-[#444] border-2 border-[#888] rounded-full text-white font-bold text-xl uppercase tracking-wider hover:bg-[#555] active:scale-95 transition-all shadow-md"
+                                >
+                                    No
+                                </button>
+                                <button 
+                                    onClick={confirmDeleteAccount}
+                                    disabled={isDeleting}
+                                    className={`flex-1 py-3 bg-[#ff4444] border-2 border-[#ffaaaa] rounded-full text-white font-bold text-xl uppercase tracking-wider hover:bg-[#ff6666] active:scale-95 transition-all shadow-[0_0_15px_rgba(255,68,68,0.6)] ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {isDeleting ? 'Deleting...' : 'Yes'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* FOOTER - Modificato in flex-row justify-between */}
+                <div className="h-[12vh] w-full flex items-center justify-between px-12 relative z-30">
                     <div className="absolute bottom-2 left-0 w-full h-1 bg-gradient-to-r from-gray-400 via-gray-200 to-transparent"></div>
-                    <button onClick={handleBack} className="flex items-center gap-3 bg-white px-8 py-2 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer">
+                    
+                    {/* Pulsante Back (Sinistra) */}
+                    <button onClick={handleBack} className="flex items-center gap-3 bg-white px-8 py-2 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer z-10">
                         <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50">B</div>
                         <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Back</span>
                     </button>
+
+                    {/* Pulsante Delete Account (Destra) - Visibile solo se non sto editando l'icona e non sto guardando le Stats */}
+                    {!edit && !showStats && (
+                        <button 
+                            onClick={() => {
+                                playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+                                setShowDeleteConfirm(true);
+                            }}
+                            className="flex items-center gap-3 bg-[#222] px-6 py-2 rounded-full border-[3px] border-[#ff4444] shadow-[0_4px_0_#aa0000] active:shadow-none active:translate-y-[4px] hover:bg-[#333] transition-all cursor-pointer z-10"
+                        >
+                            <span className="text-[#ff4444] font-bold text-xl tracking-wide uppercase">Delete Account</span>
+                        </button>
+                    )}
+
                 </div>
 
             </div>

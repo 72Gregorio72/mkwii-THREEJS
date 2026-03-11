@@ -1,4 +1,4 @@
-import { Controller, Get, Query, NotFoundException, Patch, Body, Post } from '@nestjs/common';
+import { Controller, Get, Query, NotFoundException, Patch, Body, Post, Delete, ConflictException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtService } from '@nestjs/jwt';
 @Controller('')
@@ -16,7 +16,7 @@ export class UsersController {
         return result; 
     }
 
-    @Patch('profile')
+    @Patch('updateIcon')
     async updateIcon(@Query('userName') userName: string, @Body() body: any) {
         return await this.userService.updateIcon(userName, body.icon);
     }
@@ -28,15 +28,23 @@ export class UsersController {
 
     @Patch('updateusername')
 	async updateusername(@Query('userName') userName: string, @Body() body: any) {
-		const updatedUser = await this.userService.updateusername(userName, body.newUsername);
-        
-        const payload = { username: updatedUser.username, sub: updatedUser.id };
-        const newToken = this.jwtService.sign(payload);
+        // TODO: check if newUsername is already taken
+        const existingUser = await this.userService.findOne(body.newUsername);
+        if (existingUser) {
+            throw new ConflictException('Username già in uso');
+        }
+        try {
+		    const updatedUser = await this.userService.updateusername(userName, body.newUsername);
+            const payload = { username: updatedUser.username, sub: updatedUser.id };
+            const newToken = this.jwtService.sign(payload);
 
-        return {
-            user: updatedUser,
-            token: newToken
-        };
+            return {
+                user: updatedUser,  
+                token: newToken
+            };
+        } catch (e: any) {
+                throw new ConflictException('User not found');
+        }
 	}
 
     @Post('updateRecordTime')
@@ -53,4 +61,9 @@ export class UsersController {
 	async getIsLoggedIn(@Query('socketId') socketId: string) {
 		return await this.userService.getUserBySocketId(socketId);
 	}
-}   
+
+    @Delete('deleteUser')
+    async deleteUser(@Query('userName') userName: string) {
+        return await this.userService.deleteUser(userName);
+    }
+}
