@@ -8,7 +8,7 @@ import * as THREE from 'three'
 // --- IMPORTS INTERNI ---
 import { SmartMap } from '../Tracks/SmartMap'
 import { OutsideDriftKart } from '../components/OutsideDriftKart'
-import { InsideDriftBike } from '../components/InsideDriftBike'
+// import { InsideDriftBike } from '../components/InsideDriftBike'
 import { CheckpointSystem } from '../Race/CheckPointManager.jsx'
 import { RaceManager } from '../Race/RaceManager.jsx'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
