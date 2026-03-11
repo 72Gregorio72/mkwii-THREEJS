@@ -37,7 +37,7 @@ export const Register = ({ onRegistrationSuccess, setUsername, socket }) => {
                 throw new Error(result.message || 'Registration failed');
             }
             
-            localStorage.setItem('accessToken', result.token);
+            sessionStorage.setItem('accessToken', result.token);
             // Forza Socket.io a riconnettersi con il nuovo token (che include l'username)
             socket.disconnect();
             socket.connect();
@@ -45,9 +45,6 @@ export const Register = ({ onRegistrationSuccess, setUsername, socket }) => {
 
             console.log("Success:", result);
             const finalUsername = result.username;
-
-            sessionStorage.setItem('userName', finalUsername);
-            sessionStorage.setItem('isLoggedIn', 'true');
 
             if (setUsername) {
                 setUsername(finalUsername);

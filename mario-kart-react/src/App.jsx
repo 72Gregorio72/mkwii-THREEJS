@@ -138,35 +138,70 @@ export default function App() {
     const [isTimeTrial, setIsTimeTrial] = useState(false)
     const [isGrandPrix, setIsGrandPrix] = useState(false)
 
-    const [isLoggedIn, setIsLoggedIn] = useState(() => {
-        return sessionStorage.getItem('isLoggedIn') === 'true';
-    });
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userName, setUsername] = useState(null);
 
-    const [userName, setUsername] = useState(() => {
-        return sessionStorage.getItem('userName') || null; 
-    });
+    useEffect(() => {
+        const fetchLoginStatus = async () => {
+            if (!socket || !socket.id) return;
+            
+            try {
+                const response = await fetch(`/api/getIsLoggedIn?socketId=${socket.id}`);
+                const text = await response.text();
+
+
+                const user = text ? JSON.parse(text) : null;
+
+                if (user && user.isLoggedIn) {
+                    setIsLoggedIn(true);
+                    setUsername(user.username);
+                } else {
+                    setIsLoggedIn(false);
+                    setUsername(null);
+                }
+            } catch (error) {
+                console.error('Errore nel recupero dello stato di login:', error);
+            }
+        };
+
+        socket.on('connect', fetchLoginStatus);
+
+        if (socket.connected) {
+            fetchLoginStatus();
+        }
+
+        return () => {
+            socket.off('connect', fetchLoginStatus);
+        };
+    }, []);
 
     const handleLogin = (user) => {
-        sessionStorage.setItem('isLoggedIn', 'true');
         if(user) {
-            sessionStorage.setItem('userName', user);
             setUsername(user);
         }
         setIsLoggedIn(true);
     };
 
-    const handleLogout = () => {
-        sessionStorage.setItem('isLoggedIn', 'false');
-        sessionStorage.removeItem('userName');
-        const response = fetch('/api/logout', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username: userName }),
-        }).catch((error) => {
-			console.error('Logout error:', error);
-		});
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username: userName }),
+            });
+            
+            sessionStorage.removeItem('accessToken');
+            
+            if (socket) {
+                socket.disconnect();
+                socket.connect();
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+        
         setUsername(null);
         setIsLoggedIn(false);
     };

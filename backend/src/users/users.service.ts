@@ -131,8 +131,6 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-
-   // OLD
   async updateLoginStatus(username: string, status: boolean) {
     return this.prisma.user.update({
       where: { username: username },
@@ -146,19 +144,12 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
       data: { isLoggedIn: status },
     });
   }
-
-  async updateSocketId(username: string, socketId: string) {
-    return this.prisma.user.updateMany({
-      where: { username: username },
-      data: { socketId: socketId },
-    });
-  }
   
   async getUserBySocketId(socketId: string): Promise<User | null> {
 	try {
 		const user = await this.prisma.user.findUnique({
-		where: { socketId: socketId },
-		});
+      where: { socketId: socketId },
+    });
 		return user;
 	}catch (error) {
 		console.error('Error fetching user by socketId:', error);

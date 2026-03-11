@@ -91,7 +91,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         
         client.data.username = username;
         
-        console.log(`Utente autenticato: ${username} con socket ${client.id}`);
+        // console.log(`Utente autenticato: ${username} con socket ${client.id}`);
       } catch (error) {
         console.error(`Token non valido per ${client.id}:`, error);
         client.emit('unauthorized', { message: 'Token scaduto o non valido' });

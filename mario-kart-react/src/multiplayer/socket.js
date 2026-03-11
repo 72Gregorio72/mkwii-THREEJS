@@ -6,7 +6,7 @@ console.log('Connecting via Nginx to:', SERVER_URL);
 export const socket = io(SERVER_URL, {
     auth: (cb) => {
         // Questa funzione viene chiamata da Socket.io ESATTAMENTE un istante prima di connettersi --> il token è sempre aggiornato
-        const token = localStorage.getItem('accessToken');
+        const token = sessionStorage.getItem('accessToken');
         cb({ token: token }); 
     },
     path: '/socket.io/', 
