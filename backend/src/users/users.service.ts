@@ -25,37 +25,14 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     return userFound;
   }
 
-  async updateLoginStatus(username: string, status: boolean) {
+  async updateSocketAndLoginStatus(username: string, socketId: string, status: boolean) {
     return this.prisma.user.update({
       where: { username: username },
-      data: { isLoggedIn: status },
+      data: { 
+        socketId: socketId, 
+        isLoggedIn: status 
+      },
     });
-  }
-
-  async updateLoginStatusBySocketId(socketId: string, status: boolean) {
-    return this.prisma.user.update({
-      where: { socketId: socketId },
-      data: { isLoggedIn: status },
-    });
-  }
-
-  async updateSocketId(username: string, socketId: string) {
-    return this.prisma.user.update({
-      where: { username: username },
-      data: { socketId: socketId },
-    });
-  }
-  
-  async getUserBySocketId(socketId: string): Promise<User | null> {
-	try {
-		const user = await this.prisma.user.findUnique({
-		where: { socketId: socketId },
-		});
-		return user;
-	}catch (error) {
-		console.error('Error fetching user by socketId:', error);
-		return null;
-	}
   }
 
   async addUser(data: any): Promise<User> {
@@ -141,19 +118,51 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
   }
 
   async saveBestTime(userName: string, trackName: string, newTime: number) {
-    // 1. Cerca se esiste già un tempo
     const existingRecord = await this.getBestTime(userName, trackName);
 
-    // 2. Se esiste ed è migliore (minore) del nuovo tempo, non fare nulla!
     if (existingRecord && existingRecord.time <= newTime) {
-      return existingRecord; // Oppure lancia un'eccezione, a seconda della tua logica
+      return existingRecord;
     }
 
-      // 3. Altrimenti (se non esiste o se il nuovo tempo è migliore), salva usando upsert
     return this.prisma.recordTimes.upsert({
       where: { userName_trackName: { userName, trackName } },
       update: { time: newTime },
       create: { userName, trackName, time: newTime },
     });
+  }
+
+
+   // OLD
+  async updateLoginStatus(username: string, status: boolean) {
+    return this.prisma.user.update({
+      where: { username: username },
+      data: { isLoggedIn: status },
+    });
+  }
+
+  async updateLoginStatusBySocketId(socketId: string, status: boolean) {
+    return this.prisma.user.updateMany({
+      where: { socketId: socketId },
+      data: { isLoggedIn: status },
+    });
+  }
+
+  async updateSocketId(username: string, socketId: string) {
+    return this.prisma.user.updateMany({
+      where: { username: username },
+      data: { socketId: socketId },
+    });
+  }
+  
+  async getUserBySocketId(socketId: string): Promise<User | null> {
+	try {
+		const user = await this.prisma.user.findUnique({
+		where: { socketId: socketId },
+		});
+		return user;
+	}catch (error) {
+		console.error('Error fetching user by socketId:', error);
+		return null;
+	}
   }
 }

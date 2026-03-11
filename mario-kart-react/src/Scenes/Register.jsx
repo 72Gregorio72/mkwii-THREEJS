@@ -36,6 +36,12 @@ export const Register = ({ onRegistrationSuccess, setUsername, socket }) => {
             if (!response.ok) {
                 throw new Error(result.message || 'Registration failed');
             }
+            
+            localStorage.setItem('accessToken', result.token);
+            // Forza Socket.io a riconnettersi con il nuovo token (che include l'username)
+            socket.disconnect();
+            socket.connect();
+
 
             console.log("Success:", result);
             const finalUsername = result.username;

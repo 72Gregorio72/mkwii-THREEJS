@@ -47,6 +47,11 @@ export const Login = ({ onLoginSuccess, setUsername, socket }) => {
                 throw new Error(result.message || 'Login failed');
             }
 
+            localStorage.setItem('accessToken', result.token);
+            // Forza Socket.io a riconnettersi con il nuovo token (che include l'username)
+            socket.disconnect();
+            socket.connect();
+
             console.log("Success:", result);
             const finalUsername = result.username;
 

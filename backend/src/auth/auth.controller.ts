@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, ConflictException, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, UnauthorizedException, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('')
@@ -12,10 +12,12 @@ export class AuthController {
 
     @Post('login')
     async loginUser(@Body() body: any) {
-        const result = await this.authService.validateUser(body.username, body.password, body.socketId);
-        if (!result)
-            throw new ConflictException('Wrong password or email');
-        return result;
+        const user = await this.authService.validateUser(body.username, body.password);
+        
+        if (!user) {
+            throw new UnauthorizedException('Wrong password or username');
+        }
+        return this.authService.login(user);
     }
 
     @Get('checklogin')

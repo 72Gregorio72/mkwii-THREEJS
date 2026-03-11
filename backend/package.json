@@ -23,10 +23,12 @@
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.0",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.11",
     "@nestjs/swagger": "^11.2.3",
     "@nestjs/websockets": "^11.1.11",
+    "@nestjs/config": "4.0.3",
     "@prisma/client": "^5.10.0",
     "bcrypt": "^5.1.1",
     "reflect-metadata": "^0.2.2",

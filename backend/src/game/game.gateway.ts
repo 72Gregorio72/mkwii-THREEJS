@@ -10,6 +10,8 @@ import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { getLocalIpAddress } from 'src/utils';
 import { UsersService } from 'src/users/users.service';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 const myIP = getLocalIpAddress();
 
@@ -35,7 +37,12 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   @WebSocketServer()
   server!: Server;
 
-  constructor(private readonly gameService: GameService, private readonly usersService: UsersService) {}
+  constructor(
+    private readonly gameService: GameService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
   private items = new Map<string, any>();
   private roomData = new Map<string, { 
@@ -69,10 +76,28 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }, 1000 / 60);
   }
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     console.log(`Player connected: ${client.id}`);
-	// TODO: implementare JWT
-    // this.usersService.updateSocketId(client.id, client.id); // Aggiorna il socketId dell'utente al momento della connessione
+    const token = client.handshake.auth.token;
+
+    if (token) {
+      try {
+        const secret = this.configService.get<string>('JWT_SECRET');
+        const payload = this.jwtService.verify(token, { secret });
+        
+        const username = payload.username;
+
+        await this.usersService.updateSocketAndLoginStatus(username, client.id, true);
+        
+        client.data.username = username;
+        
+        console.log(`Utente autenticato: ${username} con socket ${client.id}`);
+      } catch (error) {
+        console.error(`Token non valido per ${client.id}:`, error);
+        client.emit('unauthorized', { message: 'Token scaduto o non valido' });
+        client.disconnect();
+      }
+    }
     this.gameService.updatePlayer(client.id, { 
       id: client.id, 
       x: 0, 
@@ -85,7 +110,20 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
  async handleDisconnect(client: Socket) {
     console.log(`Player left: ${client.id}`);
     this.gameService.removePlayer(client.id);
-	await this.usersService.updateLoginStatusBySocketId(client.id, false);
+
+    const username = client.data.username;
+
+    if (username) {
+      try {
+        await this.usersService.updateLoginStatus(username, false);
+      } catch (error) {
+        console.error(`Errore nel DB durante la disconnessione di ${username}`, error);
+      }
+    } else {
+      try {
+        await this.usersService.updateLoginStatusBySocketId(client.id, false);
+      } catch (e) {console.error(`No user found for socket ${client.id}:`, e);}
+    }
 
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
