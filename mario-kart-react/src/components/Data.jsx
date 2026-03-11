@@ -169,6 +169,19 @@ export const Tracks = {
         road: './Tracks/MarioCircuit/Mario_Circuit_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
+
+	'DS Desert Hills': {
+        file: './Tracks/DSDesertHills/DSDesertHills.glb',
+		preview: '/Previews/DS Desert Hills.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/DSDesertHills/DSDesertHills_checkpos.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_DS_DESERT_HILLS',
+		itemBoxes: './Tracks/DSDesertHills/DSDesertHills_itembox.glb',
+        gridpos: './Tracks/DSDesertHills/DSDesertHills_startpos.glb',
+        road: './Tracks/DSDesertHills/DSDesertHills_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
 }
 
 export const grandPrixList = [
@@ -982,6 +995,7 @@ export const AUDIO_TRACKS = {
 	RACE_GCN_MARIO_CIRCUIT: '/soundTracks/GCN_MARIO_CIRCUIT_ST.mp3',
     RACE_DELPHINO_SQUARE: '/soundTracks/DELPHINO_SQUARE_ST.mp3',
     RACE_YOSHI_FALLS: '/soundTracks/YOSHI_FALLS_ST.mp3',
+	RACE_DS_DESERT_HILLS: '/soundTracks/DS_DESERT_HILLS_ST.mp3',
     RACE_MOO_MOO_MEADOWS: '/soundTracks/MOO_MOO_MEADOWS_ST.mp3',
 	RACE_BOWSER_CASTLE: '/soundTracks/BOWSER_CASTLE_ST.mp3',
 	RACE_PEACH_GARDENS: '/soundTracks/PEACH_GARDENS_ST.mp3',
