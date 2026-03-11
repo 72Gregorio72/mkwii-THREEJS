@@ -32,6 +32,7 @@ import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
 import { useWebGLContext, useWebGLMemoryMonitor } from '../utils/WebGLContextManager.jsx';
 import { gsap } from 'gsap'
 import { CustomWiiSky } from '../components/CustomeWiiSky.jsx'
+import { OutsideDriftBike } from '../components/OutsideDriftBike.jsx'
 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -1216,16 +1217,38 @@ export function GameScene({
                     {/* PLAYER LOCALE */}
                     <group position={[0, 10, 0]} > 
                         {vehicle.isBike ? (
-                            <InsideDriftBike 
-                                ref={playerRef} 
+                            <OutsideDriftBike 
+                                ref={playerRef}
                                 userData={{ type: 'racer', id: socket.id }}
                                 characterConfig={character.modelConfig}
                                 selectedCharacter={character}
-                                vehicleConfig={vehicle} 
+                                botRefs={botRefs}
+                                gameState={gameState}
+                                vehicleConfig={vehicle}
+                                positions={positions}
                                 START_POS={playerStartPos}
                                 START_ROT={playerStartRot}
-                                trackRef={trackRef} 
+                                trackRef={trackRef}
+                                trackConfig={activeTrackConfig}
                                 isRaceActive={isRaceActive}
+                                waypoints={activeTrackConfig.Waypoints[0]}
+                                paths={activeTrackConfig.Waypoints}
+                                finished={finished}
+                                rank={playerRank}
+                                onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
+                                onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
+                                onSpawnRedShell={(p, v) => handleRequestSpawn('red_shell', p, v)}
+                                onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
+                                onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
+                                onHitOpponent={(victimId) => {
+                                    if (socket && roomCode) {
+                                        socket.emit('player_hit', { victimId: victimId, type: 'bullet-bill' });
+                                    }
+                                }}
+                                socket={socket}
+                                roomCode={roomCode}
+                                maxSpeed={ccs}
+                                isTimeTrial={isTimeTrial}
                             />
                         ) : (
                             <OutsideDriftKart 
