@@ -54,7 +54,7 @@ Utilizziamo "Local Storage" o "Session Storage" nel tuo browser unicamente per m
 Questo è un progetto indipendente. I tuoi dati non vengono venduti, scambiati o ceduti a terze parti esterne.
 
 5. I TUOI DIRITTI
-In qualsiasi momento puoi richiedere la cancellazione completa del tuo account e di tutti i dati associati contattando l'amministratore del progetto o utilizzando l'apposita funzione nelle impostazioni (se disponibile).
+In qualsiasi momento puoi richiedere la cancellazione completa del tuo account e di tutti i dati associati contattando l'amministratore del progetto o utilizzando l'apposita funzione nelle impostazioni.
       `
     };
   }

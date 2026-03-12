@@ -66,7 +66,7 @@ export const Register = ({ onRegistrationSuccess, setUsername, socket }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        playSfx(AUDIO_SFX.DECIDE);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU);
         
         // Validazione base lato client
         if (!formData.username || !formData.email || !formData.password) {
@@ -90,12 +90,12 @@ export const Register = ({ onRegistrationSuccess, setUsername, socket }) => {
     };
 
     const handleBack = () => {
-        playSfx(AUDIO_SFX.BACK);
+        playSfx(AUDIO_SFX.BACK_IN_MENU);
         navigate('/menu');
     };
 
     const handleInfo = () => {
-        playSfx(AUDIO_SFX.DECIDE);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU);
         navigate('/info');
     };
 

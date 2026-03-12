@@ -199,7 +199,7 @@ export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIs
     };
 
   const handleQuit = () => {
-    playSfx(AUDIO_SFX.BACK);
+    playSfx(AUDIO_SFX.BACK_IN_MENU);
     if (isTimeTrial) {
         setIsTimeTrial(false);
         updateRecordTimes();

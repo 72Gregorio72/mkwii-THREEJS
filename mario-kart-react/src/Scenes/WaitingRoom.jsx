@@ -53,7 +53,7 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
     socket.on('game_started', handleGameStarted);
     socket.on('track_selected', handleTrackSelected);
     socket.on('room_closed', () => {
-      playSfx(AUDIO_SFX.BACK);
+      playSfx(AUDIO_SFX.BACK_IN_MENU);
     //   alert('The host has closed the room.');
       resetRoomState();
       setHostLeft(true);
@@ -71,14 +71,14 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
 
   const handleStartGame = () => {
     if (isHost && socket) {
-      playSfx(AUDIO_SFX.DECIDE);
+      playSfx(AUDIO_SFX.SELECT_IN_MENU);
       socket.emit('start_game', { roomCode });
     }
   };
 
   const handleChangeTrack = () => {
     if (isHost) {
-      playSfx(AUDIO_SFX.DECIDE);
+      playSfx(AUDIO_SFX.SELECT_IN_MENU);
       navigate('/track');
     }
   };
@@ -86,12 +86,12 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
   const copyToClipboard = () => {
     navigator.clipboard.writeText(roomCode);
     setCopied(true);
-    playSfx(AUDIO_SFX.DECIDE);
+    playSfx(AUDIO_SFX.SELECT_IN_MENU);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleLeave = () => {
-      playSfx(AUDIO_SFX.BACK);
+      playSfx(AUDIO_SFX.BACK_IN_MENU);
       socket.emit('leave_room', { roomCode });
       resetRoomState();
       navigate('/menu', { replace: true });

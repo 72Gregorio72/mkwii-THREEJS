@@ -6,7 +6,7 @@ import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 export function TrackSelection({ setSelectedTrack, roomCode = null, socket = null, isHost = false }) {
 
     const navigate = useNavigate();
-    const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+    const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack } = useAudio();
     
     useEffect(() => {
         if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
@@ -110,8 +110,8 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
             ) : (
                 <>
                 {/* Content Area */}
-                <div className="flex-1 flex justify-center items-center p-[4vh] overflow-hidden">
-                    <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-[7vh] w-[80%] h-[80%] overflow-y-auto p-[2vh] custom-scrollbar">
+                <div className="flex-1 flex justify-center items-start p-[2vh] md:p-[4vh] w-full overflow-hidden">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-y-[6vh] gap-x-[4vw] w-[95%] max-w-[1800px] h-full overflow-y-auto p-[2vh] custom-scrollbar content-start auto-rows-max">
                         {tracksList.map((track, index) => {
                             const isActive = localSelection && localSelection.name === track.name;
                             return (
@@ -144,7 +144,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, socket = nul
                                     
                                     {/* Label */}
                                     <div className={`
-                                        h-[20%] bg-black/80 flex items-center justify-center text-[2.5vh] font-bold uppercase border-t border-[#444]
+                                        h-[20%] min-h-[40px] bg-black/80 flex items-center justify-center text-[2.5vh] font-bold uppercase border-t border-[#444]
                                         ${isActive ? 'text-[#ffe600]' : 'text-white'}
                                     `}>
                                         {track.name}
