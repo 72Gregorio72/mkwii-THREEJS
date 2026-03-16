@@ -182,6 +182,19 @@ export const Tracks = {
         road: './Tracks/DSDesertHills/DSDesertHills_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
+
+	'Dry Dry Ruins': {
+        file: './Tracks/DryDryRuins/DryDryRuins.glb',
+		preview: '/Previews/Dry Dry Ruins.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/DryDryRuins/DryDryRuins_checkpos.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_DRY_DRY_RUINS',
+		itemBoxes: './Tracks/DryDryRuins/DryDryRuins_itembox.glb',
+        gridpos: './Tracks/DryDryRuins/DryDryRuins_startpos.glb',
+        road: './Tracks/DryDryRuins/DryDryRuins_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
 }
 
 export const grandPrixList = [
@@ -1012,6 +1025,7 @@ export const AUDIO_TRACKS = {
     RACE_MOO_MOO_MEADOWS: '/soundTracks/MOO_MOO_MEADOWS_ST.mp3',
 	RACE_BOWSER_CASTLE: '/soundTracks/BOWSER_CASTLE_ST.mp3',
 	RACE_PEACH_GARDENS: '/soundTracks/PEACH_GARDENS_ST.mp3',
+	RACE_DRY_DRY_RUINS: '/soundTracks/DRY_DRY_RUINS_ST.mp3',
 	FINISH_FIRST: '/soundTracks/FINISH_1ST.mp3',
 	FINISH_SECOND_FOURTH: '/soundTracks/FINISH_2ND_4TH.mp3',
 	FINISH_FIFTH_TWELFTH: '/soundTracks/FINISH_5TH_12TH.mp3',

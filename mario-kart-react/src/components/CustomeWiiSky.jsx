@@ -15,7 +15,7 @@ export const CustomWiiSky = ({ trackName }) => {
         texturePath = '/Skybox/Bowser.png';
     }
 
-    console.log(`CustomWiiSky: caricamento texture da "${texturePath}" per track "${trackName}"`);
+    // console.log(`CustomWiiSky: caricamento texture da "${texturePath}" per track "${trackName}"`);
     // 2. Chiama l'hook UNA SOLA VOLTA fuori da qualsiasi condizione
     const texture = useTexture(texturePath);
 
