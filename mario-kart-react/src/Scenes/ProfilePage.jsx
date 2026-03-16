@@ -60,9 +60,9 @@ export const Stats = ({ userName }) => {
     };
 
     return (
-        <div className="flex-1 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full relative z-20">
+        <div className="flex-1 min-h-0 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full relative z-20">
             
-            <div className="bg-gradient-to-b from-[#000050] to-[#000060] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 w-full max-w-6xl flex flex-col gap-4 relative animate-in zoom-in duration-300">
+            <div className="bg-gradient-to-b from-[#000050] to-[#000060] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 w-full max-w-6xl flex flex-col gap-4 relative animate-in zoom-in duration-300 max-h-full">
             
                 <h2 className="text-5xl font-black text-white italic drop-shadow-[3px_3px_0_#0000ff] stroke-black tracking-wide z-10 uppercase text-center mb-2">
                     {showBestTime ? "Track Record" : "Select Track Record"}
@@ -425,7 +425,7 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
 
                 {/* VISTA PROFILO (READ ONLY) */}
                 {!edit && !showStats &&(
-                    <div className="flex-1 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full">
+                    <div className="flex-1 min-h-0 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full">
                         <div className="bg-gradient-to-b from-[#000050] to-[#000066] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-3 w-full max-w-3xl flex gap-3 relative animate-in zoom-in duration-300">
                             
                             {/* COLONNA SINISTRA */}
@@ -548,7 +548,7 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
 
                 {/* VISTA EDIT (GRID SELECTION) */}
                 {edit && (
-                    <div className="flex-1 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full">
+                    <div className="flex-1 min-h-0 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full">
                          {/* Il resto del codice edit rimane invariato, l'ho omesso per brevità nel focus se vuoi, altrimenti lo rimetto: */}
                          <div className="bg-gradient-to-b from-[#000050] to-[#000060] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 w-full max-w-5xl flex flex-col gap-4 relative animate-in zoom-in duration-300">
                             
@@ -638,7 +638,7 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
                 )}
 
                 {/* FOOTER - Modificato in flex-row justify-between */}
-                <div className="h-[12vh] w-full flex items-center justify-between px-12 relative z-30">
+                <div className="h-[12vh] shrink-0 w-full flex items-center justify-between px-12 relative z-30">
                     <div className="absolute bottom-2 left-0 w-full h-1 bg-gradient-to-r from-gray-400 via-gray-200 to-transparent"></div>
                     
                     {/* Pulsante Back (Sinistra) */}

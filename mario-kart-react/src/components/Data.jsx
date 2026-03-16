@@ -210,7 +210,20 @@ export const grandPrixList = [
 				"Peach Gardens",
 				"GCN Mario Circuit"
 			]
-		}
+		},
+		{
+			id: 'banana',
+			name: 'Banana Cup',
+			icon: <img src="/itemSprites/Banana.png" alt="Banana Cup" className="w-30 h-30" />, // Sostituibile con lo sprite della banana
+			bgColor: 'from-[#ffcc00] to-[#ff9900]',
+			ringColor: 'ring-[#ffff00]',
+			tracks: [
+				"DS Desert Hills",
+				"N64 Mario Raceway",
+				"Mario Circuit",
+				"Bowser Castle",
+			]
+		},
 ];
 
 
