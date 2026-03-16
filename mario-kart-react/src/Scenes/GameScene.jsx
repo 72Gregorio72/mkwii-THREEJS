@@ -288,7 +288,8 @@ export function GameScene({
     username,
     selectedGrandPrix,
     isGrandPrix,
-    setIsGrandPrix
+    setIsGrandPrix,
+    setRaceResults
 }) {
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
@@ -802,9 +803,9 @@ export function GameScene({
                     stopMusic();
                     if (racer.position === 1) {
                         changeTrack('FINISH_FIRST', 0, false);
-                        if (!isTimeTrial && !roomCode) {
+                        if (!isTimeTrial && !roomCode && !isGrandPrix) {
                             sendWinToServer(true);
-                        } else if (!isTimeTrial && roomCode) {
+                        } else if (!isTimeTrial && roomCode && !isGrandPrix) {
                             sendWinToServer(false);
                         }
                     }
@@ -831,7 +832,7 @@ export function GameScene({
     const handleExitRace = useCallback(() => {
         setRaceExited(true);
         setTimeout(() => { 
-            navigate('/menu');
+            navigate('/endGrandPrix');
         }, 50);
     }, [navigate]);
     
@@ -974,6 +975,19 @@ export function GameScene({
                     }, 3000);
 
                 } else {
+                    const finalStandings = Object.values(racersData.current)
+                        .map(racer => ({
+                            id: racer.id,
+                            name: racer.name,
+                            points: racer.points || 0
+                        }))
+                        .sort((a, b) => b.points - a.points);
+                    
+                    console.log('Grand Prix finished! Final standings:', finalStandings);
+                    if (setRaceResults) {
+                        setRaceResults(finalStandings);
+                    }
+
                     setIsGrandPrix(false);
                     handleExitRace();
                 }
@@ -1327,4 +1341,3 @@ export function GameScene({
         </div>
     )
 }
-// [... export successivi di Waypoints, Vehicledatabase, Characters, AUDIO... rimangono intatti]

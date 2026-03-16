@@ -16,6 +16,7 @@ import { Login } from './Scenes/Login.jsx'
 import { Profile } from './Scenes/ProfilePage.jsx'
 import { SinglePlayer } from './Scenes/SinglePlayer.jsx'
 import { GrandPrix } from './Scenes/GrandPrix.jsx'
+import { WinScene } from './Scenes/WinScene.jsx'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -124,7 +125,7 @@ export default function App() {
     const [SelectedTrack, setSelectedTrack] = useState(Tracks['Daisy Circuit'])
     
     // State for Grand Prix
-    const [selectedGrandPrix, setSelectedGrandPrix] = useState(null)
+    const [selectedGrandPrix, setSelectedGrandPrix] = useState(grandPrixList[0])
 
     // Room state
     const [roomCode, setRoomCode] = useState(null)
@@ -140,6 +141,8 @@ export default function App() {
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userName, setUsername] = useState(null);
+
+    const [ raceResults, setRaceResults ] = useState([SelectedCharacter, Characters[1], Characters[2], Characters[3], Characters[4], Characters[5], Characters[6], Characters[7], Characters[8], Characters[9], Characters[10]]);
 
     useEffect(() => {
         const fetchLoginStatus = async () => {
@@ -328,6 +331,10 @@ export default function App() {
                             />
                         } />
 
+                        <Route path="/endGrandPrix" element={
+                            <WinScene selectedCup={selectedGrandPrix} raceResults={raceResults} socket={socket}/>
+                        } />
+
                         {['/game', '/debug'].map((path) => (
                             <Route 
                                 key={path}
@@ -352,6 +359,7 @@ export default function App() {
                                         selectedGrandPrix={selectedGrandPrix}
                                         isGrandPrix={isGrandPrix}
                                         setIsGrandPrix={setIsGrandPrix}
+                                        setRaceResults={setRaceResults}
                                     />  
                                 } 
                             />
