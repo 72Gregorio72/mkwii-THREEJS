@@ -831,9 +831,12 @@ export function GameScene({
     // 4. GESTIONE USCITA AGGIORNATA
     const handleExitRace = useCallback(() => {
         setRaceExited(true);
+        setGameState('LOADING');
+        setIsTransitioning(true);
         setTimeout(() => { 
+            setIsTransitioning(false);
             navigate('/endGrandPrix');
-        }, 50);
+        }, 1000);
     }, [navigate]);
     
     // Liste Bersagli (per Gusci Rossi/Blu)
@@ -983,7 +986,7 @@ export function GameScene({
                         }))
                         .sort((a, b) => b.points - a.points);
                     
-                    console.log('Grand Prix finished! Final standings:', finalStandings);
+                    // console.log('Grand Prix finished! Final standings:', finalStandings);
                     if (setRaceResults) {
                         setRaceResults(finalStandings);
                     }
@@ -1018,7 +1021,7 @@ export function GameScene({
             {isTransitioning && (
                 <div className="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center text-white">
                     <h1 className="text-5xl font-black italic tracking-widest text-[#ffcc00] drop-shadow-md mb-8">
-                        LOADING RACE...
+                        LOADING...
                     </h1>
                     <div className="w-16 h-16 border-8 border-gray-600 border-t-[#ffcc00] rounded-full animate-spin"></div>
                 </div>

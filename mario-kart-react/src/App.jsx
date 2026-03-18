@@ -142,7 +142,7 @@ export default function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userName, setUsername] = useState(null);
 
-    const [ raceResults, setRaceResults ] = useState([SelectedCharacter, Characters[1], Characters[2], Characters[3], Characters[4], Characters[5], Characters[6], Characters[7], Characters[8], Characters[9], Characters[10]]);
+    const [ raceResults, setRaceResults ] = useState([SelectedCharacter, Characters[9], Characters[16], Characters[3], Characters[4], Characters[5], Characters[6], Characters[7], Characters[8], Characters[1], Characters[10], Characters[11]]);
 
     useEffect(() => {
         const fetchLoginStatus = async () => {
@@ -332,7 +332,7 @@ export default function App() {
                         } />
 
                         <Route path="/endGrandPrix" element={
-                            <WinScene selectedCup={selectedGrandPrix} raceResults={raceResults} socket={socket}/>
+                            <WinScene selectedCup={selectedGrandPrix} raceResults={raceResults} socket={socket} setRaceResults={setRaceResults}/>
                         } />
 
                         {['/game', '/debug'].map((path) => (

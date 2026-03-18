@@ -201,6 +201,7 @@ export const grandPrixList = [
 		{
 			id: 'mushroom',
 			name: 'Mushroom Cup',
+			trophy: '/Trophies/MushroomCup.glb', // Sostituibile con lo sprite del trofeo del Mushroom Cup
 			icon: <img src="/itemSprites/Mushroom.png" alt="Mushroom Cup" className="w-30 h-30" />, // Sostituibile con <img src="/sprites/mushroom_cup.png" /> se hai lo sprite
 			bgColor: 'from-[#ff4444] to-[#aa0000]',
 			ringColor: 'ring-[#ff8888]',
@@ -214,6 +215,7 @@ export const grandPrixList = [
 		{
 			id: 'shell',
 			name: 'Shell Cup',
+			trophy: '/Trophies/ShellCup.glb', // Sostituibile con lo sprite del trofeo della Shell Cup
 			icon: <img src="/itemSprites/GreenShell.png" alt="Shell Cup" className="w-30 h-30" />, // Sostituibile con lo sprite del guscio verde
 			bgColor: 'from-[#44cc44] to-[#008800]',
 			ringColor: 'ring-[#88ff88]',
@@ -227,6 +229,7 @@ export const grandPrixList = [
 		{
 			id: 'banana',
 			name: 'Banana Cup',
+			trophy: '/Trophies/BananaCup.glb', // Sostituibile con lo sprite del trofeo del Banana Cup
 			icon: <img src="/itemSprites/Banana.png" alt="Banana Cup" className="w-30 h-30" />, // Sostituibile con lo sprite della banana
 			bgColor: 'from-[#ffcc00] to-[#ff9900]',
 			ringColor: 'ring-[#ffff00]',

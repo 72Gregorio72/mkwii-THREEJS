@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, Suspense } from 'react';
+import React, { useEffect, useMemo, Suspense, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { Environment, OrbitControls, useGLTF } from '@react-three/drei';
 import { Characters, Tracks } from '../components/Data.jsx';
 import { RacerModel } from '../models/RacerModel.jsx';
@@ -10,24 +10,86 @@ import { CustomWiiSky } from '../components/CustomeWiiSky.jsx';
 import * as THREE from 'three';
 
 // Componente per aggiornare la posizione iniziale della telecamera
+// Componente per la telecamera animata
 function CameraSetup({ cameraPos, targetPos }) {
     const { camera } = useThree();
+    const isInitialized = useRef(false);
+
+    // Convertiamo le coordinate in Vector3 per poter usare i metodi matematici di Three.js
+    const finalPos = useMemo(() => new THREE.Vector3(cameraPos.x, cameraPos.y, cameraPos.z), [cameraPos]);
+    const lookAtPos = useMemo(() => new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z), [targetPos]);
+
     useEffect(() => {
-        camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
-        camera.lookAt(targetPos.x, targetPos.y, targetPos.z);
-    }, [camera, cameraPos, targetPos]);
+        // Al primo render, piazza la telecamera in alto (Y + 25) e un po' più lontana
+        if (!isInitialized.current) {
+            camera.position.set(cameraPos.x, cameraPos.y + 25, cameraPos.z + 10);
+            camera.lookAt(lookAtPos);
+            isInitialized.current = true;
+        }
+    }, [camera, cameraPos, lookAtPos]);
+
+    useFrame((state, delta) => {
+        // 'lerp' sposta progressivamente la telecamera dalla sua posizione attuale a quella finale.
+        // Il moltiplicatore (es. 1.5) determina la velocità: più è basso, più è lento.
+        state.camera.position.lerp(finalPos, delta * 1.5);
+        
+        // Obbliga la telecamera a continuare a guardare il podio mentre scende
+        state.camera.lookAt(lookAtPos);
+    });
+
     return null;
 }
-
 // Componente per caricare il modello del Podio
 function Podium() {
     const { scene } = useGLTF('/WinStand/WinStand.glb');
     return <primitive object={scene} scale={1.2} position={[0, 0, 0]} />;
 }
 
-export const WinScene = ({ selectedCup, raceResults, socket }) => {
+// Componente per il Trofeo Animato
+function AnimatedTrophy({ modelPath, show, targetY = 6 }) {
+    const { scene } = useGLTF(modelPath);
+    const trophyRef = useRef();
+
+    // Cloniamo la scena per evitare conflitti se viene renderizzata più volte
+    const clonedScene = useMemo(() => scene.clone(), [scene]);
+
+    // Posizioniamo il trofeo molto in basso all'inizio
+    useEffect(() => {
+        if (trophyRef.current) {
+            trophyRef.current.position.y = targetY - 15;
+        }
+    }, [targetY]);
+
+    useFrame((state, delta) => {
+        if (!trophyRef.current || !show) return;
+
+        // Rotazione continua sull'asse Y
+        trophyRef.current.rotation.y += delta;
+
+        // Salita fluida verso il targetY
+        trophyRef.current.position.y = THREE.MathUtils.lerp(
+            trophyRef.current.position.y,
+            targetY,
+            delta * 2
+        );
+    });
+
+    return (
+        <primitive 
+            ref={trophyRef} 
+            object={clonedScene} 
+            visible={show} 
+            scale={1.5} /* Regola la scala in base a quanto è grande il tuo .glb */
+            position={[0, targetY - 15, 0]} 
+        />
+    );
+}
+
+export const WinScene = ({ selectedCup, raceResults, socket, setRaceResults }) => {
     const navigate = useNavigate();
     const { playSfx, changeTrack, stopMusic } = useAudio();
+
+    const [showTrophy, setShowTrophy] = useState(false);
 
     // Gestione reindirizzamento se mancano i dati
     useEffect(() => {
@@ -39,6 +101,21 @@ export const WinScene = ({ selectedCup, raceResults, socket }) => {
             changeTrack('FINISH_FIRST', 100, false);
         }
     }, [raceResults, navigate, changeTrack, stopMusic]);
+
+    useEffect(() => {
+        let isWinner = socket && raceResults && raceResults.length > 0 && raceResults[0].id === socket.id;
+        console.log('Is Winner:', isWinner);
+        isWinner = true;
+        console.log('Race winner ID:', raceResults && raceResults.length > 0 ? raceResults[0].id : 'N/A');
+        console.log('Trophy for selected cup:', selectedCup ? selectedCup.trophy : 'N/A');
+        if (isWinner && selectedCup?.trophy) {
+            const timer = setTimeout(() => {
+                setShowTrophy(true);
+            }, 5000); // 5 secondi
+            
+            return () => clearTimeout(timer); // Pulizia del timer
+        }
+    }, [socket, raceResults, selectedCup]);
 
     // Forza SEMPRE il caricamento di Mario Circuit come pista di sfondo
     const lastTrackConfig = useMemo(() => {
@@ -94,12 +171,34 @@ export const WinScene = ({ selectedCup, raceResults, socket }) => {
         if (!raceResults) return [];
         return raceResults.slice(0, 3).map(racer => {
             const char = Characters.find(c => c.name === racer.name) || Characters[0];
-            return { ...racer, char };
+            
+            // --- INIZIO NUOVA LOGICA DI OFFSET ---
+            // Categorizzazione e valori di offset basati sull'analisi dell'immagine fornita.
+            // In una soluzione reale, questo valore verrebbe direttamente dai dati del personaggio.
+            
+            const calculateYOffset = (charName) => {
+                const smallChars = ['Baby Daisy', 'Baby Peach', 'Baby Mario', 'Baby Luigi', 'Toadette', 'Koopa Troopa', 'Dry Bones'];
+                const mediumChars = ['Mario', 'Luigi', 'Peach', 'Daisy', 'Yoshi', 'Birdo', 'Diddy Kong', 'Toad', 'Shy Guy', 'Lakitu'];
+                const largeChars = ['Funky Kong', 'Donkey Kong', 'Bowser', 'Dry Bowser', 'Rosalina', 'Petey Piranha', 'Wario', 'Waluigi'];
+                
+                if (smallChars.includes(charName)) {
+                    return 0.0;
+                }
+                if (largeChars.includes(charName)) {
+                    return -0.6;
+                }
+                return -0.3;
+            };
+
+            const footOffset = calculateYOffset(char.name);
+
+            return { ...racer, char, footOffset }; // Aggiungo `footOffset` all'oggetto del corridore
         });
     }, [raceResults]);
 
     const handleReturnToMenu = () => {
         playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+        setRaceResults([Characters[0], Characters[9], Characters[16], Characters[3], Characters[4], Characters[5], Characters[6], Characters[7], Characters[8], Characters[1], Characters[10], Characters[11]]);
         navigate('/menu');
     };
 
@@ -140,23 +239,32 @@ export const WinScene = ({ selectedCup, raceResults, socket }) => {
                         <group position={[podiumPos.x, podiumPos.y, podiumPos.z]} rotation={[0, podiumRot.y, 0]}>
                             <Podium />
 
+                            {/* TROFEO (Appare dopo 5 sec se il player è primo) */}
+                            {selectedCup?.trophy && (
+                                <AnimatedTrophy 
+                                    modelPath={selectedCup.trophy} 
+                                    show={showTrophy} 
+                                    targetY={5.5} // Altezza finale sopra la testa del vincitore. Modifica questo valore se serve!
+                                />
+                            )}
+
                             {/* PRIMO CLASSIFICATO (Centro, Dritti) */}
                             {top3[0] && (
-                                <group position={[0, 2.5, 0]}>
+                                <group position={[0, 2.5 + top3[0].footOffset, 0]}>
                                     <RacerModel characterConfig={top3[0].char.modelConfig} isInMenu={true} />
                                 </group>
                             )}
 
                             {/* SECONDO CLASSIFICATO (Sinistra, Dritti) */}
                             {top3[1] && (
-                                <group position={[-3, 1.6, 0]}>
+                                <group position={[-3, 1.6 + top3[1].footOffset, 0]}>
                                     <RacerModel characterConfig={top3[1].char.modelConfig} isInMenu={true} />
                                 </group>
                             )}
 
                             {/* TERZO CLASSIFICATO (Destra, Dritti) */}
                             {top3[2] && (
-                                <group position={[3, 1.6, 0]}>
+                                <group position={[3, 1.6 + top3[2].footOffset, 0]}>
                                     <RacerModel characterConfig={top3[2].char.modelConfig} isInMenu={true} />
                                 </group>
                             )}
@@ -185,21 +293,41 @@ export const WinScene = ({ selectedCup, raceResults, socket }) => {
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2 relative z-10">
                             {raceResults.map((racer, index) => {
                                 const isTop3 = index < 3;
+                                
+                                // Trova il personaggio corrispondente per estrarre l'icona
+                                const char = Characters.find(c => c.name === racer.name) || Characters[0];
+                                const rawName = racer.name || 'Mario';
+
+                                const characterName = rawName
+                                    .split(/[^a-zA-Z0-9]+/) // Divide la stringa ad ogni spazio o segno di punteggiatura (es. il punto in "Jr.")
+                                    .filter(Boolean)        // Rimuove eventuali stringhe vuote generate dal divisione
+                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalizza la prima lettera di ogni parola
+                                    .join(''); 
                                 return (
                                     <div 
                                         key={racer.id}  
                                         className={`
                                             flex items-center justify-between px-4 py-2 rounded-lg border-2 shadow-sm
                                             ${index === 0 ? 'bg-gradient-to-r from-[#ffcc00]/80 to-[#aa8800]/80 border-[#ffffff] text-black shadow-[0_0_15px_#ffcc00]' : 
-                                              index === 1 ? 'bg-gradient-to-r from-gray-300/80 to-gray-400/80 border-white text-black' : 
-                                              index === 2 ? 'bg-gradient-to-r from-[#cd7f32]/80 to-[#8b5a2b]/80 border-white text-black' : 
-                                              'bg-black/50 border-[#444] text-white hover:border-[#aa8800]'}
+                                            index === 1 ? 'bg-gradient-to-r from-gray-300/80 to-gray-400/80 border-white text-black' : 
+                                            index === 2 ? 'bg-gradient-to-r from-[#cd7f32]/80 to-[#8b5a2b]/80 border-white text-black' : 
+                                            'bg-black/50 border-[#444] text-white hover:border-[#aa8800]'}
                                         `}
                                     >
                                         <div className="flex items-center gap-3">
                                             <span className={`font-mono text-xl font-bold w-6 text-right ${isTop3 ? 'text-black' : 'text-[#88aaff]'}`}>
                                                 {index + 1}.
                                             </span>
+                                            
+                                            {/* NUOVO: Icona del personaggio */}
+                                            {char && (
+                                                <img 
+                                                    src={`/sprites/${characterName}.png`} /* NOTA: Cambia "char.icon" in "char.image" se nel tuo file Data.jsx la proprietà si chiama diversamente */
+                                                    alt={char.name}
+                                                    className="w-10 h-10 object-contain drop-shadow-md"
+                                                />
+                                            )}
+
                                             <span className="font-bold text-xl uppercase tracking-wide drop-shadow-sm">
                                                 {socket && socket.id === racer.id ? 'You' : racer.name}
                                             </span>
