@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, Suspense, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { Environment, OrbitControls, useGLTF } from '@react-three/drei';
+import { Environment, OrbitControls, useGLTF, Center } from '@react-three/drei';
 import { Characters, Tracks } from '../components/Data.jsx';
 import { RacerModel } from '../models/RacerModel.jsx';
 import { SmartMap } from '../Tracks/SmartMap.jsx';
@@ -46,45 +46,41 @@ function Podium() {
 }
 
 // Componente per il Trofeo Animato
+// Componente per il Trofeo Animato
 function AnimatedTrophy({ modelPath, show, targetY = 6 }) {
     const { scene } = useGLTF(modelPath);
-    const trophyRef = useRef();
+    const groupRef = useRef();
 
-    // Cloniamo la scena per evitare conflitti se viene renderizzata più volte
-    const clonedScene = useMemo(() => scene.clone(), [scene]);
-
-    // Posizioniamo il trofeo molto in basso all'inizio
+    // Posizioniamo il gruppo molto in basso all'inizio
     useEffect(() => {
-        if (trophyRef.current) {
-            trophyRef.current.position.y = targetY - 15;
+        if (groupRef.current) {
+            groupRef.current.position.y = targetY - 15;
         }
     }, [targetY]);
 
     useFrame((state, delta) => {
-        if (!trophyRef.current || !show) return;
+        if (!groupRef.current || !show) return;
 
-        // Rotazione continua sull'asse Y
-        trophyRef.current.rotation.y += delta;
+        // Rotazione continua del gruppo sull'asse Y
+        groupRef.current.rotation.y += delta;
 
-        // Salita fluida verso il targetY
-        trophyRef.current.position.y = THREE.MathUtils.lerp(
-            trophyRef.current.position.y,
+        // Salita fluida del gruppo verso il targetY
+        groupRef.current.position.y = THREE.MathUtils.lerp(
+            groupRef.current.position.y,
             targetY,
             delta * 2
         );
     });
 
     return (
-        <primitive 
-            ref={trophyRef} 
-            object={clonedScene} 
-            visible={show} 
-            scale={1.5} /* Regola la scala in base a quanto è grande il tuo .glb */
-            position={[0, targetY - 15, 0]} 
-        />
+        <group ref={groupRef} visible={show} position={[0, targetY + 36, 0]}>
+            <primitive 
+                object={scene} 
+                scale={4} 
+            />
+        </group>
     );
 }
-
 export const WinScene = ({ selectedCup, raceResults, socket, setRaceResults }) => {
     const navigate = useNavigate();
     const { playSfx, changeTrack, stopMusic } = useAudio();
@@ -103,15 +99,17 @@ export const WinScene = ({ selectedCup, raceResults, socket, setRaceResults }) =
     }, [raceResults, navigate, changeTrack, stopMusic]);
 
     useEffect(() => {
-        let isWinner = socket && raceResults && raceResults.length > 0 && raceResults[0].id === socket.id;
+        const isWinner = socket && raceResults && raceResults.length > 0 && raceResults[0].id === socket.id;
         console.log('Is Winner:', isWinner);
-        isWinner = true;
-        console.log('Race winner ID:', raceResults && raceResults.length > 0 ? raceResults[0].id : 'N/A');
-        console.log('Trophy for selected cup:', selectedCup ? selectedCup.trophy : 'N/A');
+        console.log('Race Results:', raceResults);
+        console.log('Selected Cup:', selectedCup);
+        console.log('Trophy Exists:', selectedCup?.trophy);
+        console.log('socket.id:', socket?.id);
+        console.log('First Racer ID:', raceResults && raceResults.length > 0 ? raceResults[0].id : 'No racers');
         if (isWinner && selectedCup?.trophy) {
             const timer = setTimeout(() => {
                 setShowTrophy(true);
-            }, 5000); // 5 secondi
+            }, 10000); // 10 secondi
             
             return () => clearTimeout(timer); // Pulizia del timer
         }
@@ -172,9 +170,6 @@ export const WinScene = ({ selectedCup, raceResults, socket, setRaceResults }) =
         return raceResults.slice(0, 3).map(racer => {
             const char = Characters.find(c => c.name === racer.name) || Characters[0];
             
-            // --- INIZIO NUOVA LOGICA DI OFFSET ---
-            // Categorizzazione e valori di offset basati sull'analisi dell'immagine fornita.
-            // In una soluzione reale, questo valore verrebbe direttamente dai dati del personaggio.
             
             const calculateYOffset = (charName) => {
                 const smallChars = ['Baby Daisy', 'Baby Peach', 'Baby Mario', 'Baby Luigi', 'Toadette', 'Koopa Troopa', 'Dry Bones'];

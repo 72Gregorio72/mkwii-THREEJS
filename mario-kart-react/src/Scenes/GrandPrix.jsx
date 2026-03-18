@@ -23,7 +23,7 @@ export const GrandPrix = ({ setSelectedGrandPrix }) => {
 
     const handleSelectCup = (cupId) => {
         playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
-        setSelectedGrandPrix(cupId);
+        setSelectedGrandPrix(grandPrixList.find((gp) => gp.id == cupId));
         setFadeToBlack(true);
         fadeOutMusic(700);
         setTimeout(() => {

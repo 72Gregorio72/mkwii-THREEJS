@@ -356,7 +356,7 @@ export default function App() {
                                         ccs={ccsSpeed}
 										username={userName}
                                         setIsTimeTrial={setIsTimeTrial}
-                                        selectedGrandPrix={selectedGrandPrix}
+                                        selectedGrandPrix={selectedGrandPrix.name}
                                         isGrandPrix={isGrandPrix}
                                         setIsGrandPrix={setIsGrandPrix}
                                         setRaceResults={setRaceResults}

@@ -237,7 +237,7 @@ export const grandPrixList = [
 				"DS Desert Hills",
 				"N64 Mario Raceway",
 				"Mario Circuit",
-				"Bowser Castle",
+				"Dry Dry Ruins",
 			]
 		},
 ];
