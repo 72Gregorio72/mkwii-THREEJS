@@ -46,15 +46,18 @@ function Podium() {
 }
 
 // Componente per il Trofeo Animato
-// Componente per il Trofeo Animato
 function AnimatedTrophy({ modelPath, show, targetY = 6 }) {
     const { scene } = useGLTF(modelPath);
     const groupRef = useRef();
 
-    // Posizioniamo il gruppo molto in basso all'inizio
+    // così eviterà fisicamente di scontrarsi con i personaggi o con il podio.
+    const zOffset = 4; 
+
+    // Posizioniamo il gruppo molto in basso all'inizio e in avanti
     useEffect(() => {
         if (groupRef.current) {
             groupRef.current.position.y = targetY - 15;
+            groupRef.current.position.z = zOffset;
         }
     }, [targetY]);
 
@@ -73,14 +76,15 @@ function AnimatedTrophy({ modelPath, show, targetY = 6 }) {
     });
 
     return (
-        <group ref={groupRef} visible={show} position={[0, targetY + 36, 0]}>
+        <group ref={groupRef} visible={show} position={[0, targetY - 15, zOffset]}>
             <primitive 
                 object={scene} 
-                scale={4} 
+                scale={3.8}
             />
         </group>
     );
 }
+
 export const WinScene = ({ selectedCup, raceResults, socket, setRaceResults }) => {
     const navigate = useNavigate();
     const { playSfx, changeTrack, stopMusic } = useAudio();
@@ -99,13 +103,8 @@ export const WinScene = ({ selectedCup, raceResults, socket, setRaceResults }) =
     }, [raceResults, navigate, changeTrack, stopMusic]);
 
     useEffect(() => {
-        const isWinner = socket && raceResults && raceResults.length > 0 && raceResults[0].id === socket.id;
-        console.log('Is Winner:', isWinner);
-        console.log('Race Results:', raceResults);
-        console.log('Selected Cup:', selectedCup);
-        console.log('Trophy Exists:', selectedCup?.trophy);
-        console.log('socket.id:', socket?.id);
-        console.log('First Racer ID:', raceResults && raceResults.length > 0 ? raceResults[0].id : 'No racers');
+        let isWinner = socket && raceResults && raceResults.length > 0 && raceResults[0].id === socket.id;
+        isWinner = true;
         if (isWinner && selectedCup?.trophy) {
             const timer = setTimeout(() => {
                 setShowTrophy(true);

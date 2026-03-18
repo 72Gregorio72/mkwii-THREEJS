@@ -1095,7 +1095,7 @@ export function GameScene({
                     depth: true,
                     alpha: false,
                     preserveDrawingBuffer: false,
-                    failIfMajorPerformanceCaveat: false
+                    failIfMajorPerformanceCaveat: false,
                 }}
                 dpr={[1, 2]} // Limita pixel ratio per performance
                 frameloop="always"
