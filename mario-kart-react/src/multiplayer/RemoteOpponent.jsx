@@ -86,6 +86,7 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
         const isBulletBill = remoteEffects.isBulletBill || false;
         const isStar = remoteEffects.isStar || false;
         const isMega = remoteEffects.isMega || false;
+        const isSpinning = remoteEffects.isSpinning || false;
 
         // --- A. INTERPOLAZIONE MOVIMENTO ---
         renderBuffer.current.push({
@@ -130,13 +131,18 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
         if (visualGroupRef.current) {
             
             // 1. ROTAZIONE COLPO (Banana)
-            if (isHitRef.current) {
+            if (isHitRef.current || isSpinning) {
                 spinTimer.current -= delta;
                 visualGroupRef.current.rotation.y += 25 * delta; 
-                if (spinTimer.current <= 0) {
+                
+                // Resetta l'evento locale solo se è finito il timer e il server non dice più che sta roteando
+                if (spinTimer.current <= 0 && !isSpinning) {
                     isHitRef.current = false;
                     visualGroupRef.current.rotation.y = 0; 
                 }
+            } else {
+                // Assicura che il modello torni dritto quando isSpinning diventa false
+                visualGroupRef.current.rotation.y = 0; 
             }
 
             // 2. TOGGLE VISIBILITÀ (Kart vs Bullet Bill)

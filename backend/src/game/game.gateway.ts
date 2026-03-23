@@ -7,11 +7,13 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { GameService } from './game.service';
+import { GameService, Player } from './game.service';
 import { getLocalIpAddress } from 'src/utils';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { RoomData, RoomPlayer, Quaternion, Vector3, Track, Bot } from 'src/types';
+import type { ItemIdPayload, MoveKartPayload, RoomCodePayload, RoomUserPayload, SpawnItemPayload, StartRacePayload, SyncGameStatePayload } from 'src/socket-payloads';
 
 const myIP = getLocalIpAddress();
 
@@ -45,15 +47,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   ) {}
 
   private items = new Map<string, any>();
-  private roomData = new Map<string, { 
-    roomCode: string,
-    roomId: string,
-    hostId: string, 
-    players: any[], 
-    bots: any[], 
-    gameState: string,
-    selectedTrack?: any 
-  }>();
+  private roomData = new Map<string, RoomData>();
   
   // Map socket.id -> roomCode
   private playerRoomMap = new Map<string, string>();
@@ -170,7 +164,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('move_kart')
-  handleMove(client: Socket, payload: any) {
+  handleMove(client: Socket, payload: MoveKartPayload) {
     this.gameService.updatePlayer(client.id, payload);
   }
 
@@ -183,7 +177,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('bot_update')
-  handleBotUpdate(client: Socket, payload: { botId: string, position: any, rotation: any, velocity: any }) {
+  handleBotUpdate(client: Socket, payload: { botId: string, position: Vector3, rotation: Quaternion, velocity: Vector3 }) {
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
     
@@ -200,6 +194,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       isBot: true
     });
   }
+
 
   @SubscribeMessage('set_details')
   handleSetDetails(client: Socket, payload: { charId: string, vehicleId: string }) {
@@ -227,7 +222,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       type: payload.type 
     });
   }
-
+  
   @SubscribeMessage('use_lightning')
   handleLightning(client: Socket, payload: { attackerId: string }) {
     const roomCode = this.playerRoomMap.get(client.id);
@@ -240,16 +235,21 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('spawn_item')
-  handleSpawnItem(client: Socket, payload: any) {
+  handleSpawnItem(client: Socket, payload: SpawnItemPayload) {
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
 
-    const newItem = { ...payload, id: `it_${Date.now()}_${Math.random().toString(36).substr(2,5)}`, ownerId: client.id };
+    // Usiamo l'ID generato dal frontend (payload.id) per mantenere la sincronia
+    const newItem = { 
+      ...payload, 
+      id: payload.id, 
+      ownerId: client.id 
+    };
     client.to(roomCode).emit('item_spawned', newItem);
   }
 
   @SubscribeMessage('remove_item')
-  handleRemoveItem(client: Socket, payload: { itemId: string }) {
+  handleRemoveItem(client: Socket, payload: ItemIdPayload) {
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
 
@@ -258,7 +258,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('request_room_state')
-  handleRequestRoomState(client: Socket, payload: { roomCode: string }) {
+  handleRequestRoomState(client: Socket, payload: RoomCodePayload) {
     const roomCode = payload?.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) {
       console.log(`Room ${roomCode} not found for ${client.id}`);
@@ -280,7 +280,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('create_room')
-  handleCreateRoom(client: Socket, payload: { roomCode: string, username: string }) {
+  handleCreateRoom(client: Socket, payload: RoomUserPayload) {
     const roomCode = payload.roomCode;
     
     if (this.roomData.has(roomCode)) {
@@ -322,7 +322,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('join_room')
-  handleJoinRoom(client: Socket, payload: { roomCode: string, username: string }) {
+  handleJoinRoom(client: Socket, payload: RoomUserPayload) {
     const roomCode = payload.roomCode;
     
     if (!this.roomData.has(roomCode)) {
@@ -357,7 +357,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   // When the host leaves the room, the room is closed for everyone and all data is cleaned up.
   @SubscribeMessage('leave_room')
-  handleLeaveRoom(client: Socket, payload: { roomCode: string }) {
+  handleLeaveRoom(client: Socket, payload: RoomCodePayload) {
     const roomCode = payload.roomCode;
     if (!roomCode) return;
 
@@ -406,7 +406,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('select_track')
-  handleSelectTrack(client: Socket, payload: { roomCode: string, track: any }) {
+  handleSelectTrack(client: Socket, payload: { roomCode: string, track: Track }) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
@@ -430,7 +430,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('start_game')
-  handleStartGame(client: Socket, payload: { roomCode: string }) {
+  handleStartGame(client: Socket, payload: RoomCodePayload) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
@@ -452,7 +452,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('waiting_for_track')
-  handleWaitingForTrack(client: Socket, payload: { roomCode: string }) {
+  handleWaitingForTrack(client: Socket, payload: RoomCodePayload) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
@@ -477,7 +477,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('start_race')
-  handleStartRace(client: Socket, payload: { bots: any[], roomCode: string }) {
+  handleStartRace(client: Socket, payload: StartRacePayload) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
@@ -515,7 +515,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('sync_game_state')
-  handleSyncGameState(client: Socket, payload: { gameState: string, countdown?: any, roomCode: string }) {
+  handleSyncGameState(client: Socket, payload: SyncGameStatePayload) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
