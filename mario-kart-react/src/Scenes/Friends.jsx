@@ -168,7 +168,7 @@ export const Friends = ({ userName }) => {
                         </svg>
                         <div className="absolute bottom-15 left-12 z-20">
                             <h1 className="text-5xl text-[#444] font-sans font-bold tracking-tight drop-shadow-sm transform scale-y-110">
-                                Friend Roster
+                                Friend List
                             </h1>
                         </div>
                     </div>
