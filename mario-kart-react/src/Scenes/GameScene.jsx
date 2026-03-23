@@ -1,9 +1,12 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect, Suspense } from 'react'
-import { Canvas, useThree, useFrame } from '@react-three/fiber'
+import { Canvas, useThree, useFrame, extend } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, Stats, useGLTF } from '@react-three/drei'
 import { useNavigate } from 'react-router-dom' // <--- 1. IMPORT ROUTING
 import * as THREE from 'three'
+
+// Register Three.js objects with React Three Fiber
+extend({ SphereGeometry: THREE.SphereGeometry, MeshBasicMaterial: THREE.MeshBasicMaterial, LineBasicMaterial: THREE.LineBasicMaterial })
 
 // --- IMPORTS INTERNI ---
 import { SmartMap } from '../Tracks/SmartMap'
@@ -33,50 +36,11 @@ import { useWebGLContext, useWebGLMemoryMonitor } from '../utils/WebGLContextMan
 import { gsap } from 'gsap'
 import { CustomWiiSky } from '../components/CustomeWiiSky.jsx'
 import { OutsideDriftBike } from '../components/OutsideDriftBike.jsx'
-
+import { WaypointRecorder } from '../Bot/WaypointRecorder.jsx'
+import { WaypointVisualizer} from '../Bot/WaypointVisualizer.jsx'
+ 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
-
-// --- HELPERS ---
-
-function WaypointsVisualizer({ waypoints, color = 'blue' }) {
-    // Converti waypoints in Vector3 (gestisce sia formato [x,y,z] che {x,y,z})
-    const points = waypoints.map(point => {
-        if (Array.isArray(point)) {
-            return new THREE.Vector3(point[0], point[1], point[2]);
-        } else {
-            return new THREE.Vector3(point.x, point.y, point.z);
-        }
-    });
-    
-    // Chiudi il loop: aggiungi il primo punto alla fine
-    points.push(points[0].clone());
-    
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-
-    return (
-        <group>
-            {/* Linea continua tra i waypoints */}
-            <line geometry={geometry}>
-                <lineBasicMaterial color={color} linewidth={3} />
-            </line>
-            
-            {/* Sfere sui punti waypoint (opzionale, più piccole) */}
-            {waypoints.map((point, index) => {
-                const pos = Array.isArray(point) 
-                    ? [point[0], point[1], point[2]]
-                    : [point.x, point.y, point.z];
-                    
-                return (
-                    <mesh key={index} position={pos}>
-                        <sphereGeometry args={[0.15, 6, 6]} />
-                        <meshBasicMaterial color={color} />
-                    </mesh>
-                );
-            })}
-        </group>
-    );
-}
 
 // Fallback matematico per la griglia se non esiste nel GLB
 function getGridPosition(startPos, index) {
@@ -1083,9 +1047,9 @@ export function GameScene({
                 </div>
             )}
 
-            {/* <WaypointsVisualizer waypoints={activeTrackConfig.Waypoints[0]} />
-            <WaypointsVisualizer waypoints={activeTrackConfig.Waypoints[1]} color="blue" />
-            <WaypointsVisualizer waypoints={activeTrackConfig.Waypoints[2]} color="green" /> */}
+            {/* <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[0]} />
+            <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[1]}/>
+            <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[2]}/> */}
 
             <Canvas
                 gl={{
@@ -1106,6 +1070,14 @@ export function GameScene({
                     gl.outputColorSpace = THREE.SRGBColorSpace;
                 }}
             >
+                
+{/* 
+                <WaypointRecorder
+                    kartRef={playerRef}
+                    isRecording={true}
+                >
+
+                </WaypointRecorder> */}
                 <AudioListenerComponent />
                 <WebGLSafetyManager />
                 

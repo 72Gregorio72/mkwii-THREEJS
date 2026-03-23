@@ -4,6 +4,7 @@ import DaisyCircuit_right from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right
 import DelfinoSquare0 from '../Bot/Waypoints/DelfinoSquare/DelfinoSquare';
 import DelfinoSquareL from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareL';
 import DelfinoSquareR from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareR';
+import snes1 from '../Bot/Waypoints/SNESMarioCircuit/snes1.json'
 
 const SMALL_VEHICLES = [
     'StandardKartS', 'StandardBikeS', 'BoosterSeat', 'BulletBike', 
@@ -128,7 +129,7 @@ export const Tracks = {
         itemBoxes: './Tracks/SNESMarioCircuit/SNESMarioCircuit_itembox.glb',
         gridpos: './Tracks/SNESMarioCircuit/SNESMarioCircuit_startpos.glb',
         road: './Tracks/SNESMarioCircuit/SNESMarioCircuit_road.glb',
-		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+		Waypoints: [ snes1, DelfinoSquareL, DelfinoSquareR ]
     },
 
 	'N64 Mario Raceway': {

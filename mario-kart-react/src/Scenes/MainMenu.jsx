@@ -212,10 +212,10 @@ export const MainMenu = ({ loggedIn, hostLeft, setHostLeft }) => {
                             onClick={() => handleNavigate('/debug')} 
                         />
 
-                        {/* <MenuButton 
+                        <MenuButton 
                             title="Debug GP" 
                             onClick={() => handleNavigate('/endGrandPrix')} 
-                        /> */}
+                        />
                     </div>
                 )}
 

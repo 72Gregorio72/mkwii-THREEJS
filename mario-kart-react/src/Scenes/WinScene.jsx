@@ -238,7 +238,7 @@ export const WinScene = ({ selectedCup, raceResults, socket, setRaceResults }) =
                                 <AnimatedTrophy 
                                     modelPath={selectedCup.trophy} 
                                     show={showTrophy} 
-                                    targetY={5.5} // Altezza finale sopra la testa del vincitore. Modifica questo valore se serve!
+                                    targetY={4.5} // Altezza finale sopra la testa del vincitore. Modifica questo valore se serve!
                                 />
                             )}
 
