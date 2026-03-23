@@ -1,6 +1,7 @@
 import { Controller, Get, Query, NotFoundException, Patch, Body, Post, Delete, ConflictException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtService } from '@nestjs/jwt';
+
 @Controller('')
 export class UsersController {
     constructor(private readonly userService: UsersService, private readonly jwtService: JwtService) {}

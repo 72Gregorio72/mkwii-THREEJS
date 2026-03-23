@@ -39,6 +39,51 @@ model User {
 
   // relazione virtuale --> non crea colonna nella tabella
   times RecordTimes[] // relazione con RecordTimes, un utente può avere più record times --> one-to-many
+
+  // Amicizie (chi ho aggiunto e chi mi ha aggiunto --> lista completa e' l'unione dei due)
+  friendsInitiated Friendship[] @relation("SentFriendships")
+  friendsReceived  Friendship[] @relation("ReceivedFriendships")
+
+  // Richieste di amicizia
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+}
+
+// many-to-many
+model Friendship {
+  id         Int      @id @default(autoincrement())
+  
+  // Relazione con l'utente che ha iniziato l'amicizia
+  user       User     @relation("SentFriendships", fields: [userName], references: [username], onDelete: Cascade)
+  userName   String
+  
+  // Relazione con l'utente che è stato aggiunto
+  friend     User     @relation("ReceivedFriendships", fields: [friendName], references: [username], onDelete: Cascade)
+  friendName String
+  
+  createdAt  DateTime @default(now())
+
+  @@unique([userName, friendName]) // Evita doppioni della stessa coppia
+}
+
+// quando viene mandata richiesta si crea nuovo record:
+// - se accetta elimino record ed aggiungo friendship
+// - se rifiuto elimino il record di friend request
+model FriendRequest {
+  id           Int      @id @default(autoincrement())
+  
+  // Chi invia la richiesta
+  sender       User     @relation("SentRequests", fields: [senderName], references: [username], onDelete: Cascade)
+  senderName   String
+  
+  // Chi riceve la richiesta
+  receiver     User     @relation("ReceivedRequests", fields: [receiverName], references: [username], onDelete: Cascade)
+  receiverName String
+  
+  status       String   @default("PENDING") // PENDING, ACCEPTED
+  createdAt    DateTime @default(now())
+
+  @@unique([senderName, receiverName]) // Non puoi mandare due richieste alla stessa persona
 }
 
 model RecordTimes {

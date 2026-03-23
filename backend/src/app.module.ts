@@ -12,9 +12,10 @@ import { UsersService } from './users/users.service';
 import { HashService } from './hash/hash.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { FriendsModule } from './friends/friends.module';
 
 @Module({
-  imports: [GameModule, AuthModule, UsersModule,
+  imports: [GameModule, AuthModule, FriendsModule, UsersModule,
 
     ConfigModule.forRoot({
       isGlobal: true, 
