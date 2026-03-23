@@ -17,6 +17,7 @@ import { Profile } from './Scenes/ProfilePage.jsx'
 import { SinglePlayer } from './Scenes/SinglePlayer.jsx'
 import { GrandPrix } from './Scenes/GrandPrix.jsx'
 import { WinScene } from './Scenes/WinScene.jsx'
+import { Friends } from './Scenes/Friends.jsx'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -265,6 +266,7 @@ export default function App() {
                                 socket={socket}
                                 setSelectedTrack={setSelectedTrack}
                                 username={userName}
+                                loggedIn={isLoggedIn}
                             />
                         } />
                         
@@ -283,6 +285,10 @@ export default function App() {
                         <Route path="/profile" element={
                             <Profile setLoggedIn={handleLogout} userName={userName} isLoggedIn={isLoggedIn} setUsername={setUsername} socket={socket}/>
                         } />
+
+                        <Route path="/friends" element={
+                            <Friends userName={userName}/>
+                        }/>
 
                         <Route path="/character" element={
                             <CharacterSelection 

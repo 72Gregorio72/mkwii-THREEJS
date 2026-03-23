@@ -40,7 +40,7 @@ model User {
   // relazione virtuale --> non crea colonna nella tabella
   times RecordTimes[] // relazione con RecordTimes, un utente può avere più record times --> one-to-many
 
-  // Amicizie (chi ho aggiunto e chi mi ha aggiunto --> lista completa e' l'unione dei due)
+  // Amicizie (chi ho aggiunto e chi mi ha aggiunto --> lista completa e' l'unione dei due) --> serve per many-to-many
   friendsInitiated Friendship[] @relation("SentFriendships")
   friendsReceived  Friendship[] @relation("ReceivedFriendships")
 

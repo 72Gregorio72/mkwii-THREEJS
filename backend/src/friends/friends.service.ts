@@ -65,6 +65,17 @@ export class FriendsService {
     });
   }
 
+async deleteFriend(userName: string, friendToDelete: string) {
+    return this.prisma.friendship.deleteMany({
+        where: {
+            OR: [
+                { userName: userName, friendName: friendToDelete },
+                { userName: friendToDelete, friendName: userName }
+            ]
+        }
+    });
+}
+
   // 4. Ottenere la lista amici di un utente
   async getFriends(username: string) {
     const user = await this.prisma.user.findUnique({

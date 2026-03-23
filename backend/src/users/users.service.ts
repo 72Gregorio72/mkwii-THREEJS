@@ -175,7 +175,6 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
 
   async deleteUser(username: string) {
     try {
-      // await this.updateLoginStatus(username, false);
       await this.prisma.user.delete({
         where: { username: username },
       });
