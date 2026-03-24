@@ -914,8 +914,8 @@ export const AUDIO_TRACKS = {
 	RACE_BOWSER_CASTLE: '/soundTracks/BOWSER_CASTLE_ST.mp3',
 	RACE_PEACH_GARDENS: '/soundTracks/PEACH_GARDENS_ST.mp3',
 	FINISH_FIRST: '/soundTracks/FINISH_1ST.mp3',
-	FINISH_SECOND_FOURTH: '/soundTracks/FINISH_2ND_4TH.mp3',
-	FINISH_FIFTH_TWELFTH: '/soundTracks/FINISH_5TH_12TH.mp3',
+	FINISH_SECOND_FOURTH: '/soundTracks/FINISH_2ND-4TH.mp3',
+	FINISH_FIFTH_TWELFTH: '/soundTracks/FINISH_5TH-12TH.mp3',
 };
 
 export const AUDIO_SFX = {

@@ -637,7 +637,6 @@ export function GameScene({
                 setMusicPitch(1.0, 1.0, 300);
             }
             stopMusic();
-            racingMusicStarted.current = false;
             return;
         }
         
@@ -649,7 +648,7 @@ export function GameScene({
         }
         
         // Non c'è più cleanup che chiama stopMusic durante RACING
-    }, [selectedTrack, changeTrack, gameState, finished, stopMusic, setMusicPitch]);
+    }, [selectedTrack, changeTrack, gameState, finished, stopMusic, setMusicPitch, playMusicOnce]);
 
     // Checkpoint Trigger
 	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
@@ -711,12 +710,17 @@ export function GameScene({
 					setFinished(true);
 					playSfx(AUDIO_SFX.FINISH_RACE, 3);
 					stopMusic();
-					if (racer.position === 1)
-						changeTrack('FINISH_FIRST', 0, false);
-					else if (racer.position >= 2 && racer.position <= 4)
-						changeTrack('FINISH_SECOND_FOURTH', 0, false);
-					else
-						changeTrack('FINISH_FIFTH_TWELFTH', 0, false);
+                    console.log(`[Race Finished] Player finished in position ${racer.position}`);
+					if (racer.position === 1) {
+                        console.log(`[Race Finished] Player finished first!`);
+						playMusicOnce('FINISH_FIRST', 0);
+					} else if (racer.position >= 2 && racer.position <= 4) {
+                        console.log(`[Race Finished] Player finished in position ${racer.position}, playing second-fourth track`);
+						playMusicOnce('FINISH_SECOND_FOURTH', 0);
+                    } else {
+                        console.log(`[Race Finished] Player finished in position ${racer.position}, playing fifth-twelfth track`);
+						playMusicOnce('FINISH_FIFTH_TWELFTH', 0);
+					}
 				}
 				
 				// Stop bot AI if it's a bot
@@ -730,7 +734,7 @@ export function GameScene({
 				setUiLap(racer.lap);
 			}
 		}
-	}, [maxCheckpoints, playSfx, setMusicPitch, stopMusic, changeTrack, socket, roomCode, botRefs]);
+	}, [maxCheckpoints, playSfx, setMusicPitch, stopMusic, changeTrack, playMusicOnce, socket, roomCode, botRefs]);
 
     // Calcolo Targets per Gusci (Red/Blue)
 

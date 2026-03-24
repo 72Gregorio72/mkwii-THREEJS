@@ -147,7 +147,6 @@ export const AudioProvider = ({ children }) => {
     
     // Se è la stessa traccia ma è in pausa, riavviala
     if (currentTrackRef.current === url && bgmRef.current && bgmRef.current.paused) {
-      // console.log('[AudioManager] Stessa traccia in pausa, riprendo riproduzione');
       bgmRef.current.play().catch(e => console.warn("Errore riavvio musica:", e));
       return;
     }
@@ -164,21 +163,27 @@ export const AudioProvider = ({ children }) => {
       pendingPlayAbortRef.current = null;
     }
 
-    // 3. FADE OUT (Vecchia Musica)
+    // 3. STOP/FADE OUT (Vecchia Musica)
     if (bgmRef.current) {
       const oldAudio = bgmRef.current;
-      const step = oldAudio.volume / (fadeDuration / 50);
-
-      fadeOutIntervalRef.current = setInterval(() => {
-        if (oldAudio.volume > step) {
-          oldAudio.volume -= step;
-        } else {
-          oldAudio.volume = 0;
-          oldAudio.pause();
-          oldAudio.src = ""; 
-          clearInterval(fadeOutIntervalRef.current);
-        }
-      }, 50);
+      if (fadeDuration > 0) {
+        // Fade out graduale
+        const step = oldAudio.volume / (fadeDuration / 50);
+        fadeOutIntervalRef.current = setInterval(() => {
+          if (oldAudio.volume > step) {
+            oldAudio.volume -= step;
+          } else {
+            oldAudio.volume = 0;
+            oldAudio.pause();
+            oldAudio.src = "";
+            clearInterval(fadeOutIntervalRef.current);
+          }
+        }, 50);
+      } else {
+        // Stop immediato senza fade
+        oldAudio.pause();
+        oldAudio.src = "";
+      }
     }
 
     if (!url) {
@@ -206,8 +211,13 @@ export const AudioProvider = ({ children }) => {
 
     // 5. GESTIONE VOLUME E PLAY
     if (audioEnabled) {
-      // CASO A: Audio già attivo -> Fai il Fade In elegante
-      newAudio.volume = 0;
+      if (fadeDuration > 0) {
+        // Con fade: parti da volume 0 e fai fade in
+        newAudio.volume = 0;
+      } else {
+        // Senza fade: imposta volume target subito
+        newAudio.volume = targetVolume;
+      }
       
       // Crea un AbortController per questo tentativo di play
       const abortController = new AbortController();
@@ -225,7 +235,8 @@ export const AudioProvider = ({ children }) => {
             enableSmoothLoop();
           }
 
-          if (targetVolume > 0) {
+          // Fade in solo se fadeDuration > 0
+          if (fadeDuration > 0 && targetVolume > 0) {
             const step = targetVolume / (fadeDuration / 50);
             fadeInIntervalRef.current = setInterval(() => {
               if (newAudio.volume < targetVolume - step) {
@@ -238,16 +249,11 @@ export const AudioProvider = ({ children }) => {
           }
         })
         .catch(e => {
-          // Se il play fallisce (es: AbortError), non loggare
           if (e.name !== 'AbortError') {
             console.warn("Errore Play Music:", e);
           }
         });
     } else {
-      // CASO B: Audio non ancora attivo (Primo caricamento) -> Niente Fade In
-      // Impostiamo SUBITO il volume target. 
-      // Non chiamiamo play() qui (fallirebbe), ma appena l'utente clicca, 
-      // enableAudio() chiamerà play() e il volume sarà già corretto.
       newAudio.volume = targetVolume;
     }
   }, [audioEnabled, isMuted, musicVolume, musicPlaybackRate, enableSmoothLoop]);
@@ -368,22 +374,30 @@ export const AudioProvider = ({ children }) => {
   // ============================================
   const getCurrentTrack = useCallback(() => currentTrackRef.current, []);
 
-  const stopMusic = () => {
+  const stopMusic = useCallback(() => {
     // Pulisci i timer di fade se fermiamo tutto bruscamente
     if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
     if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
     
+    // Cancella eventuali tentativi di play pendenti
+    if (pendingPlayAbortRef.current) {
+      pendingPlayAbortRef.current.abort();
+      pendingPlayAbortRef.current = null;
+    }
+
     // Disabilita il monitor del loop
     disableSmoothLoop();
 
     if (bgmRef.current) {
       bgmRef.current.playbackRate = 1.0;
       bgmRef.current.pause();
-      bgmRef.current.currentTime = 0;
+      bgmRef.current.src = '';
     }
 
+    bgmRef.current = null;
+    currentTrackRef.current = null;
     setMusicPlaybackRate(1.0);
-  };
+  }, [disableSmoothLoop]);
 
   const setMusicSpeed = (speed = 1.0) => {
     if (bgmRef.current) {

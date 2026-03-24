@@ -168,13 +168,13 @@ export default function App() {
     const handleCreateRoom = (code) => {
         setRoomCode(code);
         setIsHost(true);
-        socket.emit('create_room', { roomCode: code });
+        socket.emit('create_room', { roomCode: code , userName: userName || 'Guest' });
     };
 
     const handleJoinRoom = (code) => {
         setRoomCode(code);
         setIsHost(false);
-        socket.emit('join_room', { roomCode: code });
+        socket.emit('join_room', { roomCode: code , userName: userName || 'Guest' });
     };
 
     return (

@@ -231,8 +231,9 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('create_room')
-  handleCreateRoom(client: Socket, payload: { roomCode: string }) {
+  handleCreateRoom(client: Socket, payload: { roomCode: string , userName: string}) {
     const roomCode = payload.roomCode;
+    const userName = payload.userName || 'Guest';
     
     if (this.roomData.has(roomCode)) {
       client.emit('room_error', { message: 'Room already exists' });
@@ -251,7 +252,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       roomCode: roomCode,
       roomId: roomId,
       hostId: client.id,
-      players: [{ id: client.id, isHost: true }],
+      players: [{ id: client.id, isHost: true, userName: payload.userName || 'Guest' }],
       bots: [],
       gameState: 'LOBBY'
     });
@@ -266,7 +267,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       roomId: roomId,
       isHost: true,
       hostId: client.id,
-      players: [{ id: client.id, isHost: true }],
+      players: [{ id: client.id, isHost: true , userName }],
       gameState: 'LOBBY',
       selectedTrack: undefined
     });
