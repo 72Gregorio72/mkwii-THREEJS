@@ -4,6 +4,7 @@ import DaisyCircuit_right from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right
 import DelfinoSquare0 from '../Bot/Waypoints/DelfinoSquare/DelfinoSquare';
 import DelfinoSquareL from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareL';
 import DelfinoSquareR from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareR';
+import snes1 from '../Bot/Waypoints/SNESMarioCircuit/snes1.json'
 
 const SMALL_VEHICLES = [
     'StandardKartS', 'StandardBikeS', 'BoosterSeat', 'BulletBike', 
@@ -107,7 +108,7 @@ export const Tracks = {
 	
 	'Peach Gardens': {
 		file: './Tracks/PeachGardens/PeachGardens.glb',
-		preview: '/Previews/Peach Gardens.png',
+		preview: '/Previews/DS Peach Gardens.png',
 		startPos: [0, 0, 50],
 		checkpoints: './Tracks/PeachGardens/PeachGardens_checkpos.glb',
         maxCheckpoints: 3,
@@ -122,15 +123,126 @@ export const Tracks = {
         file: './Tracks/SNESMarioCircuit/SNESMarioCircuit.glb',
 		preview: '/Previews/SNES Mario Circuit 3.png',
         startPos: [0, 0, 50],
-        checkpoints: './Tracks/DaisyCircuit/SNESMarioCircuit_checkpoint.glb',
+        checkpoints: './Tracks/SNESMarioCircuit/SNESMarioCircuit_checkpoints.glb',
         maxCheckpoints: 3,
-        soundtrack: 'RACE_MOO_MOO_MEADOWS',
-        itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+        soundtrack: 'RACE_SNES_MARIO_CIRCUIT',
+        itemBoxes: './Tracks/SNESMarioCircuit/SNESMarioCircuit_itembox.glb',
         gridpos: './Tracks/SNESMarioCircuit/SNESMarioCircuit_startpos.glb',
         road: './Tracks/SNESMarioCircuit/SNESMarioCircuit_road.glb',
+		Waypoints: [ snes1, DelfinoSquareL, DelfinoSquareR ]
+    },
+
+	'N64 Mario Raceway': {
+        file: './Tracks/N64MarioRaceway/N64_Mario_Raceway.glb',
+		preview: '/Previews/N64 Mario Raceway.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/N64MarioRaceway/N64_Mario_Raceway_checkpoints.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_N64_MARIO_RACEWAY',
+        itemBoxes: './Tracks/N64MarioRaceway/N64_Mario_Raceway_itembox.glb',
+        gridpos: './Tracks/N64MarioRaceway/N64_Mario_Raceway_startpos.glb',
+        road: './Tracks/N64MarioRaceway/N64_Mario_Raceway_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
+
+	'GCN Mario Circuit': {
+        file: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit.glb',
+		preview: '/Previews/GCN Mario Circuit.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_checkpoints.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_GCN_MARIO_CIRCUIT',
+		itemBoxes: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_itembox.glb',
+        gridpos: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_startpos.glb',
+        road: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
+
+	'Mario Circuit': {
+        file: './Tracks/MarioCircuit/Mario_Circuit.glb',
+		preview: '/Previews/Mario Circuit.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/MarioCircuit/Mario_Circuit_checkpoints.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_GCN_MARIO_CIRCUIT',
+		itemBoxes: './Tracks/MarioCircuit/Mario_Circuit_itembox.glb',
+        gridpos: './Tracks/MarioCircuit/Mario_Circuit_startpos.glb',
+        road: './Tracks/MarioCircuit/Mario_Circuit_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
+
+	'DS Desert Hills': {
+        file: './Tracks/DSDesertHills/DSDesertHills.glb',
+		preview: '/Previews/DS Desert Hills.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/DSDesertHills/DSDesertHills_checkpos.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_DS_DESERT_HILLS',
+		itemBoxes: './Tracks/DSDesertHills/DSDesertHills_itembox.glb',
+        gridpos: './Tracks/DSDesertHills/DSDesertHills_startpos.glb',
+        road: './Tracks/DSDesertHills/DSDesertHills_road.glb',
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+    },
+
+	'Dry Dry Ruins': {
+        file: './Tracks/DryDryRuins/DryDryRuins.glb',
+		preview: '/Previews/Dry Dry Ruins.png',
+        startPos: [0, 0, 50],
+        checkpoints: './Tracks/DryDryRuins/DryDryRuins_checkpos.glb',
+        maxCheckpoints: 3,
+        soundtrack: 'RACE_DRY_DRY_RUINS',
+		itemBoxes: './Tracks/DryDryRuins/DryDryRuins_itembox.glb',
+        gridpos: './Tracks/DryDryRuins/DryDryRuins_startpos.glb',
+        road: './Tracks/DryDryRuins/DryDryRuins_road.glb',
 		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
 }
+
+export const grandPrixList = [
+		{
+			id: 'mushroom',
+			name: 'Mushroom Cup',
+			trophy: '/Trophies/MushroomCup.glb', // Sostituibile con lo sprite del trofeo del Mushroom Cup
+			icon: <img src="/itemSprites/Mushroom.png" alt="Mushroom Cup" className="w-30 h-30" />, // Sostituibile con <img src="/sprites/mushroom_cup.png" /> se hai lo sprite
+			bgColor: 'from-[#ff4444] to-[#aa0000]',
+			ringColor: 'ring-[#ff8888]',
+			tracks: [
+				"Luigi Circuit",
+				"Moo Moo Meadows",
+				"Delfino Square",
+				"Daisy Circuit"
+			]
+		},
+		{
+			id: 'shell',
+			name: 'Shell Cup',
+			trophy: '/Trophies/ShellCup.glb', // Sostituibile con lo sprite del trofeo della Shell Cup
+			icon: <img src="/itemSprites/GreenShell.png" alt="Shell Cup" className="w-30 h-30" />, // Sostituibile con lo sprite del guscio verde
+			bgColor: 'from-[#44cc44] to-[#008800]',
+			ringColor: 'ring-[#88ff88]',
+			tracks: [
+				"SNES Mario Circuit",
+				"Yoshi Falls",
+				"Peach Gardens",
+				"GCN Mario Circuit"
+			]
+		},
+		{
+			id: 'banana',
+			name: 'Banana Cup',
+			trophy: '/Trophies/BananaCup.glb', // Sostituibile con lo sprite del trofeo del Banana Cup
+			icon: <img src="/itemSprites/Banana.png" alt="Banana Cup" className="w-30 h-30" />, // Sostituibile con lo sprite della banana
+			bgColor: 'from-[#ffcc00] to-[#ff9900]',
+			ringColor: 'ring-[#ffff00]',
+			tracks: [
+				"DS Desert Hills",
+				"N64 Mario Raceway",
+				"Mario Circuit",
+				"Dry Dry Ruins",
+			]
+		},
+];
+
 
 export const Characters = [
 	// === RIGA 1: PICCOLI (Baby) ===
@@ -908,11 +1020,16 @@ export const AUDIO_TRACKS = {
     RACE_DAISY_CIRCUIT: '/soundTracks/DAISY_CIRCUIT_ST.mp3',
     RACE_LUIGI_CIRCUIT: '/soundTracks/LUIGI_CIRCUIT_ST.mp3',
     RACE_COCONUT_MALL: '/soundTracks/COCONUT_MALL_ST.mp3',
+	RACE_SNES_MARIO_CIRCUIT: '/soundTracks/SNES_MARIO_CIRCUIT3_ST.mp3',
+	RACE_N64_MARIO_RACEWAY: '/soundTracks/N64_MARIO_RACEWAY_ST.mp3',
+	RACE_GCN_MARIO_CIRCUIT: '/soundTracks/GCN_MARIO_CIRCUIT_ST.mp3',
     RACE_DELPHINO_SQUARE: '/soundTracks/DELPHINO_SQUARE_ST.mp3',
     RACE_YOSHI_FALLS: '/soundTracks/YOSHI_FALLS_ST.mp3',
+	RACE_DS_DESERT_HILLS: '/soundTracks/DS_DESERT_HILLS_ST.mp3',
     RACE_MOO_MOO_MEADOWS: '/soundTracks/MOO_MOO_MEADOWS_ST.mp3',
 	RACE_BOWSER_CASTLE: '/soundTracks/BOWSER_CASTLE_ST.mp3',
 	RACE_PEACH_GARDENS: '/soundTracks/PEACH_GARDENS_ST.mp3',
+	RACE_DRY_DRY_RUINS: '/soundTracks/DRY_DRY_RUINS_ST.mp3',
 	FINISH_FIRST: '/soundTracks/FINISH_1ST.mp3',
 	FINISH_SECOND_FOURTH: '/soundTracks/FINISH_2ND-4TH.mp3',
 	FINISH_FIFTH_TWELFTH: '/soundTracks/FINISH_5TH-12TH.mp3',

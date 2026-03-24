@@ -7,8 +7,13 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { GameService } from './game.service';
+import { GameService, Player } from './game.service';
 import { getLocalIpAddress } from 'src/utils';
+import { UsersService } from 'src/users/users.service';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { RoomData, RoomPlayer, Quaternion, Vector3, Track, Bot } from 'src/types';
+import type { ItemIdPayload, MoveKartPayload, RoomCodePayload, RoomUserPayload, SpawnItemPayload, StartRacePayload, SyncGameStatePayload } from 'src/socket-payloads';
 
 const myIP = getLocalIpAddress();
 
@@ -34,18 +39,15 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   @WebSocketServer()
   server!: Server;
 
-  constructor(private readonly gameService: GameService) {}
+  constructor(
+    private readonly gameService: GameService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
   private items = new Map<string, any>();
-  private roomData = new Map<string, { 
-    roomCode: string,
-    roomId: string,
-    hostId: string, 
-    players: any[], 
-    bots: any[], 
-    gameState: string,
-    selectedTrack?: any 
-  }>();
+  private roomData = new Map<string, RoomData>();
   
   // Map socket.id -> roomCode
   private playerRoomMap = new Map<string, string>();
@@ -68,9 +70,28 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }, 1000 / 60);
   }
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     console.log(`Player connected: ${client.id}`);
-    
+    const token = client.handshake.auth.token;
+
+    if (token) {
+      try {
+        const secret = this.configService.get<string>('JWT_SECRET');
+        const payload = this.jwtService.verify(token, { secret });
+        
+        const username = payload.username;
+
+        await this.usersService.updateSocketAndLoginStatus(username, client.id, true);
+        
+        client.data.username = username;
+        
+        // console.log(`Utente autenticato: ${username} con socket ${client.id}`);
+      } catch (error) {
+        console.error(`Token non valido per ${client.id}:`, error);
+        client.emit('unauthorized', { message: 'Token scaduto o non valido' });
+        client.disconnect();
+      }
+    }
     this.gameService.updatePlayer(client.id, { 
       id: client.id, 
       x: 0, 
@@ -80,9 +101,23 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
   }
 
-  handleDisconnect(client: Socket) {
+ async handleDisconnect(client: Socket) {
     console.log(`Player left: ${client.id}`);
     this.gameService.removePlayer(client.id);
+
+    const username = client.data.username;
+
+    if (username) {
+      try {
+        await this.usersService.updateLoginStatus(username, false);
+      } catch (error) {
+        console.error(`Errore nel DB durante la disconnessione di ${username}`, error);
+      }
+    } else {
+      try {
+        await this.usersService.updateLoginStatusBySocketId(client.id, false);
+      } catch (e) {console.error(`No user found for socket ${client.id}:`, e);}
+    }
 
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
@@ -93,35 +128,43 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       const room = this.roomData.get(roomCode);
       if (!room) return;
       
-      room.players = room.players.filter(p => p.id !== client.id);
-
-      if (room.hostId === client.id && room.players.length > 0) {
-        room.hostId = room.players[0].id;
-        room.players[0].isHost = true;
-        console.log(`New host for room ${roomCode} (${room.roomId}): ${room.hostId}`);
-      }
-
-      if (room.players.length === 0) {
-        // Rimuovi anche i bot dal game service
+      if (room.hostId === client.id) {
+        console.log(`Host disconnected. Closing room ${roomCode} (${room.roomId})`);
+        
+        // Avvisiamo gli altri client nella stanza
+        this.server.to(roomCode).emit('room_closed', { message: 'The host has left the game.' });
+        
+        // Pulizia dati
         (room.bots || []).forEach(bot => this.gameService.removePlayer(bot.id));
+        room.players.forEach(p => this.playerRoomMap.delete(p.id));
         this.roomIdToCode.delete(room.roomId);
         this.roomData.delete(roomCode);
-        console.log(`Room ${roomCode} (${room.roomId}) deleted`);
+        this.server.socketsLeave(roomCode);
       } else {
-        this.server.to(roomCode).emit('room_state', {
-          roomCode: room.roomCode,
-          roomId: room.roomId,
-          hostId: room.hostId,
-          players: room.players,
-          gameState: room.gameState,
-          selectedTrack: room.selectedTrack
-        });
+        // Un GIOCATORE NORMALE è uscito
+        room.players = room.players.filter(p => p.id !== client.id);
+
+        if (room.players.length === 0) {
+          (room.bots || []).forEach(bot => this.gameService.removePlayer(bot.id));
+          this.roomIdToCode.delete(room.roomId);
+          this.roomData.delete(roomCode);
+          console.log(`Room ${roomCode} (${room.roomId}) deleted`);
+        } else {
+          this.server.to(roomCode).emit('room_state', {
+            roomCode: room.roomCode,
+            roomId: room.roomId,
+            hostId: room.hostId,
+            players: room.players,
+            gameState: room.gameState,
+            selectedTrack: room.selectedTrack
+          });
+        }
       }
     }
   }
 
   @SubscribeMessage('move_kart')
-  handleMove(client: Socket, payload: any) {
+  handleMove(client: Socket, payload: MoveKartPayload) {
     this.gameService.updatePlayer(client.id, payload);
   }
 
@@ -134,7 +177,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('bot_update')
-  handleBotUpdate(client: Socket, payload: { botId: string, position: any, rotation: any, velocity: any }) {
+  handleBotUpdate(client: Socket, payload: { botId: string, position: Vector3, rotation: Quaternion, velocity: Vector3 }) {
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
     
@@ -151,6 +194,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       isBot: true
     });
   }
+
 
   @SubscribeMessage('set_details')
   handleSetDetails(client: Socket, payload: { charId: string, vehicleId: string }) {
@@ -178,7 +222,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       type: payload.type 
     });
   }
-
+  
   @SubscribeMessage('use_lightning')
   handleLightning(client: Socket, payload: { attackerId: string }) {
     const roomCode = this.playerRoomMap.get(client.id);
@@ -191,16 +235,21 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('spawn_item')
-  handleSpawnItem(client: Socket, payload: any) {
+  handleSpawnItem(client: Socket, payload: SpawnItemPayload) {
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
 
-    const newItem = { ...payload, id: `it_${Date.now()}_${Math.random().toString(36).substr(2,5)}`, ownerId: client.id };
+    // Usiamo l'ID generato dal frontend (payload.id) per mantenere la sincronia
+    const newItem = { 
+      ...payload, 
+      id: payload.id, 
+      ownerId: client.id 
+    };
     client.to(roomCode).emit('item_spawned', newItem);
   }
 
   @SubscribeMessage('remove_item')
-  handleRemoveItem(client: Socket, payload: { itemId: string }) {
+  handleRemoveItem(client: Socket, payload: ItemIdPayload) {
     const roomCode = this.playerRoomMap.get(client.id);
     if (!roomCode) return;
 
@@ -209,7 +258,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('request_room_state')
-  handleRequestRoomState(client: Socket, payload: { roomCode: string }) {
+  handleRequestRoomState(client: Socket, payload: RoomCodePayload) {
     const roomCode = payload?.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) {
       console.log(`Room ${roomCode} not found for ${client.id}`);
@@ -231,7 +280,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('create_room')
-  handleCreateRoom(client: Socket, payload: { roomCode: string , userName: string}) {
+  handleCreateRoom(client: Socket, payload: RoomUserPayload) {
     const roomCode = payload.roomCode;
     const userName = payload.userName || 'Guest';
     
@@ -252,7 +301,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       roomCode: roomCode,
       roomId: roomId,
       hostId: client.id,
-      players: [{ id: client.id, isHost: true, userName: payload.userName || 'Guest' }],
+      players: [{ id: client.id, isHost: true, username: payload.username }],
       bots: [],
       gameState: 'LOBBY'
     });
@@ -274,7 +323,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('join_room')
-  handleJoinRoom(client: Socket, payload: { roomCode: string }) {
+  handleJoinRoom(client: Socket, payload: RoomUserPayload) {
     const roomCode = payload.roomCode;
     
     if (!this.roomData.has(roomCode)) {
@@ -292,7 +341,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     client.join(roomCode);
 
-    room.players.push({ id: client.id, isHost: false });
+    room.players.push({ id: client.id, isHost: false, username: payload.username });
     this.playerRoomMap.set(client.id, roomCode);
     
     console.log(`Player ${client.id} joined room ${roomCode} (${room.roomId})`);
@@ -307,8 +356,58 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
   }
 
+  // When the host leaves the room, the room is closed for everyone and all data is cleaned up.
+  @SubscribeMessage('leave_room')
+  handleLeaveRoom(client: Socket, payload: RoomCodePayload) {
+    const roomCode = payload.roomCode;
+    if (!roomCode) return;
+
+    this.playerRoomMap.delete(client.id);
+
+    if (this.roomData.has(roomCode)) {
+      const room = this.roomData.get(roomCode);
+      if (!room) return;
+      
+      if (room.hostId === client.id) {
+        // L'HOST ha abbandonato: Chiudiamo la stanza per tutti
+        console.log(`Host left voluntarily. Closing room ${roomCode} (${room.roomId})`);
+        
+        this.server.to(roomCode).emit('room_closed', { message: 'The host has closed the room.' });
+        
+        (room.bots || []).forEach(bot => this.gameService.removePlayer(bot.id));
+        room.players.forEach(p => this.playerRoomMap.delete(p.id));
+        this.roomIdToCode.delete(room.roomId);
+        this.roomData.delete(roomCode);
+        
+        this.server.socketsLeave(roomCode);
+      } else {
+        // Un GIOCATORE NORMALE ha abbandonato
+        room.players = room.players.filter(p => p.id !== client.id);
+        
+        // Rimuove il client dal canale broadcast della stanza
+        client.leave(roomCode);
+
+        if (room.players.length === 0) {
+          (room.bots || []).forEach(bot => this.gameService.removePlayer(bot.id));
+          this.roomIdToCode.delete(room.roomId);
+          this.roomData.delete(roomCode);
+          console.log(`Room ${roomCode} (${room.roomId}) deleted`);
+        } else {
+          this.server.to(roomCode).emit('room_state', {
+            roomCode: room.roomCode,
+            roomId: room.roomId,
+            hostId: room.hostId,
+            players: room.players,
+            gameState: room.gameState,
+            selectedTrack: room.selectedTrack
+          });
+        }
+      }
+    }
+  }
+
   @SubscribeMessage('select_track')
-  handleSelectTrack(client: Socket, payload: { roomCode: string, track: any }) {
+  handleSelectTrack(client: Socket, payload: { roomCode: string, track: Track }) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
@@ -332,7 +431,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('start_game')
-  handleStartGame(client: Socket, payload: { roomCode: string }) {
+  handleStartGame(client: Socket, payload: RoomCodePayload) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
@@ -354,7 +453,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('waiting_for_track')
-  handleWaitingForTrack(client: Socket, payload: { roomCode: string }) {
+  handleWaitingForTrack(client: Socket, payload: RoomCodePayload) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
@@ -379,7 +478,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('start_race')
-  handleStartRace(client: Socket, payload: { bots: any[], roomCode: string }) {
+  handleStartRace(client: Socket, payload: StartRacePayload) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 
@@ -417,7 +516,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('sync_game_state')
-  handleSyncGameState(client: Socket, payload: { gameState: string, countdown?: any, roomCode: string }) {
+  handleSyncGameState(client: Socket, payload: SyncGameStatePayload) {
     const roomCode = payload.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) return;
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
-import { Characters, VEHICLE_DATABASE, Tracks } from './components/Data'
+import { Characters, VEHICLE_DATABASE, Tracks, grandPrixList } from './components/Data'
 import { CharacterSelection } from './Scenes/CharacterSelection'
 import { VehicleSelection } from './Scenes/VehicleSelection'
 import { TrackSelection } from './Scenes/TrackSelection'
@@ -14,6 +14,10 @@ import { MainMenu } from './Scenes/MainMenu.jsx'
 import { Register } from './Scenes/Register.jsx'
 import { Login } from './Scenes/Login.jsx'
 import { Profile } from './Scenes/ProfilePage.jsx'
+import { SinglePlayer } from './Scenes/SinglePlayer.jsx'
+import { GrandPrix } from './Scenes/GrandPrix.jsx'
+import { WinScene } from './Scenes/WinScene.jsx'
+import { Friends } from './Scenes/Friends.jsx'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -121,31 +125,87 @@ export default function App() {
     const [SelectedVehicle, setSelectedVehicle] = useState(VEHICLE_DATABASE.StandardKartS)
     const [SelectedTrack, setSelectedTrack] = useState(Tracks['Daisy Circuit'])
     
+    // State for Grand Prix
+    const [selectedGrandPrix, setSelectedGrandPrix] = useState(grandPrixList[0])
+
     // Room state
     const [roomCode, setRoomCode] = useState(null)
     const [roomId, setRoomId] = useState(null)
     const [isHost, setIsHost] = useState(false)
 
-    const [isLoggedIn, setIsLoggedIn] = useState(() => {
-        return sessionStorage.getItem('isLoggedIn') === 'true';
-    });
+    const [ccsSpeed, setCcsSpeed] = useState(40)
 
-    const [userName, setUsername] = useState(() => {
-        return sessionStorage.getItem('userName') || null; 
-    });
+    const [ hostLeft, setHostLeft ] = useState(false) 
+
+    const [isTimeTrial, setIsTimeTrial] = useState(false)
+    const [isGrandPrix, setIsGrandPrix] = useState(false)
+
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userName, setUsername] = useState(null);
+
+    const [ raceResults, setRaceResults ] = useState([SelectedCharacter, Characters[9], Characters[16], Characters[3], Characters[4], Characters[5], Characters[6], Characters[7], Characters[8], Characters[1], Characters[10], Characters[11]]);
+
+    useEffect(() => {
+        const fetchLoginStatus = async () => {
+            if (!socket || !socket.id) return;
+            
+            try {
+                const response = await fetch(`/api/getIsLoggedIn?socketId=${socket.id}`);
+                const text = await response.text();
+
+
+                const user = text ? JSON.parse(text) : null;
+
+                if (user && user.isLoggedIn) {
+                    setIsLoggedIn(true);
+                    setUsername(user.username);
+                } else {
+                    setIsLoggedIn(false);
+                    setUsername(null);
+                }
+            } catch (error) {
+                console.error('Errore nel recupero dello stato di login:', error);
+            }
+        };
+
+        socket.on('connect', fetchLoginStatus);
+
+        if (socket.connected) {
+            fetchLoginStatus();
+        }
+
+        return () => {
+            socket.off('connect', fetchLoginStatus);
+        };
+    }, []);
 
     const handleLogin = (user) => {
-        sessionStorage.setItem('isLoggedIn', 'true');
         if(user) {
-            sessionStorage.setItem('userName', user);
             setUsername(user);
         }
         setIsLoggedIn(true);
     };
 
-    const handleLogout = () => {
-        sessionStorage.setItem('isLoggedIn', 'false');
-        sessionStorage.removeItem('userName');
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username: userName }),
+            });
+            
+            sessionStorage.removeItem('accessToken');
+            
+            if (socket) {
+                socket.disconnect();
+                socket.connect();
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+        
         setUsername(null);
         setIsLoggedIn(false);
     };
@@ -165,16 +225,27 @@ export default function App() {
         return () => socket.off('room_state', handleRoomState);
     }, []);
 
-    const handleCreateRoom = (code) => {
+    const handleCreateRoom = (code, username) => {
         setRoomCode(code);
         setIsHost(true);
-        socket.emit('create_room', { roomCode: code , userName: userName || 'Guest' });
+        socket.emit('create_room', { roomCode: code, username: username });
     };
 
-    const handleJoinRoom = (code) => {
+    const handleJoinRoom = (code, username) => {
         setRoomCode(code);
         setIsHost(false);
-        socket.emit('join_room', { roomCode: code , userName: userName || 'Guest' });
+        socket.emit('join_room', { roomCode: code, username: username });
+    };
+
+    const resetRoomState = () => {
+        setRoomCode('');
+        setRoomId('');
+        setIsHost(false);
+        setSelectedTrack(Tracks['Daisy Circuit']);
+        setSelectedCharacter(Characters[0]);
+        setSelectedVehicle(VEHICLE_DATABASE.StandardKartS);
+        setIsGrandPrix(false);
+        setIsTimeTrial(false);
     };
 
     return (
@@ -186,7 +257,7 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
 
-                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} />} /> {/* mettere true loggedIn per testare le gare */}
+                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} hostLeft={hostLeft} setHostLeft={setHostLeft} />} /> {/* mettere true loggedIn per testare le gare */}
 
                         <Route path="/room" element={
                             <RoomSelection 
@@ -194,6 +265,8 @@ export default function App() {
                                 onJoinRoom={handleJoinRoom}
                                 socket={socket}
                                 setSelectedTrack={setSelectedTrack}
+                                username={userName}
+                                loggedIn={isLoggedIn}
                             />
                         } />
                         
@@ -202,16 +275,20 @@ export default function App() {
                         } />
 
                         <Route path="/register" element={
-                            <Register onRegistrationSuccess={handleLogin} setUsername={setUsername}/>
+                            <Register onRegistrationSuccess={handleLogin} setUsername={setUsername} socket={socket}/>
                         } />
 
                         <Route path="/login" element={
-                            <Login onLoginSuccess={handleLogin} setUsername={setUsername}/>
+                            <Login onLoginSuccess={handleLogin} setUsername={setUsername} socket={socket}/>
                         } />
 
                         <Route path="/profile" element={
-                            <Profile setLoggedIn={handleLogout} userName={userName} isLoggedIn={isLoggedIn}/>
+                            <Profile setLoggedIn={handleLogout} userName={userName} isLoggedIn={isLoggedIn} setUsername={setUsername} socket={socket}/>
                         } />
+
+                        <Route path="/friends" element={
+                            <Friends userName={userName}/>
+                        }/>
 
                         <Route path="/character" element={
                             <CharacterSelection 
@@ -221,10 +298,20 @@ export default function App() {
                             />
                         } />
 
+                        <Route path="/single_player" element={
+                            <SinglePlayer isLoggedIn={isLoggedIn} setIsTimeTrial={setIsTimeTrial} setCcs={setCcsSpeed} setIsGrandPrix={setIsGrandPrix} isGrandPrix={isGrandPrix}
+                            />
+                        } />
+
+						<Route path="/grandprix" element={
+							<GrandPrix setSelectedGrandPrix={setSelectedGrandPrix}/>
+						} />
+
                         <Route path="/vehicle" element={
                             <VehicleSelection 
                                 selectedCharacter={SelectedCharacter}
-                                setSelectedVehicle={setSelectedVehicle} 
+                                setSelectedVehicle={setSelectedVehicle}
+                                isGrandPrix={isGrandPrix}
                             />
                         } />
 
@@ -245,7 +332,13 @@ export default function App() {
                                 socket={socket}
                                 selectedTrack={SelectedTrack}
                                 setSelectedTrack={setSelectedTrack}
+                                resetRoomState={resetRoomState}
+                                setHostLeft={setHostLeft}
                             />
+                        } />
+
+                        <Route path="/endGrandPrix" element={
+                            <WinScene selectedCup={selectedGrandPrix} raceResults={raceResults} socket={socket} setRaceResults={setRaceResults}/>
                         } />
 
                         {['/game', '/debug'].map((path) => (
@@ -265,7 +358,15 @@ export default function App() {
                                         roomCode={roomCode}
                                         roomId={roomId}
                                         isHostProp={isHost}
-                                    />
+                                        isTimeTrial={isTimeTrial}
+                                        ccs={ccsSpeed}
+										username={userName}
+                                        setIsTimeTrial={setIsTimeTrial}
+                                        selectedGrandPrix={selectedGrandPrix.name}
+                                        isGrandPrix={isGrandPrix}
+                                        setIsGrandPrix={setIsGrandPrix}
+                                        setRaceResults={setRaceResults}
+                                    />  
                                 } 
                             />
                         ))}

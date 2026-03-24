@@ -36,7 +36,7 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const MainMenu = ({ loggedIn }) => {
+export const MainMenu = ({ loggedIn, hostLeft, setHostLeft }) => {
     const navigate = useNavigate();    
     const [fadeToBlack, setFadeToBlack] = useState(false);
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack , fadeOutMusic } = useAudio();
@@ -48,6 +48,14 @@ export const MainMenu = ({ loggedIn }) => {
         }
         enableSmoothLoop();
     }, [changeTrack, enableSmoothLoop]);
+
+    useEffect(() => {
+        setTimeout(() => {
+            if (hostLeft) {
+                setHostLeft(false);
+            }
+        }, 3000);
+    }, [hostLeft]);
 
     const handleNavigate = (path) => {
         if (path !== '/') {
@@ -126,7 +134,7 @@ export const MainMenu = ({ loggedIn }) => {
                     {loggedIn && (
                         <div 
                             onClick={() => handleNavigate('/profile')}
-                            className="absolute top-16 right-30 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                            className="absolute top-18 right-28 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
                         >
                             <div className="relative w-14 h-14 md:w-16 md:h-16">
                                 {/* Halo */}
@@ -145,6 +153,32 @@ export const MainMenu = ({ loggedIn }) => {
                             {/* Label 'License' */}
                             <div className="absolute -bottom-2 -right-1 bg-[#008800] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
                                 License
+                            </div>
+                        </div>
+                    )}
+
+                    {loggedIn && (
+                        <div 
+                            onClick={() => handleNavigate('/friends')}
+                            className="absolute top-26 right-52 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                        >
+                            <div className="relative w-14 h-14 md:w-16 md:h-16">
+                                {/* Halo */}
+                                <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
+                                
+                                {/* Cerchio Giallo Lucido */}
+                                <div className="w-full h-full rounded-full bg-gradient-to-b from-[#ffcc00] to-[#aa8800] border-[3px] border-white ring-[3px] ring-[#cc9900] shadow-md flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
+                                    {/* Riflesso */}
+                                    <div className="absolute top-0 left-0 w-full h-[50%] bg-white/40 rounded-b-full"></div>
+                                    <span className="text-3xl text-white drop-shadow-md transform filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
+                                        🌍
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Label 'Friends' */}
+                            <div className="absolute -bottom-2 -right-1 bg-[#aa8800] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
+                                Friends
                             </div>
                         </div>
                     )}
@@ -171,12 +205,25 @@ export const MainMenu = ({ loggedIn }) => {
                     </div>
                 </div>
 
+                {/* Messaggio di Errore (Host Left) */}
+                {hostLeft && (
+                    <div className="absolute top-[20vh] left-0 w-full flex justify-center z-40 animate-pulse px-4 pointer-events-none">
+                        <div className="bg-gradient-to-b from-[#ff6666] to-[#cc0000] border-2 border-white rounded-lg shadow-[0_0_15px_#ff0000] px-6 py-3 flex items-center gap-3 pointer-events-auto">
+                            <div className="bg-white text-[#cc0000] rounded-full w-8 h-8 min-w-[32px] flex items-center justify-center font-black text-xl shadow-inner border border-gray-300">!</div>
+                            <span className="text-white font-bold uppercase tracking-wide drop-shadow-md text-sm md:text-lg">
+                                Host closed the room
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+
                 {/* Lista Pulsanti Centrali */}
                 {loggedIn && (
                     <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full pt-[5vh]">
                         <MenuButton 
                             title="Single Player" 
-                            onClick={() => handleNavigate('/character')}
+                            onClick={() => handleNavigate('/single_player')}
                             bgImage="/buttonsImg/chara_6_peach_00.png"
                         />
                         
@@ -189,6 +236,11 @@ export const MainMenu = ({ loggedIn }) => {
                         <MenuButton 
                             title="Debug Race" 
                             onClick={() => handleNavigate('/debug')} 
+                        />
+
+                        <MenuButton 
+                            title="Debug GP" 
+                            onClick={() => handleNavigate('/endGrandPrix')} 
                         />
                     </div>
                 )}

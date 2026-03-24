@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Login = ({ onLoginSuccess, setUsername }) => {
+export const Login = ({ onLoginSuccess, setUsername, socket }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -23,6 +23,16 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
         setError(null);
 
         try {
+            const checkResponse = await fetch(`/api/checklogin?username=${data.username}`);
+            const checkData = await checkResponse.text();
+            const parsedCheckData = checkData ? JSON.parse(checkData) : null;
+
+            if (parsedCheckData && parsedCheckData.isLoggedIn) {
+                setError("User already logged in");
+                setIsLoading(false);
+                return;
+            }
+
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
@@ -37,24 +47,21 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
                 throw new Error(result.message || 'Login failed');
             }
 
+            sessionStorage.setItem('accessToken', result.token);
+            // Forza Socket.io a riconnettersi con il nuovo token (che include l'username)
+            socket.disconnect();
+            socket.connect();
+
             console.log("Success:", result);
             const finalUsername = result.username;
 
-            sessionStorage.setItem('userName', finalUsername);
-            sessionStorage.setItem('isLoggedIn', 'true');
-
-
-            if (setUsername) {
-                setUsername(finalUsername);
-            }
-
-            if (onLoginSuccess) {
-                onLoginSuccess();
-            }
+            if (setUsername) setUsername(finalUsername);
+            if (onLoginSuccess) onLoginSuccess(finalUsername);
+            
             setTimeout(() => navigate('/menu'), 500);
 
         } catch (err) {
-            console.error('Registration Error:', err);
+            console.error('Login Error:', err);
             setError(err.message);
         } finally {
             setIsLoading(false);
@@ -63,7 +70,7 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        playSfx(AUDIO_SFX.DECIDE);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU);
         
         // Validazione base lato client
         if (!formData.username || !formData.password) {
@@ -73,7 +80,8 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
 
         sendDataToBackend({ 
             username: formData.username,
-            password: formData.password
+            password: formData.password,
+			socketId: socket ? socket.id : null
         });
     };
 
@@ -85,12 +93,12 @@ export const Login = ({ onLoginSuccess, setUsername }) => {
     };
 
     const handleBack = () => {
-        playSfx(AUDIO_SFX.BACK);
+        playSfx(AUDIO_SFX.BACK_IN_MENU);
         navigate('/menu');
     };
 
     const handleInfo = () => {
-        playSfx(AUDIO_SFX.DECIDE);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU);
         navigate('/info');
     };
 

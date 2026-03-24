@@ -113,7 +113,7 @@ export const LobbyScreen = ({ isHost, players = [], onStartRace, roomId }) => {
                                     <div className="flex items-center gap-3 flex-1">
                                         <span className="text-2xl filter drop-shadow-sm">{player.isHost ? '👑' : '🏎️'}</span>
                                         <span className={`text-xl font-bold tracking-wide ${player.isHost ? 'text-[#ffcc00]' : 'text-white'}`}>
-                                            Player {index + 1}
+                                            {player.username || `Player ${index + 1}`}
                                         </span>
                                     </div>
 

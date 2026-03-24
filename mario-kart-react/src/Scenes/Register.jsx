@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Register = ({ onRegistrationSuccess, setUsername }) => {
+export const Register = ({ onRegistrationSuccess, setUsername, socket }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -20,7 +20,7 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
 
     const sendDataToBackend = async (data) => {
         setIsLoading(true);
-        setError(null); // Resetta errori precedenti
+        setError(null);
 
         try {
             const response = await fetch('/api/register', {
@@ -36,18 +36,22 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
             if (!response.ok) {
                 throw new Error(result.message || 'Registration failed');
             }
+            
+            sessionStorage.setItem('accessToken', result.token);
+            // Forza Socket.io a riconnettersi con il nuovo token (che include l'username)
+            socket.disconnect();
+            socket.connect();
+
 
             console.log("Success:", result);
             const finalUsername = result.username;
 
-            sessionStorage.setItem('userName', finalUsername);
-            sessionStorage.setItem('isLoggedIn', 'true');
-
             if (setUsername) {
                 setUsername(finalUsername);
             }
+
             if (onRegistrationSuccess) {
-                onRegistrationSuccess();
+                onRegistrationSuccess(finalUsername);
             }
             
             setTimeout(() => navigate('/menu'), 500);
@@ -62,7 +66,7 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        playSfx(AUDIO_SFX.DECIDE);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU);
         
         // Validazione base lato client
         if (!formData.username || !formData.email || !formData.password) {
@@ -73,7 +77,8 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
         sendDataToBackend({ 
             username: formData.username, 
             email: formData.email, 
-            password: formData.password
+            password: formData.password,
+			socketId: socket ? socket.id : null
         });
     };
 
@@ -85,12 +90,12 @@ export const Register = ({ onRegistrationSuccess, setUsername }) => {
     };
 
     const handleBack = () => {
-        playSfx(AUDIO_SFX.BACK);
+        playSfx(AUDIO_SFX.BACK_IN_MENU);
         navigate('/menu');
     };
 
     const handleInfo = () => {
-        playSfx(AUDIO_SFX.DECIDE);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU);
         navigate('/info');
     };
 

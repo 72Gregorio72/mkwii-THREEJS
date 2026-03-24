@@ -1,14 +1,17 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect, Suspense } from 'react'
-import { Canvas, useThree, useFrame } from '@react-three/fiber'
+import { Canvas, useThree, useFrame, extend } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Environment, PerspectiveCamera, Stats, useGLTF } from '@react-three/drei'
 import { useNavigate } from 'react-router-dom' // <--- 1. IMPORT ROUTING
 import * as THREE from 'three'
 
+// Register Three.js objects with React Three Fiber
+extend({ SphereGeometry: THREE.SphereGeometry, MeshBasicMaterial: THREE.MeshBasicMaterial, LineBasicMaterial: THREE.LineBasicMaterial })
+
 // --- IMPORTS INTERNI ---
 import { SmartMap } from '../Tracks/SmartMap'
 import { OutsideDriftKart } from '../components/OutsideDriftKart'
-import { InsideDriftBike } from '../components/InsideDriftBike'
+// import { InsideDriftBike } from '../components/InsideDriftBike'
 import { CheckpointSystem } from '../Race/CheckPointManager.jsx'
 import { RaceManager } from '../Race/RaceManager.jsx'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
@@ -20,7 +23,7 @@ import { Minimap } from '../ui/Minimap.jsx'
 import { ItemBoxesMap } from '../Items/ItemBoxes.jsx'
 import { NetworkManager } from '../multiplayer/NetworkManager.jsx'
 import { RemoteOpponent } from '../multiplayer/RemoteOpponent.jsx'
-import { VEHICLE_DATABASE, Characters } from '../components/Data.jsx'
+import { VEHICLE_DATABASE, Characters, grandPrixList, Tracks } from '../components/Data.jsx'
 import { LightningAtmosphere } from '../components/effects/LightningAtmosphere.jsx'
 
 // --- IMPORTS ITEMS ---
@@ -31,50 +34,13 @@ import { BobOmb } from '../Items/BobOmb.jsx'
 import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
 import { useWebGLContext, useWebGLMemoryMonitor } from '../utils/WebGLContextManager.jsx';
 import { gsap } from 'gsap'
-
+import { CustomWiiSky } from '../components/CustomeWiiSky.jsx'
+import { OutsideDriftBike } from '../components/OutsideDriftBike.jsx'
+import { WaypointRecorder } from '../Bot/WaypointRecorder.jsx'
+import { WaypointVisualizer} from '../Bot/WaypointVisualizer.jsx'
+ 
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
-
-// --- HELPERS ---
-
-function WaypointsVisualizer({ waypoints, color = 'blue' }) {
-	// Converti waypoints in Vector3 (gestisce sia formato [x,y,z] che {x,y,z})
-	const points = waypoints.map(point => {
-		if (Array.isArray(point)) {
-			return new THREE.Vector3(point[0], point[1], point[2]);
-		} else {
-			return new THREE.Vector3(point.x, point.y, point.z);
-		}
-	});
-	
-	// Chiudi il loop: aggiungi il primo punto alla fine
-	points.push(points[0].clone());
-	
-	const geometry = new THREE.BufferGeometry().setFromPoints(points);
-
-	return (
-		<group>
-			{/* Linea continua tra i waypoints */}
-			<line geometry={geometry}>
-				<lineBasicMaterial color={color} linewidth={3} />
-			</line>
-			
-			{/* Sfere sui punti waypoint (opzionale, più piccole) */}
-			{waypoints.map((point, index) => {
-				const pos = Array.isArray(point) 
-					? [point[0], point[1], point[2]]
-					: [point.x, point.y, point.z];
-					
-				return (
-					<mesh key={index} position={pos}>
-						<sphereGeometry args={[0.15, 6, 6]} />
-						<meshBasicMaterial color={color} />
-					</mesh>
-				);
-			})}
-		</group>
-	);
-}
 
 // Fallback matematico per la griglia se non esiste nel GLB
 function getGridPosition(startPos, index) {
@@ -172,34 +138,57 @@ function BotSynchronizer({ socket, isHost, botRefs, remoteBots }) {
     return null;
 }
 
-// Hook per estrarre posizioni e rotazioni dai nodi "start_X" del GLB
 function useGridPositions(url) {
-    const { scene } = useGLTF(url || ""); // Gestione caso url nullo
+    const { scene } = useGLTF(url || ""); 
     
     const gridData = useMemo(() => {
-        if (!url) return { positions: {}, rotations: {} };
+        if (!url || !scene) return { positions: {}, rotations: {}, url: null }; 
 
         const positions = {};
         const rotations = {};
+        let foundCount = 0;
+        const nodeNames = []; // Array per il debug
+
+        scene.updateMatrixWorld(true);
 
         scene.traverse((obj) => {
-            if (obj.name.startsWith('start_')) {
-                const parts = obj.name.split('_');
-                const index = parseInt(parts[1]);
+            nodeNames.push(obj.name);
+            const nameLower = obj.name.toLowerCase();
+            
+            const match = nameLower.match(/(?:start|spawn|pos|grid).*?(\d+)/);
 
-                if (!isNaN(index)) {
-                    positions[index] = [obj.position.x, obj.position.y, obj.position.z];
-                    const euler = new THREE.Euler().setFromQuaternion(obj.quaternion);
+            if (match && !nameLower.includes("scene")) {
+                const index = parseInt(match[1], 10);
+
+                const worldPos = new THREE.Vector3();
+                const worldQuat = new THREE.Quaternion();
+                
+                obj.getWorldPosition(worldPos);
+                obj.getWorldQuaternion(worldQuat);
+
+                // Evitiamo di sovrascrivere se il nodo padre e il figlio (mesh) hanno lo stesso numero
+                if (!positions[index]) {
+                    positions[index] = [worldPos.x, worldPos.y, worldPos.z];
+                    
+                    const euler = new THREE.Euler().setFromQuaternion(worldQuat);
                     rotations[index] = [euler.x, euler.y, euler.z];
+                    foundCount++;
                 }
             }
         });
-        return { positions, rotations };
+        
+        if (foundCount === 0) {
+            // console.error(`❌ [Griglia] NESSUNA POSIZIONE TROVATA in ${url}!`);
+            console.warn(`Nomi dei nodi presenti nel file (controllali in Blender):`, nodeNames.filter(n => n.length > 0));
+        } else {
+            // console.log(`✅ [Griglia] Trovate ${foundCount} posizioni in ${url}`);
+        }
+
+        return { positions, rotations, url }; 
     }, [scene, url]);
 
     return gridData;
 }
-
 // Funzione per generare configurazioni bot random e uniche
 function generateBotConfigurations(botCount, playerCharacter, playerVehicle) {
     const usedCharacters = new Set([playerCharacter.id]);
@@ -256,16 +245,54 @@ export function GameScene({
     selectedTrack,
     roomCode = null,
     roomId = null,
-    isHostProp = false
+    isHostProp = false,
+    isTimeTrial,
+    setIsTimeTrial,
+    ccs,
+    username,
+    selectedGrandPrix,
+    isGrandPrix,
+    setIsGrandPrix,
+    setRaceResults
 }) {
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
 
+    // --- GESTIONE GRAND PRIX DINAMICA ---
+    const [gpTrackIndex, setGpTrackIndex] = useState(0);
+
+    // 1. Trova l'oggetto completo del Grand Prix usando la stringa passata (id o nome)
+    const currentGrandPrixObj = useMemo(() => {
+        if (!isGrandPrix || !selectedGrandPrix) return null;
+        // Cerca per id (es. 'mushroom') o per nome come fallback
+        return grandPrixList.find(gp => gp.id === selectedGrandPrix || gp.name === selectedGrandPrix);
+    }, [isGrandPrix, selectedGrandPrix]);
+
+    // 2. Ora usa currentGrandPrixObj invece della stringa selectedGrandPrix
+    const activeTrackConfig = useMemo(() => {
+        if (isGrandPrix && currentGrandPrixObj?.tracks) {
+            const trackName = currentGrandPrixObj.tracks[gpTrackIndex];
+            return { name: trackName, ...Tracks[trackName] };
+        }
+        return { name: selectedTrack?.name || 'SingleRace', ...selectedTrack };
+    }, [isGrandPrix, currentGrandPrixObj, gpTrackIndex, selectedTrack]);
+
+    const activeMapPath = activeTrackConfig?.file || mapPath;
+    const activeCheckpointPath = activeTrackConfig?.checkpoints || checkpointPath;
+    const activeStartPos = activeTrackConfig?.startPos || start_pos;
+    const activeMaxCheckpoints = activeTrackConfig?.maxCheckpoints || maxCheckpoints;
+
+    const raceStartTime = useRef(null);
+
+    // Aggiungi questo stato sotto a quello di "gameState"
+    const [isTransitioning, setIsTransitioning] = useState(false);
+	const [raceAttempt, setRaceAttempt] = useState(0);
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
-    const { positions: gridPositions, rotations: gridRotations } = useGridPositions(selectedTrack?.gridpos);
+    const { positions: gridPositions, rotations: gridRotations, url: loadedGridUrl } = useGridPositions(activeTrackConfig?.gridpos);
 
     // Calculate player start position early (before useEffect hooks)
-    const playerStartPos = gridPositions[12] || start_pos; 
+    const fallbackStartPos = activeStartPos || [0, 0, 0];
+    const playerStartPos = isTimeTrial ? (gridPositions[1] || fallbackStartPos) : (gridPositions[12] || fallbackStartPos);
     const playerStartRot = gridRotations[12] || [0, Math.PI / 2, 0];
 
     // Lobby state
@@ -279,7 +306,7 @@ export function GameScene({
         return generateBotConfigurations(BOT_COUNT, character, vehicle);
     }, [roomCode, character, vehicle]);
 
-    const [gameState, setGameState] = useState(roomCode ? 'LOBBY' : 'INTRO'); // Se no room, parte subito
+    const [gameState, setGameState] = useState(roomCode ? 'LOBBY' : isTimeTrial ? 'COUNTDOWN' : 'INTRO'); // Se no room, parte subito
     const [countdown, setCountdown] = useState(null);
     const [finished, setFinished] = useState(false);
     const [raceExited, setRaceExited] = useState(false);
@@ -287,6 +314,8 @@ export function GameScene({
 
     const [networkItems, setNetworkItems] = useState([]);
     const itemIdCounter = useRef(0);
+
+    const [restartTrigger, setRestartTrigger] = useState(0);
 
     const handleRequestSpawn = useCallback((type, position, velocity, extra = {}) => {
         const getCoords = (val) => {
@@ -333,7 +362,7 @@ export function GameScene({
     const { initialRacersData, initialPositions } = useMemo(() => {
         const data = {};
         // Usa socket.id come chiave invece di 'player'
-        data[socket.id] = { id: socket.id, lap: 1, nextCP: 1, score: 0, position: 1, name: character.name };
+        data[socket.id] = { id: socket.id, lap: 1, nextCP: 1, score: 0, position: 1, name: character.name, points: 0 };
         const positions = [{ id: socket.id, position: 1 }]; // Player parte primo in multiplayer
         
         // In multiplayer (roomCode presente) non creiamo bot
@@ -341,18 +370,18 @@ export function GameScene({
         if (!roomCode && botConfigurations.length > 0) {
             botConfigurations.forEach((botConfig, i) => {
                 const botId = botConfig.character.id;
-                data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0, position: i + 2, name: botConfig.character.name };
+                data[botId] = { id: botId, lap: 1, nextCP: 1, score: 0, position: i + 2, name: botConfig.character.name, points: 0 };
                 positions.push({ id: botId, position: i + 2 });
             });
         }
 
         return { initialRacersData: data, initialPositions: positions };
-    }, [roomCode, botConfigurations, character]);
+    }, [roomCode, botConfigurations, character, socket.id]);
 
-	const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
-	const startingGridPlayed = useRef(false);
-	const introMusicPlayed = useRef(false);
-	const isFinalLap = useRef(false);
+    const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
+    const startingGridPlayed = useRef(false);
+    const introMusicPlayed = useRef(false);
+    const isFinalLap = useRef(false);
     const introPlayed = useRef(false);
 
     const [positions, setPositions] = useState(initialPositions);
@@ -380,7 +409,7 @@ export function GameScene({
 
         window.addEventListener('item-collected', handleItemCollected);
         return () => window.removeEventListener('item-collected', handleItemCollected);
-    }, [playerRank, positions]);
+    }, [playerRank, positions, socket.id]);
 
     useEffect(() => {
         if (!socket) return;
@@ -414,7 +443,10 @@ export function GameScene({
             
             console.log('Race starting');
             setIsInLobby(false);
-            setGameState('INTRO');
+            if (!isTimeTrial)
+                setGameState('INTRO');
+            else
+                setGameState('COUNTDOWN')
             
             // Start intro animation
             if (!introPlayed.current) {
@@ -452,8 +484,6 @@ export function GameScene({
         socket.on('room_state', handleRoomState);
         socket.on('race_start', handleRaceStart);
         socket.on('game_state_sync', handleGameStateSync);
-
-        // Request initial room state
         socket.emit('request_room_state', { roomCode });
 
         return () => {
@@ -461,7 +491,7 @@ export function GameScene({
             socket.off('race_start', handleRaceStart);
             socket.off('game_state_sync', handleGameStateSync);
         };
-    }, [socket, roomCode, playerStartPos]);
+    }, [socket, roomCode, playerStartPos, isTimeTrial]);
 
     // Handle start race button (host only)
     const handleStartRace = useCallback(() => {
@@ -474,30 +504,36 @@ export function GameScene({
         socket.emit('start_race', { bots: [], roomCode });
     }, [socket, isHost, roomCode]);
 
+    
     useEffect(() => {
-        if (isInLobby || introPlayed.current) return;
-            introPlayed.current = true;
+        // Se siamo in gara o l'intro è già partita (in questo ciclo), esci
+        if (isInLobby || introPlayed.current || gameState === 'RACING' || gameState === 'LOADING') return;
+        
+        introPlayed.current = true;
 
-            // Prima fase: camera iniziale panoramica (0-5 secondi)
-            gsap.fromTo(cameraTarget.current, 
-                { x: 0, y: 0, z: 0 }, 
-                { x: 0, y: 8, z: 0, duration: 5 }
-            );
+        // Assicurati di uccidere vecchie animazioni pendenti in caso di riavvio rapido
+        gsap.killTweensOf(cameraTarget.current);
 
-            const timeline = gsap.timeline({
-                onComplete: () => startCountdown()
-            });
+        gsap.fromTo(cameraTarget.current, 
+            { x: 0, y: 0, z: 0 }, 
+            { x: 0, y: 8, z: 0, duration: 5 }
+        );
 
-            // Seconda fase: avvicinamento al player (5-12 secondi = 7 secondi)
-            timeline.to(cameraTarget.current, {
-                x: playerStartPos[0],
-                y: playerStartPos[1] + 2,
-                z: playerStartPos[2],
-                duration: 7,
-                ease: "power2.inOut",
-                delay: 5  // Inizia dopo la prima fase
-            });
-    }, []);
+        const timeline = gsap.timeline({
+            onComplete: () => startCountdown()
+        });
+
+        timeline.to(cameraTarget.current, {
+            x: playerStartPos[0],
+            y: playerStartPos[1] + 2,
+            z: playerStartPos[2],
+            duration: 7,
+            ease: "power2.inOut",
+            delay: 5
+        });
+        
+    // AGGIUNGI restartTrigger QUI
+    }, [isInLobby, playerStartPos, restartTrigger, gameState]);
 
     const startCountdown = () => {
         setGameState('COUNTDOWN');
@@ -517,6 +553,7 @@ export function GameScene({
                     playSfx(AUDIO_SFX.FINISH_COUNTDOWN, 5);
                     setCountdown('START!');
                     setGameState('RACING');
+                    raceStartTime.current = Date.now();
                 } else {
                     setCountdown(null);
                     clearInterval(interval);
@@ -610,7 +647,7 @@ export function GameScene({
                 delete racersData.current[id];
             }
         });
-    }, [opponents]);
+    }, [opponents, botConfigurations, socket.id]);
 
     // 5. AUDIO & LOGICA DI GIOCO
     const { changeTrack, playSfx, stopMusic, setMusicPitch , playMusicOnce} = useAudio();
@@ -640,111 +677,129 @@ export function GameScene({
             return;
         }
         
-        // Avvia la musica della gara solo una volta
-        if (!racingMusicStarted.current && selectedTrack?.soundtrack) {
+        // Avvia la musica della gara solo una volta (Usa activeTrackConfig!)
+        if (!racingMusicStarted.current && activeTrackConfig?.soundtrack) {
             stopMusic();
-            changeTrack(selectedTrack.soundtrack, 0, true);
+            changeTrack(activeTrackConfig.soundtrack, 0, true);
             racingMusicStarted.current = true;
         }
         
-        // Non c'è più cleanup che chiama stopMusic durante RACING
-    }, [selectedTrack, changeTrack, gameState, finished, stopMusic, setMusicPitch, playMusicOnce]);
+    }, [activeTrackConfig, changeTrack, gameState, finished, stopMusic, setMusicPitch, playMusicOnce]);
+
+    // Update wins
+    const sendWinToServer = useCallback((isOffline) => {
+        if (!username) return;
+        fetch(`/api/updateWins?userName=${username}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ onlyOffline: isOffline })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Wins updated:', data);
+        })
+        .catch(error => {
+            console.error('Error updating wins:', error);
+        });
+    }, [username]);
+
 
     // Checkpoint Trigger
-	const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
-		if (!racerId || !racersData.current[racerId]) return;
-		const racer = racersData.current[racerId];
-		console.log(`[Checkpoint] Racer ${racerId} hit checkpoint ${hitIndex}, expected ${racer.nextCP}`);
-		
-		if (hitIndex === racer.nextCP && hitIndex !== 0) {
-			racer.nextCP += 1;
-			if (racerId === socket.id) setNextCheck(racer.nextCP);
-		} 
-		else if (hitIndex === 0 && racer.nextCP > maxCheckpoints) {
-			racer.lap += 1;
-			console.log(`[Checkpoint] Racer ${racerId} completed lap ${racer.lap - 1}, now on lap ${racer.lap}`);
-			
-			// Aggiorna UI se è il player
-			if (racerId === socket.id) {
-				setUiLap(racer.lap);
-				
-				// Invia lap aggiornato via socket
-				if (roomCode) {
-					socket.emit('update_lap', { lap: racer.lap });
-				}
-				
-				if (racer.lap === 2) {
-					playSfx(AUDIO_SFX.SECOND_LAP, 3);
-				}
-				else if (racer.lap === 3) {
-					isFinalLap.current = true;
-					playSfx(AUDIO_SFX.FINAL_LAP, 3);
-					setMusicPitch(1.10, 1.10, 2000);
-					setTimeout(() => {
-						setMusicPitch(1.15, 1.15, 2000);
-					}, 100);
-				}
-			}
-			
-			racer.nextCP = 1;
-			
-			// Check if racer finished the race
-			if (racer.lap > TOTAL_LAPS) {
-				// Add to finishers list
-				setFinishers(prev => {
-					// Check if already in the list
-					if (prev.some(f => f.id === racerId)) return prev;
-					
-					const finishPosition = prev.length + 1;
-					const finisherEntry = { 
-						id: racerId, 
-						position: finishPosition,
-						finishTime: null,
-						name: racer.name || 'Unknown'
-					};
-					
-					return [...prev, finisherEntry];
-				});
-				
-				if (racerId === socket.id) {
-					setFinished(true);
-					playSfx(AUDIO_SFX.FINISH_RACE, 3);
-					stopMusic();
-                    console.log(`[Race Finished] Player finished in position ${racer.position}`);
-					if (racer.position === 1) {
-                        console.log(`[Race Finished] Player finished first!`);
-						playMusicOnce('FINISH_FIRST', 0);
-					} else if (racer.position >= 2 && racer.position <= 4) {
-                        console.log(`[Race Finished] Player finished in position ${racer.position}, playing second-fourth track`);
-						playMusicOnce('FINISH_SECOND_FOURTH', 0);
-                    } else {
-                        console.log(`[Race Finished] Player finished in position ${racer.position}, playing fifth-twelfth track`);
-						playMusicOnce('FINISH_FIFTH_TWELFTH', 0);
-					}
-				}
-				
-				// Stop bot AI if it's a bot
-				if (!roomCode && botRefs.current[racerId]?.current) {
-					const botRef = botRefs.current[racerId].current;
-					if (botRef.stopAI) {
-						botRef.stopAI();
-					}
-				}
-			} else if (racerId === socket.id) {
-				setUiLap(racer.lap);
-			}
-		}
-	}, [maxCheckpoints, playSfx, setMusicPitch, stopMusic, changeTrack, playMusicOnce, socket, roomCode, botRefs]);
-
-    // Calcolo Targets per Gusci (Red/Blue)
+    const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
+        if (!racerId || !racersData.current[racerId]) return;
+        const racer = racersData.current[racerId];
+        console.log(`[Checkpoint] Racer ${racerId} hit checkpoint ${hitIndex}, expected ${racer.nextCP}`);
+        
+        if (hitIndex === racer.nextCP && hitIndex !== 0) {
+            racer.nextCP += 1;
+            if (racerId === socket.id) setNextCheck(racer.nextCP);
+        } 
+        else if (hitIndex === 0 && racer.nextCP > activeMaxCheckpoints) {
+            racer.lap += 1;
+            console.log(`[Checkpoint] Racer ${racerId} completed lap ${racer.lap - 1}, now on lap ${racer.lap}`);
+            
+            // Aggiorna UI se è il player
+            if (racerId === socket.id) {
+                setUiLap(racer.lap);
+                
+                // Invia lap aggiornato via socket
+                if (roomCode) {
+                    socket.emit('update_lap', { lap: racer.lap });
+                }
+                
+                if (racer.lap === 2) {
+                    playSfx(AUDIO_SFX.SECOND_LAP, 3);
+                }
+                else if (racer.lap === 3) {
+                    isFinalLap.current = true;
+                    playSfx(AUDIO_SFX.FINAL_LAP, 3);
+                    setMusicPitch(1.10, 1.10, 2000);
+                    setTimeout(() => {
+                        setMusicPitch(1.15, 1.15, 2000);
+                    }, 100);
+                }
+            }
+            
+            racer.nextCP = 1;
+            
+            // Check if racer finished the race
+            if (racer.lap > TOTAL_LAPS) {
+                // Add to finishers list
+                setFinishers(prev => {
+                    // Check if already in the list
+                    if (prev.some(f => f.id === racerId)) return prev;
+                    
+                    const finishPosition = prev.length + 1;
+                    const finisherEntry = { 
+                        id: racerId, 
+                        position: finishPosition,
+                        finishTime: Date.now() - raceStartTime.current,
+                        name: racer.name || 'Unknown'
+                    };
+                    
+                    return [...prev, finisherEntry];
+                });
+                
+                if (racerId === socket.id) {
+                    setFinished(true);
+                    playSfx(AUDIO_SFX.FINISH_RACE, 3);
+                    stopMusic();
+                    if (racer.position === 1) {
+                        changeTrack('FINISH_FIRST', 0, false);
+                        if (!isTimeTrial && !roomCode && !isGrandPrix) {
+                            sendWinToServer(true);
+                        } else if (!isTimeTrial && roomCode && !isGrandPrix) {
+                            sendWinToServer(false);
+                        }
+                    }
+                    else if (racer.position >= 2 && racer.position <= 4)
+                        changeTrack('FINISH_SECOND_FOURTH', 0, false);
+                    else
+                        changeTrack('FINISH_FIFTH_TWELFTH', 0, false);
+                }
+                
+                // Stop bot AI if it's a bot
+                if (!roomCode && botRefs.current[racerId]?.current) {
+                    const botRef = botRefs.current[racerId].current;
+                    if (botRef.stopAI) {
+                        botRef.stopAI();
+                    }
+                }
+            } else if (racerId === socket.id) {
+                setUiLap(racer.lap);
+            }
+        }
+    }, [activeMaxCheckpoints, playSfx, setMusicPitch, stopMusic, changeTrack, socket, roomCode, botRefs, sendWinToServer, isTimeTrial]);
 
     // 4. GESTIONE USCITA AGGIORNATA
     const handleExitRace = useCallback(() => {
         setRaceExited(true);
-        // Ritardo minimo per animazioni opzionali, poi navigazione
+        setGameState('LOADING');
+        setIsTransitioning(true);
         setTimeout(() => { 
-            navigate('/track'); // Torna alla selezione pista
-        }, 50);
+            setIsTransitioning(false);
+            navigate('/endGrandPrix');
+        }, 1000);
     }, [navigate]);
     
     // Liste Bersagli (per Gusci Rossi/Blu)
@@ -774,7 +829,7 @@ export function GameScene({
         }
         
         return list;
-    }, [roomCode, opponents, gameState]); // Aggiungi gameState per ricalcolare quando la gara inizia
+    }, [roomCode, opponents, botConfigurations, socket.id]);
 
     const blueShellTargets = useMemo(() => {
         return targets.map(t => {
@@ -786,6 +841,129 @@ export function GameScene({
             };
         });
     }, [targets, positions]);
+
+	const handleRestartRace = useCallback(() => {
+        // 1. Ferma tutto e metti la schermata di caricamento/transizione
+        setIsTransitioning(true);
+        setGameState('LOADING');
+        stopMusic();
+
+		setRaceAttempt(prev => prev + 1);
+
+        // 2. Cancella tutti i dati della gara corrente
+        setFinished(false);
+        setFinishers([]);
+        setRaceExited(false);
+        setUiLap(1);
+        setNextCheck(1);
+        setPositions(initialPositions);
+        setNetworkItems([]); // Elimina i vecchi gusci/banane
+        setCountdown(null);
+
+        // Reset dei dati interni dei corridori (Giri, Checkpoint, Punteggio)
+        Object.keys(racersData.current).forEach(id => {
+            racersData.current[id].lap = 1;
+            racersData.current[id].nextCP = 1;
+            racersData.current[id].score = 0;
+            // Reset AI dei bot se hanno uno stato interno
+            if (botRefs.current[id]?.current?.startAI) {
+                botRefs.current[id].current.startAI();
+            }
+        });
+
+        // 3. Pausa di 3 secondi per "distruggere" il mondo 3D e ricaricarlo pulito
+        setTimeout(() => {
+            introPlayed.current = false;
+            introMusicPlayed.current = false;
+            startingGridPlayed.current = false;
+            racingMusicStarted.current = false;
+            isFinalLap.current = false;
+            itemIdCounter.current = 0;
+
+            // Innesca di nuovo l'animazione della telecamera
+            setRestartTrigger(prev => prev + 1);
+            
+            // Fai ripartire lo stato di gioco appropriato
+            setGameState(isTimeTrial ? 'COUNTDOWN' : 'INTRO');
+            
+            // Rimuovi schermata nera di transizione
+            setIsTransitioning(false);
+
+            // Notifica al resto dell'app che la gara è ricominciata
+            window.dispatchEvent(new CustomEvent('race-restarted'));
+        }, 3000);
+        
+    }, [isTimeTrial, initialPositions, stopMusic, setIsTransitioning]);
+
+    // --- GESTIONE EVENTI GRAND PRIX (HARD RESET) ---
+    useEffect(() => {
+        const handleNextRace = () => {
+            if (isGrandPrix && currentGrandPrixObj?.tracks) {
+                if (gpTrackIndex < currentGrandPrixObj.tracks.length - 1) {
+                    
+                    // 1. Ferma tutto e metti la schermata nera
+                    setIsTransitioning(true);
+                    setGameState('LOADING');
+                    stopMusic();
+                    
+                    // 2. CANCELLA TUTTI I DATI DELLA GARA PRECEDENTE
+                    setFinished(false);
+                    setFinishers([]);
+                    setRaceExited(false);
+                    setUiLap(1);
+                    setNextCheck(1);
+                    setPositions(initialPositions);
+                    setNetworkItems([]); // Elimina i vecchi gusci/banane
+                    setCountdown(null);
+
+                    // Reset dati interni dei corridori
+                    Object.keys(racersData.current).forEach(id => {
+                        racersData.current[id].lap = 1;
+                        racersData.current[id].nextCP = 1;
+                        racersData.current[id].score = 0;
+                    });
+
+                    // 3. Cambia l'indice della pista (inizia a caricare la nuova in background)
+                    setGpTrackIndex(prev => prev + 1);
+
+                    // 4. Pausa di 3 secondi per distruggere il mondo 3D e ricaricarlo pulito
+                    setTimeout(() => {
+                        introPlayed.current = false;
+                        introMusicPlayed.current = false;
+                        startingGridPlayed.current = false;
+                        racingMusicStarted.current = false;
+                        isFinalLap.current = false;
+                        itemIdCounter.current = 0;
+                        
+                        setRestartTrigger(prev => prev + 1); // Fa ripartire la telecamera
+                        setGameState('INTRO');
+                        setIsTransitioning(false); // Rimuovi schermata nera
+                    }, 3000);
+
+                } else {
+                    const finalStandings = Object.values(racersData.current)
+                        .map(racer => ({
+                            id: racer.id,
+                            name: racer.name,
+                            points: racer.points || 0
+                        }))
+                        .sort((a, b) => b.points - a.points);
+                    
+                    // console.log('Grand Prix finished! Final standings:', finalStandings);
+                    if (setRaceResults) {
+                        setRaceResults(finalStandings);
+                    }
+
+                    setIsGrandPrix(false);
+                    handleExitRace();
+                }
+            }
+        };
+
+        window.addEventListener('nextGrandPrixRace', handleNextRace);
+        return () => window.removeEventListener('nextGrandPrixRace', handleNextRace);
+    }, [isGrandPrix, currentGrandPrixObj, gpTrackIndex, handleExitRace, setIsGrandPrix, stopMusic, initialPositions]);
+
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
 
@@ -802,6 +980,16 @@ export function GameScene({
                 />
             )}
 
+            {/* SCHERMATA DI CARICAMENTO TRANSIZIONE GARE */}
+            {isTransitioning && (
+                <div className="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center text-white">
+                    <h1 className="text-5xl font-black italic tracking-widest text-[#ffcc00] drop-shadow-md mb-8">
+                        LOADING...
+                    </h1>
+                    <div className="w-16 h-16 border-8 border-gray-600 border-t-[#ffcc00] rounded-full animate-spin"></div>
+                </div>
+            )}
+
             {/* HUD PRINCIPALE */}
             <GameHUD 
                 lap={uiLap} 
@@ -815,19 +1003,31 @@ export function GameScene({
             {/* MINIMAP */}
             {gameState !== 'lobby' && (
                 <Minimap 
-                    trackPath={selectedTrack.Waypoints[0]}
+                    trackPath={activeTrackConfig.Waypoints[0]}
                     playerRef={playerRef}
                     playerCharacter={character}
                     botRefs={botRefs}
                     remoteRefMap={remoteRefMap}
                     opponents={opponentsWithIcons}
                     playerRank={playerRank}
-					socket={socket}
+                    socket={socket}
                 />
             )}
 
             {/* RACE RESULTS - Mostra solo quando il player ha finito */}
-            {finished && finishers.length > 0 && <RaceResults finishers={finishers} socket={socket} />}
+            {finished && finishers.length > 0 && 
+                <RaceResults 
+                    finishers={finishers}
+                    socket={socket}
+                    isTimeTrial={isTimeTrial}
+                    onPlayAgain={handleRestartRace}
+                    setIsTimeTrial={setIsTimeTrial}
+                    isGrandPrix={isGrandPrix}
+                    setIsGrandPrix={setIsGrandPrix}
+					racersData={racersData.current}
+                    userName={username}
+                    trackName={activeTrackConfig?.name}
+                />}
 
             {countdown && (
                 <div style={{
@@ -846,6 +1046,10 @@ export function GameScene({
                 </div>
             )}
 
+            {/* <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[0]} />
+            <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[1]}/>
+            <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[2]}/> */}
+
             <Canvas
                 gl={{
                     powerPreference: "high-performance",
@@ -854,7 +1058,7 @@ export function GameScene({
                     depth: true,
                     alpha: false,
                     preserveDrawingBuffer: false,
-                    failIfMajorPerformanceCaveat: false
+                    failIfMajorPerformanceCaveat: false,
                 }}
                 dpr={[1, 2]} // Limita pixel ratio per performance
                 frameloop="always"
@@ -865,6 +1069,14 @@ export function GameScene({
                     gl.outputColorSpace = THREE.SRGBColorSpace;
                 }}
             >
+                
+{/* 
+                <WaypointRecorder
+                    kartRef={playerRef}
+                    isRecording={true}
+                >
+
+                </WaypointRecorder> */}
                 <AudioListenerComponent />
                 <WebGLSafetyManager />
                 
@@ -875,16 +1087,14 @@ export function GameScene({
                 />
                 <LightningAtmosphere />
                 <Stats />
-                <PerspectiveCamera makeDefault position={[0, 5, -10]} />
+                <PerspectiveCamera makeDefault position={[0, 5, -10]} far={500000}/>
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
-
-				{/* <WaypointsVisualizer waypoints={selectedTrack.Waypoints[0]} color="red" />
-				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[1]} color="green" />
-				<WaypointsVisualizer waypoints={selectedTrack.Waypoints[2]} color="yellow" /> */}
                 
                 {/* MODIFICA: preset city MA senza sfondo (background={false}) */}
-                <Environment preset="city" background={false} />
+                <Environment preset="city" background={false} blur={0.1}/>
+
+                <CustomWiiSky trackName={activeTrackConfig?.name}/>
 
                 {/* NETWORK MANAGER - Solo in multiplayer */}
                 {roomCode && (
@@ -901,7 +1111,8 @@ export function GameScene({
                     />
                 )}
 
-                <Physics debug={false} gravity={[0, -20, 0]}>
+
+				<Physics key={`${activeTrackConfig.name}-${raceAttempt}`} debug={false} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
@@ -922,7 +1133,7 @@ export function GameScene({
                                 case 'green_shell': 
                                     return <GreenShell key={item.id} {...commonProps} />;
                                 case 'red_shell': 
-                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={selectedTrack.Waypoints[0]} />;
+                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={activeTrackConfig.Waypoints[0]} />;
                                 case 'bomb': 
                                     return <BobOmb key={item.id} {...commonProps} />;
                                 default: 
@@ -930,11 +1141,6 @@ export function GameScene({
                             }
                         })}
                     </Suspense>
-
-					{/* <WaypointRecorder
-						kartRef={playerRef}
-						isRecording={true}
-					/> */}
                     
                     {/* RACE LOGIC */}
                     <RaceManager 
@@ -944,24 +1150,26 @@ export function GameScene({
                         positions={positions}
                         playerRef={playerRef}
                         botRefs={botRefs}
-                        trackPath={selectedTrack.Waypoints[0]}
+                        trackPath={activeTrackConfig.Waypoints[0]}
                         socket={socket}
                         remoteRefMap={remoteRefMap}
                         opponentsDataRef={opponentsDataRef}
-						selectedTrack={selectedTrack}
+                        selectedTrack={activeTrackConfig}
                     />
                     
                     {/* MAP & COLLIDERS */}
                     <group ref={trackRef}>
-                        <SmartMap modelPath={mapPath} scale={1} />
+                        <SmartMap modelPath={activeMapPath} scale={1} />
                     </group>
                     
-                    <RoadWalls modelPath={selectedTrack.road} wallHeight={10} thresholdAngle={20} debug={false} />
-                    <ItemBoxesMap mapModelPath={selectedTrack.itemBoxes} triggerName="Cube" />
+                    <RoadWalls modelPath={activeTrackConfig.road} wallHeight={10} thresholdAngle={20} debug={false} />
+                    {!isTimeTrial &&
+                        <ItemBoxesMap mapModelPath={activeTrackConfig.itemBoxes} triggerName="Cube" />
+                    }
                     
-                    {checkpointPath && (
+                    {activeCheckpointPath && (
                         <CheckpointSystem 
-                            url={checkpointPath} 
+                            url={activeCheckpointPath} 
                             onSystemReady={(posMap) => { checkpointPositionsRef.current = posMap; }}
                             onCheckpointTrigger={(index, racerId) => { handleCheckpointTrigger(index, racerId); }} 
                         />
@@ -969,16 +1177,13 @@ export function GameScene({
 
                     {/* OPPONENTI REMOTI - Solo in multiplayer */}
                     {roomCode && opponents.map((playerData) => {
-                        // 1. Cerca i dati remoti
                         const remoteCharacter = Characters.find(c => c.id === playerData.charId);
                         const remoteVehicle = VEHICLE_DATABASE[playerData.vehicleId];
                         
-
                         const effects = {
                             isStar: playerData.isStar,
                             isBulletBill: playerData.isBulletBill,
                             isMega: playerData.isMega
-
                         }
                         const safeVehicle = remoteVehicle || vehicle || VEHICLE_DATABASE['StandardKartS'];
                         const safeCharacter = remoteCharacter || character || Characters[0];
@@ -988,7 +1193,6 @@ export function GameScene({
                                 playerId={playerData.id}
                                 ref={remoteRefMap.current[playerData.id]}
                                 opponentsDataRef={opponentsDataRef}
-                                // Passa i dati SICURI
                                 character={safeCharacter} 
                                 vehicle={safeVehicle} 
                                 userData={{ type: 'opponent', id: playerData.id }} 
@@ -1001,17 +1205,38 @@ export function GameScene({
                     {/* PLAYER LOCALE */}
                     <group position={[0, 10, 0]} > 
                         {vehicle.isBike ? (
-                            <InsideDriftBike 
-                                ref={playerRef} 
+                            <OutsideDriftBike 
+                                ref={playerRef}
                                 userData={{ type: 'racer', id: socket.id }}
                                 characterConfig={character.modelConfig}
                                 selectedCharacter={character}
-                                vehicleConfig={vehicle} 
+                                botRefs={botRefs}
+                                gameState={gameState}
+                                vehicleConfig={vehicle}
+                                positions={positions}
                                 START_POS={playerStartPos}
                                 START_ROT={playerStartRot}
-                                trackRef={trackRef} 
+                                trackRef={trackRef}
+                                trackConfig={activeTrackConfig}
                                 isRaceActive={isRaceActive}
-                                // Passa handlers anche alla moto se implementati
+                                waypoints={activeTrackConfig.Waypoints[0]}
+                                paths={activeTrackConfig.Waypoints}
+                                finished={finished}
+                                rank={playerRank}
+                                onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
+                                onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
+                                onSpawnRedShell={(p, v) => handleRequestSpawn('red_shell', p, v)}
+                                onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
+                                onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
+                                onHitOpponent={(victimId) => {
+                                    if (socket && roomCode) {
+                                        socket.emit('player_hit', { victimId: victimId, type: 'bullet-bill' });
+                                    }
+                                }}
+                                socket={socket}
+                                roomCode={roomCode}
+                                maxSpeed={ccs}
+                                isTimeTrial={isTimeTrial}
                             />
                         ) : (
                             <OutsideDriftKart 
@@ -1026,10 +1251,10 @@ export function GameScene({
                                 START_POS={playerStartPos}
                                 START_ROT={playerStartRot}
                                 trackRef={trackRef}
-                                trackConfig={selectedTrack}
+                                trackConfig={activeTrackConfig}
                                 isRaceActive={isRaceActive}
-                                waypoints={selectedTrack.Waypoints[0]}
-                                paths={selectedTrack.Waypoints}
+                                waypoints={activeTrackConfig.Waypoints[0]}
+                                paths={activeTrackConfig.Waypoints}
                                 finished={finished}
                                 rank={playerRank}
                                 onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
@@ -1038,23 +1263,24 @@ export function GameScene({
                                 onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
                                 onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
                                 onHitOpponent={(victimId) => {
-                                    // Invia al server solo se in multiplayer
                                     if (socket && roomCode) {
                                         socket.emit('player_hit', { victimId: victimId, type: 'bullet-bill' });
                                     }
                                 }}
                                 socket={socket}
-								roomCode={roomCode}
+                                roomCode={roomCode}
+                                maxSpeed={ccs}
+                                isTimeTrial={isTimeTrial}
                             />
                         )}
                     </group>
 
                     {/* BOTS (AI) - Renderizza solo se NON siamo in multiplayer */}
-                    {!roomCode && botConfigurations.map((botConfig, i) => {
+                    {!roomCode && !isTimeTrial && botConfigurations.map((botConfig, i) => {
                         const botId = botConfig.character.id;
                         const gridIndex = i + 1; 
                         
-                        const botPos = gridPositions[gridIndex] || getGridPosition(start_pos, i);
+                        const botPos = gridPositions[gridIndex] || getGridPosition(activeStartPos, i);
                         const botRot = gridRotations[gridIndex] || [0, Math.PI / 2, 0];
 
                         return (
@@ -1074,10 +1300,12 @@ export function GameScene({
                                     onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
                                     onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
                                     trackRef={trackRef} 
-                                    trackConfig={selectedTrack} 
+                                    trackConfig={activeTrackConfig} 
                                     isBot={true}
-                                    paths={selectedTrack.Waypoints}
-									roomCode={roomCode}
+                                    paths={activeTrackConfig.Waypoints}
+                                    roomCode={roomCode}
+                                    maxSpeed={ccs}
+                                    isTimeTrial={false}
                                 /> 
                             </group>
                         );

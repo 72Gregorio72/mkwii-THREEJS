@@ -1,5 +1,9 @@
-import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react'; 
+import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { formatTime } from './GameHUD.jsx';
 
+// Font Injection (se non già presente globalmente)
 const mkwiiFontStyle = `
   @font-face {
     font-family: 'MKWii';
@@ -9,155 +13,429 @@ const mkwiiFontStyle = `
   }
 `;
 
-export const RaceResults = ({ finishers, socket }) => {
-  if (!finishers || finishers.length === 0) return null;
+const calculatePoints = (racersDataObj) => {
+    if (!racersDataObj) return [];
 
-  // Split finishers into two columns
-  const leftColumn = finishers.slice(0, 6);
-  const rightColumn = finishers.slice(6, 12);
+    // 1. Converti l'oggetto racersData in un array
+    const racersArray = Object.values(racersDataObj);
 
-  const renderFinisher = (finisher, index) => {
+    // 2. Ordina i corridori in base alla loro posizione attuale nella gara
+    racersArray.sort((a, b) => {
+        const posA = a.position || 99;
+        const posB = b.position || 99;
+        return posA - posB;
+    });
+
+    // 3. Tabella dei punti di Mario Kart Wii
+    const pointsTable = [15, 12, 10, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+    const result = [];
+
+    // 4. Assegna i punti e aggiorna i totali
+    racersArray.forEach((racer, index) => {
+        const earnedPoints = pointsTable[index] || 0;
+        
+        // Aggiorniamo direttamente i dati originali per mantenere i punti 
+        // tra una gara e l'altra del Grand Prix
+        racer.points = (racer.points || 0) + earnedPoints;
+
+        result.push({ 
+            ...racer, 
+            points: racer.points // Usa il totale cumulativo
+        });
+    });
+
+    // 5. Riordina il risultato in base ai PUNTI TOTALI decrescenti per la Leaderboard
+    result.sort((a, b) => b.points - a.points);
+
+    return result;
+};
+
+const LeaderBoard = ({ finished, racersData, socket }) => {
+  if (!racersData || racersData.length === 0) return null;
+
+  // Ordina i corridori per punti (in ordine decrescente)
+  const sortedRacers = [...racersData].sort((a, b) => (b.points || 0) - (a.points || 0));
+
+  const RenderRow = ({ racer, index }) => {
     const position = index + 1;
-    let positionColor = '#FFD700'; // Gold for 1st
-    if (position === 2) positionColor = '#C0C0C0'; // Silver
-    else if (position === 3) positionColor = '#CD7F32'; // Bronze
-    else positionColor = '#FFFFFF'; // White for others
+    
+    // Calcolo suffisso posizione (1st, 2nd, 3rd, th)
+    const suffix = position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th';
+    
+    let bgGradient = 'from-black/60 to-transparent';
+    let borderColor = 'border-gray-600';
+    let rankColor = 'text-white';
 
-    // Format the racer name
-    let displayName = finisher.id;
-    if (finisher.id === socket.id) {
-      displayName = 'YOU';
-    } else if (finisher.id.startsWith('bot_')) {
-      const botNumber = parseInt(finisher.id.split('_')[1]) + 1;
-      displayName = `BOT ${botNumber}`;
+    if (position === 1) {
+        rankColor = 'text-[#FFD700]'; // Oro
+        bgGradient = 'from-[#332200] to-transparent';
+        borderColor = 'border-[#FFD700]';
+    } else if (position === 2) {
+        rankColor = 'text-[#C0C0C0]'; // Argento
+        bgGradient = 'from-[#1a1a1a] to-transparent';
+        borderColor = 'border-[#C0C0C0]';
+    } else if (position === 3) {
+        rankColor = 'text-[#CD7F32]'; // Bronzo
+        bgGradient = 'from-[#1a0f00] to-transparent';
+        borderColor = 'border-[#CD7F32]';
     }
 
+    // Nome Display e Evidenziazione Giocatore
+    let displayName = racer.id;
+    const isMe = displayName === socket?.id;
+
+	if (isMe) {
+        displayName = 'PLAYER';
+        bgGradient = 'from-[#0033aa] to-transparent'; 
+        borderColor = 'border-[#00aeff]';
+    } else if (displayName && displayName.startsWith('bot_')) {
+       const parts = displayName.split('_');
+       const botNum = parseInt(parts[1]) + 1;
+       displayName = `CPU ${botNum}`;
+    }
+
+    // Ricava il nome del personaggio per l'icona (se non c'è usa Mario di default)
+    const rawName = racer.name || 'Mario';
+
+    const characterName = rawName
+        .split(/[^a-zA-Z0-9]+/) // Divide la stringa ad ogni spazio o segno di punteggiatura (es. il punto in "Jr.")
+        .filter(Boolean)        // Rimuove eventuali stringhe vuote generate dal divisione
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalizza la prima lettera di ogni parola
+        .join('');              // Unisce tutto in un'unica stringa senza spazi
+
     return (
-      <div key={finisher.id} style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: 'rgba(255, 255, 255, 0.1)',
-        padding: '10px 15px',
-        borderRadius: '10px',
-        border: finisher.id === socket.id ? '2px solid #00FF00' : '2px solid transparent',
-        animation: 'fadeIn 0.3s ease-in',
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-        }}>
-          <span style={{
-            fontFamily: 'MKWii, Arial, sans-serif',
-            fontSize: '24px',
-            color: positionColor,
-            fontWeight: 'bold',
-            minWidth: '35px',
-            textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
-          }}>
-            {position}
-          </span>
-          <span style={{
-            fontFamily: 'MKWii, Arial, sans-serif',
-            fontSize: '20px',
-            color: finisher.id === socket.id ? '#00FF00' : '#FFFFFF',
-            fontWeight: finisher.id === socket.id ? 'bold' : 'normal',
-            textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
-          }}>
-            {displayName}
-          </span>
+        <div 
+            className={`
+                flex items-center justify-between py-1.5 px-3 md:py-2 md:px-4 rounded-r-lg border-l-4 mb-1 shadow-sm
+                bg-gradient-to-r ${bgGradient} ${borderColor}
+                animate-in slide-in-from-left duration-500
+            `}
+            style={{ animationDelay: `${index * 100}ms` }}
+        >
+            <div className="flex items-center gap-4 md:gap-6">
+                {/* Posizione (es: 1st, 2nd) */}
+                <div className={`w-16 text-3xl font-black italic ${rankColor} drop-shadow-md text-right pr-2`}>
+                    {position}<span className="text-lg align-top opacity-80">{suffix}</span>
+                </div>
+                
+                {/* Icona Personaggio */}
+                <img 
+                    src={`/sprites/${characterName}.png`} 
+                    alt={characterName} 
+                    className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-md"
+                    onError={(e) => { e.target.style.display='none'; }}
+                />
+
+                {/* Nome */}
+                <span className={`text-xl md:text-2xl font-bold uppercase tracking-wide drop-shadow-md ${isMe ? 'text-[#00aeff]' : 'text-white'}`}>
+                    {displayName}
+                </span>
+            </div>
+
+            {/* Punteggio */}
+            <div className="font-mono text-[#ffcc00] text-2xl tracking-wider font-bold drop-shadow-sm bg-black/60 px-4 py-1 rounded border border-[#aa8800]/50 min-w-[120px] text-right">
+                {racer.points || 0} <span className="text-sm">pts</span>
+            </div>
         </div>
-        {finisher.finishTime && (
-          <span style={{
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '14px',
-            color: '#CCCCCC',
-          }}>
-            {finisher.finishTime}
-          </span>
-        )}
-      </div>
+    );
+  };
+
+  return (
+    <div className="w-full max-w-4xl bg-black/90 border-4 border-[#aa8800] rounded-xl shadow-[0_0_60px_rgba(0,0,0,0.9)] p-4 md:p-6 relative flex flex-col animate-in zoom-in duration-300 max-h-full">
+        
+        <div className="absolute inset-0 opacity-10 pointer-events-none" 
+             style={{backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 1px, #fff 1px, #fff 2px), repeating-linear-gradient(90deg, transparent, transparent 1px, #fff 1px, #fff 2px)", backgroundSize: "40px 40px"}}>
+        </div>
+
+        <div className="flex justify-between items-center border-b-2 border-[#aa8800] pb-3 mb-3 z-10">
+            <h2 className="text-3xl font-black text-[#ffcc00] uppercase tracking-wide drop-shadow-md">
+                {finished ? "Final Grand Prix Standings" : "Leaderboard"}
+            </h2>
+            <span className="text-[#ddccaa] font-bold text-lg bg-black/60 px-4 py-1 rounded-full border border-[#aa8800]">
+                {sortedRacers.length} Racers
+            </span>
+        </div>
+
+        {/* Colonna Singola con overflow corretto */}
+        <div className="flex-1 overflow-y-auto z-10 flex flex-col content-start custom-scrollbar pr-2 min-h-0">
+            {sortedRacers.map((racer, index) => (
+                <RenderRow key={racer.id} racer={racer} index={index} />
+            ))}
+        </div>
+
+    </div>
+  );
+}
+
+export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIsTimeTrial, isGrandPrix, setIsGrandPrix, racersData, userName, trackName }) => {
+  const navigate = useNavigate();
+  const { playSfx } = useAudio();
+
+  const [showResults, setShowResults] = useState(false);
+  const [isGrandPrixFinished, setIsGrandPrixFinished] = useState(isGrandPrix ? false : true);
+  const [pointsData, setPointsData] = useState([]);
+
+  const [ showLeaderboard, setShowLeaderboard ] = useState(false);
+
+  // Se non ci sono risultati, non mostrare nulla
+  if (!finishers || finishers.length === 0) return null;
+
+  const updateRecordTimes = () => {
+    if (isTimeTrial && finishers[0] && finishers[0].id === socket?.id) {
+        const bestTime = finishers[0].finishTime;
+            fetch(`/api/updateRecordTime?userName=${userName}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trackname: trackName, time: bestTime })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Time updated:', data);
+            })
+            .catch(error => {
+                console.error('Error updating time:', error);
+            });
+        }
+    };
+
+  const handleQuit = () => {
+    playSfx(AUDIO_SFX.BACK_IN_MENU);
+    if (isTimeTrial) {
+        setIsTimeTrial(false);
+        updateRecordTimes();
+    }
+    if (isGrandPrix) {
+        setIsGrandPrixFinished(true);
+        setIsGrandPrix(false);
+    }
+    if (socket) {
+        navigate('/waiting');
+    } else {
+        navigate('/menu');
+    }
+  };
+
+  const handlePlayAgain = () => {   
+    playSfx(AUDIO_SFX.CONFIRM);
+    updateRecordTimes();
+    if (onPlayAgain) {
+        setIsTimeTrial(true);
+        onPlayAgain();
+    } else {
+        navigate('/game');
+    }
+  };
+
+  const handleNextRace = () => {
+    playSfx(AUDIO_SFX.CONFIRM);
+      // Dispatch dell'evento dopo 1 secondo per permettere il caricamento
+    window.dispatchEvent(new CustomEvent('nextGrandPrixRace'));
+  };
+
+  useEffect(() => {
+    if (isGrandPrix) {
+        setTimeout(() => {
+            setShowLeaderboard(true);
+        }, 5000);
+    }
+  }, [isGrandPrix]);
+
+  const RenderRow = ({ finisher, index }) => {
+    const position = index + 1;
+    const isMe = finisher.id === socket?.id;
+
+    // Calcolo suffisso posizione (1st, 2nd, 3rd, th)
+    const suffix = position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th';
+
+    const formattedTime = finisher.finishTime ? formatTime(finisher.finishTime) : null;
+    
+    let bgGradient = 'from-black/60 to-transparent';
+    let borderColor = 'border-gray-600';
+    let rankColor = 'text-white';
+
+    if (position === 1) {
+        rankColor = 'text-[#FFD700]';
+        bgGradient = 'from-[#332200] to-transparent';
+        borderColor = 'border-[#FFD700]';
+    } else if (position === 2) {
+        rankColor = 'text-[#C0C0C0]';
+        bgGradient = 'from-[#1a1a1a] to-transparent';
+        borderColor = 'border-[#C0C0C0]';
+    } else if (position === 3) {
+        rankColor = 'text-[#CD7F32]';
+        bgGradient = 'from-[#1a0f00] to-transparent';
+        borderColor = 'border-[#CD7F32]';
+    }
+
+    if (isMe) {
+        bgGradient = 'from-[#0033aa] to-transparent';
+        borderColor = 'border-[#00aeff]';
+    }
+
+    let displayName = finisher.id;
+    if (isMe) displayName = 'YOU';
+    else if (finisher.id.startsWith('bot_')) {
+       const parts = finisher.id.split('_');
+       const botNum = parseInt(parts[1]) + 1;
+       displayName = `CPU ${botNum}`;
+    }
+
+    // Ricava il nome del personaggio per l'icona
+    // console.log('Finisher Data:', finisher); // Debug: vedi i dati del finisher
+    const rawName = finisher.name || 'Mario';
+
+    const characterName = rawName
+        .split(/[^a-zA-Z0-9]+/) // Divide la stringa ad ogni spazio o segno di punteggiatura (es. il punto in "Jr.")
+        .filter(Boolean)        // Rimuove eventuali stringhe vuote generate dal divisione
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalizza la prima lettera di ogni parola
+        .join('');              // Unisce tutto in un'unica stringa senza spazi
+
+    return (
+        <div 
+            className={`
+                flex items-center justify-between py-1.5 px-3 md:py-2 md:px-4 rounded-r-lg border-l-4 mb-1 shadow-sm
+                bg-gradient-to-r ${bgGradient} ${borderColor}
+                animate-in slide-in-from-left duration-500
+            `}
+            style={{ animationDelay: `${index * 100}ms` }}
+        >
+            <div className="flex items-center gap-4 md:gap-6">
+                {/* Posizione */}
+                <div className={`w-16 text-3xl font-black italic ${rankColor} drop-shadow-md text-right pr-2`}>
+                    {position}<span className="text-lg align-top opacity-80">{suffix}</span>
+                </div>
+                
+                {/* Icona Personaggio */}
+                <img 
+                    src={`/sprites/${characterName}.png`} 
+                    alt={characterName} 
+                    className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-md"
+                    onError={(e) => { e.target.style.display='none'; }}
+                />
+
+                {/* Nome */}
+                <span className={`text-xl md:text-2xl font-bold uppercase tracking-wide drop-shadow-md ${isMe ? 'text-[#00aeff]' : 'text-white'}`}>
+                    {displayName}
+                </span>
+            </div>
+
+            {/* Tempo */}
+            <div className="font-mono tabular-nums text-white text-lg md:text-xl tracking-wider font-bold drop-shadow-[2px_2px_0_#000] bg-black/40 px-3 py-1.5 rounded-md border border-white/10 flex items-baseline justify-end min-w-[140px]">
+                {formattedTime ? (
+                    <>
+                        <span>{formattedTime.minutes}</span>
+                        <span className="text-white/50 mx-[2px]">:</span>
+                        <span>{formattedTime.seconds}</span>
+                        <span className="text-white/50 mx-[2px]">:</span>
+                        <span className="text-[#FFD000] text-base ml-[1px]">{formattedTime.milliseconds}</span>
+                    </>
+                ) : (
+                    <span className="text-white/40 tracking-[4px]">--:--.---</span>
+                )}
+            </div>
+        </div>
     );
   };
 
   return (
     <>
       <style>{mkwiiFontStyle}</style>
-      <div style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: 'rgba(0, 0, 0, 0.85)',
-        border: '4px solid #FFD700',
-        borderRadius: '20px',
-        padding: '30px 40px',
-        minWidth: '800px',
-        maxWidth: '1000px',
-        zIndex: 1000,
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.7)',
-      }}>
-        <h2 style={{
-          fontFamily: 'MKWii, Arial, sans-serif',
-          fontSize: '32px',
-          color: '#FFD700',
-          textAlign: 'center',
-          marginBottom: '20px',
-          textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-        }}>
-          RACE RESULTS
-        </h2>
+      
+      {/* CONTAINER PRINCIPALE */}
+      <div className="fixed inset-0 z-[2000] font-sans select-none text-white flex flex-col bg-black/40 backdrop-blur-sm p-4 md:p-8">
+        
+        <div className="relative w-full h-full flex flex-col">
 
-        <div style={{
-          display: 'flex',
-          gap: '30px',
-        }}>
-          {/* Left Column */}
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-          }}>
-            {leftColumn.map((finisher, index) => renderFinisher(finisher, index))}
+          {/* AREA CENTRALE - Modificati items-start e pt-[4vh] per stare più in alto */}
+          <div className="flex-1 flex items-start justify-center pt-[4vh] pb-[2vh] px-2 md:px-8 w-full min-h-0">
+            
+            {isGrandPrix && showResults ? (
+                <LeaderBoard finished={isGrandPrixFinished} racersData={pointsData} socket={socket} />
+            ) : (
+                <div className="w-full max-w-4xl bg-black/90 border-4 border-[#aa8800] rounded-xl shadow-[0_0_60px_rgba(0,0,0,0.9)] p-4 md:p-6 relative flex flex-col animate-in zoom-in duration-300 max-h-full">
+                    
+                    <div className="absolute inset-0 opacity-10 pointer-events-none" 
+                         style={{backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 1px, #fff 1px, #fff 2px), repeating-linear-gradient(90deg, transparent, transparent 1px, #fff 1px, #fff 2px)", backgroundSize: "40px 40px"}}>
+                    </div>
+
+                    <div className="flex justify-between items-center border-b-2 border-[#aa8800] pb-3 mb-3 z-10">
+                        <h2 className="text-3xl font-black text-[#ffcc00] uppercase tracking-wide drop-shadow-md">
+                            Final Standing
+                        </h2>
+                        <span className="text-[#ddccaa] font-bold text-lg bg-black/60 px-4 py-1 rounded-full border border-[#aa8800]">
+                            {finishers.length} Racers Finished
+                        </span>
+                    </div>
+
+                    {/* Colonna Singola Tempi con min-h-0 per permettere l'overflow scroll */}
+                    <div className="flex-1 overflow-y-auto z-10 flex flex-col content-start custom-scrollbar pr-2 min-h-0">
+                        {finishers.map((finisher, index) => (
+                            <RenderRow key={finisher.id} finisher={finisher} index={index} />
+                        ))}
+                    </div>
+                </div>
+            )}
           </div>
 
-          {/* Right Column */}
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-          }}>
-            {rightColumn.map((finisher, index) => renderFinisher(finisher, index + 6))}
+          {/* FOOTER / AREA BOTTONI - Modificato in absolute per non "mangiare" spazio verticale vitale */}
+          <div className="absolute bottom-6 right-8 flex flex-col items-end gap-3 z-30 pointer-events-none">
+            
+            {/* 1. Bottone PLAY AGAIN (Solo Time Trial) */}
+            {isTimeTrial && (
+                <button 
+                    onClick={handlePlayAgain}
+                    className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
+                >
+                    <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Play Again</span>
+                    <div className="w-8 h-8 rounded-full bg-[#22cc22] text-white flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:rotate-180 transition-transform duration-500">↻</div>
+                </button>
+            )}
+
+            {/* 2. Bottone SEE LEADERBOARD */}
+            {isGrandPrix && !isGrandPrixFinished && !showResults && showLeaderboard && (
+                <button 
+                    onClick={() => {
+                        setShowResults(true);
+                        playSfx(AUDIO_SFX.CONFIRM);
+                        setPointsData(calculatePoints(racersData));
+                    }}
+                    className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
+                >
+                    <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Leaderboard</span>
+                    <div className="w-8 h-8 rounded-full bg-[#ffcc00] text-white flex items-center justify-center font-bold text-sm shadow-inner border border-white/50 group-hover:scale-110 transition-transform">★</div>
+                </button>
+            )}
+
+            {/* 3. Bottone NEXT RACE */}
+            {isGrandPrix && !isGrandPrixFinished && showResults && (
+                <button 
+                    onClick={handleNextRace}
+                    className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
+                >
+                    <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Next Race</span>
+                    <div className="w-8 h-8 rounded-full bg-[#ffff44] text-gray-700 flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:scale-110 transition-transform">➜</div>
+                </button>
+            )}
+
+            {/* 4. Bottone QUIT */}
+            <button 
+                onClick={handleQuit}
+                className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
+            >
+                <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Quit</span>
+                <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:scale-110 transition-transform">✖</div>
+            </button>
+
           </div>
+
         </div>
-
-        {finishers.length < 12 && (
-          <div style={{
-            marginTop: '20px',
-            textAlign: 'center',
-            fontFamily: 'MKWii, Arial, sans-serif',
-            fontSize: '14px',
-            color: '#AAAAAA',
-          }}>
-            Waiting for other racers...
-          </div>
-        )}
       </div>
 
       <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+          .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-left: 1px solid #aa8800; border-radius: 4px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #aa8800; border: 1px solid #ffcc00; border-radius: 4px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #ffcc00; }
       `}</style>
     </>
   );

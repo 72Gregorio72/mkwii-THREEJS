@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Vector3 } from 'src/types';
 
 export interface Player {
   id: string;
@@ -12,7 +13,7 @@ export interface Player {
   lap?: number;
   steer?: number;
   drift?: number;
-  velocity?: any;
+  velocity?: Vector3;
   effects?: {
       isBulletBill?: boolean;
       isStar?: boolean;
@@ -64,7 +65,7 @@ export class GameService {
     this.players.delete(id);
   }
 
-  applyLightningEffect(attackerId: string) {
+  /*applyLightningEffect(attackerId: string) {
 	for (let playerId in this.players) {
 		if (playerId !== attackerId) {
 		this.players[playerId].effects.isSmall = true;
@@ -79,5 +80,5 @@ export class GameService {
 		}, 4500);
 	}
 	}
-}
+}*/
 }

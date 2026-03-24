@@ -234,7 +234,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
     isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onHitOpponent, gameState,
-	positions, botRefs, socket, finished = false, roomCode,
+	positions, botRefs, socket, finished = false, roomCode, maxSpeed, isTimeTrial
   } = props;
   
 //   const { scene } = useThree()
@@ -507,6 +507,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     onActivateBulletBill: activateBulletBill,
 	socket: socket,
 	roomCode: props.roomCode,
+    isTimeTrial: isTimeTrial
   });
 
   const botControls = useBotAI({ 
@@ -781,7 +782,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         const finalDisplay = isNaN(displaySpeed) ? 0 : displaySpeed.toString();
 
         speedUiRef.current.innerText = `${finalDisplay} km/h`;
-        const isOver = displaySpeed > SETTINGS.maxSpeed + 5
+        const isOver = displaySpeed > maxSpeed + 5
         speedUiRef.current.style.color = isBulletBill ? '#ff0000' : (isOver ? '#ff3300' : 'white')
         speedUiRef.current.style.transform = isOver || isBulletBill ? `scale(1.1)` : `scale(1)`
     }
@@ -918,7 +919,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         const isBoosting = boostTime.current > 0
         if (isBoosting) boostTime.current -= 1
         const isDrifting = driftDirection.current !== 0
-        let currentSpeedLimit = SETTINGS.maxSpeed
+        let currentSpeedLimit = maxSpeed
         if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
         else if (isDrifting) currentSpeedLimit += 5 
 
@@ -935,9 +936,9 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         if (backward) targetSpeed = -currentSpeedLimit * 0.5
         
 		if (!isStarActive.current) {
-			const isOverspeeding = speed.current > (isDrifting ? SETTINGS.maxSpeed + 5 : SETTINGS.maxSpeed)
+			const isOverspeeding = speed.current > (isDrifting ? maxSpeed + 5 : maxSpeed)
 			if (forward && !isBoosting && isOverspeeding) {
-				speed.current = MathUtils.damp(speed.current, SETTINGS.maxSpeed, SETTINGS.deceleration, delta)
+				speed.current = MathUtils.damp(speed.current, maxSpeed, SETTINGS.deceleration, delta)
 			} else {
 				let currentAccel = SETTINGS.acceleration
 				if (isBoosting) currentAccel *= 2.5
@@ -1045,8 +1046,8 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     // --- CAMERA UPDATE (Modificato) ---
     if (!isBot) {
         const effSpeed = isBulletBill ? 100 : speed.current; 
-        const overSpeed = Math.max(0, effSpeed - SETTINGS.maxSpeed)
-        const boostRange = SETTINGS.maxTurboLimit - SETTINGS.maxSpeed
+        const overSpeed = Math.max(0, effSpeed - maxSpeed)
+        const boostRange = SETTINGS.maxTurboLimit - maxSpeed
         const boostRatio = Math.min(overSpeed / boostRange, 1)
         const dynamicDistance = camConfig.distance + (boostRatio) 
         

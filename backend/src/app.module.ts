@@ -9,10 +9,29 @@ import { AuthService } from './auth/auth.service';
 import { AuthController } from './auth/auth.controller';
 import { UsersModule } from './users/users.module';
 import { UsersService } from './users/users.service';
+import { HashService } from './hash/hash.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { FriendsModule } from './friends/friends.module';
 
 @Module({
-  imports: [GameModule, AuthModule, UsersModule],
+  imports: [GameModule, AuthModule, FriendsModule, UsersModule,
+
+    ConfigModule.forRoot({
+      isGlobal: true, 
+    }),
+
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '7d' }, // Il token scadrà in 7 giorni
+      }),
+    }),
+  ],
   controllers: [AppController, InfoController, AuthController],
-  providers: [AppService, InfoService, AuthService, UsersService],
+  providers: [AppService, InfoService, AuthService, UsersService, HashService],
 })
 export class AppModule {}

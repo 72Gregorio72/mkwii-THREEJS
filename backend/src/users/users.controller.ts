@@ -1,9 +1,10 @@
-import { Controller, Get, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Query, NotFoundException, Patch, Body, Post, Delete, ConflictException } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('')
 export class UsersController {
-    constructor(private readonly userService: UsersService) {}
+    constructor(private readonly userService: UsersService, private readonly jwtService: JwtService) {}
 
     @Get('profile')
     async getUser(@Query('userName') userName: string) {
@@ -14,5 +15,56 @@ export class UsersController {
         const { password, ...result } = user; // remove password from the user
         
         return result; 
+    }
+
+    @Patch('updateIcon')
+    async updateIcon(@Query('userName') userName: string, @Body() body: any) {
+        return await this.userService.updateIcon(userName, body.icon);
+    }
+
+	@Patch('updateWins')
+	async updateWins(@Query('userName') userName: string, @Body() body: any) {
+		return await this.userService.updateWins(userName, body.onlyOffline);
+	}
+
+    @Patch('updateusername')
+	async updateusername(@Query('userName') userName: string, @Body() body: any) {
+        // TODO: check if newUsername is already taken
+        const existingUser = await this.userService.findOne(body.newUsername);
+        if (existingUser) {
+            throw new ConflictException('Username già in uso');
+        }
+        try {
+		    const updatedUser = await this.userService.updateusername(userName, body.newUsername);
+            const payload = { username: updatedUser.username, sub: updatedUser.id };
+            const newToken = this.jwtService.sign(payload);
+
+            return {
+                user: updatedUser,  
+                token: newToken
+            };
+        } catch (e: any) {
+                throw new ConflictException('User not found');
+        }
+	}
+
+    @Post('updateRecordTime')
+    async updateRecordTime(@Query('userName') userName: string, @Body() body: any) {
+        return await this.userService.saveBestTime(userName, body.trackname, body.time);
+    }
+
+    @Get('getRecordTime')
+    async getRecordTime(@Query('userName') userName: string, @Query('trackName') trackName: string) {
+        return await this.userService.getBestTime(userName, trackName);
+    }
+
+	@Get('getIsLoggedIn')
+	async getIsLoggedIn(@Query('socketId') socketId: string) {
+		return await this.userService.getUserBySocketId(socketId);
+	}
+
+    @Delete('deleteUser')
+    async deleteUser(@Query('userName') userName: string) {
+        return await this.userService.deleteUser(userName);
     }
 }

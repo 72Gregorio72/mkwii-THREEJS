@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, setSelectedTrack }) => {
+export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, setSelectedTrack, resetRoomState, setHostLeft }) => {
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [trackInfo, setTrackInfo] = useState(selectedTrack);
@@ -52,25 +52,33 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
     socket.on('room_state', handleRoomState);
     socket.on('game_started', handleGameStarted);
     socket.on('track_selected', handleTrackSelected);
+    socket.on('room_closed', () => {
+      playSfx(AUDIO_SFX.BACK_IN_MENU);
+    //   alert('The host has closed the room.');
+      resetRoomState();
+      setHostLeft(true);
+      navigate('/menu', { replace: true });
+    });
     socket.emit('request_room_state', { roomCode });
 
     return () => {
       socket.off('room_state', handleRoomState);
       socket.off('game_started', handleGameStarted);
       socket.off('track_selected', handleTrackSelected);
+      socket.off('room_closed');
     };
   }, [socket, roomCode, navigate, setSelectedTrack, playSfx]);
 
   const handleStartGame = () => {
     if (isHost && socket) {
-      playSfx(AUDIO_SFX.DECIDE);
+      playSfx(AUDIO_SFX.SELECT_IN_MENU);
       socket.emit('start_game', { roomCode });
     }
   };
 
   const handleChangeTrack = () => {
     if (isHost) {
-      playSfx(AUDIO_SFX.DECIDE);
+      playSfx(AUDIO_SFX.SELECT_IN_MENU);
       navigate('/track');
     }
   };
@@ -78,13 +86,15 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
   const copyToClipboard = () => {
     navigator.clipboard.writeText(roomCode);
     setCopied(true);
-    playSfx(AUDIO_SFX.DECIDE);
+    playSfx(AUDIO_SFX.SELECT_IN_MENU);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleLeave = () => {
-      playSfx(AUDIO_SFX.BACK);
-      navigate('/menu');
+      playSfx(AUDIO_SFX.BACK_IN_MENU);
+      socket.emit('leave_room', { roomCode });
+      resetRoomState();
+      navigate('/menu', { replace: true });
   };
 
   return (
@@ -230,7 +240,7 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
 
                                     {/* Name */}
                                     <span className={`text-xl font-bold tracking-wide ${player.isHost ? 'text-[#ffcc00]' : 'text-white'}`}>
-                                        Player {index + 1}
+                                        {player.username || `Player ${index + 1}`}
                                         {player.id === socket?.id && <span className="text-[#88aaff] text-sm ml-2">(YOU)</span>}
                                     </span>
 
@@ -286,7 +296,7 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, s
                     className="flex items-center gap-3 bg-white px-8 py-2 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer"
                 >
                     <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold text-lg shadow-inner border border-white/50">B</div>
-                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">Leave Room</span>
+                    <span className="text-gray-600 font-bold text-2xl tracking-wide uppercase">{isHost ? 'Close Room' : 'Leave Room'}</span>
                 </button>
             </div>
 

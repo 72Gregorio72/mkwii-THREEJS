@@ -72,6 +72,9 @@ export function RaceManager({
 	// --- 3. LOOP DI GIOCO ---
 	const updateTimer = useRef(0);
 
+	// Ref per evitare di invocare setPositions ripetutamente con lo stesso valore
+	const lastSentPositionsRef = useRef([]);
+
 	useFrame((_, delta) => {
 		if (finished || !trackData || !racersData.current) return;
 
@@ -147,11 +150,22 @@ export function RaceManager({
 			allRacers[racer.id].position = index + 1;
 		});
 
-		// Aggiorna solo se cambiato
-		const hasChanged = sorted.some((r, i) => positions[i]?.id !== r.id);
+		// Costruisci array minimale di IDs per confronto
+		const newPositionsIds = sorted.map((r, index) => ({ id: r.id, position: index + 1 }));
 
-		if (hasChanged) {
-			setPositions(sorted.map((r, index) => ({ id: r.id, position: index + 1 })));
+		// Confronta con l'ultimo stato inviato per evitare setPositions ripetuti
+		const last = lastSentPositionsRef.current;
+		let changed = false;
+		if (last.length !== newPositionsIds.length) changed = true;
+		else {
+			for (let i = 0; i < last.length; i++) {
+				if (last[i].id !== newPositionsIds[i].id) { changed = true; break; }
+			}
+		}
+
+		if (changed) {
+			lastSentPositionsRef.current = newPositionsIds;
+			setPositions(newPositionsIds);
 		}
 	});
 

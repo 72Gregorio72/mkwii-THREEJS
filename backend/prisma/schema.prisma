@@ -3,11 +3,15 @@
 // 2) npx prisma studio --hostname 0.0.0.0 --port 5555 --browser none
 // so go into a browser and open http://localhost:5555
 
-// if prisma is not in sync with the database do: npm prisma db push
+// if prisma is not in sync with the database do: npm prisma db push || npx prisma db push
 
 // to reset the database do npx prisma db push --force-reset, 
 // the .dbjournal file that will be created is a safe copy of the db that was 
 // deleted and it will be used automatically to restore the db if anything goes wrong
+
+// default accounts
+// utente debug, pw debug
+// utente test, pw test
 
 generator client {
   provider = "prisma-client-js"
@@ -20,12 +24,78 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
-  email     String   @unique
+  id        	Int			@id @default(autoincrement())
+  username  	String		@unique // qualsiasi stringa unique puo essere usata come foregn key
+  password  	String
+  email     	String		@unique
+  icon      	String		@default("Mario.png")
+  onlineWins	Int			@default(0)
+  offlineWins	Int			@default(0)
+  isLoggedIn 	Boolean		@default(false)
+
+  socketId  	String?     @unique// campo opzionale per memorizzare l'ID del socket dell'utente
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relazione virtuale --> non crea colonna nella tabella
+  times RecordTimes[] // relazione con RecordTimes, un utente può avere più record times --> one-to-many
+
+  // Amicizie (chi ho aggiunto e chi mi ha aggiunto --> lista completa e' l'unione dei due) --> serve per many-to-many
+  friendsInitiated Friendship[] @relation("SentFriendships")
+  friendsReceived  Friendship[] @relation("ReceivedFriendships")
+
+  // Richieste di amicizia
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+}
+
+// many-to-many
+model Friendship {
+  id         Int      @id @default(autoincrement())
+  
+  // Relazione con l'utente che ha iniziato l'amicizia
+  user       User     @relation("SentFriendships", fields: [userName], references: [username], onDelete: Cascade)
+  userName   String
+  
+  // Relazione con l'utente che è stato aggiunto
+  friend     User     @relation("ReceivedFriendships", fields: [friendName], references: [username], onDelete: Cascade)
+  friendName String
+  
+  createdAt  DateTime @default(now())
+
+  @@unique([userName, friendName]) // Evita doppioni della stessa coppia
+}
+
+// quando viene mandata richiesta si crea nuovo record:
+// - se accetta elimino record ed aggiungo friendship
+// - se rifiuto elimino il record di friend request
+model FriendRequest {
+  id           Int      @id @default(autoincrement())
+  
+  // Chi invia la richiesta
+  sender       User     @relation("SentRequests", fields: [senderName], references: [username], onDelete: Cascade)
+  senderName   String
+  
+  // Chi riceve la richiesta
+  receiver     User     @relation("ReceivedRequests", fields: [receiverName], references: [username], onDelete: Cascade)
+  receiverName String
+  
+  status       String   @default("PENDING") // PENDING, ACCEPTED
+  createdAt    DateTime @default(now())
+
+  @@unique([senderName, receiverName]) // Non puoi mandare due richieste alla stessa persona
+}
+
+model RecordTimes {
+  id        	Int			@id @default(autoincrement())
+  userName  	String  // userName è la chiave esterna che fa riferimento al nome dell'utente
+  time      	Int     // tempo in ms
+  trackName     	String  // nome del circuito
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
 
+  user User @relation(fields: [userName], references: [username], onUpdate: Cascade) // relazione con User, ogni record times è associato a un utente
+  
+  @@unique([userName, trackName]) // un utente può avere un solo record time per ogni circuito
+}

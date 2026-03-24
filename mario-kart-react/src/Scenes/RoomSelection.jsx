@@ -36,7 +36,7 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket }) => {
+export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket, username, loggedIn }) => {
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [fadeToBlack, setFadeToBlack] = useState(false);
@@ -68,7 +68,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket }) => {
   const handleCreateRoom = () => {
     playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    onCreateRoom(code);
+    onCreateRoom(code, username);
   };
 
   const handleJoinClick = () => {
@@ -79,7 +79,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket }) => {
   const handleConfirmJoin = () => {
     if (roomCode.trim()) {
       playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
-      onJoinRoom(roomCode.trim().toUpperCase());
+      onJoinRoom(roomCode.trim().toUpperCase(), username);
     }
   };
 
@@ -137,6 +137,80 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket }) => {
                     </div>
                 </div>
             </div>
+
+                    {/* --- TASTO PROFILO / LICENSE (Accanto a Info) --- */}
+                    {loggedIn && (
+                        <div 
+                            onClick={() => handleNavigate('/profile')}
+                            className="absolute top-18 right-28 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                        >
+                            <div className="relative w-14 h-14 md:w-16 md:h-16">
+                                {/* Halo */}
+                                <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
+                                
+                                {/* Cerchio Verde Lucido */}
+                                <div className="w-full h-full rounded-full bg-gradient-to-b from-[#22cc22] to-[#008800] border-[3px] border-white ring-[3px] ring-[#00aa00] shadow-md flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
+                                    {/* Riflesso */}
+                                    <div className="absolute top-0 left-0 w-full h-[50%] bg-white/40 rounded-b-full"></div>
+                                    <span className="text-3xl text-white drop-shadow-md transform filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
+                                        👤
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Label 'License' */}
+                            <div className="absolute -bottom-2 -right-1 bg-[#008800] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
+                                License
+                            </div>
+                        </div>
+                    )}
+
+                    {loggedIn && (
+                        <div 
+                            onClick={() => navigate('/friends')}
+                            className="absolute top-26 right-52 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                        >
+                            <div className="relative w-14 h-14 md:w-16 md:h-16">
+                                {/* Halo */}
+                                <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
+                                
+                                {/* Cerchio Giallo Lucido */}
+                                <div className="w-full h-full rounded-full bg-gradient-to-b from-[#ffcc00] to-[#aa8800] border-[3px] border-white ring-[3px] ring-[#cc9900] shadow-md flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
+                                    {/* Riflesso */}
+                                    <div className="absolute top-0 left-0 w-full h-[50%] bg-white/40 rounded-b-full"></div>
+                                    <span className="text-3xl text-white drop-shadow-md transform filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
+                                        🌍
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Label 'Friends' */}
+                            <div className="absolute -bottom-2 -right-1 bg-[#aa8800] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
+                                Friends
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TASTO SETTINGS / INFO (Destra Estrema) */}
+                    <div 
+                        onClick={() => handleNavigate('/info')}
+                        className="absolute top-2 right-4 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                    >
+                        <div className="relative w-16 h-16 md:w-20 md:h-20">
+                            <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
+
+                            <div className="w-full h-full rounded-full bg-gradient-to-b from-[#44ccff] to-[#0088dd] border-[3px] border-white ring-[3px] ring-[#8899ff] shadow-md flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
+                                <div className="absolute top-0 left-0 w-full h-[50%] bg-white/40 rounded-b-full"></div>
+                                <span className="text-4xl text-white drop-shadow-md transform -rotate-12 filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
+                                    🔧
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="absolute -bottom-1 -left-3 bg-[#0088dd] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
+                            Info
+                        </div>
+                    </div>
 
             {/* AREA CENTRALE */}
             <div className="flex-1 flex flex-col items-center justify-center p-8 w-full">
