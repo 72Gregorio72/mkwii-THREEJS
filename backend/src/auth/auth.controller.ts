@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UnauthorizedException, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, BadRequestException, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('')
@@ -15,7 +15,7 @@ export class AuthController {
         const user = await this.authService.validateUser(body.username, body.password);
         
         if (!user) {
-            throw new UnauthorizedException('Wrong password or username');
+            throw new BadRequestException('Wrong password or username');
         }
         return this.authService.login(user);
     }

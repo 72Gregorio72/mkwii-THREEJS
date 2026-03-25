@@ -80,8 +80,10 @@ export const Friends = ({ userName }) => {
                     body: JSON.stringify({ receiverName: newFriendName.trim() })
                 });
 
+                const text = await res.json();
+
                 if (!res.ok) {
-                    setAddMessage('Error sending request!');
+                    setAddMessage(text.message ?? 'Error sending request');
                 } else {
                     setAddMessage('Request Sent!');
                     setTimeout(() => {
@@ -130,7 +132,6 @@ export const Friends = ({ userName }) => {
         }
     };
 
-    // NUOVA FUNZIONE: Cancella Amico
     const handleDeleteFriend = async (friendToDelete) => {
         playSfx(AUDIO_SFX.BACK_IN_MENU);
         try {

@@ -1,11 +1,12 @@
 import { Controller, Get, Query, NotFoundException, Patch, Body, Post, Delete, ParseIntPipe } from '@nestjs/common';
 import { FriendsService } from './friends.service';
+import { UsersService } from 'src/users/users.service';
 
 
 @Controller('')
 export class FriendsController {
 
-    constructor(private readonly friendsService: FriendsService) {}
+    constructor(private readonly friendsService: FriendsService, private readonly userService: UsersService) {}
 
 
     @Get('getFriendList')
@@ -20,6 +21,10 @@ export class FriendsController {
 
     @Post('sendFriendRequest')
     async sendFriendRequest(@Query('username') username: string, @Body('receiverName') receiverName: string) {
+        const receiverUser = await this.userService.findOne(receiverName);
+        if (!receiverUser) {
+            throw new NotFoundException('User not found');
+        }
         return this.friendsService.sendRequest(username, receiverName);
     }
 
