@@ -4,6 +4,9 @@ import DaisyCircuit_right from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right
 import DelfinoSquare0 from '../Bot/Waypoints/DelfinoSquare/DelfinoSquare';
 import DelfinoSquareL from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareL';
 import DelfinoSquareR from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareR';
+import YoshiFalls1 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_1';
+import YoshiFalls2 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_2';
+import YoshiFalls3 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_3';
 import snes1 from '../Bot/Waypoints/SNESMarioCircuit/snes1.json'
 
 const SMALL_VEHICLES = [
@@ -91,7 +94,7 @@ export const Tracks = {
         itemBoxes: './Tracks/YoshiFalls/YoshiFalls_itembox.glb',
         gridpos: './Tracks/YoshiFalls/YoshiFalls_startpos.glb',
         road: './Tracks/YoshiFalls/YoshiFalls_road.glb',
-		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+		Waypoints: [ YoshiFalls1, YoshiFalls2, YoshiFalls3 ]
     },
     'Moo Moo Meadows': {
         file: './Tracks/MooMooMeadows/MooMooMeadows.glb',
