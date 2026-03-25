@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { Tracks } from '../components/Data.jsx';
 import { formatTime } from '../ui/GameHUD.jsx';
+import { useUserStore } from '../store.js';
 
 const AVAILABLE_ICONS = [
     "BabyDaisy.png",
@@ -158,7 +159,7 @@ export const Stats = ({ userName }) => {
 };
 
 
-export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket }) => {
+export const Profile = ({ setLoggedIn, setUsername, socket }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
     const [data, setData] = useState(null);
@@ -173,6 +174,8 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
     // stati per l'eliminazione dell'account
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    const {isLoggedIn: isLoggedIn, userName: userName} = useUserStore();
 
     // Dati simulati statistiche
     const [userStats] = useState({
@@ -189,6 +192,7 @@ export const Profile = ({ setLoggedIn, userName, isLoggedIn, setUsername, socket
     });
 
     useEffect(() => {
+        console.log(userName);
         if (!isLoggedIn || !userName) return;
         fetch(`/api/profile?userName=${userName}`)
         .then((res) => {

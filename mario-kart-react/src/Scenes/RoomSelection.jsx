@@ -1,6 +1,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { useUserStore } from '../store.js';
 
 // Componente Pulsante Menu (Stile MKWii Options riutilizzato)
 const MenuButton = ({ title, onClick, bgImage }) => {
@@ -36,12 +37,14 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket, username, loggedIn }) => {
+export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket, }) => {
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [fadeToBlack, setFadeToBlack] = useState(false);
   const navigate = useNavigate();
   const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+
+  const {isLoggedIn: loggedIn, userName: username} = useUserStore();
 
   useEffect(() => {
     if (getCurrentTrack() !== 'MENU') {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { useUserStore } from '../store.js';
 
-export const Friends = ({ userName }) => {
+export const Friends = () => {
     const navigate = useNavigate();
     
     const [friends, setFriends] = useState([]);
@@ -18,6 +19,8 @@ export const Friends = ({ userName }) => {
     const [newFriendName, setNewFriendName] = useState('');
     const [addMessage, setAddMessage] = useState(''); 
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack } = useAudio();
+
+    const { userName: userName } = useUserStore();
 
     useEffect(() => {
         if (getCurrentTrack() !== 'MENU') {

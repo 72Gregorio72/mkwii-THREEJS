@@ -15,9 +15,9 @@ RUN npm install
 # Copia tutto il resto del codice sorgente nel container
 COPY . .
 
-RUN npx prisma generate
+RUN npx prisma generate && npx prisma db push
 
-CMD npm run db:init && npm run start
+CMD npm run db:init && npm run start 
 # Espone la porta 3000 (quella di default di NestJS)
 EXPOSE 3000
 
