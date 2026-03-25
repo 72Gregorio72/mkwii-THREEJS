@@ -198,8 +198,6 @@ export default function App() {
         }
         
         userStore.handleLogout();
-        // setUsername(null);
-        // setIsLoggedIn(false);
     };
 
     // Data source
@@ -273,7 +271,7 @@ export default function App() {
                         } />
 
                         <Route path="/profile" element={
-                            <Profile setLoggedIn={handleLogout} setUsername={(username) => {userStore.handleLogin(username)}} socket={socket}/>
+                            <Profile setLoggedIn={handleLogout} logIn={(username) => {userStore.handleLogin(username)}} socket={socket}/>
                         } />
 
                         <Route path="/friends" element={
