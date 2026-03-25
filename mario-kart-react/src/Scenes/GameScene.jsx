@@ -253,7 +253,9 @@ export function GameScene({
     selectedGrandPrix,
     isGrandPrix,
     setIsGrandPrix,
-    setRaceResults
+    setRaceResults,
+    setHostLeft,
+    resetRoomState
 }) {
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
@@ -484,12 +486,18 @@ export function GameScene({
         socket.on('room_state', handleRoomState);
         socket.on('race_start', handleRaceStart);
         socket.on('game_state_sync', handleGameStateSync);
+        socket.on('room_closed', () => {
+              resetRoomState();
+              setHostLeft(true);
+              navigate('/menu', { replace: true });
+        });
         socket.emit('request_room_state', { roomCode });
 
         return () => {
             socket.off('room_state', handleRoomState);
             socket.off('race_start', handleRaceStart);
             socket.off('game_state_sync', handleGameStateSync);
+            socket.off('room_closed');
         };
     }, [socket, roomCode, playerStartPos, isTimeTrial]);
 

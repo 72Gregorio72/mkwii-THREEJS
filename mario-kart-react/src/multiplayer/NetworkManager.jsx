@@ -105,7 +105,7 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
 
             // Se la firma è diversa da quella salvata (es. qualcuno ha caricato la skin), aggiorniamo lo stato React
             if (currentSignature !== rosterSignature.current) {
-                console.log("Roster update detected:", currentSignature);
+                // console.log("Roster update detected:", currentSignature);
                 rosterSignature.current = currentSignature;
                 setOpponents(others);
             }

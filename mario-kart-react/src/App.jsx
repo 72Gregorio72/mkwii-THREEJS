@@ -366,6 +366,8 @@ export default function App() {
                                         isGrandPrix={isGrandPrix}
                                         setIsGrandPrix={setIsGrandPrix}
                                         setRaceResults={setRaceResults}
+                                        setHostLeft={setHostLeft}
+                                        resetRoomState={resetRoomState}
                                     />  
                                 } 
                             />
