@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Tracks } from '../components/Data'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
+import { socket } from '../multiplayer/socket.js'
 
-export function TrackSelection({ setSelectedTrack, roomCode = null, socket = null, isHost = false }) {
+export function TrackSelection({ setSelectedTrack, roomCode = null, isHost = false }) {
 
     const navigate = useNavigate();
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack } = useAudio();

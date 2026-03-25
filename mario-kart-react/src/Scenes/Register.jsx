@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { socket } from '../multiplayer/socket.js';
 
-export const Register = ({ logIn, socket }) => {
+export const Register = ({ logIn }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 

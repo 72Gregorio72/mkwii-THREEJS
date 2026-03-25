@@ -2,6 +2,7 @@ import React, { useState, useEffect, use } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { useUserStore } from '../store.js';
+import { socket } from '../multiplayer/socket.js';
 
 // Componente Pulsante Menu (Stile MKWii Options riutilizzato)
 const MenuButton = ({ title, onClick, bgImage }) => {
@@ -37,7 +38,7 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const RoomSelection = ({ onCreateRoom, onJoinRoom, socket, }) => {
+export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [fadeToBlack, setFadeToBlack] = useState(false);

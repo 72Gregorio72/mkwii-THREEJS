@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react'; 
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { formatTime } from './GameHUD.jsx';
+import { socket } from '../multiplayer/socket.js';
 
 // Font Injection (se non già presente globalmente)
 const mkwiiFontStyle = `
@@ -167,7 +168,7 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
   );
 }
 
-export const RaceResults = ({ finishers, socket, isTimeTrial, onPlayAgain, setIsTimeTrial, isGrandPrix, setIsGrandPrix, racersData, userName, trackName }) => {
+export const RaceResults = ({ finishers, isTimeTrial, onPlayAgain, setIsTimeTrial, isGrandPrix, setIsGrandPrix, racersData, userName, trackName }) => {
   const navigate = useNavigate();
   const { playSfx } = useAudio();
 

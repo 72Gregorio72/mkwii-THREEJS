@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { RacerModel } from '../models/RacerModel'
 import { AUDIO_SFX , useAudio } from '../audio/AudioManager.jsx'
 
-export function CharacterSelection({ availableCharacters, setSelectedCharacter, isSinglePlayer }) {
+export function CharacterSelection({ availableCharacters, setSelectedCharacter }) {
     const navigate = useNavigate();
     const { changeTrack, enableSmoothLoop, playSfx, fadeOutMusic } = useAudio();
     const [fadeToBlack, setFadeToBlack] = useState(false);

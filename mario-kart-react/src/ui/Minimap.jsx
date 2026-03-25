@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Characters } from '../components/Data.jsx';
+import { socket } from '../multiplayer/socket.js';
 
-export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remoteRefMap, opponents, playerRank, socket }) => {
+export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remoteRefMap, opponents, playerRank }) => {
     const canvasRef = useRef(null);
     const [bounds, setBounds] = useState({ minX: 0, maxX: 0, minZ: 0, maxZ: 0 });
     const [iconImages, setIconImages] = useState({});
