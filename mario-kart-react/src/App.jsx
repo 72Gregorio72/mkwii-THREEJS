@@ -18,6 +18,7 @@ import { SinglePlayer } from './Scenes/SinglePlayer.jsx'
 import { GrandPrix } from './Scenes/GrandPrix.jsx'
 import { WinScene } from './Scenes/WinScene.jsx'
 import { Friends } from './Scenes/Friends.jsx'
+import { useUserStore } from './store.js'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -140,8 +141,11 @@ export default function App() {
     const [isTimeTrial, setIsTimeTrial] = useState(false)
     const [isGrandPrix, setIsGrandPrix] = useState(false)
 
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [userName, setUsername] = useState(null);
+
+    const userStore = useUserStore();
+    
+    // const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const {userName: userName} = useUserStore();
 
     const [ raceResults, setRaceResults ] = useState([SelectedCharacter, Characters[9], Characters[16], Characters[3], Characters[4], Characters[5], Characters[6], Characters[7], Characters[8], Characters[1], Characters[10], Characters[11]]);
 
@@ -153,38 +157,25 @@ export default function App() {
                 const response = await fetch(`/api/getIsLoggedIn?socketId=${socket.id}`);
                 const text = await response.text();
 
-
                 const user = text ? JSON.parse(text) : null;
 
+                // console.log({user});
                 if (user && user.isLoggedIn) {
-                    setIsLoggedIn(true);
-                    setUsername(user.username);
+                    userStore.handleLogin(user.username);
                 } else {
-                    setIsLoggedIn(false);
-                    setUsername(null);
+                    userStore.handleLogout();
                 }
             } catch (error) {
                 console.error('Errore nel recupero dello stato di login:', error);
             }
         };
 
-        socket.on('connect', fetchLoginStatus);
-
-        if (socket.connected) {
-            fetchLoginStatus();
-        }
+        socket.on('connect', () => {fetchLoginStatus()});
 
         return () => {
             socket.off('connect', fetchLoginStatus);
         };
     }, []);
-
-    const handleLogin = (user) => {
-        if(user) {
-            setUsername(user);
-        }
-        setIsLoggedIn(true);
-    };
 
     const handleLogout = async () => {
         try {
@@ -206,8 +197,9 @@ export default function App() {
             console.error('Logout error:', error);
         }
         
-        setUsername(null);
-        setIsLoggedIn(false);
+        userStore.handleLogout();
+        // setUsername(null);
+        // setIsLoggedIn(false);
     };
 
     // Data source
@@ -257,7 +249,7 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
 
-                        <Route path="/menu" element={<MainMenu loggedIn={isLoggedIn} hostLeft={hostLeft} setHostLeft={setHostLeft} />} /> {/* mettere true loggedIn per testare le gare */}
+                        <Route path="/menu" element={<MainMenu hostLeft={hostLeft} setHostLeft={setHostLeft} />} /> {/* mettere true loggedIn per testare le gare */}
 
                         <Route path="/room" element={
                             <RoomSelection 
@@ -265,8 +257,6 @@ export default function App() {
                                 onJoinRoom={handleJoinRoom}
                                 socket={socket}
                                 setSelectedTrack={setSelectedTrack}
-                                username={userName}
-                                loggedIn={isLoggedIn}
                             />
                         } />
                         
@@ -275,19 +265,19 @@ export default function App() {
                         } />
 
                         <Route path="/register" element={
-                            <Register onRegistrationSuccess={handleLogin} setUsername={setUsername} socket={socket}/>
+                            <Register onRegistrationSuccess={(username) => {userStore.handleLogin(username)}} socket={socket}/>
                         } />
 
                         <Route path="/login" element={
-                            <Login onLoginSuccess={handleLogin} setUsername={setUsername} socket={socket}/>
+                            <Login onLoginSuccess={(username) => {userStore.handleLogin(username)}} socket={socket}/>
                         } />
 
                         <Route path="/profile" element={
-                            <Profile setLoggedIn={handleLogout} userName={userName} isLoggedIn={isLoggedIn} setUsername={setUsername} socket={socket}/>
+                            <Profile setLoggedIn={handleLogout} setUsername={(username) => {userStore.handleLogin(username)}} socket={socket}/>
                         } />
 
                         <Route path="/friends" element={
-                            <Friends userName={userName}/>
+                            <Friends/>
                         }/>
 
                         <Route path="/character" element={
@@ -299,7 +289,7 @@ export default function App() {
                         } />
 
                         <Route path="/single_player" element={
-                            <SinglePlayer isLoggedIn={isLoggedIn} setIsTimeTrial={setIsTimeTrial} setCcs={setCcsSpeed} setIsGrandPrix={setIsGrandPrix} isGrandPrix={isGrandPrix}
+                            <SinglePlayer setIsTimeTrial={setIsTimeTrial} setCcs={setCcsSpeed} setIsGrandPrix={setIsGrandPrix} isGrandPrix={isGrandPrix}
                             />
                         } />
 
@@ -360,7 +350,6 @@ export default function App() {
                                         isHostProp={isHost}
                                         isTimeTrial={isTimeTrial}
                                         ccs={ccsSpeed}
-										username={userName}
                                         setIsTimeTrial={setIsTimeTrial}
                                         selectedGrandPrix={selectedGrandPrix.name}
                                         isGrandPrix={isGrandPrix}

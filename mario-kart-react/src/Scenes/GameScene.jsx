@@ -38,6 +38,7 @@ import { CustomWiiSky } from '../components/CustomeWiiSky.jsx'
 import { OutsideDriftBike } from '../components/OutsideDriftBike.jsx'
 import { WaypointRecorder } from '../Bot/WaypointRecorder.jsx'
 import { WaypointVisualizer} from '../Bot/WaypointVisualizer.jsx'
+import { useUserStore } from '../store.js';
  
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -249,7 +250,6 @@ export function GameScene({
     isTimeTrial,
     setIsTimeTrial,
     ccs,
-    username,
     selectedGrandPrix,
     isGrandPrix,
     setIsGrandPrix,
@@ -257,6 +257,8 @@ export function GameScene({
     setHostLeft,
     resetRoomState
 }) {
+
+    const {userName: username} = useUserStore();
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
 

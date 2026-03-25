@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { useUserStore } from '../store.js';
 
-export const Login = ({ onLoginSuccess, setUsername, socket }) => {
+export const Login = ({ socket }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -17,6 +18,8 @@ export const Login = ({ onLoginSuccess, setUsername, socket }) => {
     // Stato per gestire l'errore visuale
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    const { handleLogin: onLoginSuccess} = useUserStore();
 
     const sendDataToBackend = async (data) => {
         setIsLoading(true);
@@ -55,8 +58,8 @@ export const Login = ({ onLoginSuccess, setUsername, socket }) => {
             console.log("Success:", result);
             const finalUsername = result.username;
 
-            if (setUsername) setUsername(finalUsername);
-            if (onLoginSuccess) onLoginSuccess(finalUsername);
+            // setUsername?.(finalUsername);
+            onLoginSuccess?.(finalUsername);
             
             setTimeout(() => navigate('/menu'), 500);
 

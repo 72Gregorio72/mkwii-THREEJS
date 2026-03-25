@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'; // Rimosso 'use' che non serve
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { useUserStore } from '../store.js';
 
 const MenuButton = ({ title, onClick, bgImage }) => {
     return (
@@ -35,11 +36,13 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const SinglePlayer = ({ isLoggedIn, setIsTimeTrial, setCcs, setIsGrandPrix, isGrandPrix }) => {
+export const SinglePlayer = ({ setIsTimeTrial, setCcs, setIsGrandPrix, isGrandPrix }) => {
 
     const navigate = useNavigate();   
     const [fadeToBlack, setFadeToBlack] = useState(false);
   	const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+
+    const {isLoggedIn: isLoggedIn} = useUserStore();
 
 	useEffect(() => {
 		if (getCurrentTrack() !== 'MENU') {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { useUserStore } from '../store.js';
 
 // Componente per il singolo Pulsante del Menu (Stile MKWii Options)
 const MenuButton = ({ title, onClick, bgImage }) => {
@@ -36,10 +37,13 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const MainMenu = ({ loggedIn, hostLeft, setHostLeft }) => {
+export const MainMenu = ({ hostLeft, setHostLeft }) => {
     const navigate = useNavigate();    
     const [fadeToBlack, setFadeToBlack] = useState(false);
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack , fadeOutMusic } = useAudio();
+
+    const {isLoggedIn: loggedIn} = useUserStore();
+
 
     useEffect(() => {
         if (getCurrentTrack() !== 'MENU') {
