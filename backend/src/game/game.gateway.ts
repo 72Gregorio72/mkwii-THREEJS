@@ -76,7 +76,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     if (token) {
       try {
-        const secret = this.configService.get<string>('JWT_SECRET');
+        const secret = this.configService.get<string>('JWT_SECRET') ?? this.configService.get<string>('JWT_KEY') ?? 'dev_jwt_secret_change_me';
         const payload = this.jwtService.verify(token, { secret });
         
         const username = payload.username;
@@ -282,7 +282,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   @SubscribeMessage('create_room')
   handleCreateRoom(client: Socket, payload: RoomUserPayload) {
     const roomCode = payload.roomCode;
-    const userName = payload.userName || 'Guest';
+    const userName = payload.username || 'Guest';
     
     if (this.roomData.has(roomCode)) {
       client.emit('room_error', { message: 'Room already exists' });

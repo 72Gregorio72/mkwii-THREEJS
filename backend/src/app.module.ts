@@ -26,7 +26,8 @@ import { FriendsModule } from './friends/friends.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        // Support both JWT_SECRET (current) and JWT_KEY (legacy env.example)
+        secret: configService.get<string>('JWT_SECRET') ?? configService.get<string>('JWT_KEY') ?? 'dev_jwt_secret_change_me',
         signOptions: { expiresIn: '7d' }, // Il token scadrà in 7 giorni
       }),
     }),

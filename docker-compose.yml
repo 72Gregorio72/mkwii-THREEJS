@@ -31,4 +31,5 @@ services:
       - ./certs:/etc/certs:ro
     environment:
       - NODE_ENV=development
-    command: npm run start:dev
+      - JWT_SECRET=dev_jwt_secret_change_me
+    command: npm run start:dev:docker
