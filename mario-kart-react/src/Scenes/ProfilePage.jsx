@@ -4,6 +4,7 @@ import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { Tracks } from '../components/Data.jsx';
 import { formatTime } from '../ui/GameHUD.jsx';
 import { useUserStore } from '../store.js';
+import { socket } from '../multiplayer/socket.js'
 
 const AVAILABLE_ICONS = [
     "BabyDaisy.png",
@@ -159,7 +160,7 @@ export const Stats = ({ userName }) => {
 };
 
 
-export const Profile = ({ setLoggedIn, setUsername, socket }) => {
+export const Profile = ({ setLoggedIn, setUsername }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
     const [data, setData] = useState(null);

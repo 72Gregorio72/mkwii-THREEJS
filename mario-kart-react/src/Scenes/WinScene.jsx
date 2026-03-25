@@ -8,6 +8,7 @@ import { SmartMap } from '../Tracks/SmartMap.jsx';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { CustomWiiSky } from '../components/CustomeWiiSky.jsx';
 import * as THREE from 'three';
+import { socket } from '../multiplayer/socket.js';
 
 // Componente per aggiornare la posizione iniziale della telecamera
 // Componente per la telecamera animata
@@ -85,7 +86,7 @@ function AnimatedTrophy({ modelPath, show, targetY = 6 }) {
     );
 }
 
-export const WinScene = ({ selectedCup, raceResults, socket, setRaceResults }) => {
+export const WinScene = ({ selectedCup, raceResults, setRaceResults }) => {
     const navigate = useNavigate();
     const { playSfx, changeTrack, stopMusic } = useAudio();
 

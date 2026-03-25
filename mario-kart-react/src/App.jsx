@@ -253,7 +253,6 @@ export default function App() {
                             <RoomSelection 
                                 onCreateRoom={handleCreateRoom}
                                 onJoinRoom={handleJoinRoom}
-                                socket={socket}
                                 setSelectedTrack={setSelectedTrack}
                             />
                         } />
@@ -263,15 +262,15 @@ export default function App() {
                         } />
 
                         <Route path="/register" element={
-                            <Register onRegistrationSuccess={(username) => {userStore.handleLogin(username)}} socket={socket}/>
+                            <Register logIn={(username) => {userStore.handleLogin(username)}}/>
                         } />
 
                         <Route path="/login" element={
-                            <Login onLoginSuccess={(username) => {userStore.handleLogin(username)}} socket={socket}/>
+                            <Login onLoginSuccess={(username) => {userStore.handleLogin(username)}} />
                         } />
 
                         <Route path="/profile" element={
-                            <Profile setLoggedIn={handleLogout} logIn={(username) => {userStore.handleLogin(username)}} socket={socket}/>
+                            <Profile setLoggedIn={handleLogout} setUsername={(username) => {userStore.handleLogin(username)}} socket={socket}/>
                         } />
 
                         <Route path="/friends" element={
@@ -308,7 +307,6 @@ export default function App() {
                                 setSelectedTrack={setSelectedTrack}
                                 roomCode={roomCode}
                                 isHost={isHost}
-                                socket={socket}
                             />
                         } />
 
@@ -317,7 +315,6 @@ export default function App() {
                                 roomCode={roomCode}
                                 roomId={roomId}
                                 isHost={isHost}
-                                socket={socket}
                                 selectedTrack={SelectedTrack}
                                 setSelectedTrack={setSelectedTrack}
                                 resetRoomState={resetRoomState}
@@ -326,7 +323,7 @@ export default function App() {
                         } />
 
                         <Route path="/endGrandPrix" element={
-                            <WinScene selectedCup={selectedGrandPrix} raceResults={raceResults} socket={socket} setRaceResults={setRaceResults}/>
+                            <WinScene selectedCup={selectedGrandPrix} raceResults={raceResults} setRaceResults={setRaceResults}/>
                         } />
 
                         {['/game', '/debug'].map((path) => (
@@ -335,7 +332,6 @@ export default function App() {
                                 path={path} 
                                 element={
                                     <GameScene
-                                        socket={socket}
                                         character={SelectedCharacter}
                                         vehicle={SelectedVehicle}
                                         mapPath={SelectedTrack.file} 

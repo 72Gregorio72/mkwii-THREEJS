@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { socket } from '../multiplayer/socket.js';
 
-export const WaitingRoom = ({ roomCode, roomId, isHost, socket, selectedTrack, setSelectedTrack, resetRoomState, setHostLeft }) => {
+export const WaitingRoom = ({ roomCode, roomId, isHost, selectedTrack, setSelectedTrack, resetRoomState, setHostLeft }) => {
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [trackInfo, setTrackInfo] = useState(selectedTrack);

@@ -38,7 +38,10 @@ import { CustomWiiSky } from '../components/CustomeWiiSky.jsx'
 import { OutsideDriftBike } from '../components/OutsideDriftBike.jsx'
 import { WaypointRecorder } from '../Bot/WaypointRecorder.jsx'
 import { WaypointVisualizer} from '../Bot/WaypointVisualizer.jsx'
+
 import { useUserStore } from '../store.js';
+import { socket } from '../multiplayer/socket.js'
+
  
 const TOTAL_LAPS = 3;
 const BOT_COUNT = 11; // 1 Player + 11 Bots = 12 Racers
@@ -236,7 +239,6 @@ function generateBotConfigurations(botCount, playerCharacter, playerVehicle) {
 // --- MAIN COMPONENT ---
 
 export function GameScene({ 
-    socket, 
     character, 
     vehicle, 
     mapPath, 
