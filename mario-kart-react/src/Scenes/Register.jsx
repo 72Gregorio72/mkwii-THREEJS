@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 
-export const Register = ({ onRegistrationSuccess, socket }) => {
+export const Register = ({ logIn, socket }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
 
@@ -46,7 +46,7 @@ export const Register = ({ onRegistrationSuccess, socket }) => {
             console.log("Success:", result);
             const finalUsername = result.username;
 
-            onRegistrationSuccess?.(finalUsername);
+            logIn?.(finalUsername);
             
             setTimeout(() => navigate('/menu'), 500);
 
