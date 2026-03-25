@@ -686,6 +686,7 @@ export function GameScene({
                 setMusicPitch(1.0, 1.0, 300);
             }
             stopMusic();
+            racingMusicStarted.current = false;
             return;
         }
         
@@ -1082,8 +1083,8 @@ export function GameScene({
                 }}
             >
                 
-
-                {/* <WaypointRecorder
+{/* 
+                <WaypointRecorder
                     kartRef={playerRef}
                     isRecording={true}
                 >
