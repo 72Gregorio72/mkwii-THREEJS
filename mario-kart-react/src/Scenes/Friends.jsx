@@ -52,7 +52,7 @@ export const Friends = () => {
 
     const handleBack = () => {
         playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
-        navigate(-1);
+        navigate('/menu');
     };
 
     const handleAddFriendClick = () => {
@@ -194,6 +194,30 @@ export const Friends = () => {
                     </div>
                     <div className="absolute -bottom-1 -left-3 bg-[#0088dd] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
                         Info
+                    </div>
+                </div>
+
+                <div 
+                    onClick={() => navigate('/profile')}
+                    className="absolute top-18 right-28 pointer-events-auto cursor-pointer group flex flex-col items-center z-50"
+                >
+                    <div className="relative w-14 h-14 md:w-16 md:h-16">
+                        {/* Halo */}
+                        <div className="absolute inset-0 rounded-full bg-white/50 scale-110 blur-sm"></div>
+                        
+                        {/* Cerchio Verde Lucido */}
+                        <div className="w-full h-full rounded-full bg-gradient-to-b from-[#22cc22] to-[#008800] border-[3px] border-white ring-[3px] ring-[#00aa00] shadow-md flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform duration-200">
+                            {/* Riflesso */}
+                            <div className="absolute top-0 left-0 w-full h-[50%] bg-white/40 rounded-b-full"></div>
+                            <span className="text-3xl text-white drop-shadow-md transform filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
+                                👤
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Label 'License' */}
+                    <div className="absolute -bottom-2 -right-1 bg-[#008800] text-white text-xs md:text-sm font-bold px-3 py-0.5 rounded-full border-2 border-white shadow-sm transform -rotate-6 group-hover:scale-110 transition-transform z-50">
+                        License
                     </div>
                 </div>
 

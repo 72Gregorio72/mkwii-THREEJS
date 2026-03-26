@@ -7,7 +7,11 @@ import DelfinoSquareR from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareR';
 import YoshiFalls_1 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_1';
 import YoshiFalls_2 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_2';
 import YoshiFalls_3 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_3';
-import snes1 from '../Bot/Waypoints/SNESMarioCircuit/snes1.json'
+import SNESMario1 from '../Bot/Waypoints/SNESMarioCircuit/SNESMario1.json';
+import SNESMarioR from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioR.json';
+import SNESMarioL from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioL.json';
+
+
 
 const SMALL_VEHICLES = [
     'StandardKartS', 'StandardBikeS', 'BoosterSeat', 'BulletBike', 
@@ -132,7 +136,7 @@ export const Tracks = {
         itemBoxes: './Tracks/SNESMarioCircuit/SNESMarioCircuit_itembox.glb',
         gridpos: './Tracks/SNESMarioCircuit/SNESMarioCircuit_startpos.glb',
         road: './Tracks/SNESMarioCircuit/SNESMarioCircuit_road.glb',
-		Waypoints: [ snes1, DelfinoSquareL, DelfinoSquareR ]
+		Waypoints: [ SNESMario1, SNESMarioL, SNESMarioR ]
     },
 
 	'N64 Mario Raceway': {
@@ -224,9 +228,9 @@ export const grandPrixList = [
 			bgColor: 'from-[#44cc44] to-[#008800]',
 			ringColor: 'ring-[#88ff88]',
 			tracks: [
+				"Peach Gardens",
 				"SNES Mario Circuit",
 				"Yoshi Falls",
-				"Peach Gardens",
 				"GCN Mario Circuit"
 			]
 		},
