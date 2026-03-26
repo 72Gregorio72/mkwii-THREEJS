@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'; // Rimosso 'use' che non serve
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
-import { useUserStore } from '../store.js';
+import { useUserStore, useGameStore } from '../store.js';
 
 const MenuButton = ({ title, onClick, bgImage }) => {
     return (
@@ -36,12 +36,14 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const SinglePlayer = ({ setIsTimeTrial, setCcs, setIsGrandPrix, isGrandPrix }) => {
+export const SinglePlayer = () => {
 
     const navigate = useNavigate();   
     const [fadeToBlack, setFadeToBlack] = useState(false);
   	const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
 
+    const gameStore = useGameStore();
+    const {isGrandPrix: isGrandPrix} = useGameStore();
     const {isLoggedIn: isLoggedIn} = useUserStore();
 
 	useEffect(() => {
@@ -61,13 +63,13 @@ export const SinglePlayer = ({ setIsTimeTrial, setCcs, setIsGrandPrix, isGrandPr
         if (path === '/character') {
             setFadeToBlack(true);
             if (!isGrandPrix)
-                setIsTimeTrial(true);
+                gameStore.setIsTimeTrial(true);
             fadeOutMusic(700);
             setTimeout(() => {
                 navigate(path);
             }, 700); 
         } else {
-            setIsTimeTrial(false);
+            gameStore.setIsTimeTrial(false);
             navigate(path);
         }
     };
@@ -75,16 +77,16 @@ export const SinglePlayer = ({ setIsTimeTrial, setCcs, setIsGrandPrix, isGrandPr
     const handleBack = () => {
 		playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
         if (isGrandPrix) {
-            setIsGrandPrix(false);
+            gameStore.setIsGrandPrix(false);
         }
         else
             handleNavigate('/menu')
     }
 
     const handleSpeed = (speed) => {
-        setCcs(speed)
-        setIsTimeTrial(false)
-        handleNavigate('/grandprix')
+        gameStore.setCcsSpeed(speed)
+        gameStore.setIsTimeTrial(false)
+        handleNavigate('/grandprix') 
     }
 
     return (
@@ -218,7 +220,7 @@ export const SinglePlayer = ({ setIsTimeTrial, setCcs, setIsGrandPrix, isGrandPr
                             <MenuButton 
                                 title="Grand prix" 
                                 onClick={() => {
-                                    setIsGrandPrix(true)
+                                    gameStore.setIsGrandPrix(true)
 									playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
 								}}
                                 bgImage="/buttonsImg/chara_6_donkey_00.png"

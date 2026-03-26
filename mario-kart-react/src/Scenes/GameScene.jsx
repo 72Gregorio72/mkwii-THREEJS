@@ -39,7 +39,7 @@ import { OutsideDriftBike } from '../components/OutsideDriftBike.jsx'
 import { WaypointRecorder } from '../Bot/WaypointRecorder.jsx'
 import { WaypointVisualizer} from '../Bot/WaypointVisualizer.jsx'
 
-import { useUserStore } from '../store.js';
+import { useGameDataStore, useGameStore, useRoomDataStore, useUserStore } from '../store.js';
 import { socket } from '../multiplayer/socket.js'
 
  
@@ -238,29 +238,25 @@ function generateBotConfigurations(botCount, playerCharacter, playerVehicle) {
 
 // --- MAIN COMPONENT ---
 
-export function GameScene({ 
-    character, 
-    vehicle, 
+export function GameScene({
     mapPath, 
     checkpointPath, 
     start_pos, 
     maxCheckpoints, 
     selectedTrack,
-    roomCode = null,
-    roomId = null,
-    isHostProp = false,
-    isTimeTrial,
-    setIsTimeTrial,
-    ccs,
     selectedGrandPrix,
-    isGrandPrix,
-    setIsGrandPrix,
     setRaceResults,
-    setHostLeft,
     resetRoomState
 }) {
 
+    // vars from stores
+    const {isHost: isHost, ccsSpeed: ccs, isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
+    const {SelectedCharacter: character, SelectedVehicle: vehicle} = useGameDataStore();
     const {userName: username} = useUserStore();
+    const {roomCode: roomCode, roomId: roomId} = useRoomDataStore();
+    
+    const gameStore = useGameStore();
+    
     // 3. HOOK DI NAVIGAZIONE
     const navigate = useNavigate();
 
@@ -303,7 +299,7 @@ export function GameScene({
 
     // Lobby state
     const [isInLobby, setIsInLobby] = useState(roomCode ? true : false);
-    const [isHost, setIsHost] = useState(isHostProp);
+
     const [lobbyPlayers, setLobbyPlayers] = useState([]);
 
     // Genera configurazioni bot random e uniche (memoizzate per non ricambiarle ad ogni render)
@@ -492,7 +488,7 @@ export function GameScene({
         socket.on('game_state_sync', handleGameStateSync);
         socket.on('room_closed', () => {
               resetRoomState();
-              setHostLeft(true);
+              gameStore.setHostLeft(true);
               navigate('/menu', { replace: true });
         });
         socket.emit('request_room_state', { roomCode });
@@ -967,7 +963,7 @@ export function GameScene({
                         setRaceResults(finalStandings);
                     }
 
-                    setIsGrandPrix(false);
+                    gameStore.setIsGrandPrix(false);
                     handleExitRace();
                 }
             }
@@ -975,7 +971,7 @@ export function GameScene({
 
         window.addEventListener('nextGrandPrixRace', handleNextRace);
         return () => window.removeEventListener('nextGrandPrixRace', handleNextRace);
-    }, [isGrandPrix, currentGrandPrixObj, gpTrackIndex, handleExitRace, setIsGrandPrix, stopMusic, initialPositions]);
+    }, [isGrandPrix, currentGrandPrixObj, gpTrackIndex, handleExitRace, stopMusic, initialPositions]);
 
 
     if (!vehicle || !character) return <div style={{color:'white'}}>Loading resources...</div>;
@@ -1034,9 +1030,6 @@ export function GameScene({
                     socket={socket}
                     isTimeTrial={isTimeTrial}
                     onPlayAgain={handleRestartRace}
-                    setIsTimeTrial={setIsTimeTrial}
-                    isGrandPrix={isGrandPrix}
-                    setIsGrandPrix={setIsGrandPrix}
 					racersData={racersData.current}
                     userName={username}
                     trackName={activeTrackConfig?.name}

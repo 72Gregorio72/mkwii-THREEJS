@@ -18,7 +18,8 @@ import { SinglePlayer } from './Scenes/SinglePlayer.jsx'
 import { GrandPrix } from './Scenes/GrandPrix.jsx'
 import { WinScene } from './Scenes/WinScene.jsx'
 import { Friends } from './Scenes/Friends.jsx'
-import { useUserStore } from './store.js'
+
+import { useUserStore, useGameStore, useGameDataStore, useRoomDataStore } from './store.js'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -64,7 +65,6 @@ const TitleScreen = () => {
     return (
         <div 
             onClick={handleStart}
-            // MODIFICA QUI: bg-white invece di bg-black per lo sfondo generale
             className="w-screen h-screen cursor-pointer flex flex-col items-center justify-end pb-20 relative overflow-hidden bg-white"
         >
             {/* INIEZIONE CSS PER ANIMAZIONE GHOST */}
@@ -121,33 +121,20 @@ const TitleScreen = () => {
 // --- APP PRINCIPALE ---
 export default function App() {
     
-    // State for selections
-    const [SelectedCharacter, setSelectedCharacter] = useState(Characters[0])
-    const [SelectedVehicle, setSelectedVehicle] = useState(VEHICLE_DATABASE.StandardKartS)
-    const [SelectedTrack, setSelectedTrack] = useState(Tracks['Daisy Circuit'])
-    
-    // State for Grand Prix
-    const [selectedGrandPrix, setSelectedGrandPrix] = useState(grandPrixList[0])
-
-    // Room state
-    const [roomCode, setRoomCode] = useState(null)
-    const [roomId, setRoomId] = useState(null)
-    const [isHost, setIsHost] = useState(false)
-
-    const [ccsSpeed, setCcsSpeed] = useState(40)
-
-    const [ hostLeft, setHostLeft ] = useState(false) 
-
-    const [isTimeTrial, setIsTimeTrial] = useState(false)
-    const [isGrandPrix, setIsGrandPrix] = useState(false)
-
-
+    // States for Game from stores
     const userStore = useUserStore();
+    const gameStore = useGameStore();
+    const gameDataStore = useGameDataStore();
+    const roomDataStore = useRoomDataStore();
     
-    // const [isLoggedIn, setIsLoggedIn] = useState(false);
     const {userName: userName} = useUserStore();
+    const {SelectedCharacter: SelectedCharacter, SelectedTrack: SelectedTrack, selectedGrandPrix: selectedGrandPrix} = useGameDataStore();
 
+    // State for results
     const [ raceResults, setRaceResults ] = useState([SelectedCharacter, Characters[9], Characters[16], Characters[3], Characters[4], Characters[5], Characters[6], Characters[7], Characters[8], Characters[1], Characters[10], Characters[11]]);
+
+    // Data source
+    const [availableCharacters] = useState(Characters)
 
     useEffect(() => {
         const fetchLoginStatus = async () => {
@@ -200,15 +187,12 @@ export default function App() {
         userStore.handleLogout();
     };
 
-    // Data source
-    const [availableCharacters, ] = useState(Characters)
-
     // Socket Room Listener
     useEffect(() => {
         if (!socket) return;
         const handleRoomState = (data) => {
             if (data.roomId) {
-                setRoomId(data.roomId);
+                roomDataStore.setRoomId(data.roomId);
             }
         };
         socket.on('room_state', handleRoomState);
@@ -216,26 +200,26 @@ export default function App() {
     }, []);
 
     const handleCreateRoom = (code, username) => {
-        setRoomCode(code);
-        setIsHost(true);
+        roomDataStore.setRoomCode(code);
+        gameStore.setIsHost(true);
         socket.emit('create_room', { roomCode: code, username: username });
     };
 
     const handleJoinRoom = (code, username) => {
-        setRoomCode(code);
-        setIsHost(false);
+        roomDataStore.setRoomCode(code);
+        gameStore.setIsHost(false);
         socket.emit('join_room', { roomCode: code, username: username });
     };
 
     const resetRoomState = () => {
-        setRoomCode('');
-        setRoomId('');
-        setIsHost(false);
-        setSelectedTrack(Tracks['Daisy Circuit']);
-        setSelectedCharacter(Characters[0]);
-        setSelectedVehicle(VEHICLE_DATABASE.StandardKartS);
-        setIsGrandPrix(false);
-        setIsTimeTrial(false);
+        roomDataStore.setRoomCode('');
+        roomDataStore.setRoomId('');
+        gameDataStore.setSelectedTrack(Tracks['Daisy Circuit']);
+        gameDataStore.setSelectedCharacter(Characters[0]);
+        gameDataStore.setSelectedVehicle(VEHICLE_DATABASE.StandardKartS);
+        gameStore.setIsGrandPrix(false);
+        gameStore.setIsTimeTrial(false);
+        gameStore.setIsHost(false);
     };
 
     return (
@@ -247,13 +231,12 @@ export default function App() {
                     <Routes>
                         <Route path="/" element={<TitleScreen />} />
 
-                        <Route path="/menu" element={<MainMenu hostLeft={hostLeft} setHostLeft={setHostLeft} />} /> {/* mettere true loggedIn per testare le gare */}
+                        <Route path="/menu" element={<MainMenu />} />
 
                         <Route path="/room" element={
                             <RoomSelection 
                                 onCreateRoom={handleCreateRoom}
                                 onJoinRoom={handleJoinRoom}
-                                setSelectedTrack={setSelectedTrack}
                             />
                         } />
                         
@@ -270,7 +253,9 @@ export default function App() {
                         } />
 
                         <Route path="/profile" element={
-                            <Profile setLoggedIn={handleLogout} setUsername={(username) => {userStore.handleLogin(username)}} socket={socket}/>
+                            <Profile 
+                                setLoggedIn={handleLogout}
+                                setUsername={(username) => {userStore.handleLogin(username)}}/>
                         } />
 
                         <Route path="/friends" element={
@@ -280,50 +265,38 @@ export default function App() {
                         <Route path="/character" element={
                             <CharacterSelection 
                                 onNext={() => {}} 
-                                setSelectedCharacter={setSelectedCharacter}
                                 availableCharacters={availableCharacters}
                             />
                         } />
 
                         <Route path="/single_player" element={
-                            <SinglePlayer setIsTimeTrial={setIsTimeTrial} setCcs={setCcsSpeed} setIsGrandPrix={setIsGrandPrix} isGrandPrix={isGrandPrix}
-                            />
+                            <SinglePlayer />
                         } />
 
 						<Route path="/grandprix" element={
-							<GrandPrix setSelectedGrandPrix={setSelectedGrandPrix}/>
+							<GrandPrix />
 						} />
 
                         <Route path="/vehicle" element={
-                            <VehicleSelection 
-                                selectedCharacter={SelectedCharacter}
-                                setSelectedVehicle={setSelectedVehicle}
-                                isGrandPrix={isGrandPrix}
-                            />
+                            <VehicleSelection />
                         } />
 
                         <Route path="/track" element={
-                            <TrackSelection
-                                setSelectedTrack={setSelectedTrack}
-                                roomCode={roomCode}
-                                isHost={isHost}
-                            />
+                            <TrackSelection />
                         } />
 
                         <Route path="/waiting" element={
                             <WaitingRoom
-                                roomCode={roomCode}
-                                roomId={roomId}
-                                isHost={isHost}
-                                selectedTrack={SelectedTrack}
-                                setSelectedTrack={setSelectedTrack}
                                 resetRoomState={resetRoomState}
-                                setHostLeft={setHostLeft}
                             />
                         } />
 
                         <Route path="/endGrandPrix" element={
-                            <WinScene selectedCup={selectedGrandPrix} raceResults={raceResults} setRaceResults={setRaceResults}/>
+                            <WinScene 
+                                selectedCup={selectedGrandPrix}
+                                raceResults={raceResults}
+                                setRaceResults={setRaceResults}
+                            />
                         } />
 
                         {['/game', '/debug'].map((path) => (
@@ -332,24 +305,13 @@ export default function App() {
                                 path={path} 
                                 element={
                                     <GameScene
-                                        character={SelectedCharacter}
-                                        vehicle={SelectedVehicle}
                                         mapPath={SelectedTrack.file} 
                                         checkpointPath={SelectedTrack.checkpoints}
                                         maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
                                         start_pos={SelectedTrack.startPos}
                                         selectedTrack={SelectedTrack}
-                                        roomCode={roomCode}
-                                        roomId={roomId}
-                                        isHostProp={isHost}
-                                        isTimeTrial={isTimeTrial}
-                                        ccs={ccsSpeed}
-                                        setIsTimeTrial={setIsTimeTrial}
                                         selectedGrandPrix={selectedGrandPrix.name}
-                                        isGrandPrix={isGrandPrix}
-                                        setIsGrandPrix={setIsGrandPrix}
                                         setRaceResults={setRaceResults}
-                                        setHostLeft={setHostLeft}
                                         resetRoomState={resetRoomState}
                                     />  
                                 } 

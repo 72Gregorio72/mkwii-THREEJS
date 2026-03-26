@@ -6,6 +6,7 @@ import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { VEHICLE_DATABASE } from '../components/Data'
 import { AUDIO_SFX, useAudio } from '../audio/AudioManager.jsx'
+import { useGameDataStore, useGameStore } from '../store.js'
 
 // --- STAT BAR COMPONENT ---
 const StatBar = ({ label, value }) => (
@@ -57,10 +58,14 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
     )
 }
 
-export function VehicleSelection({ selectedCharacter, setSelectedVehicle, isGrandPrix }) {
+export function VehicleSelection() {
     const navigate = useNavigate();
     const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
-    
+    const {isGrandPrix: isGrandPrix} = useGameStore();
+
+    const {SelectedCharacter: selectedCharacter} = useGameDataStore();
+    const gameDataStore = useGameDataStore();
+
     useEffect(() => {
         if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
             changeTrack('CHARACTER_KART_SELECT', 100);
@@ -78,7 +83,7 @@ export function VehicleSelection({ selectedCharacter, setSelectedVehicle, isGran
     const [localSelection, setLocalSelection] = useState(availableVehicles[0] || VEHICLE_DATABASE['DEFAULT']);
 
     const handleConfirm = () => {
-        setSelectedVehicle(localSelection);
+        gameDataStore.setSelectedVehicle(localSelection);
         if (!isGrandPrix)
             navigate('/track'); 
         else

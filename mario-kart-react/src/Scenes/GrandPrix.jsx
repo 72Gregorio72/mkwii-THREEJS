@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { grandPrixList } from '../components/Data.jsx';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
+import { useGameDataStore } from '../store.js';
 
-export const GrandPrix = ({ setSelectedGrandPrix }) => {
+export const GrandPrix = () => {
     const navigate = useNavigate();
     const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
     const [fadeToBlack, setFadeToBlack] = useState(false);
+
+    const gameDataStore = useGameDataStore();
 
     useEffect(() => {
     if (getCurrentTrack() !== 'MENU') {
@@ -23,7 +26,7 @@ export const GrandPrix = ({ setSelectedGrandPrix }) => {
 
     const handleSelectCup = (cupId) => {
         playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
-        setSelectedGrandPrix(grandPrixList.find((gp) => gp.id == cupId));
+        gameDataStore.setSelectedGrandPrix(grandPrixList.find((gp) => gp.id == cupId));
         setFadeToBlack(true);
         fadeOutMusic(700);
         setTimeout(() => {

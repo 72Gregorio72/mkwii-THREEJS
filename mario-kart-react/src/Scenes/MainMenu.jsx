@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
-import { useUserStore } from '../store.js';
+import { useGameStore, useUserStore } from '../store.js';
 
 // Componente per il singolo Pulsante del Menu (Stile MKWii Options)
 const MenuButton = ({ title, onClick, bgImage }) => {
@@ -37,12 +37,14 @@ const MenuButton = ({ title, onClick, bgImage }) => {
     );
 };
 
-export const MainMenu = ({ hostLeft, setHostLeft }) => {
+export const MainMenu = () => {
     const navigate = useNavigate();    
     const [fadeToBlack, setFadeToBlack] = useState(false);
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack , fadeOutMusic } = useAudio();
 
+    const gameStore = useGameStore();
     const {isLoggedIn: loggedIn} = useUserStore();
+    const {hostLeft: hostLeft} = useGameStore();
 
 
     useEffect(() => {
@@ -56,7 +58,7 @@ export const MainMenu = ({ hostLeft, setHostLeft }) => {
     useEffect(() => {
         setTimeout(() => {
             if (hostLeft) {
-                setHostLeft(false);
+                gameStore.setHostLeft(false);
             }
         }, 3000);
     }, [hostLeft]);

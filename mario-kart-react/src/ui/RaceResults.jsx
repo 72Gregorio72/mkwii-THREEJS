@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { formatTime } from './GameHUD.jsx';
 import { socket } from '../multiplayer/socket.js';
+import { useGameStore } from '../store.js';
 
 // Font Injection (se non già presente globalmente)
 const mkwiiFontStyle = `
@@ -168,9 +169,12 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
   );
 }
 
-export const RaceResults = ({ finishers, isTimeTrial, onPlayAgain, setIsTimeTrial, isGrandPrix, setIsGrandPrix, racersData, userName, trackName }) => {
+export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName }) => {
   const navigate = useNavigate();
   const { playSfx } = useAudio();
+  
+  const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
+  const gameStore = useGameStore();
 
   const [showResults, setShowResults] = useState(false);
   const [isGrandPrixFinished, setIsGrandPrixFinished] = useState(isGrandPrix ? false : true);
@@ -202,12 +206,12 @@ export const RaceResults = ({ finishers, isTimeTrial, onPlayAgain, setIsTimeTria
   const handleQuit = () => {
     playSfx(AUDIO_SFX.BACK_IN_MENU);
     if (isTimeTrial) {
-        setIsTimeTrial(false);
+        gameStore.setIsTimeTrial(false);
         updateRecordTimes();
     }
     if (isGrandPrix) {
         setIsGrandPrixFinished(true);
-        setIsGrandPrix(false);
+        gameStore.setIsGrandPrix(false);
     }
     if (socket) {
         navigate('/waiting');
@@ -220,7 +224,7 @@ export const RaceResults = ({ finishers, isTimeTrial, onPlayAgain, setIsTimeTria
     playSfx(AUDIO_SFX.CONFIRM);
     updateRecordTimes();
     if (onPlayAgain) {
-        setIsTimeTrial(true);
+        gameStore.setIsTimeTrial(true);
         onPlayAgain();
     } else {
         navigate('/game');

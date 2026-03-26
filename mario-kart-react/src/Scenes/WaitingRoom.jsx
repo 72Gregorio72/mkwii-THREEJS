@@ -2,8 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { socket } from '../multiplayer/socket.js';
+import { useGameDataStore, useGameStore, useRoomDataStore } from '../store.js';
 
-export const WaitingRoom = ({ roomCode, roomId, isHost, selectedTrack, setSelectedTrack, resetRoomState, setHostLeft }) => {
+export const WaitingRoom = ({ resetRoomState }) => {
+  
+  const { isHost: isHost } = useGameStore();
+  const { SelectedTrack: selectedTrack } = useGameDataStore();
+  const { roomCode: roomCode, roomId: roomId } = useRoomDataStore();
+  const gameStore = useGameStore();
+  const gameDataStore = useGameDataStore();
+
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [trackInfo, setTrackInfo] = useState(selectedTrack);
@@ -30,14 +38,14 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, selectedTrack, setSelect
         if (data.selectedTrack) {
           const trackData = { ...data.selectedTrack, start_pos: data.selectedTrack.startPos || [0, 2, 0] };
           setTrackInfo(trackData);
-          setSelectedTrack(trackData);
+          gameDataStore.setSelectedTrack(trackData);
         }
       }
     };
 
     const handleGameStarted = (data) => {
       if (data.roomCode === roomCode) {
-        playSfx(AUDIO_SFX.RACE_START_VOICE); // Optional voice
+        playSfx(AUDIO_SFX.RACE_START_VOICE);
         navigate('/game');
       }
     };
@@ -46,7 +54,7 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, selectedTrack, setSelect
       if (data.roomCode === roomCode) {
         const trackData = { ...data.track, start_pos: data.track.startPos || [0, 2, 0] };
         setTrackInfo(trackData);
-        setSelectedTrack(trackData);
+        gameDataStore.setSelectedTrack(trackData);
       }
     };
 
@@ -55,9 +63,8 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, selectedTrack, setSelect
     socket.on('track_selected', handleTrackSelected);
     socket.on('room_closed', () => {
       playSfx(AUDIO_SFX.BACK_IN_MENU);
-    //   alert('The host has closed the room.');
       resetRoomState();
-      setHostLeft(true);
+      gameStore.setHostLeft(true);
       navigate('/menu', { replace: true });
     });
     socket.emit('request_room_state', { roomCode });
@@ -68,7 +75,7 @@ export const WaitingRoom = ({ roomCode, roomId, isHost, selectedTrack, setSelect
       socket.off('track_selected', handleTrackSelected);
       socket.off('room_closed');
     };
-  }, [socket, roomCode, navigate, setSelectedTrack, playSfx]);
+  }, [socket, roomCode, navigate, playSfx]);
 
   const handleStartGame = () => {
     if (isHost && socket) {

@@ -4,11 +4,14 @@ import { Environment } from '@react-three/drei'
 import { useNavigate } from 'react-router-dom'
 import { RacerModel } from '../models/RacerModel'
 import { AUDIO_SFX , useAudio } from '../audio/AudioManager.jsx'
+import { useGameDataStore } from '../store.js'
 
-export function CharacterSelection({ availableCharacters, setSelectedCharacter }) {
+export function CharacterSelection({ availableCharacters }) {
     const navigate = useNavigate();
     const { changeTrack, enableSmoothLoop, playSfx, fadeOutMusic } = useAudio();
     const [fadeToBlack, setFadeToBlack] = useState(false);
+
+    const gameDataStore = useGameDataStore();
 
     useEffect(() => {
         changeTrack('CHARACTER_KART_SELECT', 100);
@@ -23,7 +26,7 @@ export function CharacterSelection({ availableCharacters, setSelectedCharacter }
     })
 
     const handleConfirm = () => {
-        setSelectedCharacter(localSelection)
+        gameDataStore.setSelectedCharacter(localSelection)
         playSfx(AUDIO_SFX[localSelection.select_sfx] || AUDIO_SFX.SELECT_IN_MENU, 0.5);
         
         // Delay navigation to let the animation/sound play

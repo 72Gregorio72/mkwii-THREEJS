@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { Tracks } from '../components/Data'
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx'
 import { socket } from '../multiplayer/socket.js'
+import { useGameDataStore, useGameStore, useRoomDataStore } from '../store.js'
 
-export function TrackSelection({ setSelectedTrack, roomCode = null, isHost = false }) {
+export function TrackSelection() {
 
     const navigate = useNavigate();
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack } = useAudio();
-    
+
+    const { isHost: isHost } = useGameStore();
+    const { roomCode: roomCode } = useRoomDataStore();
+    const gameDataStore = useGameDataStore();
+
     useEffect(() => {
         if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
             changeTrack('CHARACTER_KART_SELECT', 100);
@@ -35,7 +40,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, isHost = fal
                         ...data.selectedTrack,
                         start_pos: data.selectedTrack.startPos || data.selectedTrack.start_pos || [0, 2, 0]
                     };
-                    setSelectedTrack(trackData);
+                    gameDataStore.setSelectedTrack(trackData);
                     navigate('/waiting');
                 }
             };
@@ -43,7 +48,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, isHost = fal
             socket.on('room_state', handleRoomState);
             return () => socket.off('room_state', handleRoomState);
         }
-    }, [roomCode, socket, isHost, navigate, setSelectedTrack]);
+    }, [roomCode, socket, isHost, navigate]);
 
     // Listen for host selection
     useEffect(() => {
@@ -54,7 +59,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, isHost = fal
                         ...data.track,
                         start_pos: data.track.startPos || data.track.start_pos || [0, 2, 0]
                     };
-                    setSelectedTrack(trackData);
+                    gameDataStore.setSelectedTrack(trackData);
                     navigate('/waiting');
                 }
             };
@@ -62,7 +67,7 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, isHost = fal
             socket.on('track_selected', handleTrackSelected);
             return () => socket.off('track_selected', handleTrackSelected);
         }
-    }, [roomCode, socket, navigate, setSelectedTrack]);
+    }, [roomCode, socket, navigate]);
     
     // Set waiting state for non-hosts
     useEffect(() => {
@@ -80,10 +85,10 @@ export function TrackSelection({ setSelectedTrack, roomCode = null, isHost = fal
             };
             
             if (roomCode && isHost && socket) {
-                setSelectedTrack(trackData);
+                gameDataStore.setSelectedTrack(trackData);
                 socket.emit('select_track', { roomCode, track: trackData });
             } else if (!roomCode) {
-                setSelectedTrack(trackData);
+                gameDataStore.setSelectedTrack(trackData);
                 navigate('/game');
             }
         }
