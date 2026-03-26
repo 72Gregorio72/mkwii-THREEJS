@@ -10,6 +10,12 @@ import YoshiFalls_3 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_3';
 import SNESMario1 from '../Bot/Waypoints/SNESMarioCircuit/SNESMario1.json';
 import SNESMarioR from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioR.json';
 import SNESMarioL from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioL.json';
+import PeachGardens_1 from '../Bot/Waypoints/PeachGardens/PeachGardens_1.json';
+import PeachGardens_2 from '../Bot/Waypoints/PeachGardens/PeachGardens_2.json';
+import PeachGardens_3 from '../Bot/Waypoints/PeachGardens/PeachGardens_3.json';
+import LuigiCircuit_1 from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_1.json';
+import LuigiCircuit_2 from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_2.json';
+import LuigiCircuit_3 from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_3.json';
 
 
 
@@ -42,7 +48,7 @@ export const Tracks = {
 		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
 		maxCheckpoints: 4,
         soundtrack: 'RACE_LUIGI_CIRCUIT',
-		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
+		Waypoints: [ LuigiCircuit_1, LuigiCircuit_2, LuigiCircuit_3 ]
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
@@ -56,14 +62,14 @@ export const Tracks = {
         soundtrack: 'RACE_DAISY_CIRCUIT',
 		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
-	'Coconut Mall': {
-		file: './Tracks/CoconutMall/CoconutMall.glb',
-		preview: '/Previews/Coconut Mall.png',
-		startPos: [-15, 5, -50],
-		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
-		maxCheckpoints: 5,
-        soundtrack: 'RACE_COCONUT_MALL'
-	},
+	// 'Coconut Mall': {
+	// 	file: './Tracks/CoconutMall/CoconutMall.glb',
+	// 	preview: '/Previews/Coconut Mall.png',
+	// 	startPos: [-15, 5, -50],
+	// 	checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
+	// 	maxCheckpoints: 5,
+    //     soundtrack: 'RACE_COCONUT_MALL'
+	// },
 	'Bowser Castle': {
 		file: './Tracks/BowserCastle/BowserCastle.glb',
 		preview: '/Previews/Bowser Castle.png',
@@ -123,7 +129,7 @@ export const Tracks = {
         itemBoxes: './Tracks/PeachGardens/PeachGardens_itembox.glb',
         gridpos: './Tracks/PeachGardens/PeachGardens_startpos.glb',
         road: './Tracks/PeachGardens/PeachGardens_road.glb',
-		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+		Waypoints: [ PeachGardens_1, PeachGardens_2, PeachGardens_3 ]
     },
 
     'SNES Mario Circuit': {
