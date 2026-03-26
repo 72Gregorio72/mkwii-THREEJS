@@ -288,7 +288,7 @@ export function GameScene({
 
     // Aggiungi questo stato sotto a quello di "gameState"
     const [isTransitioning, setIsTransitioning] = useState(false);
-	const [raceAttempt, setRaceAttempt] = useState(0);
+    const [raceAttempt, setRaceAttempt] = useState(0);
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations, url: loadedGridUrl } = useGridPositions(activeTrackConfig?.gridpos);
 
@@ -443,6 +443,10 @@ export function GameScene({
             // Solo se è la stessa stanza
             if (data.roomCode !== roomCode) return;
             
+            if (isTimeTrial) {
+                startCountdown();
+                return;
+            }
             console.log('Race starting');
             setIsInLobby(false);
             if (!isTimeTrial)
@@ -514,11 +518,17 @@ export function GameScene({
 
     
     useEffect(() => {
-        // Se siamo in gara o l'intro è già partita (in questo ciclo), esci
+        // RIMOSSO isTimeTrial da questa condizione per non bloccare il flusso
         if (isInLobby || introPlayed.current || gameState === 'RACING' || gameState === 'LOADING') return;
         
         introPlayed.current = true;
 
+        if (isTimeTrial) {
+            startCountdown();
+            return;
+        }
+
+        // ALTRIMENTI: esegui la normale animazione intro di GSAP
         // Assicurati di uccidere vecchie animazioni pendenti in caso di riavvio rapido
         gsap.killTweensOf(cameraTarget.current);
 
@@ -541,7 +551,7 @@ export function GameScene({
         });
         
     // AGGIUNGI restartTrigger QUI
-    }, [isInLobby, playerStartPos, restartTrigger, gameState]);
+    }, [isInLobby, playerStartPos, restartTrigger, gameState, isTimeTrial]);
 
     const startCountdown = () => {
         setGameState('COUNTDOWN');
@@ -851,13 +861,13 @@ export function GameScene({
         });
     }, [targets, positions]);
 
-	const handleRestartRace = useCallback(() => {
+    const handleRestartRace = useCallback(() => {
         // 1. Ferma tutto e metti la schermata di caricamento/transizione
         setIsTransitioning(true);
         setGameState('LOADING');
         stopMusic();
 
-		setRaceAttempt(prev => prev + 1);
+        setRaceAttempt(prev => prev + 1);
 
         // 2. Cancella tutti i dati della gara corrente
         setFinished(false);
@@ -1030,7 +1040,7 @@ export function GameScene({
                     socket={socket}
                     isTimeTrial={isTimeTrial}
                     onPlayAgain={handleRestartRace}
-					racersData={racersData.current}
+                    racersData={racersData.current}
                     userName={username}
                     trackName={activeTrackConfig?.name}
                 />}
@@ -1118,7 +1128,7 @@ export function GameScene({
                 )}
 
 
-				<Physics key={`${activeTrackConfig.name}-${raceAttempt}`} debug={false} gravity={[0, -20, 0]}>
+                <Physics key={`${activeTrackConfig.name}-${raceAttempt}`} debug={false} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
