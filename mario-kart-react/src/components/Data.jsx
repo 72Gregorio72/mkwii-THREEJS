@@ -54,7 +54,7 @@ export const Tracks = {
 		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
 		maxCheckpoints: 4,
         soundtrack: 'RACE_LUIGI_CIRCUIT',
-		Waypoints: [ LuigiCircuit_1, LuigiCircuit_2, LuigiCircuit_3 ]
+		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
@@ -68,14 +68,14 @@ export const Tracks = {
         soundtrack: 'RACE_DAISY_CIRCUIT',
 		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
-	// 'Coconut Mall': {
-	// 	file: './Tracks/CoconutMall/CoconutMall.glb',
-	// 	preview: '/Previews/Coconut Mall.png',
-	// 	startPos: [-15, 5, -50],
-	// 	checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
-	// 	maxCheckpoints: 5,
-    //     soundtrack: 'RACE_COCONUT_MALL'
-	// },
+	'Coconut Mall': {
+		file: './Tracks/CoconutMall/CoconutMall.glb',
+		preview: '/Previews/Coconut Mall.png',
+		startPos: [-15, 5, -50],
+		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
+		maxCheckpoints: 5,
+        soundtrack: 'RACE_COCONUT_MALL'
+	},
 	'Bowser Castle': {
 		file: './Tracks/BowserCastle/BowserCastle.glb',
 		preview: '/Previews/Bowser Castle.png',
@@ -135,7 +135,7 @@ export const Tracks = {
         itemBoxes: './Tracks/PeachGardens/PeachGardens_itembox.glb',
         gridpos: './Tracks/PeachGardens/PeachGardens_startpos.glb',
         road: './Tracks/PeachGardens/PeachGardens_road.glb',
-		Waypoints: [ PeachGardens_1, PeachGardens_2, PeachGardens_3 ]
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
 
     'SNES Mario Circuit': {
