@@ -22,6 +22,12 @@ import DS_DesertHills_3 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_3.js
 import DryDryRuins_1 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_1.json';
 import DryDryRuins_2 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_2.json';
 import DryDryRuins_3 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_3.json';
+import MooMooMeadows_1 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_1.json';
+import MooMooMeadows_2 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_2.json';
+import MooMooMeadows_3 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_3.json';
+import N64MarioRaceway_1 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_1.json';
+import N64MarioRaceway_2 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_2.json';
+import N64MarioRaceway_3 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_3.json';
 
 
 
@@ -122,7 +128,7 @@ export const Tracks = {
         itemBoxes: './Tracks/MooMooMeadows/MooMooMeadows_itembox.glb',
         gridpos: './Tracks/MooMooMeadows/MooMooMeadows_startpos.glb',
         road: './Tracks/MooMooMeadows/MooMooMeadows_road.glb',
-		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+		Waypoints: [ MooMooMeadows_1, MooMooMeadows_2, MooMooMeadows_3 ]
     },
 	
 	'Peach Gardens': {
@@ -161,7 +167,7 @@ export const Tracks = {
         itemBoxes: './Tracks/N64MarioRaceway/N64_Mario_Raceway_itembox.glb',
         gridpos: './Tracks/N64MarioRaceway/N64_Mario_Raceway_startpos.glb',
         road: './Tracks/N64MarioRaceway/N64_Mario_Raceway_road.glb',
-		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+		Waypoints: [ N64MarioRaceway_1, N64MarioRaceway_2, N64MarioRaceway_3 ]
     },
 
 	'GCN Mario Circuit': {
