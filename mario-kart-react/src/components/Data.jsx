@@ -28,7 +28,12 @@ import MooMooMeadows_3 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_3.json
 import N64MarioRaceway_1 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_1.json';
 import N64MarioRaceway_2 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_2.json';
 import N64MarioRaceway_3 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_3.json';
-
+import GCNMarioCircuit_1 from '../Bot/Waypoints/GCNMarioCircuit/GCNMarioCircuit_1.json';
+import GCNMarioCircuit_2 from '../Bot/Waypoints/GCNMarioCircuit/GCNMarioCircuit_2.json';
+import GCNMarioCircuit_3 from '../Bot/Waypoints/GCNMarioCircuit/GCNMarioCircuit_3.json';
+import MarioCircuit_1 from '../Bot/Waypoints/MarioCircuit/MarioCircuit_1.json';
+import MarioCircuit_2 from '../Bot/Waypoints/MarioCircuit/MarioCircuit_2.json';
+import MarioCircuit_3 from '../Bot/Waypoints/MarioCircuit/MarioCircuit_3.json';
 
 
 const SMALL_VEHICLES = [
@@ -180,7 +185,7 @@ export const Tracks = {
 		itemBoxes: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_itembox.glb',
         gridpos: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_startpos.glb',
         road: './Tracks/GCNMarioCircuit/GCN_Mario_Circuit_road.glb',
-		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+		Waypoints: [ GCNMarioCircuit_1, GCNMarioCircuit_2, GCNMarioCircuit_3 ]
     },
 
 	'Mario Circuit': {
@@ -193,7 +198,7 @@ export const Tracks = {
 		itemBoxes: './Tracks/MarioCircuit/Mario_Circuit_itembox.glb',
         gridpos: './Tracks/MarioCircuit/Mario_Circuit_startpos.glb',
         road: './Tracks/MarioCircuit/Mario_Circuit_road.glb',
-		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+		Waypoints: [ MarioCircuit_1, MarioCircuit_2, MarioCircuit_3 ]
     },
 
 	'DS Desert Hills': {
