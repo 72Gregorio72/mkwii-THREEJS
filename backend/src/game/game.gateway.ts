@@ -12,8 +12,10 @@ import { getLocalIpAddress } from 'src/utils';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { RoomData, RoomPlayer, Quaternion, Vector3, Track, Bot } from 'src/types';
+import { BadRequestException } from '@nestjs/common';
+import { RoomData, RoomPlayer, Quaternion, Vector3, Track, User } from 'src/types';
 import type { ItemIdPayload, MoveKartPayload, RoomCodePayload, RoomUserPayload, SpawnItemPayload, StartRacePayload, SyncGameStatePayload } from 'src/socket-payloads';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 const myIP = getLocalIpAddress();
 
@@ -44,6 +46,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   private items = new Map<string, any>();
@@ -533,4 +536,50 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
   }
 
+@SubscribeMessage('invite_friend_to_room')
+  async handleInviteFriendToRoom(client: Socket, payload: { senderName: string, roomCode: string, friendUsername: string }) {
+    try {
+      const { roomCode, friendUsername, senderName } = payload;
+
+      if (!roomCode || !this.roomData.has(roomCode)) {
+        return { success: false, error: 'Room not found or code missing.' };
+      }
+      
+      const room = this.roomData.get(roomCode);
+      if (!room) {
+        return { success: false, error: 'Room data not found.' };
+      }
+
+      const friend = await this.usersService.findOne(friendUsername);
+      if (!friend) {
+        return { success: false, error: `User ${friendUsername} not found.` };
+      }
+
+      const isAlreadyInRoom = room.players.some(p => p.id === friend.socketId);
+      if (isAlreadyInRoom) {
+        console.log(`Player ${friendUsername} già nella room ${roomCode}`);
+        return { success: false, error: `${friendUsername} is already in the room.` };
+      }
+
+      const isAlreadyInvited = await this.notificationsService.findNotification(senderName, roomCode, friendUsername);
+      if (isAlreadyInvited) {
+        console.log(`Player ${friendUsername} already invited to room ${roomCode}`);
+        return { success: false, error: `${friendUsername} has already been invited.` };
+      }
+
+      await this.notificationsService.createRoomInvite(senderName, roomCode, friendUsername);
+
+      return { 
+        success: true, 
+        message: `Invite sent successfully to ${friendUsername}!` 
+      };
+
+    } catch (error) {
+      console.error(`[invite_friend_to_room] Critical error:`, error);
+      return { 
+        success: false, 
+        error: 'An internal error occurred while sending the invite.' 
+      };
+    }
+  }
 }

@@ -32,3 +32,16 @@ export interface RoomData {
   gameState: 'LOBBY' | 'INTRO' | 'RACING' | 'FINISHED' | string;
   selectedTrack?: Track;
 }
+
+export type User = {
+  id: number;
+  username: string;
+  password: string;
+  email: string;
+  icon: string;
+  onlineWins: number;
+  offlineWins: number;
+  isLoggedIn: boolean;
+
+  socketId?: string | null; // Prisma traduce i campi opzionali (?) in string | null
+};

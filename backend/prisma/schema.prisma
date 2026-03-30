@@ -34,6 +34,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 
@@ -131,7 +132,7 @@ model RecordTimes {
 
 // now only to invite a friend to a room
 model Notification {
-  id          String           @id @default(uuid())
+  id        	Int			@id @default(autoincrement())
   // type        NotificationType
   // isRead      Boolean          @default(false)
   status       String   @default("PENDING") // PENDING, ACCEPTED

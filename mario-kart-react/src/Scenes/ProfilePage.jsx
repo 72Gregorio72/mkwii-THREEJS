@@ -193,7 +193,6 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
     });
 
     useEffect(() => {
-        console.log(userName);
         if (!isLoggedIn || !userName) return;
         fetch(`/api/profile?userName=${userName}`)
         .then((res) => {
