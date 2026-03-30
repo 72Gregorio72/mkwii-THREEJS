@@ -36,6 +36,14 @@ datasource db {
   url       = env("DATABASE_URL")
 }
 
+
+// to make more than one type of notifications
+// enum NotificationType {
+//   FRIEND_REQUEST
+//   ROOM_INVITE
+//   SYSTEM_ALERT
+// }
+
 model User {
   id        	Int			@id @default(autoincrement())
   username  	String		@unique // qualsiasi stringa unique puo essere usata come foregn key
@@ -60,6 +68,12 @@ model User {
   // Richieste di amicizia
   sentRequests     FriendRequest[] @relation("SentRequests")
   receivedRequests FriendRequest[] @relation("ReceivedRequests")
+
+  // Notifiche
+  sentNotifications     Notification[] @relation("SentNotifications")
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
+
+  
 }
 
 // many-to-many
@@ -79,7 +93,8 @@ model Friendship {
   @@unique([userName, friendName]) // Evita doppioni della stessa coppia
 }
 
-// quando viene mandata richiesta si crea nuovo record:
+
+// quando viene mandata richiesta/notifica si crea nuovo record:
 // - se accetta elimino record ed aggiungo friendship
 // - se rifiuto elimino il record di friend request
 model FriendRequest {
@@ -111,4 +126,25 @@ model RecordTimes {
   user User @relation(fields: [userName], references: [username], onUpdate: Cascade) // relazione con User, ogni record times è associato a un utente
   
   @@unique([userName, trackName]) // un utente può avere un solo record time per ogni circuito
+}
+
+
+// now only to invite a friend to a room
+model Notification {
+  id          String           @id @default(uuid())
+  // type        NotificationType
+  // isRead      Boolean          @default(false)
+  status       String   @default("PENDING") // PENDING, ACCEPTED
+  
+  // Relazioni
+  senderName    String?          // Chi manda l'invito (opzionale per le notifiche di sistema)
+  sender      User?            @relation("SentNotifications", fields: [senderName], references: [username], onUpdate: Cascade)
+  
+  receiverName String           // Chi riceve l'invito
+  receiver    User             @relation("ReceivedNotifications", fields: [receiverName], references: [username], onUpdate: Cascade)
+  
+  // Metadati (molto utile per salvare l'ID della stanza senza creare chiavi esterne rigide)
+  entityId    String?          // Qui ci salvi il roomId
+  
+  createdAt   DateTime         @default(now())
 }

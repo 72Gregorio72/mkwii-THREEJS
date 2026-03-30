@@ -74,14 +74,14 @@ export const Tracks = {
         soundtrack: 'RACE_DAISY_CIRCUIT',
 		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
-	'Coconut Mall': {
-		file: './Tracks/CoconutMall/CoconutMall.glb',
-		preview: '/Previews/Coconut Mall.png',
-		startPos: [-15, 5, -50],
-		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
-		maxCheckpoints: 5,
-        soundtrack: 'RACE_COCONUT_MALL'
-	},
+	// 'Coconut Mall': {
+	// 	file: './Tracks/CoconutMall/CoconutMall.glb',
+	// 	preview: '/Previews/Coconut Mall.png',
+	// 	startPos: [-15, 5, -50],
+	// 	checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
+	// 	maxCheckpoints: 5,
+    //     soundtrack: 'RACE_COCONUT_MALL'
+	// },
 	'Bowser Castle': {
 		file: './Tracks/BowserCastle/BowserCastle.glb',
 		preview: '/Previews/Bowser Castle.png',
