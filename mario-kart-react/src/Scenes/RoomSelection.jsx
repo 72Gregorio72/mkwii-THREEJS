@@ -304,7 +304,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
 
                                     {/* MENU A TENDINA NOTIFICHE */}
                                     {showDropdown && (
-                                        <div className="absolute top-16 right-0 w-80 bg-gradient-to-b from-[#000066] to-[#000033] border-4 border-[#0088dd] rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.9)] z-50 overflow-hidden animate-in slide-in-from-top-2">
+                                        <div className="absolute top-1 -right-90 w-80 bg-gradient-to-b from-[#000066] to-[#000033] border-4 border-[#0088dd] rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.9)] z-50 overflow-hidden animate-in slide-in-from-top-2">
                                             <div className="bg-[#0088dd] text-white font-bold text-center py-2 uppercase tracking-widest text-sm shadow-md">
                                                 Room Invites
                                             </div>
