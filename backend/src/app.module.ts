@@ -13,9 +13,11 @@ import { HashService } from './hash/hash.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { FriendsModule } from './friends/friends.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationsService } from './notifications/notifications.service';
 
 @Module({
-  imports: [GameModule, AuthModule, FriendsModule, UsersModule,
+  imports: [GameModule, AuthModule, FriendsModule, UsersModule, NotificationsModule,
 
     ConfigModule.forRoot({
       isGlobal: true, 
@@ -32,6 +34,6 @@ import { FriendsModule } from './friends/friends.module';
     }),
   ],
   controllers: [AppController, InfoController, AuthController],
-  providers: [AppService, InfoService, AuthService, UsersService, HashService],
+  providers: [AppService, InfoService, AuthService, UsersService, HashService, NotificationsService],
 })
 export class AppModule {}

@@ -1,7 +1,6 @@
 import { Injectable, ConflictException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-
-export type User = any;
+import { User } from '../types';
 
 @Injectable()
 export class UsersService implements OnModuleInit, OnModuleDestroy {
@@ -58,7 +57,7 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
 
   async updateIcon(username: string, iconName: string): Promise<User> {
     try {
-      const updatedUser = await this.prisma.user.updateMany({
+      const updatedUser = await this.prisma.user.update({
         where: {
           username: username,
         },

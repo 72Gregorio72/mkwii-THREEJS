@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "🏎️  Avvio Mario Kart React..."
 
 # Controlla se Docker è attivo
@@ -6,8 +8,32 @@ if ! docker info > /dev/null 2>&1 && ! sudo docker info > /dev/null 2>&1; then
     exit 1
 fi
 
+# ==========================================
+# Gestione Certificati SSL
+# ==========================================
+mkdir -p certs
+
+# Controlla se i file dei certificati mancano
+if [ ! -f "certs/cert.pem" ] || [ ! -f "certs/key.pem" ]; then
+    echo "🔐 Certificati non trovati. Generazione in corso..."
+    cd certs
+    openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
+    cd ..
+    echo "✅ Certificati generati con successo."
+else
+    echo "✅ Certificati SSL già presenti nella cartella 'certs'."
+fi
+
+# Rimuove eventuali ritorni a capo di Windows (CRLF) per evitare errori
+sed -i 's/\r$//' start.sh
+
+# ==========================================
+# Avvio dei Container
+# ==========================================
+echo "🧹 Pulizia dei vecchi container e volumi..."
 docker-compose down -v
 
+echo "🚀 Avvio dei container..."
 # Prova a lanciare docker-compose. Se fallisce per permessi, usa sudo.
 if docker-compose up --build; then
     : # Successo, non fare nulla

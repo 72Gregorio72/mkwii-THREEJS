@@ -6,6 +6,14 @@ import { UsersService } from 'src/users/users.service';
 export class FriendsService {
   private prisma = new PrismaClient();
 
+  async onModuleInit() {
+    await this.prisma.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.prisma.$disconnect();
+  }
+  
   // 1. Inviare una richiesta di amicizia
   async sendRequest(senderName: string, receiverName: string) {
     if (senderName === receiverName) {

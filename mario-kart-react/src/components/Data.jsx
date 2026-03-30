@@ -65,7 +65,7 @@ export const Tracks = {
 		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
 		maxCheckpoints: 4,
         soundtrack: 'RACE_LUIGI_CIRCUIT',
-		Waypoints: [ LuigiCircuit_1, LuigiCircuit_2, LuigiCircuit_3 ]
+		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
@@ -146,7 +146,7 @@ export const Tracks = {
         itemBoxes: './Tracks/PeachGardens/PeachGardens_itembox.glb',
         gridpos: './Tracks/PeachGardens/PeachGardens_startpos.glb',
         road: './Tracks/PeachGardens/PeachGardens_road.glb',
-		Waypoints: [ PeachGardens_1, PeachGardens_2, PeachGardens_3 ]
+		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
     },
 
     'SNES Mario Circuit': {
