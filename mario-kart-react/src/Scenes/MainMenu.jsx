@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
-import { useGameStore, useUserStore } from '../store.js';
+import { useGameStore, useNotificationsStore, useUserStore } from '../store.js';
 
 // Componente per il singolo Pulsante del Menu (Stile MKWii Options)
-const MenuButton = ({ title, onClick, bgImage }) => {
+const MenuButton = ({ title, onClick, bgImage, showNotificationDot = false }) => {
     return (
         <button 
             onClick={onClick}
@@ -33,6 +33,10 @@ const MenuButton = ({ title, onClick, bgImage }) => {
                     {title}
                 </span>
             </div>
+
+            {showNotificationDot && (
+                <span className="absolute top-1 right-1 z-[3] w-7 h-7 rounded-full bg-[#ff1f1f] border-[3px] border-white shadow-[0_0_14px_rgba(255,0,0,0.85)] invite-dot-blink" />
+            )}
         </button>
     );
 };
@@ -44,6 +48,7 @@ export const MainMenu = () => {
 
     const gameStore = useGameStore();
     const {isLoggedIn: loggedIn} = useUserStore();
+    const { pendingRoomInvites } = useNotificationsStore();
     const {hostLeft: hostLeft} = useGameStore();
 
 
@@ -83,6 +88,15 @@ export const MainMenu = () => {
 
     return (
         <div className="w-screen h-screen relative overflow-hidden font-sans select-none">
+            <style>{`
+                @keyframes inviteDotBlink {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.45; transform: scale(0.92); }
+                }
+                .invite-dot-blink {
+                    animation: inviteDotBlink 1.8s ease-in-out infinite;
+                }
+            `}</style>
             
             {/* --- OVERLAY FADE TO BLACK --- */}
             <div 
@@ -237,6 +251,7 @@ export const MainMenu = () => {
                             title="Multiplayer" 
                             onClick={() => handleNavigate('/room')}
                             bgImage="/buttonsImg/chara_6_donkey_00.png"
+                            showNotificationDot={pendingRoomInvites > 0}
                         />
                         
                         <MenuButton 

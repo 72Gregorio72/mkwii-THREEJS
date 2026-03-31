@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
-import { useUserStore } from '../store.js';
+import { useNotificationsStore, useUserStore } from '../store.js';
 import { socket } from '../multiplayer/socket.js';
 
 // Componente Pulsante Menu (Stile MKWii Options riutilizzato)
-const MenuButton = ({ title, onClick, bgImage }) => {
+const MenuButton = ({ title, onClick, bgImage, showNotificationDot = false }) => {
     return (
         <button 
             onClick={onClick}
@@ -34,6 +34,10 @@ const MenuButton = ({ title, onClick, bgImage }) => {
                     {title}
                 </span>
             </div>
+
+            {showNotificationDot && (
+                <span className="absolute top-1 right-1 z-[3] w-7 h-7 rounded-full bg-[#ff1f1f] border-[3px] border-white shadow-[0_0_14px_rgba(255,0,0,0.85)] invite-dot-blink" />
+            )}
         </button>
     );
 };
@@ -50,7 +54,8 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
   const navigate = useNavigate();
   const { playSfx, fadeOutMusic , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
 
-  const {isLoggedIn: loggedIn, userName: username} = useUserStore();
+    const {isLoggedIn: loggedIn, userName: username} = useUserStore();
+    const { pendingRoomInvites, setPendingRoomInvites } = useNotificationsStore();
 
   useEffect(() => {
     if (getCurrentTrack() !== 'MENU') {
@@ -80,18 +85,22 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
     if (loggedIn && username && showJoinInput) {
         fetch(`/api/notifications?username=${username}`)
             .then(res => {
+                if (res.status === 404) return [];
                 if (!res.ok) throw new Error("No notifications found");
                 return res.json();
             })
             .then(data => {
-                setNotifications(Array.isArray(data) ? data : []);
+                const inviteList = Array.isArray(data) ? data : [];
+                setNotifications(inviteList);
+                setPendingRoomInvites(inviteList.length);
             })
             .catch(err => {
                 console.error("Error fetching notifications:", err);
                 setNotifications([]);
+                setPendingRoomInvites(0);
             });
     }
-  }, [loggedIn, username, showJoinInput]);
+  }, [loggedIn, username, showJoinInput, setPendingRoomInvites]);
 
   const handleCreateRoom = () => {
     playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
@@ -129,6 +138,11 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
           .then(res => {
               if (!res.ok) throw new Error("Failed to delete notification");
             setShowDropdown(false);
+                        setNotifications(prev => {
+                                const next = prev.filter(notif => notif.id !== notificationId);
+                                setPendingRoomInvites(next.length);
+                                return next;
+                        });
             onJoinRoom(code.trim(), username);
           })
           .catch(err => console.error("Error deleting notification:", err));
@@ -140,7 +154,11 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
         fetch(`/api/deleteNotification?notificationId=${id}`, { method: 'DELETE' })
           .then(res => {
               if (!res.ok) throw new Error("Failed to delete notification");
-                setNotifications(prev => prev.filter(notif => notif.id !== id));
+                setNotifications(prev => {
+                    const next = prev.filter(notif => notif.id !== id);
+                    setPendingRoomInvites(next.length);
+                    return next;
+                });
           })
   };
 
@@ -151,6 +169,15 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
 
   return (
     <div className="w-screen h-screen relative overflow-hidden font-sans select-none">
+        <style>{`
+            @keyframes inviteDotBlink {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.45; transform: scale(0.92); }
+            }
+            .invite-dot-blink {
+                animation: inviteDotBlink 1.8s ease-in-out infinite;
+            }
+        `}</style>
         
         {/* --- OVERLAY FADE TO BLACK */}
         <div 
@@ -270,6 +297,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
                             title="Join Room" 
                             onClick={handleJoinClick}
                             bgImage="/buttonsImg/chara_6_koopa_00.png"
+                            showNotificationDot={pendingRoomInvites > 0}
                         />
                     </div>
                 ) : (

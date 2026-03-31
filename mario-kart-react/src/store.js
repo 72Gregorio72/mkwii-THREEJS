@@ -38,3 +38,8 @@ export const useRoomDataStore = create((set) => ({
     setRoomId: (newId) => set({roomdId: newId}),
     setRoomCode: (newCode) => set({roomCode: newCode})
 }))
+
+export const useNotificationsStore = create((set) => ({
+    pendingRoomInvites: 0,
+    setPendingRoomInvites: (count) => set({ pendingRoomInvites: Math.max(0, count || 0) })
+}))
