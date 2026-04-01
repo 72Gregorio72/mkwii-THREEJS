@@ -111,7 +111,14 @@ export const LobbyScreen = ({ isHost, players = [], onStartRace, roomId }) => {
 
                                     {/* Nome & Icona */}
                                     <div className="flex items-center gap-3 flex-1">
-                                        <span className="text-2xl filter drop-shadow-sm">{player.isHost ? '👑' : '🏎️'}</span>
+                                        <div className="w-9 h-9 rounded-full bg-black/50 border border-white/20 shadow-inner overflow-hidden flex items-center justify-center">
+                                            <img
+                                                src={player.icon ? `/sprites/${player.icon}` : '/sprites/Mario.png'}
+                                                alt={player.username || `Player ${index + 1}`}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { e.currentTarget.src = '/sprites/Mario.png'; }}
+                                            />
+                                        </div>
                                         <span className={`text-xl font-bold tracking-wide ${player.isHost ? 'text-[#ffcc00]' : 'text-white'}`}>
                                             {player.username || `Player ${index + 1}`}
                                         </span>
