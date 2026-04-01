@@ -1,4 +1,4 @@
-import { Controller, Get, Query, NotFoundException, Patch, Body, Post, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Query, Patch, Body, Post, Delete, ParseIntPipe } from '@nestjs/common';
 import { FriendsService } from './friends.service';
 import { UsersService } from 'src/users/users.service';
 
@@ -23,9 +23,23 @@ export class FriendsController {
     async sendFriendRequest(@Query('username') username: string, @Body('receiverName') receiverName: string) {
         const receiverUser = await this.userService.findOne(receiverName);
         if (!receiverUser) {
-            throw new NotFoundException('User not found');
+            return { success: false, message: 'User not found' };
         }
-        return this.friendsService.sendRequest(username, receiverName);
+
+        try {
+            await this.friendsService.sendRequest(username, receiverName);
+            return { success: true, message: 'Request Sent!' };
+        } catch (error: any) {
+            const response = error?.response;
+            const message =
+                typeof response?.message === 'string'
+                    ? response.message
+                    : Array.isArray(response?.message)
+                        ? response.message[0]
+                        : 'Error sending request';
+
+            return { success: false, message };
+        }
     }
 
     // ParseIntPipe converte automaticamente da stringa della query a number

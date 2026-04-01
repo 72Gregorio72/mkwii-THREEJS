@@ -736,10 +736,14 @@ export function GameScene({
             return;
         }
 
-        if (gameState !== 'RACING' || finished) {
-            if (!finished) {
-                setMusicPitch(1.0, 1.0, 300);
-            }
+        // Quando la gara è finita, non interrompere la musica di arrivo appena avviata.
+        if (finished) {
+            racingMusicStarted.current = false;
+            return;
+        }
+
+        if (gameState !== 'RACING') {
+            setMusicPitch(1.0, 1.0, 300);
             stopMusic();
             racingMusicStarted.current = false;
             return;
@@ -831,6 +835,7 @@ export function GameScene({
                 if (racerId === socket.id) {
                     setFinished(true);
                     playSfx(AUDIO_SFX.FINISH_RACE, 3);
+                    setMusicPitch(1.0, 1.0, 0);
                     stopMusic();
                     if (racer.position === 1) {
                         changeTrack('FINISH_FIRST', 0, false);
