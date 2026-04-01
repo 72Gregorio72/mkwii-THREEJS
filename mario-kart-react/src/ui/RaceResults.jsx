@@ -182,9 +182,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const [isGrandPrixFinished, setIsGrandPrixFinished] = useState(isGrandPrix ? false : true);
   const [pointsData, setPointsData] = useState([]);
 
-    const [ showLeaderboard, setShowLeaderboard ] = useState(false);
   const [ showLeaderboard, setShowLeaderboard ] = useState(false);
-  const [ showQuit, setShowQuit ] = useState(false);
 
   // Se non ci sono risultati, non mostrare nulla
   if (!finishers || finishers.length === 0) return null;
@@ -268,12 +266,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
 
   useEffect(() => {
     console.log('RaceResults - finishers updated:', finishers);
-    console.log('RaceResults - finishers updated:', finishers);
     if (isGrandPrix) {
-        const isLast = selectedGrandPrix.tracks.at(-1) === trackName;
-        if (isLast) {
-            setShowQuit(true);
-        }
         setTimeout(() => {
             setShowLeaderboard(true);
         }, 5000);
@@ -509,15 +502,6 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
                         </div>
                     )}
                 </>
-            )}
-            {showQuit && showLeaderboard && (
-                    <button 
-                        onClick={handleQuit}
-                        className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
-                    >
-                        <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Quit</span>
-                    <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:scale-110 transition-transform">✖</div>
-                </button>
             )}
 
           </div>
