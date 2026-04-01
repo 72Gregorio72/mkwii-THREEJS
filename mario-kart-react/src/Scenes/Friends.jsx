@@ -358,16 +358,12 @@ export const Friends = () => {
                                 </div>
                             ) : (
                                 friends.map((friend, index) => (
-                                    <div 
-                                        key={index}
-                                        onClick={() => handleViewFriendProfile(friend)}
-                                        className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white hover:scale-[1.02] cursor-pointer flex-shrink-0"
-                                    >
+                                    <div key={index} className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white cursor-pointer flex-shrink-0">
                                         <div className="absolute top-0 left-4 right-4 h-[35%] bg-white/10 rounded-b-full pointer-events-none"></div>
                                         
                                         {/* Icona */}
                                         <div className="w-14 h-14 md:w-16 md:h-16 bg-[#000044] border-2 border-white shadow-inner rounded-full overflow-hidden flex-shrink-0 relative">
-                                            <img src={friend.icon ? `/sprites/${friend.icon}` : '/sprites/Mario.png'} alt={friend.username} className="w-full h-full object-cover filter drop-shadow-md group-hover:scale-110 transition-transform" onError={(e) => { e.target.src = '/sprites/Mario.png'; }} />
+                                            <img src={friend.icon ? `/sprites/${friend.icon}` : '/sprites/Mario.png'} alt={friend.username} className="w-full h-full object-cover filter drop-shadow-md" onError={(e) => { e.target.src = '/sprites/Mario.png'; }} />
                                         </div>
                                         
                                         {/* Username */}
@@ -393,7 +389,7 @@ export const Friends = () => {
                                                 e.stopPropagation(); // Evita che il click si propaghi se l'ovale ha altre azioni in futuro
                                                 handleDeleteFriend(friend.username);
                                             }}
-                                            className="w-10 h-10 bg-[#cc0000] hover:bg-[#ff3333] border-2 border-white rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-110 active:scale-95 z-20 mr-1"
+                                            className="w-10 h-10 bg-[#cc0000] border-2 border-white rounded-full shadow-md flex items-center justify-center z-20 mr-1"
                                             title="Remove Friend"
                                         >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-5 h-5 text-white drop-shadow-sm">
@@ -526,10 +522,10 @@ export const Friends = () => {
                                         </div>
 
                                         <div className="flex gap-2 z-10 mr-1">
-                                            <button onClick={() => handleAcceptRequest(req.id)} className="w-10 h-10 md:w-12 md:h-12 bg-[#00cc00] hover:bg-[#33ff33] border-2 border-white rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-110 active:scale-95" title="Accept">
+                                            <button onClick={() => handleAcceptRequest(req.id)} className="w-10 h-10 md:w-12 md:h-12 bg-[#00cc00] border-2 border-white rounded-full shadow-md flex items-center justify-center" title="Accept">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-6 h-6 text-white drop-shadow-sm"><polyline points="20 6 9 17 4 12" /></svg>
                                             </button>
-                                            <button onClick={() => handleRejectRequest(req.id)} className="w-10 h-10 md:w-12 md:h-12 bg-[#cc0000] hover:bg-[#ff3333] border-2 border-white rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-110 active:scale-95" title="Reject">
+                                            <button onClick={() => handleRejectRequest(req.id)} className="w-10 h-10 md:w-12 md:h-12 bg-[#cc0000] border-2 border-white rounded-full shadow-md flex items-center justify-center" title="Reject">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-6 h-6 text-white drop-shadow-sm"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                                             </button>
                                         </div>

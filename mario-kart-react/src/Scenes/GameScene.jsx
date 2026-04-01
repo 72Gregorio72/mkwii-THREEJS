@@ -534,6 +534,10 @@ export function GameScene({
         socket.on('room_state', handleRoomState);
         socket.on('race_start', handleRaceStart);
         socket.on('game_state_sync', handleGameStateSync);
+        socket.on('return_to_waiting', (data) => {
+            if (data?.roomCode !== roomCode) return;
+            navigate('/waiting', { replace: true });
+        });
         socket.on('room_closed', () => {
               resetRoomState();
               gameStore.setHostLeft(true);
@@ -545,6 +549,7 @@ export function GameScene({
             socket.off('room_state', handleRoomState);
             socket.off('race_start', handleRaceStart);
             socket.off('game_state_sync', handleGameStateSync);
+            socket.off('return_to_waiting');
             socket.off('room_closed');
         };
     }, [socket, roomCode, playerStartPos, isTimeTrial]);

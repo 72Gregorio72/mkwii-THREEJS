@@ -378,7 +378,13 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     client.join(roomCode);
 
-    room.players.push({ id: client.id, isHost: false, username: payload.username , points: 0 });
+    room.players.push({ 
+      id: client.id, 
+      isHost: false, 
+      username: payload.username,
+      character: { id: '', name: '' },
+      points: 0
+    });
     this.playerRoomMap.set(client.id, roomCode);
     
     console.log(`Player ${client.id} joined room ${roomCode} (${room.roomId})`);
@@ -585,6 +591,18 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       return;
     }
 
+    const finisherIds = new Set(
+      (payload.finishers || [])
+        .map((finisher: { id?: string }) => finisher?.id)
+        .filter((id): id is string => Boolean(id))
+    );
+
+    const allPlayersFinished = room.players.every((player) => finisherIds.has(player.id));
+    if (!allPlayersFinished) {
+      console.log(`Ignoring race_finished in room ${roomCode}: not all lobby players finished yet`);
+      return;
+    }
+
     if (this.scoringAppliedRooms.has(roomCode)) {
       console.log(`Ignoring duplicate race_finished in room ${roomCode}`);
       return;
@@ -615,6 +633,26 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       selectedTrack: room.selectedTrack
     });
 
+  }
+
+  @SubscribeMessage('return_to_waiting')
+  handleReturnToWaiting(client: Socket) {
+    const roomCode = this.playerRoomMap.get(client.id);
+    if (!roomCode || !this.roomData.has(roomCode)) return;
+
+    const room = this.roomData.get(roomCode);
+    if (!room) return;
+
+    if (room.hostId !== client.id) {
+      return;
+    }
+
+    room.gameState = 'LOBBY';
+
+    this.server.to(roomCode).emit('return_to_waiting', {
+      roomCode,
+      roomId: room.roomId
+    });
   }
 
 @SubscribeMessage('invite_friend_to_room')
