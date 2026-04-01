@@ -37,7 +37,7 @@ const cBlue = new THREE.Color(0x00BFFF);
 const cOrange = new THREE.Color(0xF24807); 
 
 const DEFAULT_SETTINGS = {
-  maxSpeed: 40,
+  maxSpeed: 10,
   maxTurboLimit: 50,        
   acceleration: 0.25,        
   deceleration: 2.0,        
@@ -464,7 +464,13 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
     onActivateBulletBill: activateBulletBill,
     socket: socket,
     roomCode: props.roomCode,
-    isTimeTrial: isTimeTrial
+    isTimeTrial: isTimeTrial,
+    getFirstPlaceRef: () => {
+      const firstPlacePos = props.positions?.find(p => p.position === 1);
+      if (!firstPlacePos) return null;
+      if (firstPlacePos.id === socket?.id) return rb; // Se è il player
+      return props.botRefs?.current?.[firstPlacePos.id]; // Altrimenti è un bot
+    }
   });
 
   const botControls = useBotAI({ 
@@ -764,7 +770,7 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         } else {
             if (isGrounded.current && !isJumping.current && driftDirection.current === 0) driftEngageWindow.current = false;
         }
-        if (drift && !driftHopLocked.current && isGrounded.current && !isJumping.current) {
+        if (drift && !driftHopLocked.current && !isJumping.current) {
             driftHopLocked.current = true; driftEngageWindow.current = true; 
             performHop();
             rb.current.setLinvel({ x: rbVel.x, y: SETTINGS.jumpForce, z: rbVel.z }, true);
@@ -775,7 +781,7 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
                 if (left) { driftDirection.current = 1; driftVector.current.add(rightVector.multiplyScalar(SETTINGS.slideOutForce)) } 
                 else if (right) { driftDirection.current = -1; driftVector.current.add(rightVector.multiplyScalar(-SETTINGS.slideOutForce)) }
             }
-            if (driftDirection.current !== 0 && isGrounded.current) {
+            if (driftDirection.current !== 0) {
                 driftTime.current += delta;
                 // MODIFICA: La moto si ferma al livello 1 (azzurro)
                 if (driftTime.current > SETTINGS.driftLevel1Time) driftLevel.current = 1;
@@ -794,15 +800,13 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         const isDrifting = driftDirection.current !== 0
 
         // WHEELIE LOGIC
-        // Si può impennare solo se Shift è premuto, non si sta driftando e si è a terra
-        // WHEELIE LOGIC
-        // Si può impennare solo se Shift è premuto, non si sta driftando e si è a terra
-        const isWheelieActive = isShiftPressed.current && !isDrifting && isGrounded.current;
+        // Si può impennare solo se Shift è premuto, non si sta driftando
+        const isWheelieActive = isShiftPressed.current && !isDrifting;
 
         let currentSpeedLimit = maxSpeed
         if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
         else if (isDrifting) currentSpeedLimit += 5 
-        else if (isWheelieActive) currentSpeedLimit += 12; // Aumentato da +3 a +12!
+        else if (isWheelieActive) currentSpeedLimit += 15; // Aumentato per renderla più veloce del kart in impenna!
 
         if (isStarActive.current) {
             currentSpeedLimit *= STAR_SPEED_BOOST; 
@@ -827,7 +831,7 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
                 let currentAccel = SETTINGS.acceleration
                 if (isBoosting) currentAccel *= 2.5
                 if (isStarActive.current || isMegaActive.current) currentAccel *= 2;
-                else if (isWheelieActive) currentAccel *= 1.5; // Leggero boost all'accelerazione per raggiungere prima la top speed
+                else if (isWheelieActive) currentAccel *= 1.2; // Leggero boost all'accelerazione per raggiungere prima la top speed
                 else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
                 
                 speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
