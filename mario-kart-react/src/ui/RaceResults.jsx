@@ -169,7 +169,7 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
   );
 }
 
-export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName, lobbyplayers = [], isHost }) => {
+export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName, lobbyPlayers = [], isHost }) => {
   const navigate = useNavigate();
   const { playSfx } = useAudio();
   
@@ -204,7 +204,20 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
         }
     };
 
-  const handleQuit = () => {
+    const isMultiplayerRace = Boolean(roomCode);
+    const totalLobbyPlayers = lobbyPlayers.length;
+    const finishedHumanPlayers = finishers.filter((finisher) => !String(finisher.id).startsWith('bot_')).length;
+    const allLobbyPlayersFinished = !isMultiplayerRace
+        ? true
+        : totalLobbyPlayers > 0 && finishedHumanPlayers >= totalLobbyPlayers;
+
+    const canHostQuitMultiplayer = isHost && allLobbyPlayersFinished;
+
+    const handleQuit = () => {
+        if (isMultiplayerRace && !canHostQuitMultiplayer) {
+            return;
+        }
+
     playSfx(AUDIO_SFX.BACK_IN_MENU);
 
         // In multiplayer i punti vengono ufficializzati solo quando l'host preme Quit.
@@ -223,7 +236,10 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
         setIsGrandPrixFinished(true);
         gameStore.setIsGrandPrix(false);
     }
-    if (socket) {
+    if (isMultiplayerRace) {
+        if (socket?.connected && isHost) {
+            socket.emit('return_to_waiting');
+        }
         navigate('/waiting');
     } else {
         navigate('/menu');
@@ -441,13 +457,33 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
             )}
 
             {/* 4. Bottone QUIT */}
-            <button 
-                onClick={handleQuit}
-                className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
-            >
-                <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Quit</span>
-                <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:scale-110 transition-transform">✖</div>
-            </button>
+            {!isMultiplayerRace && (
+                <button 
+                    onClick={handleQuit}
+                    className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
+                >
+                    <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Quit</span>
+                    <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:scale-110 transition-transform">✖</div>
+                </button>
+            )}
+
+            {isMultiplayerRace && isHost && (
+                <>
+                    <button 
+                        onClick={handleQuit}
+                        disabled={!allLobbyPlayersFinished}
+                        className={`pointer-events-auto flex items-center gap-3 px-8 py-2.5 rounded-full border-[3px] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] transition-all w-84 justify-between ${allLobbyPlayersFinished ? 'bg-white border-[#cccccc] hover:bg-[#f0f0f0] cursor-pointer group' : 'bg-gray-300 border-gray-400 cursor-not-allowed opacity-70'}`}
+                    >
+                        <span className="text-gray-700 font-bold text-xl tracking-wide uppercase">Back To Waiting</span>
+                        <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold shadow-inner border border-white/50">↩</div>
+                    </button>
+                    {!allLobbyPlayersFinished && (
+                        <div className="pointer-events-none bg-black/60 text-yellow-300 text-sm px-4 py-2 rounded-md border border-yellow-500/40">
+                            Waiting racers: {finishedHumanPlayers}/{totalLobbyPlayers}
+                        </div>
+                    )}
+                </>
+            )}
 
           </div>
 
