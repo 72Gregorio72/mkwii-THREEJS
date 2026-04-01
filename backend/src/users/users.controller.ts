@@ -66,4 +66,15 @@ export class UsersController {
     async deleteUser(@Query('userName') userName: string) {
         return await this.userService.deleteUser(userName);
     }
+
+    @Get('getGrandPrixRanking')
+    async getGrandPrixRanking(@Query('userName') userName: string) {
+        return await this.userService.getGrandPrixRanking(userName);
+    }
+
+    @Post('updateRankingGrandPrix')
+    async updateRankingGrandPrix(@Query('userName') userName: string, @Body() body: { grandPrixName: string, ranking: number }) {
+        return await this.userService.updateRankingGrandPrix(userName, body.grandPrixName, body.ranking);
+    }
+
 }

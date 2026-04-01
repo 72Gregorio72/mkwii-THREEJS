@@ -9,6 +9,7 @@ import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { CustomWiiSky } from '../components/CustomeWiiSky.jsx';
 import * as THREE from 'three';
 import { socket } from '../multiplayer/socket.js';
+import { useUserStore } from '../store.js';
 
 // Componente per aggiornare la posizione iniziale della telecamera
 // Componente per la telecamera animata
@@ -89,6 +90,7 @@ function AnimatedTrophy({ modelPath, show, targetY = 6 }) {
 export const WinScene = ({ selectedCup, raceResults, setRaceResults }) => {
     const navigate = useNavigate();
     const { playSfx, changeTrack, stopMusic } = useAudio();
+    const { userName: userName} = useUserStore();
 
     const [showTrophy, setShowTrophy] = useState(false);
 
@@ -105,6 +107,29 @@ export const WinScene = ({ selectedCup, raceResults, setRaceResults }) => {
 
     useEffect(() => {
         const isWinner = socket && raceResults && raceResults.length > 0 && raceResults[0].id === socket.id;
+        
+        let ranking = 0;
+        if (isWinner) {
+            ranking = 1;
+        } else if (raceResults && raceResults.length > 0 && socket) {
+            if (raceResults[1] && raceResults[1].id === socket.id) {
+                ranking = 2;
+            } else if (raceResults[2] && raceResults[2].id === socket.id) {
+                ranking = 3;
+            }
+        }
+        
+        if (ranking > 0 && socket && selectedCup) {
+            fetch(`/api/updateRankingGrandPrix?userName=${userName}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    grandPrixName: selectedCup?.name,
+                    ranking: ranking
+                })
+            })
+        }
+        
         if (isWinner && selectedCup?.trophy) {
             const timer = setTimeout(() => {
                 setShowTrophy(true);

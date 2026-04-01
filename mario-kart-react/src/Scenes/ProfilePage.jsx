@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { Tracks } from '../components/Data.jsx';
 import { formatTime } from '../ui/GameHUD.jsx';
-import { useUserStore } from '../store.js';
-import { socket } from '../multiplayer/socket.js'
+import { useUserStore, useGameDataStore } from '../store.js'; 
+import { socket } from '../multiplayer/socket.js';
+import { grandPrixList } from '../components/Data.jsx';
 
 const AVAILABLE_ICONS = [
     "BabyDaisy.png",
@@ -163,27 +164,28 @@ export const Stats = ({ userName }) => {
 export const Profile = ({ setLoggedIn, setUsername }) => {
     const navigate = useNavigate();
     const { playSfx } = useAudio();
+    
+    // Stores
+    const {isLoggedIn: isLoggedIn, userName: userName} = useUserStore();
+
     const [data, setData] = useState(null);
     const [edit, setEdit] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showStats, setShowStats] = useState(false);
     const [isEditingUsername, setIsEditingUsername] = useState(false);
     const [newUsername, setNewUsername] = useState("");
-    
     const [updateError, setUpdateError] = useState(null);
 
-    // stati per l'eliminazione dell'account
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const {isLoggedIn: isLoggedIn, userName: userName} = useUserStore();
+    // Stato per i ranking dei Grand Prix
+    const [gpRankings, setGpRankings] = useState({});
 
-    // Dati simulati statistiche
+    // Dati simulati statistiche base
     const [userStats] = useState({
-        rank: "⭐⭐⭐",
         onlineWins: 65,
-        offlineWins: 82,
-        totalRaces: 1420
+        offlineWins: 82
     });
 
     const [formData, setFormData] = useState({
@@ -192,6 +194,7 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
         offlineWins: 0
     });
 
+    // 1. Fetch Profile Data
     useEffect(() => {
         if (!isLoggedIn || !userName) return;
         fetch(`/api/profile?userName=${userName}`)
@@ -213,8 +216,42 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
                 offlineWins: json.offlineWins || 0
             });
         })
-        .catch((err) => console.error("Fetch error:", err));
+        .catch((err) => console.error("Fetch error profile:", err));
     }, [userName, isLoggedIn]);
+
+    // 2. Fetch Grand Prix Rankings
+    useEffect(() => {
+        if (!isLoggedIn || !userName || grandPrixList.length === 0) return;
+        
+        const fetchRankings = async () => {
+            try {
+                const res = await fetch(`/api/getGrandPrixRanking?userName=${userName}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const bestRankings = {};
+                    
+                    data.forEach(gpRecord => {
+                        const gpName = gpRecord.name || gpRecord.grandPrixName || gpRecord.cupName;
+                        const gpRank = gpRecord.rank || gpRecord.ranking || gpRecord.position;
+                        
+                        if (gpName && gpRank) {
+                            const currentRank = parseInt(gpRank, 10);
+                            
+                            if (!bestRankings[gpName] || currentRank < bestRankings[gpName]) {
+                                bestRankings[gpName] = currentRank;
+                            }
+                        }
+                    });
+                    
+                    setGpRankings(bestRankings);
+                }
+            } catch(e) {
+                console.error("Error fetching Grand Prix Rankings:", e);
+            }
+        };
+        
+        fetchRankings();
+    }, [userName, isLoggedIn, grandPrixList]);
 
     const handleBack = () => {
         playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
@@ -362,7 +399,6 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
             setUsername('');
             if (setLoggedIn) setLoggedIn(false);
             
-            // Reindirizzamento
             navigate('/');
 
         } catch (error) {
@@ -507,7 +543,6 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
 
                             {/* COLONNA DESTRA */}
                             <div className="flex-1 flex flex-col gap-3">
-
                                 <div className="w-full h-24 border-4 border-[#ffff] shadow-md flex items-center justify-center px-6 relative overflow-hidden"
                                      style={{
                                         backgroundImage: "conic-gradient(#000088 90deg, #000044 90deg 180deg, #000088 180deg 270deg, #000044 270deg)",
@@ -542,15 +577,46 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
 
                                 <div className="flex-1 bg-[#222] border-4 border-[#ffff] shadow-inner p-4 grid grid-cols-2 gap-4 relative overflow-hidden">
                                     <div className="absolute inset-0 opacity-5 pointer-events-none bg-[repeating-linear-gradient(0deg,white_0px,white_1px,transparent_1px,transparent_3px)]"></div>
-                                    <div className="bg-[#333] border border-[#ffff] p-2 flex flex-col items-center justify-center">
-                                        <span className="text-[#aaa] text-xs uppercase font-bold mb-1">Rank</span>
-                                        <span className="text-2xl filter drop-shadow-md">{userStats.rank}</span>
+                                    
+                                    {/* GRAND PRIX RANKINGS CON QUADRATI AFFIANCATI */}
+                                    <div className="col-span-2 bg-[#333] border border-[#ffff] p-3 flex flex-col justify-center relative shadow-inner">
+                                        <span className="text-[#aaa] text-xs uppercase font-bold mb-3 text-center tracking-widest">
+                                            Grand Prix Records
+                                        </span>
+                                        <div className="flex justify-evenly items-center w-full">
+                                            {grandPrixList.map((gp, idx) => {
+                                                const rank = gpRankings[gp.name];
+                                                let squareClass = "bg-[#444] border-[#222]"; // Default (non piazzato)
+                                                
+                                                if (rank === 1) { 
+                                                    squareClass = "bg-[#FFD700] border-[#B8860B] shadow-[0_0_8px_#FFD700]"; 
+                                                } else if (rank === 2) { 
+                                                    squareClass = "bg-[#C0C0C0] border-[#808080] shadow-[0_0_8px_#C0C0C0]"; 
+                                                } else if (rank === 3) { 
+                                                    squareClass = "bg-[#CD7F32] border-[#8B4513] shadow-[0_0_8px_#CD7F32]"; 
+                                                }
+
+                                                return (
+                                                    <div key={gp.id || idx} className="relative flex items-center gap-2 group" title={gp.name}>
+                                                        {/* Icona Grand Prix */}
+                                                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all">
+                                                            <span className={`text-lg md:text-2xl ${!rank || rank > 3 ? 'opacity-30 grayscale' : 'drop-shadow-md'}`}>
+                                                                {gp.icon}   
+                                                            </span>
+                                                        </div>
+                                                        {/* Quadrato Ranking */}
+                                                        <div className={`w-4 h-4 rounded-sm border-2 ${squareClass}`}></div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {grandPrixList.length === 0 && (
+                                                <span className="text-gray-500 italic text-sm">No Grand Prix data available</span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="bg-[#333] border border-[#ffff] p-2 flex flex-col items-center justify-center">
-                                        <span className="text-[#aaa] text-xs uppercase font-bold mb-1">Races</span>
-                                        <span className="text-white font-mono text-xl font-bold">{userStats.totalRaces}</span>
-                                    </div>
-                                    <div className="col-span-2 bg-[#001133] border border-[#004488] p-2 flex flex-col justify-center px-4 relative">
+
+                                    {/* BARS ONLINE/OFFLINE */}
+                                    <div className="col-span-2 bg-[#001133] border border-[#004488] p-2 flex flex-col justify-center px-4 relative mt-2">
                                         <div className="flex justify-between text-xs font-bold uppercase mb-1 z-10">
                                             <span className="text-[#00aeff]">Online Wins</span>
                                             <span className="text-white">{data?.onlineWins ?? userStats.onlineWins}%</span>
@@ -559,6 +625,7 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
                                             <div className="h-full bg-gradient-to-r from-[#004488] to-[#00aeff]" style={{width: `${data?.onlineWins ?? userStats.onlineWins}%`}}></div>
                                         </div>
                                     </div>
+                                    
                                     <div className="col-span-2 bg-[#332200] border border-[#886600] p-2 flex flex-col justify-center px-4 relative">
                                         <div className="flex justify-between text-xs font-bold uppercase mb-1 z-10">
                                             <span className="text-[#ffcc00]">Offline Wins</span>
@@ -577,13 +644,13 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
                 {/* VISTA EDIT (GRID SELECTION) */}
                 {edit && (
                     <div className="flex-1 min-h-0 flex items-center justify-center pt-[15vh] pb-4 px-4 w-full">
-                         {/* Il resto del codice edit rimane invariato, l'ho omesso per brevità nel focus se vuoi, altrimenti lo rimetto: */}
                          <div className="bg-gradient-to-b from-[#000050] to-[#000060] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 w-full max-w-5xl flex flex-col gap-4 relative animate-in zoom-in duration-300">
                             
                             <h2 className="text-5xl font-black text-white italic drop-shadow-[3px_3px_0_#0000ff] stroke-black tracking-wide z-10 uppercase text-center">Select Character</h2>
 
                             <form onSubmit={handleSubmit} className="flex flex-col gap-4 relative z-10 h-full">
                                 
+                                {/* GRIGLIA DI SELEZIONE ICONE */}
                                 <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3 p-2 bg-[#222]/50 rounded-lg inner-shadow overflow-y-auto max-h-[50vh]">
                                     {AVAILABLE_ICONS.map((iconName) => {
                                         const isSelected = formData.icon === iconName;
@@ -612,6 +679,7 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
                                     })}
                                 </div>
 
+                                {/* SUBMIT BUTTON */}
                                 <div className="flex justify-center mt-2">
                                     <button 
                                         type="submit"
@@ -665,7 +733,7 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
                     </div>
                 )}
 
-                {/* FOOTER - Modificato in flex-row justify-between */}
+                {/* FOOTER */}
                 <div className="h-[12vh] shrink-0 w-full flex items-center justify-between px-12 relative z-30">
                     <div className="absolute bottom-2 left-0 w-full h-1 bg-gradient-to-r from-gray-400 via-gray-200 to-transparent"></div>
                     
