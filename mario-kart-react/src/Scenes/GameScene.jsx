@@ -300,12 +300,14 @@ export function GameScene({
     // Calculate player start position early (before useEffect hooks)
     const fallbackStartPos = activeStartPos || [0, 0, 0];
 
-    // In multiplayer, assign each player a unique grid slot based on lobby order (host first).
     const multiplayerGridIndex = useMemo(() => {
         if (!roomCode || !socket?.id || lobbyPlayers.length === 0) return null;
-        const myLobbyIndex = lobbyPlayers.findIndex(player => player.id === socket.id);
-        if (myLobbyIndex < 0) return null;
-        return myLobbyIndex + 1;
+        
+        const sortedPlayers = [...lobbyPlayers].sort((a, b) => (b.points || 0) - (a.points || 0));
+        
+        const myGridIndex = sortedPlayers.findIndex(player => player.id === socket.id);
+        if (myGridIndex < 0) return null;
+        return myGridIndex + 1;
     }, [roomCode, socket?.id, lobbyPlayers]);
 
     const playerGridIndex = isTimeTrial ? 1 : (multiplayerGridIndex || 12);
@@ -1086,6 +1088,7 @@ export function GameScene({
                     userName={username}
                     trackName={activeTrackConfig?.name}
                     lobbyPlayers={lobbyPlayers}
+                    isHost={isHost}
                 />}
 
             {countdown && (

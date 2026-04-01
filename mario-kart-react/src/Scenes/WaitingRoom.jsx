@@ -390,9 +390,15 @@ export const WaitingRoom = ({ resetRoomState }) => {
                                             {player.id === socket?.id && <span className="text-[#88aaff] text-sm ml-2">(YOU)</span>}
                                         </span>
 
+                                        {/* Punti */}
+                                        <div className="flex items-center gap-2 px-3 py-1 bg-black/40 rounded border border-[#ffcc00]/50 ml-auto mr-4">
+                                            <span className="text-[#ffcc00] font-bold text-lg">{player.points || 0}</span>
+                                            <span className="text-[#ffcc00] text-sm font-semibold">pts</span>
+                                        </div>
+
                                         {/* Host Badge */}
                                         {player.isHost && (
-                                            <div className="ml-auto bg-[#ffcc00] text-black text-xs font-black uppercase px-2 py-1 rounded shadow-sm">
+                                            <div className="bg-[#ffcc00] text-black text-xs font-black uppercase px-2 py-1 rounded shadow-sm">
                                                 HOST
                                             </div>
                                         )} 

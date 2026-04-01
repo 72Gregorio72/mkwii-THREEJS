@@ -117,6 +117,12 @@ export const LobbyScreen = ({ isHost, players = [], onStartRace, roomId }) => {
                                         </span>
                                     </div>
 
+                                    {/* Punti */}
+                                    <div className="flex items-center gap-2 px-4 py-1 bg-black/40 rounded border border-[#ffcc00]/50">
+                                        <span className="text-[#ffcc00] font-bold text-lg">{player.points || 0}</span>
+                                        <span className="text-[#ffcc00] text-sm font-semibold">pts</span>
+                                    </div>
+
                                     {/* Status Ready */}
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-[#00ff00] shadow-[0_0_8px_#00ff00] animate-pulse"></div>
