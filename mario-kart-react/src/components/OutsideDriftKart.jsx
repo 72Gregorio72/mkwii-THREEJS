@@ -507,7 +507,13 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
     onActivateBulletBill: activateBulletBill,
 	socket: socket,
 	roomCode: props.roomCode,
-    isTimeTrial: isTimeTrial
+    isTimeTrial: isTimeTrial,
+    getFirstPlaceRef: () => {
+      const firstPlacePos = props.positions?.find(p => p.position === 1);
+      if (!firstPlacePos) return null;
+      if (firstPlacePos.id === socket?.id) return rb; // Se è il player
+      return props.botRefs?.current?.[firstPlacePos.id]; // Altrimenti è un bot
+    }
   });
 
   const botControls = useBotAI({ 
@@ -887,7 +893,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         } else {
             if (isGrounded.current && !isJumping.current && driftDirection.current === 0) driftEngageWindow.current = false;
         }
-        if (drift && !driftHopLocked.current && isGrounded.current && !isJumping.current) {
+        if (drift && !driftHopLocked.current && !isJumping.current) {
             driftHopLocked.current = true; driftEngageWindow.current = true; 
             performHop();
             rb.current.setLinvel({ x: rbVel.x, y: SETTINGS.jumpForce, z: rbVel.z }, true);
@@ -898,7 +904,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
                 if (left) { driftDirection.current = 1; driftVector.current.add(rightVector.multiplyScalar(SETTINGS.slideOutForce)) } 
                 else if (right) { driftDirection.current = -1; driftVector.current.add(rightVector.multiplyScalar(-SETTINGS.slideOutForce)) }
             }
-            if (driftDirection.current !== 0 && isGrounded.current) {
+            if (driftDirection.current !== 0) {
                 driftTime.current += delta;
                 if (driftTime.current > SETTINGS.driftLevel2Time) driftLevel.current = 2;
                 else if (driftTime.current > SETTINGS.driftLevel1Time) driftLevel.current = 1;

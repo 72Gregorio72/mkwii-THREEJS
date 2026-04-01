@@ -7,6 +7,7 @@ import { useAudio } from '../audio/AudioManager';
 export const ITEMS = {
   NONE: 'NONE',
   MUSHROOM: 'MUSHROOM',
+  DOUBLE_MUSHROOM: 'DOUBLE_MUSHROOM',
   BANANA: 'BANANA',
   GREEN_SHELL: 'GREEN_SHELL',
   RED_SHELL: 'RED_SHELL',
@@ -77,7 +78,8 @@ export const usePowerupHandler = ({
   isLocalPlayer = false,
   socket,
   roomCode,
-  isTimeTrial
+  isTimeTrial,
+  getFirstPlaceRef
 }) => {
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
@@ -142,7 +144,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    //  setCurrentItem(ITEMS.STAR);
+    setCurrentItem(ITEMS.TRIPLE_MUSHROOM);
   };
 
 useEffect(() => {
@@ -208,10 +210,22 @@ useEffect(() => {
       setTripleCount(newCount);
     //   console.log(`Funghi rimasti: ${newCount}`);
 
-      if (newCount <= 0) {
-          setCurrentItem(ITEMS.NONE); // Finiti
+      // Aggiorna l'icona in base ai funghi rimasti
+      let newItem = ITEMS.NONE;
+      if (newCount > 2) {
+          newItem = ITEMS.TRIPLE_MUSHROOM;
+      } else if (newCount === 2) {
+          newItem = ITEMS.DOUBLE_MUSHROOM;
+      } else if (newCount === 1) {
+          newItem = ITEMS.MUSHROOM;
       }
-      // Se newCount > 0, l'oggetto rimane TRIPLE_MUSHROOM e non facciamo nulla
+      
+      setCurrentItem(newItem);
+      
+      // Dispatch event per aggiornare l'HUD
+      window.dispatchEvent(new CustomEvent('hud-update', { 
+          detail: { item: newItem, isSpinning: false, targetRacerId: racerId } 
+      }));
   };
 
   // 2. FUNGO D'ORO
@@ -317,17 +331,35 @@ useEffect(() => {
   }
 
   const useBlueShell = () => {
-    if (onSpawnBlueShell) {
-        // ... (calcoli esistenti) ...
-        const currentPos = position.current;
-        const currentRot = rotation.current;
-        const offsetDistance = 10; // Aumentato da 6 a 10 per evitare autodistruzione
-        const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
-        const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
-        const spawnY = currentPos.y + 0.8;
-        const initSpeed = 50; // Aumentato da 20 a 50 per partire più velocemente
-
-        onSpawnBlueShell([spawnX, spawnY, spawnZ], [-Math.sin(currentRot) * initSpeed, 0, -Math.cos(currentRot) * initSpeed]);
+    console.log('[BlueShell] useBlueShell called');
+    
+    if (onSpawnBlueShell && getFirstPlaceRef) {
+        // Use callback to get first place ref from component level
+        const targetRef = getFirstPlaceRef?.();
+        console.log('[BlueShell] TargetRef from callback:', targetRef);
+        console.log('[BlueShell] TargetRef.current:', targetRef?.current);
+        console.log('[BlueShell] TargetRef is null?', targetRef === null);
+        
+        if (targetRef?.current) {
+            try {
+                const leaderTrans = targetRef.current.translation();
+                const spawnX = leaderTrans.x;
+                const spawnY = leaderTrans.y; // 5 unità sopra il leader
+                const spawnZ = leaderTrans.z;
+                
+                console.log('[BlueShell] Spawning at:', { spawnX, spawnY, spawnZ });
+                onSpawnBlueShell([spawnX, spawnY, spawnZ], [0, 0, 0]);
+            } catch (e) {
+                console.error('[BlueShell] Errore nel calcolare la posizione:', e);
+            }
+        } else {
+            console.warn('[BlueShell] No valid target ref found from getFirstPlaceRef');
+        }
+    } else {
+        console.warn('[BlueShell] Missing onSpawnBlueShell or getFirstPlaceRef', { 
+            onSpawnBlueShell: !!onSpawnBlueShell, 
+            getFirstPlaceRef: !!getFirstPlaceRef 
+        });
     }
     setCurrentItem(ITEMS.NONE);
   }
@@ -356,6 +388,10 @@ useEffect(() => {
       case ITEMS.MUSHROOM: 
           useMushroom(); 
           setCurrentItem(ITEMS.NONE);
+          break;
+      case ITEMS.DOUBLE_MUSHROOM:
+          useTripleMushroom();
+          // NONE gestito dentro la funzione
           break;
       case ITEMS.TRIPLE_MUSHROOM: 
           useTripleMushroom(); 
@@ -408,6 +444,8 @@ useEffect(() => {
   const setRandomItem = (itemEnum) => {
       setCurrentItem(itemEnum);
       if (itemEnum === ITEMS.TRIPLE_MUSHROOM) setTripleCount(3);
+      if (itemEnum === ITEMS.DOUBLE_MUSHROOM) setTripleCount(2);
+      if (itemEnum === ITEMS.MUSHROOM) setTripleCount(1);
       if (itemEnum === ITEMS.GOLDEN_MUSHROOM) setIsGoldenActive(false);
   };
 

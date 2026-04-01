@@ -31,6 +31,7 @@ import { Banana } from '../Items/Banana';
 import { GreenShell } from '../Items/GreenShell';
 import { RedShell } from '../Items/RedShell';
 import { BobOmb } from '../Items/BobOmb.jsx'
+import { BlueShell } from '../Items/BlueShell.jsx'
 import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
 import { useWebGLContext, useWebGLMemoryMonitor } from '../utils/WebGLContextManager.jsx';
 import { gsap } from 'gsap'
@@ -1159,6 +1160,8 @@ export function GameScene({
                                     return <GreenShell key={item.id} {...commonProps} />;
                                 case 'red_shell': 
                                     return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={activeTrackConfig.Waypoints[0]} />;
+                                case 'blue_shell': 
+                                    return <BlueShell key={item.id} position={pos} waypoints={activeTrackConfig.Waypoints[0]} targets={blueShellTargets} onDestroy={commonProps.onDestroy} />;
                                 case 'bomb': 
                                     return <BobOmb key={item.id} {...commonProps} />;
                                 default: 

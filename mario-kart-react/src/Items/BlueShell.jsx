@@ -13,13 +13,11 @@ const EXPLOSION_RADIUS = 10;
 export const BlueShell = memo(function BlueShell({ position, waypoints, targets, onDestroy }) {
     const { scene } = useGLTF('/items/BlueShell.glb');
     const rb = useRef();
-    const [phase, setPhase] = useState('CHASING'); 
     const [isExploding, setIsExploding] = useState(false);
     const hitList = useRef(new Set());
-    const currentWpIndex = useRef(0);
-    const chaseAudioRef = useRef();
-    const lockingAudioRef = useRef();
     const explosionAudioRef = useRef();
+
+    console.log('[BlueShell Component] Spawned at position:', position);
 
     const clone = useMemo(() => {
         const c = SkeletonUtils.clone(scene);
@@ -30,7 +28,6 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
     const v = useMemo(() => ({
         pos: new THREE.Vector3(),
         leaderPos: new THREE.Vector3(),
-        nextWp: new THREE.Vector3(),
         dir: new THREE.Vector3()
     }), []);
 
@@ -44,38 +41,19 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
         const rbTrans = rb.current.translation();
         v.pos.set(rbTrans.x, rbTrans.y, rbTrans.z);
 
-        // Trova il primo in classifica
-        const leader = targets.find(t => t.rank === 1); 
+        // Trova il primo in classifica (fra tutti i targets: player online e bot)
+        const leader = targets?.find(t => t.rank === 1); 
         if (leader?.ref.current) {
             v.leaderPos.set(leader.ref.current.translation().x, leader.ref.current.translation().y, leader.ref.current.translation().z);
-        }
-
-        if (phase === 'CHASING') {
-            if (chaseAudioRef.current) {
-                chaseAudioRef.current.setVolume(2.0);
-                chaseAudioRef.current.play();
-            }
-            // Se vicino al leader, passa a fase LOCKING/DIVING
-            if (v.pos.distanceTo(v.leaderPos) < 15) {
-                setPhase('DIVING');
-                if (lockingAudioRef.current) {
-                    lockingAudioRef.current.setVolume(2.0);
-                    lockingAudioRef.current.play();
-                }
-            } else {
-                // Segue i waypoint a mezz'aria
-                const wp = waypoints[currentWpIndex.current];
-                if (wp) {
-                    v.nextWp.set(wp.x, wp.y + FLY_HEIGHT, wp.z);
-                    if (v.pos.distanceTo(v.nextWp) < 8) currentWpIndex.current = (currentWpIndex.current + 1) % waypoints.length;
-                    v.dir.subVectors(v.nextWp, v.pos).normalize();
-                    rb.current.setLinvel({ x: v.dir.x * SHELL_SPEED, y: (v.nextWp.y - v.pos.y) * 2, z: v.dir.z * SHELL_SPEED }, true);
-                }
-            }
-        } else if (phase === 'DIVING') {
-            // Picchiata verso il leader
-            v.dir.subVectors(v.leaderPos, v.pos).normalize();
-            rb.current.setLinvel({ x: v.dir.x * 20, y: -100, z: v.dir.z * 20 }, true);
+            
+            console.log('[BlueShell Frame] Position:', { x: rbTrans.x, y: rbTrans.y, z: rbTrans.z }, 'Target:', { x: v.leaderPos.x, y: v.leaderPos.y, z: v.leaderPos.z });
+            
+            // Segui il leader orizzontalmente (ma cadi verso il basso)
+            v.dir.set(v.leaderPos.x - v.pos.x, 0, v.leaderPos.z - v.pos.z).normalize();
+            const currentVel = rb.current.linvel();
+            rb.current.setLinvel({ x: v.dir.x * 20, y: currentVel.y, z: v.dir.z * 20 }, true);
+        } else {
+            console.warn('[BlueShell Frame] No leader found in targets');
         }
     });
 
@@ -112,23 +90,10 @@ export const BlueShell = memo(function BlueShell({ position, waypoints, targets,
     };
 
     return (
-        <RigidBody ref={rb} position={position} type="dynamic" gravityScale={0} colliders={false} onCollisionEnter={handleImpact}>
+        <RigidBody ref={rb} position={position} type="dynamic" gravityScale={1} colliders={false} onCollisionEnter={handleImpact}>
             <BallCollider args={[1]} />
             {isExploding && <BallCollider args={[EXPLOSION_RADIUS]} sensor onIntersectionEnter={handleAOE} />}
             
-            <PositionalAudio
-                ref={chaseAudioRef}
-                url={AUDIO_SFX.BLUE_SHELL_LOOP}
-                distance={10}
-                loop={true}
-                autoplay={true}
-            />
-            <PositionalAudio
-                ref={lockingAudioRef}
-                url={AUDIO_SFX.BLUE_SHELL_ABOVE}
-                distance={10}
-                loop={true}
-            />
             <PositionalAudio
                 ref={explosionAudioRef}
                 url={AUDIO_SFX.BLUE_SHELL_EXPLODE}
