@@ -239,29 +239,6 @@ export const MainMenu = () => {
 
                 {/* Lista Pulsanti Centrali - UTENTE LOGGATO */}
                 {loggedIn && (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full pt-[5vh]">
-                        <MenuButton 
-                            title="Single Player" 
-                            onClick={() => handleNavigate('/single_player')}
-                            bgImage="/buttonsImg/chara_6_peach_00.png"
-                        />
-                        
-                        <MenuButton 
-                            title="Multiplayer" 
-                            onClick={() => handleNavigate('/room')}
-                            bgImage="/buttonsImg/chara_6_donkey_00.png"
-                            showNotificationDot={pendingRoomInvites > 0}
-                        />
-                        
-                        <MenuButton 
-                            title="Debug Race" 
-                            onClick={() => handleNavigate('/debug')} 
-                        />
-
-                        <MenuButton 
-                            title="Debug GP" 
-                            onClick={() => handleNavigate('/endGrandPrix')} 
-                        />
                     <div className="flex-1 flex flex-col items-center justify-center w-full px-8 pb-8 pt-[18vh]">
                         <div className="flex flex-col gap-8 w-full max-w-3xl">
                             <MenuButton 
