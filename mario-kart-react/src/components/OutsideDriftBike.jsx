@@ -37,7 +37,7 @@ const cBlue = new THREE.Color(0x00BFFF);
 const cOrange = new THREE.Color(0xF24807); 
 
 const DEFAULT_SETTINGS = {
-  maxSpeed: 40,
+  maxSpeed: 10,
   maxTurboLimit: 50,        
   acceleration: 0.25,        
   deceleration: 2.0,        
@@ -806,7 +806,7 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         let currentSpeedLimit = maxSpeed
         if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
         else if (isDrifting) currentSpeedLimit += 5 
-        else if (isWheelieActive) currentSpeedLimit += 12; // Aumentato da +3 a +12!
+        else if (isWheelieActive) currentSpeedLimit += 15; // Aumentato per renderla più veloce del kart in impenna!
 
         if (isStarActive.current) {
             currentSpeedLimit *= STAR_SPEED_BOOST; 
@@ -831,7 +831,7 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
                 let currentAccel = SETTINGS.acceleration
                 if (isBoosting) currentAccel *= 2.5
                 if (isStarActive.current || isMegaActive.current) currentAccel *= 2;
-                else if (isWheelieActive) currentAccel *= 1.5; // Leggero boost all'accelerazione per raggiungere prima la top speed
+                else if (isWheelieActive) currentAccel *= 1.2; // Leggero boost all'accelerazione per raggiungere prima la top speed
                 else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
                 
                 speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)

@@ -1263,7 +1263,7 @@ export function GameScene({
                                 }}
                                 socket={socket}
                                 roomCode={roomCode}
-                                maxSpeed={ccs}
+                                maxSpeed={ccs - 10}
                                 isTimeTrial={isTimeTrial}
                             />
                         ) : (
