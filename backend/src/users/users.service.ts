@@ -91,7 +91,7 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
   async updateWins(username: string, onlyOffline: boolean): Promise<User> {
     if (onlyOffline) {
       try {
-      console.log(`Updating offline wins for user: ${username}`);
+      // console.log(`Updating offline wins for user: ${username}`);
       const updatedUser = await this.prisma.user.update({
         where: {
           username: username,
@@ -108,7 +108,7 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
       }
     } else {
       try {
-        console.log(`Updating offline wins for user: ${username}`);
+        // console.log(`Updating offline wins for user: ${username}`);
         const updatedUser = await this.prisma.user.update({
           where: {
             username: username,

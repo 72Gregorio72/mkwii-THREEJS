@@ -178,6 +178,15 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.gameService.updatePlayer(client.id, {
       lap: payload.lap
     });
+    
+    // Broadcast the lap update to all players in the room
+    const roomCode = this.playerRoomMap.get(client.id);
+    if (roomCode) {
+      this.server.to(roomCode).emit('player_lap_updated', {
+        playerId: client.id,
+        lap: payload.lap
+      });
+    }
   }
 
   @SubscribeMessage('bot_update')
@@ -201,12 +210,37 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
 
   @SubscribeMessage('set_details')
-  handleSetDetails(client: Socket, payload: { charId: string, vehicleId: string }) {
+  handleSetDetails(client: Socket, payload: { charId: string, vehicleId: string, characterName: string }) {
     console.log(`Player ${client.id} selected: ${payload.charId} / ${payload.vehicleId}`);
     this.gameService.updatePlayer(client.id, {
       charId: payload.charId,
       vehicleId: payload.vehicleId
     });
+
+    // Aggiorna il player nella stanza con il character name
+    const roomCode = this.playerRoomMap.get(client.id);
+    if (roomCode) {
+      const room = this.roomData.get(roomCode);
+      if (room) {
+        const playerInRoom = room.players.find(p => p.id === client.id);
+        if (playerInRoom) {
+          playerInRoom.character = {
+            id: payload.charId,
+            name: payload.characterName
+          };
+          
+          // Broadcast the updated room state
+          this.server.to(roomCode).emit('room_state', {
+            roomCode: room.roomCode,
+            roomId: room.roomId,
+            hostId: room.hostId,
+            players: room.players,
+            gameState: room.gameState,
+            selectedTrack: room.selectedTrack
+          });
+        }
+      }
+    }
   }
 
   @SubscribeMessage('ping')
@@ -304,7 +338,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       roomCode: roomCode,
       roomId: roomId,
       hostId: client.id,
-      players: [{ id: client.id, isHost: true, username: payload.username , points: 0 }],
+      players: [{ id: client.id, isHost: true, username: payload.username, character: { id: '', name: '' }, points: 0 }],
       bots: [],
       gameState: 'LOBBY'
     });
@@ -344,6 +378,12 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     client.join(roomCode);
 
+    room.players.push({ 
+      id: client.id, 
+      isHost: false, 
+      username: payload.username,
+      character: { id: '', name: '' }
+    });
     room.players.push({ id: client.id, isHost: false, username: payload.username , points: 0 });
     this.playerRoomMap.set(client.id, roomCode);
     

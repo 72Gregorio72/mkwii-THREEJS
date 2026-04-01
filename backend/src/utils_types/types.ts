@@ -7,6 +7,7 @@ export interface RoomPlayer {
   id: string;
   isHost: boolean;
   username?: string;
+  character?: { id: string; name: string };
   points?: number;
 }
 

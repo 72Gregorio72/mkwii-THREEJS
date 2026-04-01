@@ -31,6 +31,7 @@ import { Banana } from '../Items/Banana';
 import { GreenShell } from '../Items/GreenShell';
 import { RedShell } from '../Items/RedShell';
 import { BobOmb } from '../Items/BobOmb.jsx'
+import { BlueShell } from '../Items/BlueShell.jsx'
 import { AudioListenerComponent } from '../audio/AudioListenerComponent.jsx';
 import { useWebGLContext, useWebGLMemoryMonitor } from '../utils/WebGLContextManager.jsx';
 import { gsap } from 'gsap'
@@ -436,6 +437,38 @@ export function GameScene({
         return () => socket.off('leaderboard_update', handleLeaderboard);
     }, [socket]);
 
+    // Handle remote player lap updates
+    useEffect(() => {
+        if (!socket) return;
+
+        const handlePlayerLapUpdated = (data) => {
+            const { playerId, lap } = data;
+            if (racersData.current[playerId]) {
+                racersData.current[playerId].lap = lap;
+                
+                // Check if this remote player finished the race
+                if (lap > TOTAL_LAPS) {
+                    setFinishers(prev => {
+                        // Check if already in the list 
+                        if (prev.some(f => f.id === playerId)) return prev;
+                        
+                        const finishPosition = prev.length + 1;
+                        const finisherEntry = { 
+                            id: playerId, 
+                            position: finishPosition,
+                            finishTime: Date.now() - raceStartTime.current,
+                        };
+                        
+                        return [...prev, finisherEntry];
+                    });
+                }
+            }
+        };
+
+        socket.on('player_lap_updated', handlePlayerLapUpdated);
+        return () => socket.off('player_lap_updated', handlePlayerLapUpdated);
+    }, [socket]);
+
     // Lobby management
     useEffect(() => {
         if (!socket || !roomCode) return; // Solo se c'è una stanza
@@ -776,7 +809,7 @@ export function GameScene({
             if (racer.lap > TOTAL_LAPS) {
                 // Add to finishers list
                 setFinishers(prev => {
-                    // Check if already in the list
+                    // Check if already in the list 
                     if (prev.some(f => f.id === racerId)) return prev;
                     
                     const finishPosition = prev.length + 1;
@@ -1054,6 +1087,7 @@ export function GameScene({
                     racersData={racersData.current}
                     userName={username}
                     trackName={activeTrackConfig?.name}
+                    lobbyPlayers={lobbyPlayers}
                     isHost={isHost}
                 />}
 
@@ -1162,6 +1196,8 @@ export function GameScene({
                                     return <GreenShell key={item.id} {...commonProps} />;
                                 case 'red_shell': 
                                     return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={activeTrackConfig.Waypoints[0]} />;
+                                case 'blue_shell': 
+                                    return <BlueShell key={item.id} position={pos} waypoints={activeTrackConfig.Waypoints[0]} targets={blueShellTargets} onDestroy={commonProps.onDestroy} />;
                                 case 'bomb': 
                                     return <BobOmb key={item.id} {...commonProps} />;
                                 default: 
@@ -1263,7 +1299,7 @@ export function GameScene({
                                 }}
                                 socket={socket}
                                 roomCode={roomCode}
-                                maxSpeed={ccs}
+                                maxSpeed={ccs - 10}
                                 isTimeTrial={isTimeTrial}
                             />
                         ) : (

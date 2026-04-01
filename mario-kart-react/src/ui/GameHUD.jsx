@@ -4,6 +4,7 @@ import { ITEMS } from '../Items/PowerupHandler';
 const ITEM_SPRITES = {
   [ITEMS.NONE]: null,
   [ITEMS.MUSHROOM]: '/itemSprites/Mushroom.png',
+  [ITEMS.DOUBLE_MUSHROOM]: '/itemSprites/DoubleMushroom.png',
   [ITEMS.TRIPLE_MUSHROOM]: '/itemSprites/TripleMushroom.png',
   [ITEMS.GOLDEN_MUSHROOM]: '/itemSprites/GoldenMushroom.png',
   [ITEMS.BANANA]: '/itemSprites/Banana.png',
