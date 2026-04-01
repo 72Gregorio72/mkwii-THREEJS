@@ -12,9 +12,10 @@ export const NetworkManager = ({ socket, playerRef, setOpponents, roomId, charac
         // Invia i dettagli IMMEDIATAMENTE
         socket.emit('set_details', {
             charId: character.id,
-            vehicleId: vehicle.id
+            vehicleId: vehicle.id,
+            characterName: character.name
         });
-    }, [socket, character.id, vehicle.id]);
+    }, [socket, character.id, character.name, vehicle.id]);
 
     const lastSendTime = useRef(0);
 

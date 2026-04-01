@@ -395,7 +395,7 @@ export const WaitingRoom = ({ resetRoomState }) => {
                                             <div className="ml-auto bg-[#ffcc00] text-black text-xs font-black uppercase px-2 py-1 rounded shadow-sm">
                                                 HOST
                                             </div>
-                                        )}
+                                        )} 
                                     </div>
                                 ))}
 
