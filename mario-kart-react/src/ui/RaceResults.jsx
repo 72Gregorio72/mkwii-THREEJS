@@ -183,8 +183,6 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const [pointsData, setPointsData] = useState([]);
 
   const [ showLeaderboard, setShowLeaderboard ] = useState(false);
-  const [ showQuit, setShowQuit ] = useState(false);
-    const [ showLeaderboard, setShowLeaderboard ] = useState(false);
 
   // Se non ci sono risultati, non mostrare nulla
   if (!finishers || finishers.length === 0) return null;
@@ -267,11 +265,8 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   };
 
   useEffect(() => {
+    console.log('RaceResults - finishers updated:', finishers);
     if (isGrandPrix) {
-        const isLast = selectedGrandPrix.tracks.at(-1) === trackName;
-        if (isLast) {
-            setShowQuit(true);
-        }
         setTimeout(() => {
             setShowLeaderboard(true);
         }, 5000);
