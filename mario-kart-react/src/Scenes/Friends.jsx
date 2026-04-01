@@ -17,7 +17,13 @@ export const Friends = () => {
     // Stati per Add Friend
     const [addingFriend, setAddingFriend] = useState(false);
     const [newFriendName, setNewFriendName] = useState('');
-    const [addMessage, setAddMessage] = useState(''); 
+    const [addMessage, setAddMessage] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [loadingSearch, setLoadingSearch] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
+    const [viewingFriendProfile, setViewingFriendProfile] = useState(null);
+    const [friendProfileData, setFriendProfileData] = useState(null);
+    const [loadingFriendProfile, setLoadingFriendProfile] = useState(false);
     const { playSfx, changeTrack, enableSmoothLoop, getCurrentTrack } = useAudio();
 
     const { userName: userName } = useUserStore();
@@ -60,6 +66,67 @@ export const Friends = () => {
         setAddingFriend(true);
         setAddMessage('');
         setNewFriendName('');
+        setSearchResults([]);
+        setHasSearched(false);
+    };
+
+    const handleSearchUsers = async (searchTerm) => {
+        setNewFriendName(searchTerm);
+        
+        if (!searchTerm.trim()) {
+            setSearchResults([]);
+            setHasSearched(false);
+            return;
+        }
+
+        setHasSearched(true);
+        setLoadingSearch(true);
+        try {
+            const res = await fetch(`/api/searchUsers?query=${encodeURIComponent(searchTerm)}`);
+            if (res.ok) {
+                const users = await res.json();
+                // Filtra l'utente corrente dai risultati
+                const filtered = Array.isArray(users) 
+                    ? users.filter(u => u.username !== userName) 
+                    : [];
+                setSearchResults(filtered);
+            }
+        } catch (err) {
+            console.error(err);
+            setSearchResults([]);
+        } finally {
+            setLoadingSearch(false);
+        }
+    };
+
+    const handleSelectUser = async (selectedUser) => {
+        playSfx(AUDIO_SFX.SELECT_IN_MENU);
+        setNewFriendName(selectedUser.username);
+        setSearchResults([]);
+        
+        // Invia la richiesta di amicizia automaticamente
+        try {
+            const res = await fetch(`/api/sendFriendRequest?username=${userName}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ receiverName: selectedUser.username })
+            });
+
+            const text = await res.json();
+
+            if (!res.ok) {
+                setAddMessage(text.message ?? 'Error sending request');
+            } else {
+                setAddMessage(`Request sent to ${selectedUser.username}!`);
+                setTimeout(() => {
+                    setAddingFriend(false);
+                    setSearchResults([]);
+                }, 1500);
+            }
+        } catch (err) {
+            console.error(err);
+            setAddMessage('Network error!');
+        }
     };
 
     const handleNotifications = () => {
@@ -152,6 +219,30 @@ export const Friends = () => {
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const handleViewFriendProfile = async (friend) => {
+        playSfx(AUDIO_SFX.SELECT_IN_MENU);
+        setViewingFriendProfile(friend);
+        setLoadingFriendProfile(true);
+        
+        try {
+            const res = await fetch(`/api/profile?userName=${friend.username}`);
+            if (res.ok) {
+                const data = await res.json();
+                setFriendProfileData(data);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoadingFriendProfile(false);
+        }
+    };
+
+    const handleCloseFriendProfile = () => {
+        playSfx(AUDIO_SFX.BACK_IN_MENU);
+        setViewingFriendProfile(null);
+        setFriendProfileData(null);
     };
 
     return (
@@ -267,7 +358,11 @@ export const Friends = () => {
                                 </div>
                             ) : (
                                 friends.map((friend, index) => (
-                                    <div key={index} className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white hover:scale-[1.02] cursor-pointer flex-shrink-0">
+                                    <div 
+                                        key={index}
+                                        onClick={() => handleViewFriendProfile(friend)}
+                                        className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white hover:scale-[1.02] cursor-pointer flex-shrink-0"
+                                    >
                                         <div className="absolute top-0 left-4 right-4 h-[35%] bg-white/10 rounded-b-full pointer-events-none"></div>
                                         
                                         {/* Icona */}
@@ -338,17 +433,54 @@ export const Friends = () => {
                             </button>
                         </div>
 
-                        <div className="z-10 flex flex-col gap-4 relative">
+                        <div className="z-10 flex flex-col gap-4 relative overflow-visible">
                             <input 
                                 type="text" 
                                 autoFocus
                                 value={newFriendName}
-                                onChange={(e) => setNewFriendName(e.target.value)}
-                                onKeyDown={handleSendRequest}
-                                placeholder="Enter username + Enter" 
+                                onChange={(e) => handleSearchUsers(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newFriendName.trim() && searchResults.length === 0) {
+                                        handleSendRequest(e);
+                                    }
+                                }}
+                                placeholder="Type username..." 
                                 className="w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full p-4 text-center text-2xl text-white outline-none focus:border-white focus:scale-[1.02] transition-all shadow-[0_5px_10px_rgba(0,0,0,0.5)] placeholder-gray-400 font-bold tracking-wide"
                             />
                             <div className="absolute top-[6px] left-8 right-8 h-[25%] bg-white/10 rounded-b-full pointer-events-none"></div>
+                            
+                            {/* Search Results Dropdown */}
+                            {(hasSearched && newFriendName.trim()) && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-gradient-to-b from-[#222] to-[#000] border-[3px] border-[#aaaaaa] rounded-lg shadow-[0_5px_15px_rgba(0,0,0,0.7)] z-[100] max-h-64 overflow-y-auto custom-scrollbar">
+                                    {loadingSearch ? (
+                                        <div className="w-full px-4 py-4 text-center font-bold text-lg drop-shadow-[2px_2px_0_#0000ff] text-yellow-300 animate-pulse">
+                                            Searching...
+                                        </div>
+                                    ) : searchResults.length === 0 ? (
+                                        <div className="w-full px-4 py-4 text-center font-bold text-lg drop-shadow-[2px_2px_0_#0000ff] text-red-300">
+                                            No users found
+                                        </div>
+                                    ) : (
+                                        searchResults.map((user, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => handleSelectUser(user)}
+                                                className="w-full px-4 py-3 text-left hover:bg-[#444] transition-colors border-b border-[#555] last:border-b-0 flex items-center gap-3 hover:scale-[1.02]"
+                                            >
+                                                <img 
+                                                    src={user.icon ? `/sprites/${user.icon}` : '/sprites/Mario.png'} 
+                                                    alt={user.username}
+                                                    className="w-8 h-8 rounded-full object-cover border border-white"
+                                                    onError={(e) => { e.target.src = '/sprites/Mario.png'; }}
+                                                />
+                                                <span className="text-lg font-bold text-white drop-shadow-[1px_1px_0_#0000ff]">
+                                                    {user.username}
+                                                </span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            )}
                             
                             {addMessage && (
                                 <div className="text-center font-bold text-xl drop-shadow-[2px_2px_0_#0000ff] animate-pulse text-yellow-300">
@@ -405,6 +537,115 @@ export const Friends = () => {
                                 ))
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* FRIEND PROFILE MODAL */}
+            {viewingFriendProfile && (
+                <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-gradient-to-b from-[#000050] to-[#000066] border-[6px] border-[#ffff] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-3 w-full max-w-4xl flex gap-3 relative animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        
+                        {loadingFriendProfile ? (
+                            <div className="w-full flex items-center justify-center py-16">
+                                <span className="text-3xl font-bold text-yellow-300 drop-shadow-[2px_2px_0_#0000ff] animate-pulse">Loading...</span>
+                            </div>
+                        ) : friendProfileData ? (
+                            <>
+                                {/* COLONNA SINISTRA - ICON */}
+                                <div className="w-48 flex flex-col gap-3 flex-shrink-0">
+                                    <div className="w-full aspect-square border-4 border-[#ffff] shadow-inner relative overflow-hidden">
+                                        <div className="absolute inset-0" 
+                                             style={{
+                                                backgroundImage: "conic-gradient(#000088 90deg, #000044 90deg 180deg, #000088 180deg 270deg, #000044 270deg)",
+                                                backgroundSize: "24px 24px"
+                                             }}>
+                                        </div>
+                                        <div className="absolute inset-0 flex items-end justify-center">
+                                            {friendProfileData.icon ? (
+                                                <img 
+                                                    src={`/sprites/${friendProfileData.icon}`}
+                                                    alt={friendProfileData.username} 
+                                                    className="h-[115%] w-auto object-contain object-bottom filter drop-shadow-lg" 
+                                                    onError={(e) => { e.target.src = '/sprites/Mario.png'; }}
+                                                />
+                                            ) : (
+                                                <span className="text-8xl pb-2">👤</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Status Indicator */}
+                                    <div className="flex items-center justify-center gap-2 p-2 bg-[#333] border-2 border-white rounded-lg">
+                                        <div className={`w-3 h-3 rounded-full ${viewingFriendProfile.isLoggedIn ? 'bg-green-500 shadow-[0_0_8px_#22cc22]' : 'bg-red-500 shadow-[0_0_8px_#cc0000]'} animate-pulse`}></div>
+                                        <span className="text-white font-bold text-sm">
+                                            {viewingFriendProfile.isLoggedIn ? 'Online' : 'Offline'}
+                                        </span>
+                                    </div>
+
+                                    {/* Close Button */}
+                                    <button onClick={handleCloseFriendProfile} className="w-full py-2 bg-[#ff4444] hover:bg-[#ff6666] border-2 border-white rounded font-bold text-white shadow-md transition-transform hover:scale-105 active:scale-95">
+                                        Back
+                                    </button>
+                                </div>
+
+                                {/* COLONNA DESTRA - USERNAME & STATS */}
+                                <div className="flex-1 flex flex-col gap-3">
+
+                                    {/* Username Box */}
+                                    <div className="w-full h-20 border-4 border-[#ffff] shadow-md flex items-center justify-center px-6 relative overflow-hidden"
+                                         style={{
+                                            backgroundImage: "conic-gradient(#000088 90deg, #000044 90deg 180deg, #000088 180deg 270deg, #000044 270deg)",
+                                            backgroundSize: "24px 24px"
+                                         }}>
+                                        <h2 className="text-4xl font-black text-white italic drop-shadow-[3px_3px_0_#0000ff] stroke-black tracking-wide z-10">
+                                            {friendProfileData.username || viewingFriendProfile.username}
+                                        </h2>
+                                    </div>
+
+                                    {/* Stats Grid */}
+                                    <div className="flex-1 bg-[#222] border-4 border-[#ffff] shadow-inner p-4 grid grid-cols-2 gap-4 relative overflow-hidden">
+                                        <div className="absolute inset-0 opacity-5 pointer-events-none bg-[repeating-linear-gradient(0deg,white_0px,white_1px,transparent_1px,transparent_3px)]"></div>
+                                        
+                                        <div className="bg-[#333] border border-[#ffff] p-2 flex flex-col items-center justify-center">
+                                            <span className="text-[#aaa] text-xs uppercase font-bold mb-1">Status</span>
+                                            <span className="text-lg filter drop-shadow-md">{viewingFriendProfile.isLoggedIn ? '🟢' : '🔴'}</span>
+                                        </div>
+
+                                        <div className="bg-[#333] border border-[#ffff] p-2 flex flex-col items-center justify-center">
+                                            <span className="text-[#aaa] text-xs uppercase font-bold mb-1">Total Wins</span>
+                                            <span className="text-white font-mono text-lg font-bold">{(friendProfileData.onlineWins || 0) + (friendProfileData.offlineWins || 0)}</span>
+                                        </div>
+
+                                        {/* Online Wins Progress Bar */}
+                                        <div className="col-span-2 bg-[#001133] border border-[#004488] p-2 flex flex-col justify-center px-4 relative">
+                                            <div className="flex justify-between text-xs font-bold uppercase mb-1 z-10">
+                                                <span className="text-[#00aeff]">Online Wins</span>
+                                                <span className="text-white">{friendProfileData.onlineWins || 0}</span>
+                                            </div>
+                                            <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#004488]">
+                                                <div className="h-full bg-gradient-to-r from-[#004488] to-[#00aeff]" style={{width: `${Math.min(friendProfileData.onlineWins || 0, 100)}%`}}></div>
+                                            </div>
+                                        </div>
+
+                                        {/* Offline Wins Progress Bar */}
+                                        <div className="col-span-2 bg-[#332200] border border-[#886600] p-2 flex flex-col justify-center px-4 relative">
+                                            <div className="flex justify-between text-xs font-bold uppercase mb-1 z-10">
+                                                <span className="text-[#ffcc00]">Offline Wins</span>
+                                                <span className="text-white">{friendProfileData.offlineWins || 0}</span>
+                                            </div>
+                                            <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#886600]">
+                                                <div className="h-full bg-gradient-to-r from-[#886600] to-[#ffcc00]" style={{width: `${Math.min(friendProfileData.offlineWins || 0, 100)}%`}}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="w-full flex items-center justify-center py-16">
+                                <span className="text-2xl font-bold text-red-300 drop-shadow-[2px_2px_0_#0000ff]">Unable to load profile</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

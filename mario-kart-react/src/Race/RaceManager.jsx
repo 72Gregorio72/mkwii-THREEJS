@@ -65,8 +65,14 @@ export function RaceManager({
 		// Calcola score: (giri completati * LAP_BONUS) + progresso waypoint
 		const lapScore = (currentLap - 1) * LAP_BONUS;
 		const waypointProgress = closestIndex; // Waypoint index come progresso
+		const finalScore = lapScore + waypointProgress;
 		
-		return lapScore + waypointProgress;
+		// Debug log (ogni 5 secondi circa)
+		if (Math.random() < 0.02) {
+			console.log(`[calculateScore] Racer ${racerId.substring(0, 8)}: pos(${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)}) -> waypoint ${closestIndex}/${totalWaypoints}, lap ${currentLap}, score ${finalScore}`);
+		}
+		
+		return finalScore;
 	};
 
 	// --- 3. LOOP DI GIOCO ---
@@ -102,6 +108,10 @@ export function RaceManager({
 				if (playerRef.current?.translation) {
 					const t = playerRef.current.translation();
 					currentPos = new THREE.Vector3(t.x, t.y, t.z);
+					// Debug log del player locale
+					if (Math.random() < 0.02) {
+						console.log(`[RaceManager] PLAYER (${racerId.substring(0, 8)}): pos(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
+					}
 				}
 			} else if (botRefs.current[racerId]) {
 				// È un bot (usa character.id come ID)
@@ -109,6 +119,10 @@ export function RaceManager({
 				if (botRefObj?.current?.translation) {
 					const t = botRefObj.current.translation();
 					currentPos = new THREE.Vector3(t.x, t.y, t.z);
+					// Debug log del bot
+					if (Math.random() < 0.02) {
+						console.log(`[RaceManager] BOT (${racerId.substring(0, 8)}): pos(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
+					}
 				}
 			} else {
 				// Giocatori online
@@ -128,6 +142,11 @@ export function RaceManager({
 					}
 				}
 				
+				// Debug log del player online
+				if (currentPos && Math.random() < 0.02) {
+					console.log(`[RaceManager] REMOTE (${racerId.substring(0, 8)}): pos(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
+				}
+				
 				// Sincronizza lap da remoto per giocatori online
 				if (opponentsDataRef.current[racerId]?.lap !== undefined) {
 					allRacers[racerId].lap = opponentsDataRef.current[racerId].lap;
@@ -144,6 +163,14 @@ export function RaceManager({
 
 		// --- 5. ORDINAMENTO PER SCORE (più alto = primo posto) ---
 		const sorted = Object.values(allRacers).sort((a, b) => b.score - a.score);
+
+		// Debug log: mostri tutti i racer ordinati
+		if (Math.random() < 0.02) {
+			console.log('[RaceManager] CLASSIFICA ATTUALE:');
+			sorted.forEach((racer, index) => {
+				console.log(`  ${index + 1}. ${racer.id.substring(0, 8)} - Score: ${racer.score} (Lap: ${racer.lap})`);
+			});
+		}
 
 		// Aggiorna posizione in ogni racer
 		sorted.forEach((racer, index) => {
@@ -165,6 +192,7 @@ export function RaceManager({
 
 		if (changed) {
 			lastSentPositionsRef.current = newPositionsIds;
+			console.log('[RaceManager] POSIZIONI AGGIORNATE:', newPositionsIds.map(p => `${p.id.substring(0, 8)}(#${p.position})`).join(' -> '));
 			setPositions(newPositionsIds);
 		}
 	});
