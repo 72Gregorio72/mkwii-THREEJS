@@ -1,6 +1,7 @@
 import { Injectable, ConflictException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-import { User } from '../types';
+import { PrismaClient, RecordTimes } from '@prisma/client';
+import { User } from '../utils_types/types';
+import { RegisterDto } from 'src/auth/auth.dto';
 
 @Injectable()
 export class UsersService implements OnModuleInit, OnModuleDestroy {
@@ -34,7 +35,7 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async addUser(data: any): Promise<User> {
+  async addUser(data: RegisterDto): Promise<User> {
     try {
       const newUser = await this.prisma.user.create({
         data: {
@@ -125,7 +126,7 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getBestTime(userName: string, trackName: string): Promise<any | null> {
+  async getBestTime(userName: string, trackName: string): Promise<RecordTimes | null> {
     const record = await this.prisma.recordTimes.findUnique({
       where: { userName_trackName: { userName, trackName } }
     });

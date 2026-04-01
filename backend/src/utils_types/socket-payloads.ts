@@ -1,4 +1,4 @@
-import { Quaternion, Vector3, Track, Bot } from 'src/types'; // Assicurati che i percorsi siano corretti
+import { Quaternion, Vector3, Track, Bot } from 'src/utils_types/types'; // Assicurati che i percorsi siano corretti
 
 export interface MoveKartPayload {
   x: number;

@@ -125,7 +125,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
       if (showJoinInput) {
           setShowJoinInput(false);
           setRoomCode('');
-          setShowDropdown(false); // Chiudi il menu a tendina se aperto
+          setShowDropdown(false);
       } else {
           navigate('/menu');
       }
@@ -283,7 +283,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
             </div>
 
             {/* AREA CENTRALE */}
-            <div className="flex-1 flex flex-col items-center justify-center p-8 w-full">
+            <div className="flex-1 flex flex-col items-center justify-center px-8 pb-8 pt-[18vh] w-full">
                 
                 {/* 1. SELEZIONE MODALITÀ (CREATE / JOIN) */}
                 {!showJoinInput ? (
@@ -313,9 +313,10 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
                             {/* Campanella Notifiche */}
                             {loggedIn && (
                                 <div className="absolute right-0 top-1/2 -translate-y-1/2">
+
                                     <button 
                                         onClick={toggleNotifications}
-                                        className="relative w-12 h-12 bg-[#00aaff] hover:bg-[#33bbff] border-2 border-white rounded-full shadow-md flex items-center justify-center transition-all transform hover:scale-110 active:scale-95"
+                                        className="-translate-y-1/4 relative w-12 h-12 bg-[#00aaff] hover:bg-[#33bbff] border-2 border-white rounded-full shadow-md flex items-center justify-center transition-all transform hover:scale-110 active:scale-95"
                                         title="Room Invites"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-white drop-shadow-[1px_1px_0_#0055aa]">

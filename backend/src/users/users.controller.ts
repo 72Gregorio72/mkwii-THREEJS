@@ -18,18 +18,17 @@ export class UsersController {
     }
 
     @Patch('updateIcon')
-    async updateIcon(@Query('userName') userName: string, @Body() body: any) {
+    async updateIcon(@Query('userName') userName: string, @Body() body: { icon: string }) {
         return await this.userService.updateIcon(userName, body.icon);
     }
 
 	@Patch('updateWins')
-	async updateWins(@Query('userName') userName: string, @Body() body: any) {
+	async updateWins(@Query('userName') userName: string, @Body() body: { onlyOffline: boolean }) {
 		return await this.userService.updateWins(userName, body.onlyOffline);
 	}
 
     @Patch('updateusername')
-	async updateusername(@Query('userName') userName: string, @Body() body: any) {
-        // TODO: check if newUsername is already taken
+	async updateusername(@Query('userName') userName: string, @Body() body: { newUsername: string }) {
         const existingUser = await this.userService.findOne(body.newUsername);
         if (existingUser) {
             throw new ConflictException('Username già in uso');
@@ -49,7 +48,7 @@ export class UsersController {
 	}
 
     @Post('updateRecordTime')
-    async updateRecordTime(@Query('userName') userName: string, @Body() body: any) {
+    async updateRecordTime(@Query('userName') userName: string, @Body() body: { trackname: string, time: number }) {
         return await this.userService.saveBestTime(userName, body.trackname, body.time);
     }
 

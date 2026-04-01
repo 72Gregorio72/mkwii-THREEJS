@@ -8,13 +8,13 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GameService, Player } from './game.service';
-import { getLocalIpAddress } from 'src/utils';
+import { getLocalIpAddress } from 'src/utils_types/utils';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { BadRequestException } from '@nestjs/common';
-import { RoomData, RoomPlayer, Quaternion, Vector3, Track, User } from 'src/types';
-import type { ItemIdPayload, MoveKartPayload, RoomCodePayload, RoomUserPayload, SpawnItemPayload, StartRacePayload, SyncGameStatePayload } from 'src/socket-payloads';
+import { RoomData, RoomPlayer, Quaternion, Vector3, Track, User } from 'src/utils_types/types';
+import type { ItemIdPayload, MoveKartPayload, RoomCodePayload, RoomUserPayload, SpawnItemPayload, StartRacePayload, SyncGameStatePayload } from 'src/utils_types/socket-payloads';
 import { NotificationsService } from 'src/notifications/notifications.service';
 
 const myIP = getLocalIpAddress();
@@ -49,7 +49,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     private readonly notificationsService: NotificationsService
   ) {}
 
-  private items = new Map<string, any>();
+  // private items = new Map<string, any>();
   private roomData = new Map<string, RoomData>();
   
   // Map socket.id -> roomCode

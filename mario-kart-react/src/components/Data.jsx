@@ -87,18 +87,18 @@ export const Tracks = {
 	// 	maxCheckpoints: 5,
     //     soundtrack: 'RACE_COCONUT_MALL'
 	// },
-	'Bowser Castle': {
-		file: './Tracks/BowserCastle/BowserCastle.glb',
-		preview: '/Previews/Bowser Castle.png',
-		startPos: [0, 0, 100],
-		checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
-		maxCheckpoints: 7,
-		soundtrack: 'RACE_BOWSER_CASTLE',
-		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
-		gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
-		road: './Tracks/BowserCastle/BowserCastle_road.glb',
-		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
-	},
+	// 'Bowser Castle': {
+	// 	file: './Tracks/BowserCastle/BowserCastle.glb',
+	// 	preview: '/Previews/Bowser Castle.png',
+	// 	startPos: [0, 0, 100],
+	// 	checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
+	// 	maxCheckpoints: 7,
+	// 	soundtrack: 'RACE_BOWSER_CASTLE',
+	// 	itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+	// 	gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
+	// 	road: './Tracks/BowserCastle/BowserCastle_road.glb',
+	// 	Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
+	// },
 	'Delfino Square': {
 		file: './Tracks/DelfinoSquare/DelfinoSquare.glb',
 		preview: '/Previews/DS Delfino Square.png',

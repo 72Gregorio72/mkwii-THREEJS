@@ -212,6 +212,7 @@ export const SinglePlayer = () => {
                     {/* SELEZIONE MODALITÀ */}
                     {!isGrandPrix && (
                         <div className="flex flex-col gap-8 w-full max-w-3xl animate-in fade-in zoom-in duration-300">
+                            
                             <MenuButton 
                                 title="Time Trial" 
                                 onClick={() => handleNavigate('/character')}

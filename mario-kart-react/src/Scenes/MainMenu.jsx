@@ -8,9 +8,9 @@ const MenuButton = ({ title, onClick, bgImage, showNotificationDot = false }) =>
     return (
         <button 
             onClick={onClick}
-            className="group relative w-full max-w-2xl h-20 md:h-24 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
+            className="group relative w-full h-24 md:h-32 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
                        flex items-center justify-center px-8 overflow-hidden transition-all duration-200 
-                       hover:scale-105 hover:border-[#ffeebb] hover:shadow-[0_0_15px_rgba(255,215,0,0.6)] hover:bg-black/70"
+                       hover:scale-105 hover:border-[#ffeebb] hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:bg-black/70 active:scale-95"
         >
             {/* Immagine di sfondo del bottone */}
             {bgImage && (
@@ -29,7 +29,7 @@ const MenuButton = ({ title, onClick, bgImage, showNotificationDot = false }) =>
 
             {/* Testo Centrale */}
             <div className="relative z-[2] flex-1 flex flex-col items-center justify-center">
-                <span className="text-3xl md:text-4xl font-bold font-sans text-[#ddccaa] tracking-tight drop-shadow-[2px_2px_0_rgba(0,0,0,1)] uppercase group-hover:text-white transition-colors">
+                <span className="text-3xl md:text-5xl font-bold font-sans text-[#ddccaa] tracking-tight drop-shadow-[2px_2px_0_rgba(0,0,0,1)] uppercase group-hover:text-white transition-colors">
                     {title}
                 </span>
             </div>
@@ -237,56 +237,48 @@ export const MainMenu = () => {
                     </div>
                 )}
 
-
-                {/* Lista Pulsanti Centrali */}
+                {/* Lista Pulsanti Centrali - UTENTE LOGGATO */}
                 {loggedIn && (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full pt-[5vh]">
-                        <MenuButton 
-                            title="Single Player" 
-                            onClick={() => handleNavigate('/single_player')}
-                            bgImage="/buttonsImg/chara_6_peach_00.png"
-                        />
-                        
-                        <MenuButton 
-                            title="Multiplayer" 
-                            onClick={() => handleNavigate('/room')}
-                            bgImage="/buttonsImg/chara_6_donkey_00.png"
-                            showNotificationDot={pendingRoomInvites > 0}
-                        />
-                        
-                        <MenuButton 
-                            title="Debug Race" 
-                            onClick={() => handleNavigate('/debug')} 
-                        />
-
-                        <MenuButton 
-                            title="Debug GP" 
-                            onClick={() => handleNavigate('/endGrandPrix')} 
-                        />
+                    <div className="flex-1 flex flex-col items-center justify-center w-full px-8 pb-8 pt-[18vh]">
+                        <div className="flex flex-col gap-8 w-full max-w-3xl">
+                            <MenuButton 
+                                title="Single Player" 
+                                onClick={() => handleNavigate('/single_player')}
+                                bgImage="/buttonsImg/chara_6_peach_00.png"
+                            />
+                            
+                            <MenuButton 
+                                title="Multiplayer" 
+                                onClick={() => handleNavigate('/room')}
+                                bgImage="/buttonsImg/chara_6_donkey_00.png"
+                                showNotificationDot={pendingRoomInvites > 0}
+                            />
+                        </div>
                     </div>
                 )}
 
+                {/* Lista Pulsanti Centrali - UTENTE NON LOGGATO */}
                 {!loggedIn && (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 w-full pt-[5vh]">
+                    <div className="flex-1 flex flex-col items-center justify-center w-full px-8 pb-8 pt-[18vh]">
+                        <div className="flex flex-col gap-8 w-full max-w-3xl">
+                            <MenuButton 
+                                title="Register" 
+                                onClick={() => handleNavigate('/register')}
+                                bgImage="/buttonsImg/chara_6_mario_00.png"
+                            />
 
-                        <MenuButton 
-                            title="Register" 
-                            onClick={() => handleNavigate('/register')}
-                            bgImage="/buttonsImg/chara_6_mario_00.png"
-                        />
+                            <MenuButton 
+                                title="Login" 
+                                onClick={() => handleNavigate('/login')}
+                                bgImage="/buttonsImg/chara_6_luigi_00.png"
+                            />
 
-                        <MenuButton 
-                            title="Login" 
-                            onClick={() => handleNavigate('/login')}
-                            bgImage="/buttonsImg/chara_6_luigi_00.png"
-                        />
-
-                        <MenuButton 
-                            title="Play as a Guest" 
-                            onClick={() => handleNavigate('/character')}
-                            bgImage="/buttonsImg/chara_6_yoshi_00.png"
-                        />
-
+                            <MenuButton 
+                                title="Play as a Guest" 
+                                onClick={() => handleNavigate('/character')}
+                                bgImage="/buttonsImg/chara_6_yoshi_00.png"
+                            />
+                        </div>
                     </div>
                 )}
 
