@@ -289,18 +289,27 @@ export function GameScene({
     // Aggiungi questo stato sotto a quello di "gameState"
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [raceAttempt, setRaceAttempt] = useState(0);
+
+    const [isInLobby, setIsInLobby] = useState(roomCode ? true : false);
+    const [lobbyPlayers, setLobbyPlayers] = useState([]);
+
     // 1. CARICAMENTO POSIZIONI DI PARTENZA (Grid)
     const { positions: gridPositions, rotations: gridRotations, url: loadedGridUrl } = useGridPositions(activeTrackConfig?.gridpos);
 
     // Calculate player start position early (before useEffect hooks)
     const fallbackStartPos = activeStartPos || [0, 0, 0];
-    const playerStartPos = isTimeTrial ? (gridPositions[1] || fallbackStartPos) : (gridPositions[12] || fallbackStartPos);
-    const playerStartRot = gridRotations[12] || [0, Math.PI / 2, 0];
 
-    // Lobby state
-    const [isInLobby, setIsInLobby] = useState(roomCode ? true : false);
+    // In multiplayer, assign each player a unique grid slot based on lobby order (host first).
+    const multiplayerGridIndex = useMemo(() => {
+        if (!roomCode || !socket?.id || lobbyPlayers.length === 0) return null;
+        const myLobbyIndex = lobbyPlayers.findIndex(player => player.id === socket.id);
+        if (myLobbyIndex < 0) return null;
+        return myLobbyIndex + 1;
+    }, [roomCode, socket?.id, lobbyPlayers]);
 
-    const [lobbyPlayers, setLobbyPlayers] = useState([]);
+    const playerGridIndex = isTimeTrial ? 1 : (multiplayerGridIndex || 12);
+    const playerStartPos = gridPositions[playerGridIndex] || getGridPosition(fallbackStartPos, Math.max(0, playerGridIndex - 1));
+    const playerStartRot = gridRotations[playerGridIndex] || [0, Math.PI / 2, 0];
 
     // Genera configurazioni bot random e uniche (memoizzate per non ricambiarle ad ogni render)
     const botConfigurations = useMemo(() => {

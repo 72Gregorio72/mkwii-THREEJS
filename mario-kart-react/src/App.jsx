@@ -19,7 +19,7 @@ import { GrandPrix } from './Scenes/GrandPrix.jsx'
 import { WinScene } from './Scenes/WinScene.jsx'
 import { Friends } from './Scenes/Friends.jsx'
 
-import { useUserStore, useGameStore, useGameDataStore, useRoomDataStore } from './store.js'
+import { useUserStore, useGameStore, useGameDataStore, useRoomDataStore, useNotificationsStore } from './store.js'
 
 
 // --- COMPONENTE TITLE SCREEN (SCHERMATA INIZIALE) ---
@@ -127,7 +127,8 @@ export default function App() {
     const gameDataStore = useGameDataStore();
     const roomDataStore = useRoomDataStore();
     
-    const {userName: userName} = useUserStore();
+    const {userName: userName, isLoggedIn: isLoggedIn} = useUserStore();
+    const { setPendingRoomInvites } = useNotificationsStore();
     const {SelectedCharacter: SelectedCharacter, SelectedTrack: SelectedTrack, selectedGrandPrix: selectedGrandPrix} = useGameDataStore();
 
     // State for results
@@ -198,6 +199,40 @@ export default function App() {
         socket.on('room_state', handleRoomState);
         return () => socket.off('room_state', handleRoomState);
     }, []);
+
+    useEffect(() => {
+        if (!isLoggedIn || !userName) {
+            setPendingRoomInvites(0);
+            return;
+        }
+
+        let isMounted = true;
+        const refreshPendingInvites = async () => {
+            try {
+                const response = await fetch(`/api/notifications?username=${userName}`);
+                if (response.status === 404) {
+                    if (isMounted) setPendingRoomInvites(0);
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error('Failed to fetch notifications');
+                }
+                const data = await response.json();
+                if (isMounted) {
+                    setPendingRoomInvites(Array.isArray(data) ? data.length : 0);
+                }
+            } catch (error) {
+                console.error('Error refreshing pending invites:', error);
+            }
+        };
+        refreshPendingInvites();
+        const intervalId = setInterval(refreshPendingInvites, 10000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, [isLoggedIn, userName, setPendingRoomInvites]);
 
     const handleCreateRoom = (code, username) => {
         roomDataStore.setRoomCode(code);
