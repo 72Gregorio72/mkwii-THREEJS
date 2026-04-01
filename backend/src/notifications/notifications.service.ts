@@ -38,7 +38,7 @@ export class NotificationsService {
     }
 
     async getNotificationsForUser(username: string) {
-        console.log(`Fetching notifications for user ${username}`);
+        // console.log(`Fetching notifications for user ${username}`);
         return await this.prisma.notification.findMany({
             where: {
                 receiverName: username,

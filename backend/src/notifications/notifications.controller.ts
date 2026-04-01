@@ -13,7 +13,7 @@ export class NotificationsController {
 
     @Get('notifications')
     async getNotificationsForUser(@Query('username') username: string) {
-        console.log(`Fetching notifications for user ${username}`);
+        // console.log(`Fetching notifications for user ${username}`);
         const notifications = await this.notificationsService.getNotificationsForUser(username);
         if (!notifications) {
             throw new NotFoundException(`No notifications found for user ${username}`);
