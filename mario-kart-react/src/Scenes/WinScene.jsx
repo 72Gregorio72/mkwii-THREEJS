@@ -104,8 +104,7 @@ export const WinScene = ({ selectedCup, raceResults, setRaceResults }) => {
     }, [raceResults, navigate, changeTrack, stopMusic]);
 
     useEffect(() => {
-        let isWinner = socket && raceResults && raceResults.length > 0 && raceResults[0].id === socket.id;
-        isWinner = true;
+        const isWinner = socket && raceResults && raceResults.length > 0 && raceResults[0].id === socket.id;
         if (isWinner && selectedCup?.trophy) {
             const timer = setTimeout(() => {
                 setShowTrophy(true);

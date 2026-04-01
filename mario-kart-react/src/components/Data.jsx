@@ -65,7 +65,7 @@ export const Tracks = {
 		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
 		maxCheckpoints: 4,
         soundtrack: 'RACE_LUIGI_CIRCUIT',
-		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
+		Waypoints: [ LuigiCircuit_1, LuigiCircuit_2, LuigiCircuit_3 ]
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',
@@ -87,18 +87,18 @@ export const Tracks = {
 	// 	maxCheckpoints: 5,
     //     soundtrack: 'RACE_COCONUT_MALL'
 	// },
-	'Bowser Castle': {
-		file: './Tracks/BowserCastle/BowserCastle.glb',
-		preview: '/Previews/Bowser Castle.png',
-		startPos: [0, 0, 100],
-		checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
-		maxCheckpoints: 7,
-		soundtrack: 'RACE_BOWSER_CASTLE',
-		itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
-		gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
-		road: './Tracks/BowserCastle/BowserCastle_road.glb',
-		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
-	},
+	// 'Bowser Castle': {
+	// 	file: './Tracks/BowserCastle/BowserCastle.glb',
+	// 	preview: '/Previews/Bowser Castle.png',
+	// 	startPos: [0, 0, 100],
+	// 	checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
+	// 	maxCheckpoints: 7,
+	// 	soundtrack: 'RACE_BOWSER_CASTLE',
+	// 	itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
+	// 	gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
+	// 	road: './Tracks/BowserCastle/BowserCastle_road.glb',
+	// 	Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
+	// },
 	'Delfino Square': {
 		file: './Tracks/DelfinoSquare/DelfinoSquare.glb',
 		preview: '/Previews/DS Delfino Square.png',
@@ -146,7 +146,7 @@ export const Tracks = {
         itemBoxes: './Tracks/PeachGardens/PeachGardens_itembox.glb',
         gridpos: './Tracks/PeachGardens/PeachGardens_startpos.glb',
         road: './Tracks/PeachGardens/PeachGardens_road.glb',
-		Waypoints: [ DelfinoSquare0, DelfinoSquareL, DelfinoSquareR ]
+		Waypoints: [ PeachGardens_1, PeachGardens_2, PeachGardens_3 ]
     },
 
     'SNES Mario Circuit': {
