@@ -380,8 +380,13 @@ export const WaitingRoom = ({ resetRoomState }) => {
                                         </div>
 
                                         {/* Icon */}
-                                        <div className="w-10 h-10 rounded-full bg-black/50 border border-white/20 flex items-center justify-center mr-4 shadow-inner">
-                                            <span className="text-2xl filter drop-shadow-sm">{player.isHost ? '👑' : '🏎️'}</span>
+                                        <div className="w-10 h-10 rounded-full bg-black/50 border border-white/20 flex items-center justify-center mr-4 shadow-inner overflow-hidden">
+                                            <img
+                                                src={player.icon ? `/sprites/${player.icon}` : '/sprites/Mario.png'}
+                                                alt={player.username || `Player ${index + 1}`}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { e.currentTarget.src = '/sprites/Mario.png'; }}
+                                            />
                                         </div>
 
                                         {/* Name */}

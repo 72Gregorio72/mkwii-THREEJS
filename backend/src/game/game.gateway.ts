@@ -318,7 +318,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('create_room')
-  handleCreateRoom(client: Socket, payload: RoomUserPayload) {
+  async handleCreateRoom(client: Socket, payload: RoomUserPayload) {
     const roomCode = payload.roomCode;
     
     if (this.roomData.has(roomCode)) {
@@ -334,14 +334,19 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     client.join(roomCode);
 
+    const hostUser = await this.usersService.findOne(payload.username);
+
     this.roomData.set(roomCode, {
       roomCode: roomCode,
       roomId: roomId,
       hostId: client.id,
-      players: [{ id: client.id, isHost: true, username: payload.username, character: { id: '', name: '' }, points: 0 }],
+      players: [{ id: client.id, isHost: true, username: payload.username, icon: hostUser?.icon || 'Mario.png', character: { id: '', name: '' }, points: 0 }],
       bots: [],
       gameState: 'LOBBY'
     });
+
+    const room = this.roomData.get(roomCode);
+    if (!room) return;
 
     this.playerRoomMap.set(client.id, roomCode);
     this.roomIdToCode.set(roomId, roomCode);
@@ -353,14 +358,14 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       roomId: roomId,
       isHost: true,
       hostId: client.id,
-      players: [{ id: client.id, isHost: true }],
+      players: room.players,
       gameState: 'LOBBY',
       selectedTrack: undefined
     });
   }
 
   @SubscribeMessage('join_room')
-  handleJoinRoom(client: Socket, payload: RoomUserPayload) {
+  async handleJoinRoom(client: Socket, payload: RoomUserPayload) {
     const roomCode = payload.roomCode;
     
     if (!this.roomData.has(roomCode)) {
@@ -378,10 +383,13 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     client.join(roomCode);
 
+    const joinedUser = await this.usersService.findOne(payload.username);
+
     room.players.push({ 
       id: client.id, 
       isHost: false, 
       username: payload.username,
+      icon: joinedUser?.icon || 'Mario.png',
       character: { id: '', name: '' },
       points: 0
     });
