@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { formatTime } from './GameHUD.jsx';
 import { socket } from '../multiplayer/socket.js';
-import { useGameStore, useRoomDataStore } from '../store.js';
+import { useGameDataStore, useGameStore, useRoomDataStore } from '../store.js';
+import { ShortType } from 'three/src/constants.js';
 
 // Font Injection (se non già presente globalmente)
 const mkwiiFontStyle = `
@@ -173,15 +174,15 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const navigate = useNavigate();
   const { playSfx } = useAudio();
   
+  const { selectedGrandPrix } = useGameDataStore();
   const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
-  const { roomCode: roomCode } = useRoomDataStore();
   const gameStore = useGameStore();
 
   const [showResults, setShowResults] = useState(false);
   const [isGrandPrixFinished, setIsGrandPrixFinished] = useState(isGrandPrix ? false : true);
   const [pointsData, setPointsData] = useState([]);
 
-    const [ showLeaderboard, setShowLeaderboard ] = useState(false);
+  const [ showLeaderboard, setShowLeaderboard ] = useState(false);
 
   // Se non ci sono risultati, non mostrare nulla
   if (!finishers || finishers.length === 0) return null;
@@ -229,6 +230,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
         }
 
     if (isTimeTrial) {
+        updateRecordTimes();
         gameStore.setIsTimeTrial(false);
         updateRecordTimes();
     }
@@ -263,7 +265,6 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   };
 
   useEffect(() => {
-    console.log('RaceResults - finishers updated:', finishers);
     console.log('RaceResults - finishers updated:', finishers);
     if (isGrandPrix) {
         setTimeout(() => {

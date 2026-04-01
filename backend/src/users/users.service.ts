@@ -1,5 +1,5 @@
 import { Injectable, ConflictException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient, RecordTimes } from '@prisma/client';
+import { PrismaClient, RecordTimes, GrandPrix } from '@prisma/client';
 import { User } from '../utils_types/types';
 import { RegisterDto } from 'src/auth/auth.dto';
 
@@ -204,6 +204,34 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       console.error('Error searching users:', error);
       return [];
+    }
+  }
+
+  async getGrandPrixRanking(username: string): Promise<GrandPrix[]> {
+    console.log(`Fetching Grand Prix ranking for user: ${username}`);
+    try {
+      const grandPrixRanking = await this.prisma.grandPrix.findMany({
+        where: { userName: username },
+        orderBy: { createdAt: 'desc' },
+      });
+      return grandPrixRanking;
+    } catch (error) {
+      console.error('Error fetching Grand Prix ranking:', error);
+      return [];
+    }
+  }
+
+  async updateRankingGrandPrix(username: string, grandPrixName: string, ranking: number): Promise<GrandPrix> {
+    try {
+      const updatedGrandPrix = await this.prisma.grandPrix.upsert({
+        where: { userName_grandPrixName: { userName: username, grandPrixName } },
+        update: { ranking },
+        create: { userName: username, grandPrixName, ranking },
+      });
+      return updatedGrandPrix;
+    } catch (error) {
+      console.error('Error updating Grand Prix ranking:', error); // LOG: vedi il vero errore
+      throw new ConflictException('Impossibile aggiornare il ranking del Gran Prix. Utente non trovato?');
     }
   }
 }
