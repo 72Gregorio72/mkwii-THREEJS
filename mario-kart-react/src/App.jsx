@@ -158,6 +158,11 @@ export default function App() {
             }
         };
 
+        if (socket) {
+            socket.disconnect();
+            socket.connect();
+        }
+
         socket.on('connect', () => {fetchLoginStatus()});
 
         return () => {
