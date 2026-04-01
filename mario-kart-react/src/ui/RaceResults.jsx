@@ -15,7 +15,7 @@ const mkwiiFontStyle = `
   }
 `;
 
-const calculatePoints = (racersDataObj) => {
+export const calculatePoints = (racersDataObj) => {
     if (!racersDataObj) return [];
 
     // 1. Converti l'oggetto racersData in un array
@@ -169,7 +169,7 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
   );
 }
 
-export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName }) => {
+export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName, isHost }) => {
   const navigate = useNavigate();
   const { playSfx } = useAudio();
   
@@ -180,7 +180,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const [isGrandPrixFinished, setIsGrandPrixFinished] = useState(isGrandPrix ? false : true);
   const [pointsData, setPointsData] = useState([]);
 
-  const [ showLeaderboard, setShowLeaderboard ] = useState(false);
+    const [ showLeaderboard, setShowLeaderboard ] = useState(false);
 
   // Se non ci sono risultati, non mostrare nulla
   if (!finishers || finishers.length === 0) return null;
@@ -205,6 +205,15 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
 
   const handleQuit = () => {
     playSfx(AUDIO_SFX.BACK_IN_MENU);
+
+        // In multiplayer i punti vengono ufficializzati solo quando l'host preme Quit.
+        if (socket?.connected && isHost && finishers?.length > 0 && racersData) {
+            socket.emit('race_finished', {
+                finishers,
+                racersData
+            });
+        }
+
     if (isTimeTrial) {
         gameStore.setIsTimeTrial(false);
         updateRecordTimes();
@@ -233,7 +242,6 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
 
   const handleNextRace = () => {
     playSfx(AUDIO_SFX.CONFIRM);
-      // Dispatch dell'evento dopo 1 secondo per permettere il caricamento
     window.dispatchEvent(new CustomEvent('nextGrandPrixRace'));
   };
 

@@ -7,6 +7,7 @@ export interface RoomPlayer {
   id: string;
   isHost: boolean;
   username?: string;
+  points?: number;
 }
 
 // Interfaccia per i bot
