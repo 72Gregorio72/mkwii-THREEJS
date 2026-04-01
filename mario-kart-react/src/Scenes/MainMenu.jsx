@@ -251,6 +251,7 @@ export const MainMenu = () => {
                                 title="Multiplayer" 
                                 onClick={() => handleNavigate('/room')}
                                 bgImage="/buttonsImg/chara_6_donkey_00.png"
+                                showNotificationDot={pendingRoomInvites > 0}
                             />
                         </div>
                     </div>
