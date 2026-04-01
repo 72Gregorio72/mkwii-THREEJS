@@ -183,4 +183,27 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
       throw new ConflictException('Impossibile eliminare l\'utente. Utente non trovato?');
     }
   }
+
+  async searchUsers(query: string): Promise<Partial<User>[]> {
+    try {
+      const users = await this.prisma.user.findMany({
+        where: {
+          username: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+        select: {
+          username: true,
+          icon: true,
+          isLoggedIn: true,
+        },
+        take: 10, // Limit to 10 results
+      });
+      return users;
+    } catch (error) {
+      console.error('Error searching users:', error);
+      return [];
+    }
+  }
 }

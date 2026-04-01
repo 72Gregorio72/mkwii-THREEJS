@@ -1093,7 +1093,6 @@ export function GameScene({
                     userName={username}
                     trackName={activeTrackConfig?.name}
                     lobbyPlayers={lobbyPlayers}
-                    isHost={isHost}
                 />}
 
             {countdown && (

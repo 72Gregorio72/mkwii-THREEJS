@@ -4,6 +4,7 @@ import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { formatTime } from './GameHUD.jsx';
 import { socket } from '../multiplayer/socket.js';
 import { useGameStore, useRoomDataStore } from '../store.js';
+import { useGameStore, useRoomDataStore } from '../store.js';
 
 // Font Injection (se non già presente globalmente)
 const mkwiiFontStyle = `
@@ -175,6 +176,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   
   const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
   const { roomCode: roomCode } = useRoomDataStore();
+  const { roomCode: roomCode } = useRoomDataStore();
   const gameStore = useGameStore();
 
   const [showResults, setShowResults] = useState(false);
@@ -264,6 +266,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
 
   useEffect(() => {
     console.log('RaceResults - finishers updated:', finishers);
+    console.log('RaceResults - finishers updated:', finishers);
     if (isGrandPrix) {
         setTimeout(() => {
             setShowLeaderboard(true);
@@ -309,9 +312,26 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
     if (isMe) {
         displayName = 'YOU';
     } else if (finisher.id.startsWith('bot_')) {
+    let characterName = finisher.name || 'Mario';
+    
+    if (isMe) {
+        displayName = 'YOU';
+    } else if (finisher.id.startsWith('bot_')) {
        const parts = finisher.id.split('_');
        const botNum = parseInt(parts[1]) + 1;
        displayName = `CPU ${botNum}`;
+    } else {
+        console.log(`Looking for player info for ID: ${finisher.id} in lobbyPlayers:`, lobbyPlayers);
+        // Cerca il player nei lobbyPlayers per ottenere username e character
+        const playerInfo = lobbyPlayers.find(player => player.id === finisher.id);
+        if (playerInfo) {
+            displayName = playerInfo.username || finisher.id;
+            characterName = playerInfo.character?.name || finisher.name || 'Mario';
+        }
+    }
+
+    // Processa il nome del personaggio per l'icona
+    const processedCharacterName = characterName
     } else {
         console.log(`Looking for player info for ID: ${finisher.id} in lobbyPlayers:`, lobbyPlayers);
         // Cerca il player nei lobbyPlayers per ottenere username e character
@@ -346,6 +366,8 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
                 
                 {/* Icona Personaggio */}
                 <img 
+                    src={`/sprites/${processedCharacterName}.png`} 
+                    alt={processedCharacterName} 
                     src={`/sprites/${processedCharacterName}.png`} 
                     alt={processedCharacterName} 
                     className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-md"
@@ -389,6 +411,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
           <div className="flex-1 flex items-start justify-center pt-[4vh] pb-[2vh] px-2 md:px-8 w-full min-h-0">
             
             {isGrandPrix && showResults ? (
+                <LeaderBoard finished={isGrandPrixFinished} racersData={pointsData} socket={socket}/>
                 <LeaderBoard finished={isGrandPrixFinished} racersData={pointsData} socket={socket}/>
             ) : (
                 <div className="w-full max-w-4xl bg-black/90 border-4 border-[#aa8800] rounded-xl shadow-[0_0_60px_rgba(0,0,0,0.9)] p-4 md:p-6 relative flex flex-col animate-in zoom-in duration-300 max-h-full">
