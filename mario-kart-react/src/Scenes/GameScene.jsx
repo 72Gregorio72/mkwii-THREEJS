@@ -300,12 +300,14 @@ export function GameScene({
     // Calculate player start position early (before useEffect hooks)
     const fallbackStartPos = activeStartPos || [0, 0, 0];
 
-    // In multiplayer, assign each player a unique grid slot based on lobby order (host first).
     const multiplayerGridIndex = useMemo(() => {
         if (!roomCode || !socket?.id || lobbyPlayers.length === 0) return null;
-        const myLobbyIndex = lobbyPlayers.findIndex(player => player.id === socket.id);
-        if (myLobbyIndex < 0) return null;
-        return myLobbyIndex + 1;
+        
+        const sortedPlayers = [...lobbyPlayers].sort((a, b) => (b.points || 0) - (a.points || 0));
+        
+        const myGridIndex = sortedPlayers.findIndex(player => player.id === socket.id);
+        if (myGridIndex < 0) return null;
+        return myGridIndex + 1;
     }, [roomCode, socket?.id, lobbyPlayers]);
 
     const playerGridIndex = isTimeTrial ? 1 : (multiplayerGridIndex || 12);
@@ -532,6 +534,10 @@ export function GameScene({
         socket.on('room_state', handleRoomState);
         socket.on('race_start', handleRaceStart);
         socket.on('game_state_sync', handleGameStateSync);
+        socket.on('return_to_waiting', (data) => {
+            if (data?.roomCode !== roomCode) return;
+            navigate('/waiting', { replace: true });
+        });
         socket.on('room_closed', () => {
               resetRoomState();
               gameStore.setHostLeft(true);
@@ -543,6 +549,7 @@ export function GameScene({
             socket.off('room_state', handleRoomState);
             socket.off('race_start', handleRaceStart);
             socket.off('game_state_sync', handleGameStateSync);
+            socket.off('return_to_waiting');
             socket.off('room_closed');
         };
     }, [socket, roomCode, playerStartPos, isTimeTrial]);
@@ -729,10 +736,14 @@ export function GameScene({
             return;
         }
 
-        if (gameState !== 'RACING' || finished) {
-            if (!finished) {
-                setMusicPitch(1.0, 1.0, 300);
-            }
+        // Quando la gara è finita, non interrompere la musica di arrivo appena avviata.
+        if (finished) {
+            racingMusicStarted.current = false;
+            return;
+        }
+
+        if (gameState !== 'RACING') {
+            setMusicPitch(1.0, 1.0, 300);
             stopMusic();
             racingMusicStarted.current = false;
             return;
@@ -824,6 +835,7 @@ export function GameScene({
                 if (racerId === socket.id) {
                     setFinished(true);
                     playSfx(AUDIO_SFX.FINISH_RACE, 3);
+                    setMusicPitch(1.0, 1.0, 0);
                     stopMusic();
                     if (racer.position === 1) {
                         changeTrack('FINISH_FIRST', 0, false);

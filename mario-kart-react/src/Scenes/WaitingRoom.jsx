@@ -68,12 +68,12 @@ const FriendList = ({ friends, isLoading, userName, roomCode, setShowFriendList 
                         </div>
                     ) : (
                         friends.map((friend, index) => (
-                            <div key={index} className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white hover:scale-[1.02] cursor-pointer flex-shrink-0">
+                            <div key={index} className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white cursor-pointer flex-shrink-0">
                                 <div className="absolute top-0 left-4 right-4 h-[35%] bg-white/10 rounded-b-full pointer-events-none"></div>
                                 
                                 {/* Icona */}
                                 <div className="w-14 h-14 md:w-16 md:h-16 bg-[#000044] border-2 border-white shadow-inner rounded-full overflow-hidden flex-shrink-0 relative">
-                                    <img src={friend.icon ? `/sprites/${friend.icon}` : '/sprites/Mario.png'} alt={friend.username} className="w-full h-full object-cover filter drop-shadow-md group-hover:scale-110 transition-transform" onError={(e) => { e.target.src = '/sprites/Mario.png'; }} />
+                                    <img src={friend.icon ? `/sprites/${friend.icon}` : '/sprites/Mario.png'} alt={friend.username} className="w-full h-full object-cover filter drop-shadow-md" onError={(e) => { e.target.src = '/sprites/Mario.png'; }} />
                                 </div>
                                 
                                 {/* Username */}
@@ -93,7 +93,7 @@ const FriendList = ({ friends, isLoading, userName, roomCode, setShowFriendList 
                                 {/* Tasto Rimuovi Amico */}
                                 <button 
                                     onClick={() => handleInviteFriend(friend.username)}
-                                    className="w-10 h-10 bg-[#cc0000] hover:bg-[#ff3333] border-2 border-white rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-110 active:scale-95 z-20 mr-1"
+                                    className="w-10 h-10 bg-[#cc0000] border-2 border-white rounded-full shadow-md flex items-center justify-center z-20 mr-1"
                                     title="Send Invite"
                                 >
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-5 h-5 text-white drop-shadow-sm">
@@ -380,8 +380,13 @@ export const WaitingRoom = ({ resetRoomState }) => {
                                         </div>
 
                                         {/* Icon */}
-                                        <div className="w-10 h-10 rounded-full bg-black/50 border border-white/20 flex items-center justify-center mr-4 shadow-inner">
-                                            <span className="text-2xl filter drop-shadow-sm">{player.isHost ? '👑' : '🏎️'}</span>
+                                        <div className="w-10 h-10 rounded-full bg-black/50 border border-white/20 flex items-center justify-center mr-4 shadow-inner overflow-hidden">
+                                            <img
+                                                src={player.icon ? `/sprites/${player.icon}` : '/sprites/Mario.png'}
+                                                alt={player.username || `Player ${index + 1}`}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { e.currentTarget.src = '/sprites/Mario.png'; }}
+                                            />
                                         </div>
 
                                         {/* Name */}
@@ -390,9 +395,15 @@ export const WaitingRoom = ({ resetRoomState }) => {
                                             {player.id === socket?.id && <span className="text-[#88aaff] text-sm ml-2">(YOU)</span>}
                                         </span>
 
+                                        {/* Punti */}
+                                        <div className="flex items-center gap-2 px-3 py-1 bg-black/40 rounded border border-[#ffcc00]/50 ml-auto mr-4">
+                                            <span className="text-[#ffcc00] font-bold text-lg">{player.points || 0}</span>
+                                            <span className="text-[#ffcc00] text-sm font-semibold">pts</span>
+                                        </div>
+
                                         {/* Host Badge */}
                                         {player.isHost && (
-                                            <div className="ml-auto bg-[#ffcc00] text-black text-xs font-black uppercase px-2 py-1 rounded shadow-sm">
+                                            <div className="bg-[#ffcc00] text-black text-xs font-black uppercase px-2 py-1 rounded shadow-sm">
                                                 HOST
                                             </div>
                                         )} 

@@ -16,7 +16,7 @@ const mkwiiFontStyle = `
   }
 `;
 
-const calculatePoints = (racersDataObj) => {
+export const calculatePoints = (racersDataObj) => {
     if (!racersDataObj) return [];
 
     // 1. Converti l'oggetto racersData in un array
@@ -170,7 +170,7 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
   );
 }
 
-export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName, lobbyPlayers = [] }) => {
+export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName, lobbyPlayers = [], isHost }) => {
   const navigate = useNavigate();
   const { playSfx } = useAudio();
   
@@ -182,6 +182,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const [isGrandPrixFinished, setIsGrandPrixFinished] = useState(isGrandPrix ? false : true);
   const [pointsData, setPointsData] = useState([]);
 
+    const [ showLeaderboard, setShowLeaderboard ] = useState(false);
   const [ showLeaderboard, setShowLeaderboard ] = useState(false);
   const [ showQuit, setShowQuit ] = useState(false);
 
@@ -206,8 +207,30 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
         }
     };
 
-  const handleQuit = () => {
+    const isMultiplayerRace = Boolean(roomCode);
+    const totalLobbyPlayers = lobbyPlayers.length;
+    const finishedHumanPlayers = finishers.filter((finisher) => !String(finisher.id).startsWith('bot_')).length;
+    const allLobbyPlayersFinished = !isMultiplayerRace
+        ? true
+        : totalLobbyPlayers > 0 && finishedHumanPlayers >= totalLobbyPlayers;
+
+    const canHostQuitMultiplayer = isHost && allLobbyPlayersFinished;
+
+    const handleQuit = () => {
+        if (isMultiplayerRace && !canHostQuitMultiplayer) {
+            return;
+        }
+
     playSfx(AUDIO_SFX.BACK_IN_MENU);
+
+        // In multiplayer i punti vengono ufficializzati solo quando l'host preme Quit.
+        if (socket?.connected && isHost && finishers?.length > 0 && racersData) {
+            socket.emit('race_finished', {
+                finishers,
+                racersData
+            });
+        }
+
     if (isTimeTrial) {
         updateRecordTimes();
         gameStore.setIsTimeTrial(false);
@@ -217,7 +240,10 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
         setIsGrandPrixFinished(true);
         gameStore.setIsGrandPrix(false);
     }
-    if (socket) {
+    if (isMultiplayerRace) {
+        if (socket?.connected && isHost) {
+            socket.emit('return_to_waiting');
+        }
         navigate('/waiting');
     } else {
         navigate('/menu');
@@ -237,11 +263,12 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
 
   const handleNextRace = () => {
     playSfx(AUDIO_SFX.CONFIRM);
-      // Dispatch dell'evento dopo 1 secondo per permettere il caricamento
     window.dispatchEvent(new CustomEvent('nextGrandPrixRace'));
   };
 
   useEffect(() => {
+    console.log('RaceResults - finishers updated:', finishers);
+    console.log('RaceResults - finishers updated:', finishers);
     if (isGrandPrix) {
         const isLast = selectedGrandPrix.tracks.at(-1) === trackName;
         if (isLast) {
@@ -291,9 +318,26 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
     if (isMe) {
         displayName = 'YOU';
     } else if (finisher.id.startsWith('bot_')) {
+    let characterName = finisher.name || 'Mario';
+    
+    if (isMe) {
+        displayName = 'YOU';
+    } else if (finisher.id.startsWith('bot_')) {
        const parts = finisher.id.split('_');
        const botNum = parseInt(parts[1]) + 1;
        displayName = `CPU ${botNum}`;
+    } else {
+        console.log(`Looking for player info for ID: ${finisher.id} in lobbyPlayers:`, lobbyPlayers);
+        // Cerca il player nei lobbyPlayers per ottenere username e character
+        const playerInfo = lobbyPlayers.find(player => player.id === finisher.id);
+        if (playerInfo) {
+            displayName = playerInfo.username || finisher.id;
+            characterName = playerInfo.character?.name || finisher.name || 'Mario';
+        }
+    }
+
+    // Processa il nome del personaggio per l'icona
+    const processedCharacterName = characterName
     } else {
         console.log(`Looking for player info for ID: ${finisher.id} in lobbyPlayers:`, lobbyPlayers);
         // Cerca il player nei lobbyPlayers per ottenere username e character
@@ -329,7 +373,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
                 {/* Icona Personaggio */}
                 <img 
                     src={`/sprites/${processedCharacterName}.png`} 
-                    alt={processedCharacterName} 
+                    alt={processedCharacterName}
                     className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-md"
                     onError={(e) => { e.target.style.display='none'; }}
                 />
@@ -439,6 +483,33 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
             )}
 
             {/* 4. Bottone QUIT */}
+            {!isMultiplayerRace && (
+                <button 
+                    onClick={handleQuit}
+                    className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
+                >
+                    <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Quit</span>
+                    <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:scale-110 transition-transform">✖</div>
+                </button>
+            )}
+
+            {isMultiplayerRace && isHost && (
+                <>
+                    <button 
+                        onClick={handleQuit}
+                        disabled={!allLobbyPlayersFinished}
+                        className={`pointer-events-auto flex items-center gap-3 px-8 py-2.5 rounded-full border-[3px] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] transition-all w-84 justify-between ${allLobbyPlayersFinished ? 'bg-white border-[#cccccc] hover:bg-[#f0f0f0] cursor-pointer group' : 'bg-gray-300 border-gray-400 cursor-not-allowed opacity-70'}`}
+                    >
+                        <span className="text-gray-700 font-bold text-xl tracking-wide uppercase">Back To Waiting</span>
+                        <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold shadow-inner border border-white/50">↩</div>
+                    </button>
+                    {!allLobbyPlayersFinished && (
+                        <div className="pointer-events-none bg-black/60 text-yellow-300 text-sm px-4 py-2 rounded-md border border-yellow-500/40">
+                            Waiting racers: {finishedHumanPlayers}/{totalLobbyPlayers}
+                        </div>
+                    )}
+                </>
+            )}
             {showQuit && showLeaderboard && (
                     <button 
                         onClick={handleQuit}

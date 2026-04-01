@@ -184,6 +184,29 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async searchUsers(query: string): Promise<Partial<User>[]> {
+    try {
+      const users = await this.prisma.user.findMany({
+        where: {
+          username: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+        select: {
+          username: true,
+          icon: true,
+          isLoggedIn: true,
+        },
+        take: 10, // Limit to 10 results
+      });
+      return users;
+    } catch (error) {
+      console.error('Error searching users:', error);
+      return [];
+    }
+  }
+
   async getGrandPrixRanking(username: string): Promise<GrandPrix[]> {
     console.log(`Fetching Grand Prix ranking for user: ${username}`);
     try {
