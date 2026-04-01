@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { formatTime } from './GameHUD.jsx';
 import { socket } from '../multiplayer/socket.js';
-import { useGameDataStore, useGameStore, useRoomDataStore } from '../store.js';
-import { ShortType } from 'three/src/constants.js';
+import { useGameStore, useRoomDataStore } from '../store.js';
 
 // Font Injection (se non già presente globalmente)
 const mkwiiFontStyle = `
@@ -176,6 +175,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   
   const { selectedGrandPrix } = useGameDataStore();
   const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
+  const { roomCode: roomCode } = useRoomDataStore();
   const gameStore = useGameStore();
 
   const [showResults, setShowResults] = useState(false);
@@ -354,7 +354,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
                 {/* Icona Personaggio */}
                 <img 
                     src={`/sprites/${processedCharacterName}.png`} 
-                    alt={processedCharacterName} 
+                    alt={processedCharacterName}
                     className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-md"
                     onError={(e) => { e.target.style.display='none'; }}
                 />

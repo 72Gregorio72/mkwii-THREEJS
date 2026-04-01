@@ -241,6 +241,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         }
       }
     }
+
   }
 
   @SubscribeMessage('ping')
