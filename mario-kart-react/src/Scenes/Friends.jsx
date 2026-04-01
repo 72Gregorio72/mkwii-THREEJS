@@ -114,8 +114,8 @@ export const Friends = () => {
 
             const text = await res.json();
 
-            if (!res.ok) {
-                setAddMessage(text.message ?? 'Error sending request');
+            if (!res.ok || text?.success === false) {
+                setAddMessage(text.message || `Request sent to ${selectedUser.username}!`);
             } else {
                 setAddMessage(`Request sent to ${selectedUser.username}!`);
                 setTimeout(() => {
@@ -152,7 +152,7 @@ export const Friends = () => {
 
                 const text = await res.json();
 
-                if (!res.ok) {
+                if (!res.ok || text?.success === false) {
                     setAddMessage(text.message ?? 'Error sending request');
                 } else {
                     setAddMessage('Request Sent!');
