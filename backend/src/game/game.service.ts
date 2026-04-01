@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Vector3 } from 'src/types';
+import { Vector3 } from 'src/utils_types/types';
 
 export interface Player {
   id: string;

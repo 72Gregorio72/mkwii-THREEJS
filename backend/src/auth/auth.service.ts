@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { HashService } from 'src/hash/hash.service';
-import { AuthUser, LoginResponse, ValidatedUser } from 'src/types';
+import { AuthUser, LoginResponse, ValidatedUser } from 'src/utils_types/types';
 import { RegisterDto, LoginDto, LogoutDto } from './auth.dto';
 
 

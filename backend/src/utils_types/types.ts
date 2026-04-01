@@ -43,7 +43,7 @@ export type User = {
   offlineWins: number;
   isLoggedIn: boolean;
 
-  socketId?: string | null; // Prisma traduce i campi opzionali (?) in string | null
+  socketId?: string | null;
 };
 
 export interface AuthUser {
@@ -54,12 +54,10 @@ export interface AuthUser {
   isLoggedIn?: boolean;
 }
 
-// 2. Definiamo l'interfaccia per la risposta di login
 export interface LoginResponse {
   message: string;
   username: string;
   token: string;
 }
 
-// 3. Un tipo di utilità per l'utente validato (senza la password per sicurezza)
 export type ValidatedUser = Omit<AuthUser, 'password'>;
