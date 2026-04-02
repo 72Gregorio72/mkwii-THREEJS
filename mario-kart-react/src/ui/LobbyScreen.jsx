@@ -97,7 +97,7 @@ export const LobbyScreen = ({ isHost, players = [], onStartRace, roomId }) => {
                                 <div 
                                     key={player.id || index} 
                                     className={`
-                                        group relative h-14 flex items-center px-4 rounded border-l-4 shadow-sm transition-all
+                                        group relative h-14 flex items-center px-4 rounded border-l-4 shadow-sm transition-all gap-2
                                         ${player.isHost 
                                             ? 'bg-gradient-to-r from-[#332200] to-transparent border-[#ffcc00]' 
                                             : 'bg-gradient-to-r from-[#111] to-transparent border-[#666]'

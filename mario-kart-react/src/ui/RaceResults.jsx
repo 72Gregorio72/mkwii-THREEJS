@@ -174,6 +174,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const navigate = useNavigate();
   const { playSfx } = useAudio();
   
+  const { roomCode } = useRoomDataStore();
   const { selectedGrandPrix } = useGameDataStore();
   const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
   const gameStore = useGameStore();
