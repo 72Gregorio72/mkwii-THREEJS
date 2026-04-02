@@ -185,7 +185,7 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getGrandPrixRanking(username: string): Promise<GrandPrix[]> {
-    console.log(`Fetching Grand Prix ranking for user: ${username}`);
+    //console.log(`Fetching Grand Prix ranking for user: ${username}`);
     try {
       const grandPrixRanking = await this.prisma.grandPrix.findMany({
         where: { userName: username },

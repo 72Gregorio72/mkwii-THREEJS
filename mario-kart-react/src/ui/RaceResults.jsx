@@ -173,6 +173,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const navigate = useNavigate();
   const { playSfx, changeTrack } = useAudio();
   
+  const { roomCode } = useRoomDataStore();
   const { selectedGrandPrix } = useGameDataStore();
   const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
   const { roomCode } = useRoomDataStore();
