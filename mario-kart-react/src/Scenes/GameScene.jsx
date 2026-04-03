@@ -1317,7 +1317,7 @@ export function GameScene({
                                 }}
                                 socket={socket}
                                 roomCode={roomCode}
-                                maxSpeed={100}
+                                maxSpeed={ccs - 10}
                                 isTimeTrial={isTimeTrial}
                             />
                         ) : (
@@ -1351,7 +1351,7 @@ export function GameScene({
                                 }}
                                 socket={socket}
                                 roomCode={roomCode}
-                                maxSpeed={100}
+                                maxSpeed={ccs}
                                 isTimeTrial={isTimeTrial}
                             />
                         )}
@@ -1386,7 +1386,7 @@ export function GameScene({
                                     isBot={true}
                                     paths={activeTrackConfig.Waypoints}
                                     roomCode={roomCode}
-                                    maxSpeed={100}
+                                    maxSpeed={ccs}
                                     isTimeTrial={false}
                                 /> 
                             </group>
