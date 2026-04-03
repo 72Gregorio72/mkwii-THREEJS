@@ -88,21 +88,28 @@ function AnimatedTrophy({ modelPath, show, targetY = 6 }) {
 
 export const WinScene = ({ selectedCup, raceResults, setRaceResults }) => {
     const navigate = useNavigate();
-    const { playSfx, changeTrack, stopMusic } = useAudio();
+    const { playSfx, playMusicOnce, stopMusic } = useAudio();
     const { userName: userName} = useUserStore();
 
     const [showTrophy, setShowTrophy] = useState(false);
+    const ceremonyStartedRef = useRef(false);
 
     // Gestione reindirizzamento se mancano i dati
     useEffect(() => {
         if (!raceResults || raceResults.length === 0) {
             navigate('/menu');
+            return;
+        }
+
+        if (ceremonyStartedRef.current) {
+            return;
         } else {
+            ceremonyStartedRef.current = true;
             // Suona la fanfara della vittoria
             stopMusic();
-            changeTrack('GP_ENDED', 100, false);
+            playMusicOnce('GP_ENDED', 100, 1.0);
         }
-    }, [raceResults, navigate, changeTrack, stopMusic]);
+    }, [raceResults, navigate, playMusicOnce, stopMusic]);
 
     useEffect(() => {
         const isWinner = socket && raceResults && raceResults.length > 0 && raceResults[0].id === socket.id;

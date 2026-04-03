@@ -28,6 +28,7 @@ export const AudioProvider = ({ children }) => {
   // NUOVI REF: Per gestire i timer delle sfumature e poterli cancellare
   const fadeOutIntervalRef = useRef(null);
   const fadeInIntervalRef = useRef(null);
+  const pitchIntervalRef = useRef(null);
 
   // REF: Per gestire il "ducking" del volume durante power items (Star, Bullet Bill, Mega Mushroom)
   const duckingCountRef = useRef(0); // Contatore per gestire più effetti attivi contemporaneamente
@@ -157,6 +158,10 @@ export const AudioProvider = ({ children }) => {
     // 2. Pulizia timer precedenti
     if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
     if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
+    if (pitchIntervalRef.current) {
+      clearInterval(pitchIntervalRef.current);
+      pitchIntervalRef.current = null;
+    }
 
     // Cancella il precedente tentativo di play se ancora in sospeso
     if (pendingPlayAbortRef.current) {
@@ -372,6 +377,10 @@ export const AudioProvider = ({ children }) => {
     // Pulisci i timer di fade se fermiamo tutto bruscamente
     if (fadeOutIntervalRef.current) clearInterval(fadeOutIntervalRef.current);
     if (fadeInIntervalRef.current) clearInterval(fadeInIntervalRef.current);
+    if (pitchIntervalRef.current) {
+      clearInterval(pitchIntervalRef.current);
+      pitchIntervalRef.current = null;
+    }
     
     // Disabilita il monitor del loop
     disableSmoothLoop();
@@ -413,18 +422,24 @@ export const AudioProvider = ({ children }) => {
     if (fadeDuration > 0) {
       const startRate = audio.playbackRate;
       const step = (targetPlaybackRate - startRate) / (fadeDuration / 30);
-      
-      const interval = setInterval(() => {
+
+      if (pitchIntervalRef.current) {
+        clearInterval(pitchIntervalRef.current);
+      }
+
+      pitchIntervalRef.current = setInterval(() => {
         if (bgmRef.current) {
           const newRate = bgmRef.current.playbackRate + step;
           if ((step > 0 && newRate < targetPlaybackRate) || (step < 0 && newRate > targetPlaybackRate)) {
             bgmRef.current.playbackRate = newRate;
           } else {
             bgmRef.current.playbackRate = targetPlaybackRate;
-            clearInterval(interval);
+            clearInterval(pitchIntervalRef.current);
+            pitchIntervalRef.current = null;
           }
         } else {
-          clearInterval(interval);
+          clearInterval(pitchIntervalRef.current);
+          pitchIntervalRef.current = null;
         }
       }, 30);
     } else {
