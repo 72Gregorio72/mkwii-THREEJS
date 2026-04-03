@@ -5,6 +5,15 @@ import { AUDIO_SFX } from '../components/Data';
 import { PositionalAudio } from '@react-three/drei';
 import * as THREE from 'three';
 
+function playAudioSafely(audio, volume) {
+    if (!audio) return;
+    if (typeof volume === 'number') audio.setVolume(volume);
+    if (audio.isPlaying) {
+        audio.stop();
+    }
+    audio.play();
+}
+
 export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0], onDestroy }) {
     const { scene } = useGLTF('/items/Banana.glb');
     const rb = useRef();
@@ -29,10 +38,7 @@ export const Banana = memo(function Banana({ position, initVelocity = [0, 0, 0],
         
         // Se tocca qualcosa che non è un racer (suolo/muri)
         if (!targetName.includes("player") && !targetName.startsWith("bot") && !targetName.includes("opponent")) {
-            if (GroundAudioRef.current) {
-                GroundAudioRef.current.setVolume(2.5);
-                GroundAudioRef.current.play();
-            }
+			playAudioSafely(GroundAudioRef.current, 2.5);
             setIsLanded(true);
             
             // Invece di cambiare tipo in static (che causerebbe il glitch), 

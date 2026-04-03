@@ -136,9 +136,9 @@ export const AudioProvider = ({ children }) => {
   }, []);
 
   // ============================================
-  // FUNZIONE: setMusic() - FIX BUG PRIMO AVVIO
+  // FUNZIONE: setMusic()
   // ============================================
-  const setMusic = useCallback((url, fadeDuration = 1000, enableLoop = true) => {
+  const setMusic = useCallback((url, fadeDuration = 1000, enableLoop = true, playbackRateOverride = null) => {
     // 1. Controllo se la stessa traccia è già caricata/in riproduzione
     // Ma riavvia se l'audio è stato messo in pausa
     if (currentTrackRef.current === url && bgmRef.current && !bgmRef.current.paused) {
@@ -190,7 +190,7 @@ export const AudioProvider = ({ children }) => {
     // 4. SETUP NUOVA MUSICA
     const newAudio = new Audio(url);
     newAudio.loop = enableLoop;
-    newAudio.playbackRate = musicPlaybackRate;
+    newAudio.playbackRate = playbackRateOverride ?? musicPlaybackRate;
     
     // Listener per quando la traccia finisce (solo se non è in loop)
     if (!enableLoop) {
@@ -269,13 +269,13 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
-  const changeTrack = useCallback((trackKey, fadeDuration = 1000, enableLoop = true) => {
+  const changeTrack = useCallback((trackKey, fadeDuration = 1000, enableLoop = true, playbackRateOverride = null) => {
     const trackUrl = AUDIO_TRACKS[trackKey];
     if (!trackUrl) {
       console.warn(`Traccia non trovata: ${trackKey}`);
       return;
     }
-    setMusic(trackUrl, fadeDuration, enableLoop);
+    setMusic(trackUrl, fadeDuration, enableLoop, playbackRateOverride);
   }, [setMusic]);
 
   // ============================================
@@ -283,7 +283,7 @@ export const AudioProvider = ({ children }) => {
   // Riproduce una traccia musicale una sola volta senza loop
   // Accetta sia una chiave di AUDIO_TRACKS che un URL diretto
   // ============================================
-  const playMusicOnce = useCallback((trackKeyOrUrl, fadeDuration = 1000) => {
+  const playMusicOnce = useCallback((trackKeyOrUrl, fadeDuration = 1000, playbackRateOverride = null) => {
     if (!trackKeyOrUrl) {
       console.warn('[AudioManager] playMusicOnce: trackKeyOrUrl non specificato');
       return;
@@ -317,7 +317,7 @@ export const AudioProvider = ({ children }) => {
     // Crea nuova traccia SENZA loop
     const newAudio = new Audio(url);
     newAudio.loop = false;
-    newAudio.playbackRate = musicPlaybackRate;
+    newAudio.playbackRate = playbackRateOverride ?? musicPlaybackRate;
 
     newAudio.addEventListener('ended', () => {
       if (currentTrackRef.current === url) {

@@ -16,11 +16,6 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
     const velocityVec = useMemo(() => new THREE.Vector3(...initVelocity), [initVelocity]);
 
     useEffect(() => {
-        if (homingAudioRef.current) {
-            homingAudioRef.current.setVolume(2.0);
-            homingAudioRef.current.play();
-        }
-        
         // Inizializzazione immediata della fisica
         if (rb.current) {
             try {
