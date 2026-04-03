@@ -23,6 +23,15 @@ function giveItemToPlayer(other) {
     }
 }
 
+function playAudioSafely(audio, volume) {
+    if (!audio) return;
+    if (typeof volume === 'number') audio.setVolume(volume);
+    if (audio.isPlaying) {
+        audio.stop();
+    }
+    audio.play();
+}
+
 function SingleItemBox({ position, rotation }) {
     const { scene } = useGLTF('/items/ItemBox.glb')
     
@@ -50,10 +59,7 @@ function SingleItemBox({ position, rotation }) {
     const handleIntersection = ({ other }) => {
         if (!isActive) return;
 		// Qui potremmo aggiungere logica per dare un oggetto al giocatore
-        if (audioRef.current) {
-            audioRef.current.setVolume(1.3);
-            audioRef.current.play();
-        }
+		playAudioSafely(audioRef.current, 1.3);
 		giveItemToPlayer(other);
         setIsActive(false) 
 

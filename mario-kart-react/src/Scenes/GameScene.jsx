@@ -448,6 +448,8 @@ export function GameScene({
                 
                 // Check if this remote player finished the race
                 if (lap > TOTAL_LAPS) {
+                    if (racersData.current[playerId].hasFinished) return;
+                    racersData.current[playerId].hasFinished = true;
                     setFinishers(prev => {
                         // Check if already in the list 
                         if (prev.some(f => f.id === playerId)) return prev;
@@ -780,6 +782,7 @@ export function GameScene({
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
         if (!racerId || !racersData.current[racerId]) return;
         const racer = racersData.current[racerId];
+        if (racer.hasFinished) return;
         console.log(`[Checkpoint] Racer ${racerId} hit checkpoint ${hitIndex}, expected ${racer.nextCP}`);
         
         if (hitIndex === racer.nextCP && hitIndex !== 0) {
@@ -816,6 +819,7 @@ export function GameScene({
             
             // Check if racer finished the race
             if (racer.lap > TOTAL_LAPS) {
+                racer.hasFinished = true;
                 // Add to finishers list
                 setFinishers(prev => {
                     // Check if already in the list 
@@ -835,20 +839,22 @@ export function GameScene({
                 if (racerId === socket.id) {
                     setFinished(true);
                     playSfx(AUDIO_SFX.FINISH_RACE, 3);
-                    setMusicPitch(1.0, 1.0, 0);
                     stopMusic();
                     if (racer.position === 1) {
-                        changeTrack('FINISH_FIRST', 0, false);
+                        changeTrack('FINISH_FIRST', 0, false, 1.0);
                         if (!isTimeTrial && !roomCode && !isGrandPrix) {
                             sendWinToServer(true);
                         } else if (!isTimeTrial && roomCode && !isGrandPrix) {
                             sendWinToServer(false);
                         }
                     }
-                    else if (racer.position >= 2 && racer.position <= 4)
-                        changeTrack('FINISH_SECOND_FOURTH', 0, false);
-                    else
-                        changeTrack('FINISH_FIFTH_TWELFTH', 0, false);
+                    else if (racer.position >= 2 && racer.position <= 4) {
+                        changeTrack('FINISH_SECOND_FOURTH', 0, false, 1.0);
+                    }
+                    else {
+                        changeTrack('FINISH_FIFTH_TWELFTH', 0, false, 1.0);
+                    }
+
                 }
                 
                 // Stop bot AI if it's a bot
@@ -938,6 +944,7 @@ export function GameScene({
             racersData.current[id].lap = 1;
             racersData.current[id].nextCP = 1;
             racersData.current[id].score = 0;
+            racersData.current[id].hasFinished = false;
             // Reset AI dei bot se hanno uno stato interno
             if (botRefs.current[id]?.current?.startAI) {
                 botRefs.current[id].current.startAI();
@@ -994,6 +1001,7 @@ export function GameScene({
                         racersData.current[id].lap = 1;
                         racersData.current[id].nextCP = 1;
                         racersData.current[id].score = 0;
+                        racersData.current[id].hasFinished = false;
                     });
 
                     // 3. Cambia l'indice della pista (inizia a caricare la nuova in background)
@@ -1098,6 +1106,7 @@ export function GameScene({
                     userName={username}
                     trackName={activeTrackConfig?.name}
                     lobbyPlayers={lobbyPlayers}
+                    isHost={isHost}
                 />}
 
             {countdown && (
@@ -1308,7 +1317,7 @@ export function GameScene({
                                 }}
                                 socket={socket}
                                 roomCode={roomCode}
-                                maxSpeed={ccs - 10}
+                                maxSpeed={100}
                                 isTimeTrial={isTimeTrial}
                             />
                         ) : (
@@ -1342,7 +1351,7 @@ export function GameScene({
                                 }}
                                 socket={socket}
                                 roomCode={roomCode}
-                                maxSpeed={ccs}
+                                maxSpeed={100}
                                 isTimeTrial={isTimeTrial}
                             />
                         )}
@@ -1377,7 +1386,7 @@ export function GameScene({
                                     isBot={true}
                                     paths={activeTrackConfig.Waypoints}
                                     roomCode={roomCode}
-                                    maxSpeed={ccs}
+                                    maxSpeed={100}
                                     isTimeTrial={false}
                                 /> 
                             </group>

@@ -172,10 +172,11 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
 
 export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName, lobbyPlayers = [], isHost }) => {
   const navigate = useNavigate();
-  const { playSfx } = useAudio();
+  const { playSfx, changeTrack } = useAudio();
   
   const { selectedGrandPrix } = useGameDataStore();
   const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
+  const { roomCode } = useRoomDataStore();
   const gameStore = useGameStore();
 
   const [showResults, setShowResults] = useState(false);
@@ -220,6 +221,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
         }
 
     playSfx(AUDIO_SFX.BACK_IN_MENU);
+    changeTrack('MENU', 500, true);
 
         // In multiplayer i punti vengono ufficializzati solo quando l'host preme Quit.
         if (socket?.connected && isHost && finishers?.length > 0 && racersData) {

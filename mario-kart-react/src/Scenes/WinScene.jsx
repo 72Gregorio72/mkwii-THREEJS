@@ -11,7 +11,6 @@ import * as THREE from 'three';
 import { socket } from '../multiplayer/socket.js';
 import { useUserStore } from '../store.js';
 
-// Componente per aggiornare la posizione iniziale della telecamera
 // Componente per la telecamera animata
 function CameraSetup({ cameraPos, targetPos }) {
     const { camera } = useThree();
@@ -101,7 +100,7 @@ export const WinScene = ({ selectedCup, raceResults, setRaceResults }) => {
         } else {
             // Suona la fanfara della vittoria
             stopMusic();
-            changeTrack('FINISH_FIRST', 100, false);
+            changeTrack('GP_ENDED', 100, false);
         }
     }, [raceResults, navigate, changeTrack, stopMusic]);
 
