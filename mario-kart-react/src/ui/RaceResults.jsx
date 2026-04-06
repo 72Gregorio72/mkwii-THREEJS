@@ -173,7 +173,6 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const navigate = useNavigate();
   const { playSfx, changeTrack } = useAudio();
   
-  const { selectedGrandPrix } = useGameDataStore();
   const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
   const { roomCode } = useRoomDataStore();
   const gameStore = useGameStore();
@@ -219,38 +218,38 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
             return;
         }
 
-    playSfx(AUDIO_SFX.BACK_IN_MENU);
-    changeTrack('MENU', 500, true);
+		playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+		changeTrack('MENU', 500, true);
 
-        // In multiplayer i punti vengono ufficializzati solo quando l'host preme Quit.
-        if (socket?.connected && isHost && finishers?.length > 0 && racersData) {
-            socket.emit('race_finished', {
-                finishers,
-                racersData
-            });
-        }
+			// In multiplayer i punti vengono ufficializzati solo quando l'host preme Quit.
+			if (socket?.connected && isHost && finishers?.length > 0 && racersData) {
+				socket.emit('race_finished', {
+					finishers,
+					racersData
+				});
+			}
 
-    if (isTimeTrial) {
-        updateRecordTimes();
-        gameStore.setIsTimeTrial(false);
-        updateRecordTimes();
-    }
-    if (isGrandPrix) {
-        setIsGrandPrixFinished(true);
-        gameStore.setIsGrandPrix(false);
-    }
-    if (isMultiplayerRace) {
-        if (socket?.connected && isHost) {
-            socket.emit('return_to_waiting');
-        }
-        navigate('/waiting');
-    } else {
-        navigate('/menu');
-    }
-  };
+		if (isTimeTrial) {
+			updateRecordTimes();
+			gameStore.setIsTimeTrial(false);
+			updateRecordTimes();
+		}
+		if (isGrandPrix) {
+			setIsGrandPrixFinished(true);
+			gameStore.setIsGrandPrix(false);
+		}
+		if (isMultiplayerRace) {
+			if (socket?.connected && isHost) {
+				socket.emit('return_to_waiting');
+			}
+			navigate('/waiting');
+		} else {
+			navigate('/menu');
+		}
+	};
 
   const handlePlayAgain = () => {   
-    playSfx(AUDIO_SFX.CONFIRM);
+    playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     updateRecordTimes();
     if (onPlayAgain) {
         gameStore.setIsTimeTrial(true);
@@ -261,7 +260,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   };
 
   const handleNextRace = () => {
-    playSfx(AUDIO_SFX.CONFIRM);
+    playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     window.dispatchEvent(new CustomEvent('nextGrandPrixRace'));
   };
 
@@ -438,7 +437,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
                 <button 
                     onClick={() => {
                         setShowResults(true);
-                        playSfx(AUDIO_SFX.CONFIRM);
+                        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
                         setPointsData(calculatePoints(racersData));
                     }}
                     className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"

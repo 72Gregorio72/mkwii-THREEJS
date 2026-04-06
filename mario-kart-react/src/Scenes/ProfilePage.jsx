@@ -38,8 +38,10 @@ export const Stats = ({ userName }) => {
     const [selectedTrack, setSelectedTrack] = useState(null);
     const [bestTime, setBestTime] = useState(null);
     const [showBestTime, setShowBestTime] = useState(false);
+	const { playSfx } = useAudio();
 
     const handleSelectTrack = (trackName) => {
+		playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         setSelectedTrack(trackName);
         fetch(`/api/getRecordTime?userName=${userName}&trackName=${trackName}`)
         .then(response => {
@@ -106,7 +108,10 @@ export const Stats = ({ userName }) => {
 
                                     {/* Bottone per tornare alla griglia all'interno del componente */}
                                     <button 
-                                        onClick={() => setShowBestTime(false)}
+                                        onClick={() => {
+                                            setShowBestTime(false);
+                                            playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+                                        }}
                                         className="w-full py-4 bg-[#444] border-2 border-[#888] rounded-full text-white font-bold text-xl uppercase tracking-wider hover:bg-[#555] active:scale-95 transition-all shadow-md"
                                     >
                                         Back to Tracks
@@ -265,7 +270,7 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
     };
 
     const handleStats = () => {
-        playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
         setShowStats(true);
     };
 
