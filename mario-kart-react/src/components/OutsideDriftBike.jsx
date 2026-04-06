@@ -37,7 +37,7 @@ const cBlue = new THREE.Color(0x00BFFF);
 const cOrange = new THREE.Color(0xF24807); 
 
 const DEFAULT_SETTINGS = {
-  maxSpeed: 10,
+    maxSpeed: 10,
   maxTurboLimit: 50,        
   acceleration: 0.25,        
   deceleration: 2.0,        

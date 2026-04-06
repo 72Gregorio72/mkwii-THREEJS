@@ -38,7 +38,7 @@ const cBlue = new THREE.Color(0x00BFFF); // Blu drift (azzurro)
 const cOrange = new THREE.Color(0xF24807); // Arancione/giallo per drift potente 
 
 const DEFAULT_SETTINGS = {
-  maxSpeed: 40,
+    maxSpeed: 40,
   maxTurboLimit: 50,        
   acceleration: 0.25,        
   deceleration: 2.0,        

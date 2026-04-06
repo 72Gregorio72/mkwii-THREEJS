@@ -36,11 +36,6 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
 
     // 1. INIZIALIZZAZIONE FISICA (FORZA IL MOVIMENTO)
     useEffect(() => {
-        if (homingAudioRef.current) {
-            homingAudioRef.current.setVolume(2.0);
-            homingAudioRef.current.play();
-        }
-        
         // Inizializzazione immediata della fisica
         if (rb.current) {
             try {
@@ -231,7 +226,7 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         >
             <BallCollider args={[0.4]} friction={0.0} restitution={0.0} />
             <CylinderCollider args={[0.2, 0.7]} position={[0, 0.35, 0]} sensor />
-            <PositionalAudio ref={homingAudioRef} url={AUDIO_SFX.RED_SHELL_MOVE} distance={10} loop autoplay/>
+            <PositionalAudio ref={homingAudioRef} url={AUDIO_SFX.RED_SHELL_MOVE} distance={10} loop autoplay volume={2} />
             <group ref={meshRef} position={[0, -0.3, 0]} scale={[1.5, 1.5, 1.5]}>
                 <primitive object={clone} />
             </group>
