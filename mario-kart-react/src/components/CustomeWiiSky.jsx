@@ -13,8 +13,9 @@ export const CustomWiiSky = ({ trackName }) => {
         texturePath = '/Skybox/Sunset.png'; 
     } else if (trackName === 'Bowser Castle') {
         texturePath = '/Skybox/Bowser.png';
+    } else if (trackName === 'SNES Ghost Valley 2') {
+        texturePath = '/Skybox/Dark.png';
     }
-
     // console.log(`CustomWiiSky: caricamento texture da "${texturePath}" per track "${trackName}"`);
     // 2. Chiama l'hook UNA SOLA VOLTA fuori da qualsiasi condizione
     const texture = useTexture(texturePath);

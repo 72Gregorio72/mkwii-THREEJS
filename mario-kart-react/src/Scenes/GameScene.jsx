@@ -1300,7 +1300,7 @@ export function GameScene({
                 )}
 
 
-                <Physics key={`${activeTrackConfig.name}-${raceAttempt}`} debug={true} gravity={[0, -20, 0]}>
+                <Physics key={`${activeTrackConfig.name}-${raceAttempt}`} debug={false} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
