@@ -341,7 +341,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       roomCode: roomCode,
       roomId: roomId,
       hostId: client.id,
-      players: [{ id: client.id, isHost: true, username: payload.username, icon: hostUser?.icon || 'Mario.png', character: { id: '', name: '' }, points: 0 }],
+      players: [{ id: client.id, isHost: true, username: payload.username, icon: hostUser?.icon || 'Mario.png', character: { id: '', name: '' }, points: 0, isReady: false }],
       bots: [],
       gameState: 'LOBBY'
     });
@@ -392,7 +392,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       username: payload.username,
       icon: joinedUser?.icon || 'Mario.png',
       character: { id: '', name: '' },
-      points: 0
+      points: 0,
+      isReady: false
     });
     this.playerRoomMap.set(client.id, roomCode);
     
@@ -479,6 +480,31 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.server.to(roomCode).emit('track_selected', {
       roomCode: room.roomCode,
       track: payload.track
+    });
+  }
+
+  @SubscribeMessage('toggle_ready')
+  handleToggleReady(client: Socket, payload: { roomCode: string; newReadyState: boolean }) {
+    const roomCode = payload.roomCode;
+    if (!roomCode || !this.roomData.has(roomCode)) return;
+
+    const room = this.roomData.get(roomCode);
+    if (!room) return;
+
+    const player = room.players.find(p => p.id === client.id);
+    if (!player) return;
+
+    player.isReady = payload.newReadyState;
+    console.log(`Player ${client.id} toggled ready to ${payload.newReadyState} in room ${roomCode}`);
+
+    // Broadcast aggiornamento stanza a tutti i giocatori
+    this.server.to(roomCode).emit('room_state', {
+      roomCode: room.roomCode,
+      roomId: room.roomId,
+      hostId: room.hostId,
+      players: room.players,
+      gameState: room.gameState,
+      selectedTrack: room.selectedTrack
     });
   }
 

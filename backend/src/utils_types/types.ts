@@ -10,6 +10,7 @@ export interface RoomPlayer {
   icon?: string;
   character?: { id: string; name: string };
   points?: number;
+  isReady?: boolean;
 }
 
 // Interfaccia per i bot
