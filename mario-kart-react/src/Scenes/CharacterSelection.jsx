@@ -4,19 +4,37 @@ import { Environment } from '@react-three/drei'
 import { useNavigate } from 'react-router-dom'
 import { RacerModel } from '../models/RacerModel'
 import { AUDIO_SFX , useAudio } from '../audio/AudioManager.jsx'
-import { useGameDataStore } from '../store.js'
+import { useGameDataStore, useGameStore, useRoomDataStore } from '../store.js'
+import { socket } from '../multiplayer/socket.js'
 
-export function CharacterSelection({ availableCharacters }) {
+export function CharacterSelection({ availableCharacters, resetRoomState }) {
     const navigate = useNavigate();
     const { changeTrack, enableSmoothLoop, playSfx, fadeOutMusic } = useAudio();
     const [fadeToBlack, setFadeToBlack] = useState(false);
 
     const gameDataStore = useGameDataStore();
+    const gameStore = useGameStore();
+    
+    const { roomCode: roomCode } = useRoomDataStore();
 
     useEffect(() => {
         changeTrack('CHARACTER_KART_SELECT', 100);
         enableSmoothLoop();
     }, [changeTrack, enableSmoothLoop]);
+
+    // Socket listen
+    useEffect(() => {
+        if (!roomCode || !socket) return;
+
+        socket.on('room_closed', () => {
+            playSfx(AUDIO_SFX.BACK_IN_MENU);
+            resetRoomState();
+            gameStore.setHostLeft(true);
+            navigate('/menu', { replace: true });
+        });
+
+        return () => {socket.off('room_closed')}; // Clean up on unmount
+    }, [roomCode, socket]);
 
     const [localSelection, setLocalSelection] = useState(availableCharacters[0])
 
