@@ -104,27 +104,28 @@ erDiagram
 ## Modules
 We aimed for a total of 19 points by implementing the following modules:
 
-Use a Framework (Major - 2 points): NestJS for the backend and React for the frontend.
+**Use a Framework** (Major - 2 points): NestJS for the backend and React for the frontend.
 
-Real-time Features (Major - 2 points): Implemented via WebSockets for live gameplay.
+**Real-time Features** (Major - 2 points): Implemented via WebSockets for live gameplay.
 
-Standard User Management (Major - 2 points): Registration, authentication, profiles, and friends system. (Note: 2FA was explicitly excluded from the scope).
+**Standard User Management** (Major - 2 points): Registration, authentication, profiles, and friends system. (Note: 2FA was explicitly excluded from the scope).
 
-Web-based Game (Major - 2 points): The core Mario Kart racing game.
+**Web-based Game** (Major - 2 points): The core Mario Kart racing game.
 
-Multiplayer / Remote Players (Major - 2 points): Allowing users to play against each other over the network.
+**Multiplayer** (Major - 2 points): Allowing 2 users to play against each other over the network.
 
-Advanced 3D Graphics (Major - 2 points): Built completely using Three.js.
+**Remote Players** (Major - 2 points): Allowing more than 2 users to play against each other.
 
-Artificial Intelligence (Major - 2 points): AI opponents capable of navigating the track and racing against players.
+**Advanced 3D Graphics** (Major - 2 points): Built completely using Three.js.
 
-Tournament System (Minor - 1 point): Organized matchmaking and bracket tracking.
+**Artificial Intelligence** (Major - 2 points): AI opponents capable of navigating the track and racing against players.
 
-Game Customization (Minor - 1 point): Power-ups and items within the races.
+**Tournament System** (Minor - 1 point): Organized matchmaking and bracket tracking.
 
-Use an ORM (Minor - 1 point): Prisma ORM was added to handle the database layer securely and cleanly.
+**Game Customization** (Minor - 1 point): Power-ups and items within the races.
 
-(Note: [Add Name(s)] worked on the Frontend/Game modules. [Add Name(s)] worked on the Backend/User Management modules).
+**Use an ORM** (Minor - 1 point): Prisma ORM was added to handle the database layer securely and cleanly.
+
 
 ## Individual Contributions
 gpicchio (PO/Developer): * Features/Modules: [Describe what you coded, e.g., Set up Prisma ORM, built the Tournament logic, etc.]
