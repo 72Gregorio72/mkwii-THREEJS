@@ -67,12 +67,44 @@ function getGridPosition(startPos, index) {
 
 function CinematicCamera({ gameState, playerStartPos, playerStartRot }) {
     const { camera } = useThree();
+    const introTimeRef = useRef(0);
 
     useFrame((_state, delta) => {
         if (gameState === 'INTRO') {
-            camera.position.lerp(new THREE.Vector3(60, 100, 60), delta * 0.5);
-            camera.lookAt(0, 0, 0);
+            // Accumula il tempo durante l'INTRO (massimo 10 secondi)
+            introTimeRef.current = Math.min(introTimeRef.current + delta, 10);
+            
+            // Calcola la distanza progressiva: da -8 (davanti) a 24 (indietro) in 10 secondi
+            // e l'altezza: da 4 a 8 unità
+            const progress = introTimeRef.current / 10;
+            const backstepDistance = -8 + (24 - (-8)) * progress; // -8 (front) -> 24 (back)
+            const heightOffset = 4 + (8 - 4) * progress; // 4 -> 8
+            
+            const yawAngle = playerStartRot[1] || 0;
+            const offset = new THREE.Vector3(
+                -Math.sin(yawAngle) * backstepDistance,
+                heightOffset,
+                -Math.cos(yawAngle) * backstepDistance
+            );
+
+            const targetPos = new THREE.Vector3(
+                playerStartPos[0] + offset.x,
+                playerStartPos[1] + offset.y,
+                playerStartPos[2] + offset.z
+            );
+
+            camera.position.lerp(targetPos, delta * 1.5); // Lerp lento (era 2.5)
+            
+            const lookAtTarget = new THREE.Vector3(
+                playerStartPos[0],
+                playerStartPos[1] + 1.5,
+                playerStartPos[2]
+            );
+            camera.lookAt(lookAtTarget);
         } else if (gameState === 'COUNTDOWN') {
+            // Reset timer al passaggio a COUNTDOWN
+            introTimeRef.current = 0;
+            
             const offset = new THREE.Vector3(0, 3, -8); 
             const euler = new THREE.Euler(playerStartRot[0], playerStartRot[1] - Math.PI, playerStartRot[2]);
             offset.applyEuler(euler);
@@ -325,6 +357,7 @@ export function GameScene({
     const [finished, setFinished] = useState(false);
     const [raceExited, setRaceExited] = useState(false);
     const [finishers, setFinishers] = useState([]); // Lista dei corridori che hanno finito in ordine
+    const [isPaused, setIsPaused] = useState(false);
 
     const [networkItems, setNetworkItems] = useState([]);
     const itemIdCounter = useRef(0);
@@ -406,6 +439,27 @@ export function GameScene({
             window.history.replaceState(null, '', `/game?roomId=${roomId}`);
         }
     }, [roomId]);   
+
+    // Handle window blur/focus for pause
+    useEffect(() => {
+        const handleWindowBlur = () => {
+            if (gameState === 'RACING' && !finished) {
+                setIsPaused(true);
+            }
+        };
+
+        const handleWindowFocus = () => {
+            // Non auto-unpause, l'utente deve cliccare il bottone
+        };
+
+        window.addEventListener('blur', handleWindowBlur);
+        window.addEventListener('focus', handleWindowFocus);
+
+        return () => {
+            window.removeEventListener('blur', handleWindowBlur);
+            window.removeEventListener('focus', handleWindowFocus);
+        };
+    }, [gameState, finished]);   
 
     useEffect(() => {
         const handleItemCollected = (e) => {
@@ -583,26 +637,42 @@ export function GameScene({
         // Assicurati di uccidere vecchie animazioni pendenti in caso di riavvio rapido
         gsap.killTweensOf(cameraTarget.current);
 
+        // Calcola la posizione iniziale: davanti al player
+        const yawAngle = playerStartRot[1] || 0;
+        const initialBackstepDistance = -8;
+        const heightOffset = 4;
+        
+        const initialX = playerStartPos[0] - Math.sin(yawAngle) * initialBackstepDistance;
+        const initialY = playerStartPos[1] + heightOffset;
+        const initialZ = playerStartPos[2] - Math.cos(yawAngle) * initialBackstepDistance;
+
         gsap.fromTo(cameraTarget.current, 
-            { x: 0, y: 0, z: 0 }, 
-            { x: 0, y: 8, z: 0, duration: 5 }
+            { x: initialX, y: initialY, z: initialZ }, 
+            { x: initialX, y: initialY, z: initialZ, duration: 0 }
         );
 
         const timeline = gsap.timeline({
             onComplete: () => startCountdown()
         });
 
+        // Vai molto più indietro (24 unità) e più alto, allontanandosi
+        const finalBackstepDistance = 24;
+        const finalHeightOffset = 8;
+        
+        const finalX = playerStartPos[0] - Math.sin(yawAngle) * finalBackstepDistance;
+        const finalY = playerStartPos[1] + finalHeightOffset;
+        const finalZ = playerStartPos[2] - Math.cos(yawAngle) * finalBackstepDistance;
+
         timeline.to(cameraTarget.current, {
-            x: playerStartPos[0],
-            y: playerStartPos[1] + 2,
-            z: playerStartPos[2],
-            duration: 7,
-            ease: "power2.inOut",
-            delay: 5
+            x: finalX,
+            y: finalY,
+            z: finalZ,
+            duration: 10,
+            ease: "power2.inOut"
         });
         
     // AGGIUNGI restartTrigger QUI
-    }, [isInLobby, playerStartPos, restartTrigger, gameState, isTimeTrial]);
+    }, [isInLobby, playerStartPos, playerStartRot, restartTrigger, gameState, isTimeTrial]);
 
     const startCountdown = () => {
         setGameState('COUNTDOWN');
@@ -777,6 +847,18 @@ export function GameScene({
         });
     }, [username]);
 
+    // Handle ESC key for pause toggle
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && gameState === 'RACING' && !finished) {
+                setIsPaused(prev => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [gameState, finished]);
+
 
     // Checkpoint Trigger
     const handleCheckpointTrigger = useCallback((hitIndex, racerId) => {
@@ -842,7 +924,7 @@ export function GameScene({
                     stopMusic();
                     if (racer.position === 1) {
                         changeTrack('FINISH_FIRST', 0, false, 1.0);
-                        if (!isTimeTrial && !roomCode && !isGrandPrix) {
+                        if (!isTimeTrial && !roomCode && isGrandPrix) {
                             sendWinToServer(true);
                         } else if (!isTimeTrial && roomCode && !isGrandPrix) {
                             sendWinToServer(false);
@@ -877,7 +959,7 @@ export function GameScene({
         setIsTransitioning(true);
         setTimeout(() => { 
             setIsTransitioning(false);
-            navigate('/endGrandPrix');
+            navigate('/menu');
         }, 1000);
     }, [navigate]);
     
@@ -1081,6 +1163,30 @@ export function GameScene({
                 onExit={handleExitRace}
             />
 
+            {/* PAUSE MENU */}
+            {isPaused && gameState === 'RACING' && (
+                <div className="fixed inset-0 z-[2000] bg-black/70 flex flex-col items-center justify-center">
+                    <h1 className="text-6xl font-black italic tracking-widest text-[#ffcc00] drop-shadow-md mb-12">
+                        PAUSA
+                    </h1>
+                    <div className="flex flex-col gap-6">
+                        <button
+                            onClick={() => setIsPaused(false)}
+                            className="px-8 py-4 bg-[#ffcc00] text-black font-bold text-xl rounded-lg hover:bg-yellow-300 transition-all duration-200 transform hover:scale-105"
+                        >
+                            Riprendi (ESC)
+                        </button>
+                        <button
+                            onClick={handleExitRace}
+                            className="px-8 py-4 bg-gray-600 text-white font-bold text-xl rounded-lg hover:bg-gray-700 transition-all duration-200 transform hover:scale-105"
+                        >
+                            Esci Gara
+                        </button>
+                    </div>
+                    <p className="text-gray-300 mt-8 text-sm">Premi ESC per riprendere</p>
+                </div>
+            )}
+
             {/* MINIMAP */}
             {gameState !== 'lobby' && (
                 <Minimap 
@@ -1157,6 +1263,8 @@ export function GameScene({
                 >
 
                 </WaypointRecorder> */}
+
+
                 <AudioListenerComponent />
                 <WebGLSafetyManager />
                 
@@ -1192,7 +1300,7 @@ export function GameScene({
                 )}
 
 
-                <Physics key={`${activeTrackConfig.name}-${raceAttempt}`} debug={false} gravity={[0, -20, 0]}>
+                <Physics key={`${activeTrackConfig.name}-${raceAttempt}`} debug={true} gravity={[0, -20, 0]}>
 
                     <Suspense fallback={null}>
                         {networkItems.map((item) => {
@@ -1294,6 +1402,7 @@ export function GameScene({
                                 selectedCharacter={character}
                                 botRefs={botRefs}
                                 gameState={gameState}
+                                isPaused={isPaused}
                                 vehicleConfig={vehicle}
                                 positions={positions}
                                 START_POS={playerStartPos}
@@ -1328,6 +1437,7 @@ export function GameScene({
                                 selectedCharacter={character}
                                 botRefs={botRefs}
                                 gameState={gameState}
+                                isPaused={isPaused}
                                 vehicleConfig={vehicle} 
                                 positions={positions}
                                 START_POS={playerStartPos}
@@ -1372,6 +1482,7 @@ export function GameScene({
                                     userData={{ type: 'racer', id: botId }}
                                     characterConfig={botConfig.character.modelConfig} 
                                     gameState={gameState}
+                                    isPaused={isPaused}
                                     vehicleConfig={botConfig.vehicle} 
                                     START_POS={botPos}
                                     START_ROT={botRot}

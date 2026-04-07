@@ -2,23 +2,23 @@ import React, { useEffect, useState, useRef } from 'react';
 import { ITEMS } from '../Items/PowerupHandler';
 
 const ITEM_SPRITES = {
-  [ITEMS.NONE]: null,
-  [ITEMS.MUSHROOM]: '/itemSprites/Mushroom.png',
-  [ITEMS.DOUBLE_MUSHROOM]: '/itemSprites/DoubleMushroom.png',
-  [ITEMS.TRIPLE_MUSHROOM]: '/itemSprites/TripleMushroom.png',
-  [ITEMS.GOLDEN_MUSHROOM]: '/itemSprites/GoldenMushroom.png',
-  [ITEMS.BANANA]: '/itemSprites/Banana.png',
-  [ITEMS.TRIPLE_BANANA]: '/itemSprites/TripleBanana.png',
-  [ITEMS.GREEN_SHELL]: '/itemSprites/GreenShell.png',
-  [ITEMS.TRIPLE_GREEN_SHELL]: '/itemSprites/TripleGreenShell.png',
-  [ITEMS.RED_SHELL]: '/itemSprites/RedShell.png',
-  [ITEMS.TRIPLE_RED_SHELL]: '/itemSprites/TripleRedShell.png',
-  [ITEMS.BLUE_SHELL]: '/itemSprites/BlueShell.png',
-  [ITEMS.BOB_OMB]: '/itemSprites/Bobomb.png',
-  [ITEMS.STAR]: '/itemSprites/Star.png',
-  [ITEMS.MEGA_MUSHROOM]: '/itemSprites/MegaMushroom.png',
-  [ITEMS.LIGHTNING]: '/itemSprites/Lightning.png',
-  [ITEMS.BULLET_BILL]: '/itemSprites/BulletBill.png',
+  'NONE': null,
+  'MUSHROOM': '/itemSprites/Mushroom.png',
+  'DOUBLE_MUSHROOM': '/itemSprites/DoubleMushroom.png',
+  'TRIPLE_MUSHROOM': '/itemSprites/TripleMushroom.png',
+  'GOLDEN_MUSHROOM': '/itemSprites/GoldenMushroom.png',
+  'BANANA': '/itemSprites/Banana.png',
+  'TRIPLE_BANANA': '/itemSprites/TripleBanana.png',
+  'GREEN_SHELL': '/itemSprites/GreenShell.png',
+  'TRIPLE_GREEN_SHELL': '/itemSprites/TripleGreenShell.png',
+  'RED_SHELL': '/itemSprites/RedShell.png',
+  'TRIPLE_RED_SHELL': '/itemSprites/TripleRedShell.png',
+  'BLUE_SHELL': '/itemSprites/BlueShell.png',
+  'BOB_OMB': '/itemSprites/Bobomb.png',
+  'STAR': '/itemSprites/Star.png',
+  'MEGA_MUSHROOM': '/itemSprites/MegaMushroom.png',
+  'LIGHTNING': '/itemSprites/Lightning.png',
+  'BULLET_BILL': '/itemSprites/BulletBill.png',
 };
 
 // Costanti Tailwind per stili di testo riutilizzati
@@ -44,6 +44,9 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
   const [speed, setSpeed] = useState(0);
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [rouletteItems, setRouletteItems] = useState([]);
+  const [rouletteIndex, setRouletteIndex] = useState(0);
+  const rouletteIntervalRef = useRef(null);
   
   // --- TIMER STATE ---
   const [raceTime, setRaceTime] = useState(0);
@@ -137,6 +140,19 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
         if (newItem !== undefined) {
             setCurrentItem(newItem);
             setIsSpinning(spinning || false);
+            
+            // Se è spinning (roulette attiva), aggiungi l'item alla lista di roulette
+            if (spinning) {
+                setRouletteItems(prev => {
+                    const updated = [...prev, newItem];
+                    // Tieni una storia di ultimi 20 items per la roulette
+                    return updated.slice(-20);
+                });
+            } else {
+                // Fine roulette, resetta
+                setRouletteItems([]);
+                setRouletteIndex(0);
+            }
         }
     };
 
@@ -144,17 +160,62 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
     return () => window.removeEventListener('hud-update', handleHudUpdate);
   }, [playerId]);
 
-  const itemImage = ITEM_SPRITES[currentItem];
+  // 5. ANIMAZIONE ROULETTE: cicla gli items raccolti
+  useEffect(() => {
+    if (isSpinning && rouletteItems.length > 0) {
+        let index = 0;
+        
+        // Velocità di rotazione che aumenta poi rallenta (accelerazione/decellerazione)
+        const speeds = [
+            { duration: 50, count: 5 },    // Velocissimo all'inizio (5 items in 50ms)
+            { duration: 80, count: 4 },    // Veloce
+            { duration: 120, count: 3 },   // Normale
+            { duration: 200, count: 2 },   // Lento
+        ];
+        
+        let speedPhase = 0;
+        let itemsInPhase = 0;
+        
+        if (rouletteIntervalRef.current) clearInterval(rouletteIntervalRef.current);
+        
+        rouletteIntervalRef.current = setInterval(() => {
+            const currentPhase = speeds[Math.min(speedPhase, speeds.length - 1)];
+            
+            index = (index + 1) % rouletteItems.length;
+            setRouletteIndex(index);
+            
+            itemsInPhase++;
+            if (itemsInPhase >= currentPhase.count) {
+                itemsInPhase = 0;
+                speedPhase++;
+            }
+        }, speeds[Math.min(speedPhase, speeds.length - 1)]?.duration || 50);
+        
+        return () => {
+            if (rouletteIntervalRef.current) clearInterval(rouletteIntervalRef.current);
+        };
+    }
+  }, [isSpinning, rouletteItems]);
+
+  // 6. CLEANUP al cambio di stato o smontaggio
+  useEffect(() => {
+    return () => {
+        if (rouletteIntervalRef.current) clearInterval(rouletteIntervalRef.current);
+    };
+  }, []);
+
+  const itemImage = ITEM_SPRITES[rouletteItems.length > 0 ? rouletteItems[rouletteIndex] : currentItem];
   const safeRender = (val) => (isNaN(val) || val === null || val === undefined) ? 0 : val;
 
-  // Classi condizionali convertite in puro Tailwind
-  const finalItemAnim = (!isSpinning && currentItem !== ITEMS.NONE) ? 'animate-[pop_0.3s_cubic-bezier(0.175,0.885,0.32,1.275)]' : '';
-  const spinningAnim = isSpinning ? 'blur-[2px] brightness-[1.2]' : 'drop-shadow-[0px_0px_10px_rgba(255,255,255,0.6)]';
-  
   // Classe Tailwind per il "freeze" di fine giro con `!important` nativi di Tailwind
   const flashClass = isFrozen 
     ? '!bg-none ![text-fill-color:red] !text-red-600 ![text-shadow:2px_2px_0px_black] animate-[flashRedFade_0.5s_ease-in-out_infinite]' 
     : '';
+  
+  // Animazione roulette: rotazione + blur con effetto accelerazione
+  const rouletteSpinClass = isSpinning 
+    ? 'animate-[spin_0.1s_linear_infinite] brightness-[1.3] drop-shadow-[0px_0px_20px_rgba(255,255,0,0.8)]' 
+    : 'drop-shadow-[0px_0px_10px_rgba(255,255,255,0.6)]';
 
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none font-['MKWii',_'Arial_Black',_Gadget,_sans-serif] not-italic select-none overflow-hidden z-10">
@@ -179,6 +240,10 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
         }
+        @keyframes spin {
+          from { transform: rotateZ(0deg) scale(1); }
+          to { transform: rotateZ(360deg) scale(1.05); }
+        }
       `}</style>
       
       {/* --- ITEM BOX --- */}
@@ -188,7 +253,7 @@ export const GameHUD = ({ lap = 1, totalLaps = 3, rank = 1, playerId = "player",
           <img 
             src={itemImage} 
             alt="Item" 
-            className={`w-[90%] h-[90%] object-contain z-[2] ${finalItemAnim} ${spinningAnim}`}
+            className={`w-[90%] h-[90%] object-contain z-[2] transition-all ${rouletteSpinClass} ${!isSpinning && currentItem !== ITEMS.NONE ? 'animate-[pop_0.3s_cubic-bezier(0.175,0.885,0.32,1.275)]' : ''}`}
           />
         )}
       </div>

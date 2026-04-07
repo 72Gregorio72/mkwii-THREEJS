@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo "🏎️  Avvio Mario Kart React..."
+echo "[LOG START.SH]  Avvio Mario Kart React..."
 
 # Controlla se Docker è attivo
 if ! docker info > /dev/null 2>&1 && ! sudo docker info > /dev/null 2>&1; then
-    echo "❌ Errore: Docker non sembra avviato."
+    echo "[LOG START.SH] Errore: Docker non sembra avviato."
     exit 1
 fi
 
@@ -15,13 +15,13 @@ mkdir -p certs
 
 # Controlla se i file dei certificati mancano
 if [ ! -f "certs/cert.pem" ] || [ ! -f "certs/key.pem" ]; then
-    echo "🔐 Certificati non trovati. Generazione in corso..."
+    echo "[LOG START.SH] Certificati non trovati. Generazione in corso..."
     cd certs
     openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
     cd ..
-    echo "✅ Certificati generati con successo."
+    echo "[LOG START.SH] Certificati generati con successo."
 else
-    echo "✅ Certificati SSL già presenti nella cartella 'certs'."
+    echo "[LOG START.SH] Certificati SSL già presenti nella cartella 'certs'."
 fi
 
 # Rimuove eventuali ritorni a capo di Windows (CRLF) per evitare errori
@@ -30,15 +30,15 @@ sed -i 's/\r$//' start.sh
 # ==========================================
 # Avvio dei Container
 # ==========================================
-echo "🧹 Pulizia dei vecchi container e volumi..."
+echo "[LOG START.SH] Pulizia dei vecchi container e volumi..."
 docker-compose down -v
 
-echo "🚀 Avvio dei container..."
+echo "[LOG START.SH] Avvio dei container..."
 # Prova a lanciare docker-compose. Se fallisce per permessi, usa sudo.
 if docker-compose up --build; then
     : # Successo, non fare nulla
 else
-    echo "🔒 Permessi insufficienti, riprovo con sudo..."
+    echo "[LOG START.SH] Permessi insufficienti, riprovo con sudo..."
     sudo docker-compose up --build
 fi
 

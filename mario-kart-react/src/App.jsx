@@ -306,6 +306,7 @@ export default function App() {
                             <CharacterSelection 
                                 onNext={() => {}} 
                                 availableCharacters={availableCharacters}
+                                resetRoomState={resetRoomState}
                             />
                         } />
 
@@ -318,7 +319,7 @@ export default function App() {
 						} />
 
                         <Route path="/vehicle" element={
-                            <VehicleSelection />
+                            <VehicleSelection resetRoomState={resetRoomState}/>
                         } />
 
                         <Route path="/track" element={

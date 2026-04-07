@@ -144,7 +144,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    setCurrentItem(ITEMS.STAR);
+    setCurrentItem(ITEMS.BULLET_BILL);
   };
 
 useEffect(() => {
@@ -158,8 +158,6 @@ useEffect(() => {
             setCurrentItem(ITEMS.TRIPLE_MUSHROOM);
             setTripleCount(3);
             
-            // Ritardo di 100ms: diamo tempo all'HUD di fare il suo reset a NONE,
-            // per poi sovrascriverlo e forzare l'icona dei 3 funghi.
             if (isLocalPlayer) {
                 setTimeout(() => {
                     window.dispatchEvent(new CustomEvent('hud-update', { 

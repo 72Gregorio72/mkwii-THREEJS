@@ -358,11 +358,7 @@ export const Friends = () => {
                                 </div>
                             ) : (
                                 friends.map((friend, index) => (
-                                    <div 
-                                        key={index}
-                                        onClick={() => handleViewFriendProfile(friend)}
-                                        className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white hover:scale-[1.02] cursor-pointer flex-shrink-0"
-                                    >
+                                    <div key={index} className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white cursor-pointer flex-shrink-0">
                                         <div className="absolute top-0 left-4 right-4 h-[35%] bg-white/10 rounded-b-full pointer-events-none"></div>
                                         
                                         {/* Icona */}

@@ -128,6 +128,7 @@ export const WaitingRoom = ({ resetRoomState }) => {
   const [friends, setFriends] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showFriendList, setShowFriendList] = useState(false);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
 
   // URL Update & Fetch Friends
   useEffect(() => {
@@ -230,6 +231,17 @@ export const WaitingRoom = ({ resetRoomState }) => {
       resetRoomState();
       navigate('/menu', { replace: true });
   };
+
+  const handleToggleReady = () => {
+    const newReadyState = !isPlayerReady;
+    setIsPlayerReady(newReadyState);
+    if (socket) {
+      socket.emit('toggle_ready', { roomCode, newReadyState });
+    }
+    playSfx(AUDIO_SFX.SELECT_IN_MENU);
+  };
+
+  const allPlayersReady = players.length > 0 && players.every(p => p.isReady === true);
 
   return (
     <div className="w-screen h-screen relative overflow-hidden font-sans select-none text-white">
@@ -401,6 +413,15 @@ export const WaitingRoom = ({ resetRoomState }) => {
                                             <span className="text-[#ffcc00] text-sm font-semibold">pts</span>
                                         </div>
 
+                                        {/* Ready Badge */}
+                                        <div className={`text-xs font-black uppercase px-3 py-1 rounded shadow-sm border-2 mr-2 ${
+                                            player.isReady 
+                                                ? 'bg-[#00cc00] text-white border-[#00ff00]' 
+                                                : 'bg-[#cc0000] text-white border-[#ff6666]'
+                                        }`}>
+                                            {player.isReady ? '✓ READY' : '✗ NOT READY'}
+                                        </div>
+
                                         {/* Host Badge */}
                                         {player.isHost && (
                                             <div className="bg-[#ffcc00] text-black text-xs font-black uppercase px-2 py-1 rounded shadow-sm">
@@ -409,6 +430,26 @@ export const WaitingRoom = ({ resetRoomState }) => {
                                         )} 
                                     </div>
                                 ))}
+
+                                {/* Ready Toggle per il giocatore locale */}
+                                {players.map((player) => {
+                                    if (player.id === socket?.id) {
+                                        return (
+                                            <button
+                                                key="ready-button"
+                                                onClick={handleToggleReady}
+                                                className={`h-12 border-2 rounded flex items-center justify-center font-bold uppercase tracking-wider text-lg transition-all mb-3 ${
+                                                    isPlayerReady
+                                                        ? 'bg-[#00cc00] border-[#00ff00] text-black hover:bg-[#00ff00] shadow-[0_0_10px_#00cc00]'
+                                                        : 'bg-[#cc0000] border-[#ff6666] text-white hover:bg-[#ff6666] shadow-[0_0_10px_#cc0000]'
+                                                }`}
+                                            >
+                                                {isPlayerReady ? '✓ I\'M READY' : '✗ NOT READY'}
+                                            </button>
+                                        );
+                                    }
+                                    return null;
+                                })}
 
                                 {/* Empty Slots (incluso il pulsante "Add Friend") */}
                                 {[...Array(Math.max(0, 12 - players.length))].map((_, i) => {
@@ -444,19 +485,34 @@ export const WaitingRoom = ({ resetRoomState }) => {
                     </div>
                     
                     {/* ACTION BUTTONS (Start Game) */}
-                    <div className="absolute bottom-8 right-12 z-50">
+                    <div className="absolute bottom-8 right-12 z-50 flex flex-col items-end gap-3">
                         {isHost ? (
-                            <button
-                                onClick={handleStartGame}
-                                className="group relative px-12 py-4 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-full shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
-                                        flex items-center gap-4 overflow-hidden transition-all duration-200 
-                                        hover:scale-110 hover:border-[#ffeebb] hover:shadow-[0_0_30px_rgba(255,215,0,0.8)] hover:bg-black/80"
-                            >
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-                                <span className="text-4xl font-black text-[#ffcc00] uppercase tracking-widest drop-shadow-md group-hover:text-white">
-                                    Start Race
-                                </span>
-                            </button>
+                            <>
+                                <button
+                                    onClick={handleStartGame}
+                                    disabled={!allPlayersReady}
+                                    className={`group relative px-12 py-4 border-y-2 border-x-4 rounded-full shadow-[0_5px_15px_rgba(0,0,0,0.6)] 
+                                            flex items-center gap-4 overflow-hidden transition-all duration-200 
+                                            ${
+                                                allPlayersReady
+                                                    ? 'bg-black/60 border-[#aa8800] hover:scale-110 hover:border-[#ffeebb] hover:shadow-[0_0_30px_rgba(255,215,0,0.8)] hover:bg-black/80 cursor-pointer'
+                                                    : 'bg-black/40 border-[#666] opacity-50 cursor-not-allowed'
+                                            }
+                                        `}
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+                                    <span className={`text-4xl font-black uppercase tracking-widest drop-shadow-md ${
+                                        allPlayersReady ? 'text-[#ffcc00] group-hover:text-white' : 'text-[#888]'
+                                    }`}>
+                                        Start Race
+                                    </span>
+                                </button>
+                                {!allPlayersReady && (
+                                    <div className="text-sm text-[#ff8844] font-bold uppercase tracking-wider bg-black/60 px-4 py-2 rounded border border-[#ff8844]">
+                                        Waiting for all players to be ready...
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <div className="flex items-center gap-3 bg-black/60 px-8 py-3 rounded-full border border-[#aa8800] animate-pulse">
                                 <span className="w-3 h-3 bg-[#ffcc00] rounded-full"></span>

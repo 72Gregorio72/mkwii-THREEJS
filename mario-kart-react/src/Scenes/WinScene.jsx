@@ -9,7 +9,7 @@ import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { CustomWiiSky } from '../components/CustomeWiiSky.jsx';
 import * as THREE from 'three';
 import { socket } from '../multiplayer/socket.js';
-import { useUserStore } from '../store.js';
+import { useUserStore, useGameStore } from '../store.js';
 
 // Componente per la telecamera animata
 function CameraSetup({ cameraPos, targetPos }) {
@@ -91,6 +91,8 @@ export const WinScene = ({ selectedCup, raceResults, setRaceResults }) => {
     const { playSfx, playMusicOnce, stopMusic } = useAudio();
     const { userName: userName} = useUserStore();
 
+    const { ccsSpeed: ccsSpeed } = useGameStore();
+
     const [showTrophy, setShowTrophy] = useState(false);
     const ceremonyStartedRef = useRef(false);
 
@@ -131,7 +133,8 @@ export const WinScene = ({ selectedCup, raceResults, setRaceResults }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     grandPrixName: selectedCup?.name,
-                    ranking: ranking
+                    ranking: ranking,
+                    ccs: ccsSpeed
                 })
             })
         }
