@@ -6,7 +6,8 @@ import { RacerModel } from '../models/RacerModel'
 import { VehicleModel } from '../models/VehicleModel'
 import { VEHICLE_DATABASE } from '../components/Data'
 import { AUDIO_SFX, useAudio } from '../audio/AudioManager.jsx'
-import { useGameDataStore, useGameStore } from '../store.js'
+import { useGameDataStore, useGameStore, useRoomDataStore } from '../store.js'
+import { socket } from '../multiplayer/socket.js'
 
 // --- STAT BAR COMPONENT ---
 const StatBar = ({ label, value }) => (
@@ -58,13 +59,17 @@ function RotatingShowcase({ characterConfig, vehicleData }) {
     )
 }
 
-export function VehicleSelection() {
+export function VehicleSelection({ resetRoomState }) {
     const navigate = useNavigate();
     const { playSfx , changeTrack, enableSmoothLoop , getCurrentTrack } = useAudio();
+
     const {isGrandPrix: isGrandPrix} = useGameStore();
+    const gameStore = useGameStore();
 
     const {SelectedCharacter: selectedCharacter} = useGameDataStore();
     const gameDataStore = useGameDataStore();
+
+    const { roomCode: roomCode } = useRoomDataStore();
 
     useEffect(() => {
         if (getCurrentTrack() !== 'CHARACTER_KART_SELECT') {
@@ -72,6 +77,20 @@ export function VehicleSelection() {
             enableSmoothLoop();
         }
     }, [changeTrack, enableSmoothLoop]);
+
+    // Socket listen
+    useEffect(() => {
+        if (!roomCode || !socket) return;
+
+        socket.on('room_closed', () => {
+            playSfx(AUDIO_SFX.BACK_IN_MENU);
+            resetRoomState();
+            gameStore.setHostLeft(true);
+            navigate('/menu', { replace: true });
+        });
+
+        return () => {socket.off('room_closed')}; // Clean up on unmount
+    }, [roomCode, socket]);
 
     const availableIDs = selectedCharacter.veichles || []; 
 
