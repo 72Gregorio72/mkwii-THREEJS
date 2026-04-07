@@ -226,6 +226,19 @@ export const Tracks = {
         road: './Tracks/DryDryRuins/DryDryRuins_road.glb',
 		Waypoints: [ DryDryRuins_1, DryDryRuins_2, DryDryRuins_3 ]
     },
+
+	'Peach Beach': {
+		file: './Tracks/PeachBeach/peachBeach.glb',
+		preview: '/Previews/Peach Beach.png',
+		startPos: [0, 0, 50],
+		checkpoints: './Tracks/PeachBeach/peachBeach_checkpoints.glb',
+		maxCheckpoints: 2,
+		soundtrack: 'RACE_PEACH_BEACH',
+		itemBoxes: './Tracks/PeachBeach/peachBeach_itembox.glb',
+		gridpos: './Tracks/PeachBeach/peachBeach_startpos.glb',
+		road: './Tracks/PeachBeach/peachBeach_hitbox.glb',
+		Waypoints: [ DryDryRuins_1, DryDryRuins_2, DryDryRuins_3 ]
+	}
 }
 
 export const grandPrixList = [
