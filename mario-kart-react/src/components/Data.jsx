@@ -241,7 +241,19 @@ export const Tracks = {
 		gridpos: './Tracks/PeachBeach/peachBeach_startpos.glb',
 		road: './Tracks/PeachBeach/peachBeach_hitbox.glb',
 		Waypoints: [ PeachBeach, PeachBeachL, PeachBeachR ]
-	}
+	},
+	'SNES Ghost Valley 2': {
+		file: './Tracks/GhostValley/SNESGhostValley.glb',
+		preview: '/Previews/SNES Ghost Valley 2.png',
+		startPos: [0, 0, 50],
+		checkpoints: './Tracks/GhostValley/SNESGhostValley_checkpos.glb',
+		maxCheckpoints: 2,
+		soundtrack: 'RACE_PEACH_BEACH',
+		itemBoxes: './Tracks/GhostValley/SNESGhostValley_itembox.glb',
+		gridpos: './Tracks/GhostValley/SNESGhostValley_startpos.glb',
+		road: './Tracks/GhostValley/SNESGhostValley_road.glb',
+		Waypoints: [ PeachBeach, PeachBeachL, PeachBeachR  ]
+	},
 }
 
 export const grandPrixList = [
