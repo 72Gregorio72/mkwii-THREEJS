@@ -39,34 +39,34 @@ React, NestJS, Prisma, and Three.js official documentation.
 Artificial Intelligence tools were utilized to assist in troubleshooting complex 3D math problems (e.g., quaternions for the karts), generating boilerplate code, and helping format this documentation. All generated code was thoroughly reviewed and tested by the team.
 
 ## Team Information
-gpicchio: Product Owner (PO) and Developer. Responsibilities include defining the product vision, maintaining the project notes and backlog, and ensuring the final application meets the required modules and user needs.
+**gpicchio:** Product Owner (PO) and Developer. Responsibilities include defining the product vision, maintaining the project notes and backlog, and ensuring the final application meets the required modules and user needs.
 
-vcastald: Project Manager (PM) and Developer. Responsibilities include organizing tasks, facilitating team coordination, tracking progress across Discord/Slack, and developing core features.
+**vcastald:** Project Manager (PM) and Developer. Responsibilities include organizing tasks, facilitating team coordination, tracking progress across Discord/Slack, and developing core features.
 
-ftersill: Technical Lead (TL) and Developer. Responsibilities include overseeing the architecture, making crucial technical stack decisions (e.g., handling the Nginx reverse proxy architecture), and ensuring code quality across the team.
+**ftersill:** Technical Lead (TL) and Developer. Responsibilities include overseeing the architecture, making crucial technical stack decisions (e.g., handling the Nginx reverse proxy architecture), and ensuring code quality across the team.
 
 ## Project Management
 Work Organization: The team divided tasks based on the required modules, maintaining shared notes and documentation on Google Docs to track the implementation of the 19 targeted points.
 
-## Tools Used
+**Tools Used**
 Google Docs for shared notes, database schema planning, and tracking module points.
 
 Discord and Slack for daily real-time communication and team meetings.
 
 ## Technical Stack
-Frontend: React (Bootstrapped with Vite).
+**Frontend:** React (Bootstrapped with Vite).
 
-Frontend State Management: Zustand (Chosen to handle global states easily without the heavy boilerplate of Redux).
+    Frontend State Management: Zustand (Chosen to handle global states easily without the heavy boilerplate of Redux).
 
-Backend: NestJS.
+**Backend:** NestJS.
 
-Database & ORM: PostgreSQL managed via Prisma ORM.
+    Database & ORM: PostgreSQL managed via Prisma ORM.
 
-Real-time Communication: WebSockets.
+    Real-time Communication: WebSockets.
 
-Graphics: 3D Graphics implemented with Three.js.
+    Graphics: 3D Graphics implemented with Three.js.
 
-Server/Proxy: Nginx.
+    Server/Proxy: Nginx.
 
 **Technical Challenges - The Firefox WebSocket Issue**
 During development, we faced a critical issue with Firefox. Due to its strict security and privacy policies compared to Chromium-based browsers (like Brave), Firefox blocked WebSocket connections over self-signed HTTPS certificates. This completely broke the multiplayer game mode.
@@ -89,17 +89,17 @@ erDiagram
     }
 
 ## Features List
-User System: Secure login, registration, email/password handling, and friend management. (Worked on by: [Add Name])
+**User System:** Secure login, registration, email/password handling, and friend management. (Worked on by: vcastald)
 
-3D Racing Engine: Track rendering, kart physics, and collision handling. (Worked on by: [Add Name])
+**3D Racing Engine:** Track rendering, kart physics, and collision handling. (Worked on by: gpicchio, ftersill)
 
-Multiplayer Syncing: Real-time kart position syncing via WebSockets. (Worked on by: [Add Name])
+**Multiplayer Syncing:** Real-time kart position syncing via WebSockets. (Worked on by: vcastald, gpicchio, ftersill)
 
-AI Bots: Computer-controlled opponents. (Worked on by: [Add Name])
+**AI Bots:** Computer-controlled opponents. (Worked on by: gpicchio)
 
-Tournaments: Bracket systems to manage multiple races. (Worked on by: [Add Name])
+**Tournaments:** Bracket systems to manage multiple races. (Worked on by: vcastald, ftersill)
 
-Power-ups: In-game items to gain advantages over opponents. (Worked on by: [Add Name])
+**Power-ups:** In-game items to gain advantages over opponents. (Worked on by: gpicchio)
 
 ## Modules
 We aimed for a total of 19 points by implementing the following modules:
