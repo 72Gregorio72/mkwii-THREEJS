@@ -76,7 +76,6 @@ Solution: We resolved this by changing the transport method settings in the Nest
 ## Database Schema
 Below is the visual representation of our database schema, focused on standard user management and game statistics:
 
-Snippet di codice
 erDiagram
     USER {
         string Nickname
@@ -128,14 +127,14 @@ We aimed for a total of 19 points by implementing the following modules:
 
 
 ## Individual Contributions
-gpicchio (PO/Developer): * Features/Modules: [Describe what you coded, e.g., Set up Prisma ORM, built the Tournament logic, etc.]
+**gpicchio (PO/Developer):** Features/Modules: [Describe what you coded, e.g., Set up Prisma ORM, built the Tournament logic, etc.]
 
 Challenges overcome: [Describe a bug you fixed or a technical challenge you solved]
 
-vcastald (PM/Developer): * Features/Modules: [Describe what you coded, e.g., Created the Start script, developed the Zustand stores, built the User Management UI, etc.]
+**vcastald (PM/Developer):** Features/Modules: [Describe what you coded, e.g., Created the Start script, developed the Zustand stores, built the User Management UI, etc.]
 
 Challenges overcome: [Describe a bug you fixed or a technical challenge you solved]
 
-ftersill (TL/Developer): * Features/Modules: [Describe what you coded, e.g., Architected the Nginx proxy fix for Firefox, implemented the Three.js 3D graphics, built the WebSockets syncing, etc.]
+**ftersill (TL/Developer):** Features/Modules: [Describe what you coded, e.g., Architected the Nginx proxy fix for Firefox, implemented the Three.js 3D graphics, built the WebSockets syncing, etc.]
 
 Challenges overcome: Successfully debugged and resolved the self-signed certificate WebSocket issue on Firefox by configuring Nginx.
