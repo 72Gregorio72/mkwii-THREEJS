@@ -34,6 +34,9 @@ import GCNMarioCircuit_3 from '../Bot/Waypoints/GCNMarioCircuit/GCNMarioCircuit_
 import MarioCircuit_1 from '../Bot/Waypoints/MarioCircuit/MarioCircuit_1.json';
 import MarioCircuit_2 from '../Bot/Waypoints/MarioCircuit/MarioCircuit_2.json';
 import MarioCircuit_3 from '../Bot/Waypoints/MarioCircuit/MarioCircuit_3.json';
+import PeachBeach from '../Bot/Waypoints/PeachBeach/PeachBeach.json';
+import PeachBeachL from '../Bot/Waypoints/PeachBeach/PeachBeachL.json';
+import PeachBeachR from '../Bot/Waypoints/PeachBeach/PeachBeachR.json';
 
 
 const SMALL_VEHICLES = [
@@ -237,7 +240,7 @@ export const Tracks = {
 		itemBoxes: './Tracks/PeachBeach/peachBeach_itembox.glb',
 		gridpos: './Tracks/PeachBeach/peachBeach_startpos.glb',
 		road: './Tracks/PeachBeach/peachBeach_hitbox.glb',
-		Waypoints: [ DryDryRuins_1, DryDryRuins_2, DryDryRuins_3 ]
+		Waypoints: [ PeachBeach, PeachBeachL, PeachBeachR ]
 	}
 }
 
