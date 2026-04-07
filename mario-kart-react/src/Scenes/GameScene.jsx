@@ -1005,6 +1005,7 @@ export function GameScene({
 
     const handleRestartRace = useCallback(() => {
         // 1. Ferma tutto e metti la schermata di caricamento/transizione
+        setIsPaused(false);
         setIsTransitioning(true);
         setGameState('LOADING');
         stopMusic();
@@ -1165,25 +1166,43 @@ export function GameScene({
 
             {/* PAUSE MENU */}
             {isPaused && gameState === 'RACING' && (
-                <div className="fixed inset-0 z-[2000] bg-black/70 flex flex-col items-center justify-center">
-                    <h1 className="text-6xl font-black italic tracking-widest text-[#ffcc00] drop-shadow-md mb-12">
-                        PAUSA
-                    </h1>
-                    <div className="flex flex-col gap-6">
+                <div className="fixed inset-0 -top-20 z-[2000] bg-black/70 flex flex-col items-center justify-center">
+                    <img
+                        src="/Buttons_pause_menu.png"
+                        alt="Pause menu"
+                        className="w-[660px] md:w-[760px] h-auto mb-4 drop-shadow-[0_6px_12px_rgba(0,0,0,0.45)]"
+                    />
+                    <div className="flex flex-col gap-4 w-full max-w-xl px-6">
                         <button
                             onClick={() => setIsPaused(false)}
-                            className="px-8 py-4 bg-[#ffcc00] text-black font-bold text-xl rounded-lg hover:bg-yellow-300 transition-all duration-200 transform hover:scale-105"
+                            className="group relative w-full h-14 md:h-16 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] flex items-center justify-center px-6 overflow-hidden transition-all duration-200 hover:scale-105 hover:border-[#ffeebb] hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:bg-black/70 active:scale-95"
                         >
-                            Riprendi (ESC)
+                            <div className="absolute inset-0 z-[1] bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+                            <span className="relative z-[2] text-lg md:text-xl font-bold font-sans text-[#ddccaa] tracking-tight drop-shadow-[2px_2px_0_rgba(0,0,0,1)] uppercase group-hover:text-white transition-colors">
+                                Resume (ESC)
+                            </span>
                         </button>
+                        {isTimeTrial && (
+                            <button
+                                onClick={handleRestartRace}
+                                className="group relative w-full h-14 md:h-16 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] flex items-center justify-center px-6 overflow-hidden transition-all duration-200 hover:scale-105 hover:border-[#ffeebb] hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:bg-black/70 active:scale-95"
+                            >
+                                <div className="absolute inset-0 z-[1] bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+                                <span className="relative z-[2] text-lg md:text-xl font-bold font-sans text-[#ddccaa] tracking-tight drop-shadow-[2px_2px_0_rgba(0,0,0,1)] uppercase group-hover:text-white transition-colors">
+                                    Retry
+                                </span>
+                            </button>
+                        )}
                         <button
                             onClick={handleExitRace}
-                            className="px-8 py-4 bg-gray-600 text-white font-bold text-xl rounded-lg hover:bg-gray-700 transition-all duration-200 transform hover:scale-105"
+                            className="group relative w-full h-14 md:h-16 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] flex items-center justify-center px-6 overflow-hidden transition-all duration-200 hover:scale-105 hover:border-[#ffeebb] hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:bg-black/70 active:scale-95"
                         >
-                            Esci Gara
+                            <div className="absolute inset-0 z-[1] bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+                            <span className="relative z-[2] text-lg md:text-xl font-bold font-sans text-[#ddccaa] tracking-tight drop-shadow-[2px_2px_0_rgba(0,0,0,1)] uppercase group-hover:text-white transition-colors">
+                                Exit Race
+                            </span>
                         </button>
                     </div>
-                    <p className="text-gray-300 mt-8 text-sm">Premi ESC per riprendere</p>
                 </div>
             )}
 
@@ -1255,14 +1274,14 @@ export function GameScene({
                     gl.outputColorSpace = THREE.SRGBColorSpace;
                 }}
             >
-                
 
-                {/* <WaypointRecorder
+
+                <WaypointRecorder
                     kartRef={playerRef}
                     isRecording={true}
                 >
 
-                </WaypointRecorder> */}
+                </WaypointRecorder>
 
 
                 <AudioListenerComponent />
