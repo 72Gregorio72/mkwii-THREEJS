@@ -230,7 +230,7 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
     characterConfig, selectedCharacter, vehicleConfig, START_POS, onCheckpoint, trackConfig, 
     isBot = false, waypoints = [], SETTINGS = DEFAULT_SETTINGS, START_ROT = [0, 0, 0], paths = [], userData,
     isRaceActive = true, onSpawnBanana, onSpawnGreenShell, onSpawnRedShell, rank, onSpawnBlueShell, onSpawnBomb, onHitOpponent, gameState,
-    positions, botRefs, socket, finished = false, roomCode, maxSpeed, isTimeTrial
+    positions, botRefs, socket, finished = false, roomCode, maxSpeed, isTimeTrial, isPaused = false
   } = props;
   
   const { world, rapier } = useRapier()
@@ -673,8 +673,12 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
   useFrame((state, delta) => {
     if (!rb.current) return;
 
-    if (!rb.current || gameState !== 'RACING') {
-        if(gameState === 'COUNTDOWN') {
+    if (!rb.current || gameState !== 'RACING' || isPaused) {
+        // Se è in pausa, congela il movimento orizzontale ma mantieni la gravità
+        if (isPaused && gameState === 'RACING') {
+            const vel = rb.current.linvel();
+            rb.current.setLinvel({x: 0, y: vel.y, z: 0}, true);
+        } else if(gameState === 'COUNTDOWN') {
             rb.current.setLinvel({x:0, y: rb.current.linvel().y, z:0}, true);
             speed.current = 0;
         }
