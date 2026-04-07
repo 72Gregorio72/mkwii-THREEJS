@@ -1274,13 +1274,14 @@ export function GameScene({
                     gl.outputColorSpace = THREE.SRGBColorSpace;
                 }}
             >
-                
 
-                {/* <WaypointRecorder
+
+                <WaypointRecorder
                     kartRef={playerRef}
                     isRecording={true}
                 >
-                </WaypointRecorder> */}
+
+                </WaypointRecorder>
 
 
                 <AudioListenerComponent />
