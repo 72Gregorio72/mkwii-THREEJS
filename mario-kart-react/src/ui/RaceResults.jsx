@@ -17,7 +17,6 @@ const mkwiiFontStyle = `
 `;
 
 export const calculatePoints = (racersDataObj) => {
-export const calculatePoints = (racersDataObj) => {
     if (!racersDataObj) return [];
 
     // 1. Converti l'oggetto racersData in un array
@@ -88,7 +87,7 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
     let displayName = racer.id;
     const isMe = displayName === socket?.id;
 
-	if (isMe) {
+    if (isMe) {
         displayName = 'PLAYER';
         bgGradient = 'from-[#0033aa] to-transparent'; 
         borderColor = 'border-[#00aeff]';
@@ -172,13 +171,10 @@ const LeaderBoard = ({ finished, racersData, socket }) => {
 }
 
 export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName, lobbyPlayers = [], isHost }) => {
-export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trackName, lobbyPlayers = [], isHost }) => {
   const navigate = useNavigate();
-  const { playSfx, changeTrack } = useAudio();
   const { playSfx, changeTrack } = useAudio();
   
   const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
-  const { roomCode } = useRoomDataStore();
   const { roomCode } = useRoomDataStore();
   const gameStore = useGameStore();
 
@@ -194,110 +190,65 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const updateRecordTimes = () => {
     if (isTimeTrial && finishers[0] && finishers[0].id === socket?.id) {
         const bestTime = finishers[0].finishTime;
-            fetch(`/api/updateRecordTime?userName=${userName}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trackname: trackName, time: bestTime })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Time updated:', data);
-            })
-            .catch(error => {
-                console.error('Error updating time:', error);
-            });
-        }
-    };
+        fetch(`/api/updateRecordTime?userName=${userName}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trackname: trackName, time: bestTime })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Time updated:', data);
+        })
+        .catch(error => {
+            console.error('Error updating time:', error);
+        });
+    }
+  };
 
-    const isMultiplayerRace = Boolean(roomCode);
-    const totalLobbyPlayers = lobbyPlayers.length;
-    const finishedHumanPlayers = finishers.filter((finisher) => !String(finisher.id).startsWith('bot_')).length;
-    const allLobbyPlayersFinished = !isMultiplayerRace
-        ? true
-        : totalLobbyPlayers > 0 && finishedHumanPlayers >= totalLobbyPlayers;
+  const isMultiplayerRace = Boolean(roomCode);
+  const totalLobbyPlayers = lobbyPlayers.length;
+  const finishedHumanPlayers = finishers.filter((finisher) => !String(finisher.id).startsWith('bot_')).length;
+  const allLobbyPlayersFinished = !isMultiplayerRace
+      ? true
+      : totalLobbyPlayers > 0 && finishedHumanPlayers >= totalLobbyPlayers;
 
-    const canHostQuitMultiplayer = isHost && allLobbyPlayersFinished;
+  const canHostQuitMultiplayer = isHost && allLobbyPlayersFinished;
 
-    const handleQuit = () => {
-        if (isMultiplayerRace && !canHostQuitMultiplayer) {
-            return;
-        }
+  const handleQuit = () => {
+      if (isMultiplayerRace && !canHostQuitMultiplayer) {
+          return;
+      }
 
-		playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
-		changeTrack('MENU', 500, true);
+      playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+      changeTrack('MENU', 500, true);
 
-			// In multiplayer i punti vengono ufficializzati solo quando l'host preme Quit.
-			if (socket?.connected && isHost && finishers?.length > 0 && racersData) {
-				socket.emit('race_finished', {
-					finishers,
-					racersData
-				});
-			}
+      // In multiplayer i punti vengono ufficializzati solo quando l'host preme Quit.
+      if (socket?.connected && isHost && finishers?.length > 0 && racersData) {
+          socket.emit('race_finished', {
+              finishers,
+              racersData
+          });
+      }
 
-		if (isTimeTrial) {
-			updateRecordTimes();
-			gameStore.setIsTimeTrial(false);
-			updateRecordTimes();
-		}
-		if (isGrandPrix) {
-			setIsGrandPrixFinished(true);
-			gameStore.setIsGrandPrix(false);
-		}
-		if (isMultiplayerRace) {
-			if (socket?.connected && isHost) {
-				socket.emit('return_to_waiting');
-			}
-			navigate('/waiting');
-		} else {
-			navigate('/menu');
-		}
-	};
-    const isMultiplayerRace = Boolean(roomCode);
-    const totalLobbyPlayers = lobbyPlayers.length;
-    const finishedHumanPlayers = finishers.filter((finisher) => !String(finisher.id).startsWith('bot_')).length;
-    const allLobbyPlayersFinished = !isMultiplayerRace
-        ? true
-        : totalLobbyPlayers > 0 && finishedHumanPlayers >= totalLobbyPlayers;
-
-    const canHostQuitMultiplayer = isHost && allLobbyPlayersFinished;
-
-    const handleQuit = () => {
-        if (isMultiplayerRace && !canHostQuitMultiplayer) {
-            return;
-        }
-
-		playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
-		changeTrack('MENU', 500, true);
-
-			// In multiplayer i punti vengono ufficializzati solo quando l'host preme Quit.
-			if (socket?.connected && isHost && finishers?.length > 0 && racersData) {
-				socket.emit('race_finished', {
-					finishers,
-					racersData
-				});
-			}
-
-		if (isTimeTrial) {
-			updateRecordTimes();
-			gameStore.setIsTimeTrial(false);
-			updateRecordTimes();
-		}
-		if (isGrandPrix) {
-			setIsGrandPrixFinished(true);
-			gameStore.setIsGrandPrix(false);
-		}
-		if (isMultiplayerRace) {
-			if (socket?.connected && isHost) {
-				socket.emit('return_to_waiting');
-			}
-			navigate('/waiting');
-		} else {
-			navigate('/menu');
-		}
-	};
+      if (isTimeTrial) {
+          updateRecordTimes();
+          gameStore.setIsTimeTrial(false);
+      }
+      if (isGrandPrix) {
+          setIsGrandPrixFinished(true);
+          gameStore.setIsGrandPrix(false);
+      }
+      if (isMultiplayerRace) {
+          if (socket?.connected && isHost) {
+              socket.emit('return_to_waiting');
+          }
+          navigate('/waiting');
+      } else {
+          navigate('/menu');
+      }
+  };
 
   const handlePlayAgain = () => {   
-    playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     updateRecordTimes();
     if (onPlayAgain) {
@@ -309,7 +260,6 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   };
 
   const handleNextRace = () => {
-    playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
     window.dispatchEvent(new CustomEvent('nextGrandPrixRace'));
   };
@@ -361,26 +311,9 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
     if (isMe) {
         displayName = 'YOU';
     } else if (finisher.id.startsWith('bot_')) {
-    let characterName = finisher.name || 'Mario';
-    
-    if (isMe) {
-        displayName = 'YOU';
-    } else if (finisher.id.startsWith('bot_')) {
        const parts = finisher.id.split('_');
        const botNum = parseInt(parts[1]) + 1;
        displayName = `CPU ${botNum}`;
-    } else {
-        console.log(`Looking for player info for ID: ${finisher.id} in lobbyPlayers:`, lobbyPlayers);
-        // Cerca il player nei lobbyPlayers per ottenere username e character
-        const playerInfo = lobbyPlayers.find(player => player.id === finisher.id);
-        if (playerInfo) {
-            displayName = playerInfo.username || finisher.id;
-            characterName = playerInfo.character?.name || finisher.name || 'Mario';
-        }
-    }
-
-    // Processa il nome del personaggio per l'icona
-    const processedCharacterName = characterName
     } else {
         console.log(`Looking for player info for ID: ${finisher.id} in lobbyPlayers:`, lobbyPlayers);
         // Cerca il player nei lobbyPlayers per ottenere username e character
@@ -416,7 +349,6 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
                 {/* Icona Personaggio */}
                 <img 
                     src={`/sprites/${processedCharacterName}.png`} 
-                    alt={processedCharacterName}
                     alt={processedCharacterName}
                     className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-md"
                     onError={(e) => { e.target.style.display='none'; }}
@@ -505,7 +437,6 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
                 <button 
                     onClick={() => {
                         setShowResults(true);
-                        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
                         playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
                         setPointsData(calculatePoints(racersData));
                     }}
