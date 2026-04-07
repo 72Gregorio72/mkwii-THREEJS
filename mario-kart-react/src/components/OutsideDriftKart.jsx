@@ -1192,13 +1192,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
             frictionCombine="min"
             restitution={0}
             restitutionCombine="min" 
-			sensor={isBulletBill}
 			onCollisionEnter={handleCollisionEnter}
-			onIntersectionEnter={(payload) => {
-				if (isBulletBill) {
-					handleCollisionEnter(payload);
-				}
-			}}
         />
 
         <CylinderCollider 
