@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
 import { formatTime } from './GameHUD.jsx';
 import { socket } from '../multiplayer/socket.js';
-import { useGameDataStore, useGameStore, useRoomDataStore } from '../store.js';
+import { useGameDataStore, useGameStore, useRoomDataStore, useUserStore } from '../store.js';
 import { ShortType } from 'three/src/constants.js';
 
 // Font Injection (se non già presente globalmente)
@@ -174,6 +174,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
   const navigate = useNavigate();
   const { playSfx, changeTrack } = useAudio();
   
+  const { isLoggedIn: isLoggedIn } = useUserStore();
   const {isGrandPrix: isGrandPrix, isTimeTrial: isTimeTrial} = useGameStore();
   const { roomCode } = useRoomDataStore();
   const gameStore = useGameStore();
@@ -459,7 +460,18 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
             )}
 
             {/* 4. Bottone QUIT */}
-            {!isMultiplayerRace && isTimeTrial && (
+
+            {/* {!isLoggedIn && (
+                <button 
+                    onClick={handleQuit}
+                    className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
+                >
+                    <span className="text-gray-600 font-bold text-xl tracking-wide uppercase">Quit</span>
+                    <div className="w-8 h-8 rounded-full bg-[#ff4444] text-white flex items-center justify-center font-bold shadow-inner border border-white/50 group-hover:scale-110 transition-transform">✖</div>
+                </button>
+            )} */}
+
+            {((!isMultiplayerRace && isTimeTrial) || !isLoggedIn) && (
                 <button 
                     onClick={handleQuit}
                     className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"

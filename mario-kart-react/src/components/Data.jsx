@@ -37,6 +37,9 @@ import MarioCircuit_3 from '../Bot/Waypoints/MarioCircuit/MarioCircuit_3.json';
 import PeachBeach from '../Bot/Waypoints/PeachBeach/PeachBeach.json';
 import PeachBeachL from '../Bot/Waypoints/PeachBeach/PeachBeachL.json';
 import PeachBeachR from '../Bot/Waypoints/PeachBeach/PeachBeachR.json';
+import BowserCastle from '../Bot/Waypoints/BowserCastle/BowserCastle.json';
+import BowserCastleL from '../Bot/Waypoints/BowserCastle/BowserCastleL.json';
+import BowserCastleR from '../Bot/Waypoints/BowserCastle/BowserCastleR.json';
 
 
 const SMALL_VEHICLES = [
@@ -90,18 +93,18 @@ export const Tracks = {
 	// 	maxCheckpoints: 5,
     //     soundtrack: 'RACE_COCONUT_MALL'
 	// },
-	// 'Bowser Castle': {
-	// 	file: './Tracks/BowserCastle/BowserCastle.glb',
-	// 	preview: '/Previews/Bowser Castle.png',
-	// 	startPos: [0, 0, 100],
-	// 	checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
-	// 	maxCheckpoints: 7,
-	// 	soundtrack: 'RACE_BOWSER_CASTLE',
-	// 	itemBoxes: './Tracks/DaisyCircuit/DaisyCircuit_itemBox.glb',
-	// 	gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
-	// 	road: './Tracks/BowserCastle/BowserCastle_road.glb',
-	// 	Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
-	// },
+	'Bowser Castle': {
+		file: './Tracks/BowserCastle/BowserCastle.glb',
+		preview: '/Previews/Bowser Castle.png',
+		startPos: [0, 0, 100],
+		checkpoints: './Tracks/BowserCastle/BowserCastle_checkpoints.glb',
+		maxCheckpoints: 2,
+		soundtrack: 'RACE_BOWSER_CASTLE',
+		itemBoxes: './Tracks/BowserCastle/BowserCastle_itemboxes.glb',
+		gridpos: './Tracks/BowserCastle/BowserCastle_startpos.glb',
+		road: './Tracks/BowserCastle/BowserCastle_road.glb',
+		Waypoints: [ BowserCastle, BowserCastleL, BowserCastleR ]
+	},
 	'Delfino Square': {
 		file: './Tracks/DelfinoSquare/DelfinoSquare.glb',
 		preview: '/Previews/DS Delfino Square.png',
@@ -241,7 +244,19 @@ export const Tracks = {
 		gridpos: './Tracks/PeachBeach/peachBeach_startpos.glb',
 		road: './Tracks/PeachBeach/peachBeach_hitbox.glb',
 		Waypoints: [ PeachBeach, PeachBeachL, PeachBeachR ]
-	}
+	},
+	'SNES Ghost Valley 2': {
+		file: './Tracks/GhostValley/SNESGhostValley.glb',
+		preview: '/Previews/SNES Ghost Valley 2.png',
+		startPos: [0, 0, 50],
+		checkpoints: './Tracks/GhostValley/SNESGhostValley_checkpos.glb',
+		maxCheckpoints: 2,
+		soundtrack: 'RACE_PEACH_BEACH',
+		itemBoxes: './Tracks/GhostValley/SNESGhostValley_itembox.glb',
+		gridpos: './Tracks/GhostValley/SNESGhostValley_startpos.glb',
+		road: './Tracks/GhostValley/SNESGhostValley_road.glb',
+		Waypoints: [ PeachBeach, PeachBeachL, PeachBeachR  ]
+	},
 }
 
 export const grandPrixList = [
