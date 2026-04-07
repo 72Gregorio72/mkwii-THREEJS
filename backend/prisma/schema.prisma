@@ -97,6 +97,7 @@ model GrandPrix {
   userName  	String  // userName è la chiave esterna che fa riferimento al nome dell'utente
   ranking      	Int     // posizione nel gran prix
   grandPrixName     	String  // nome del circuito
+  ccs      	Int     @default(40)// cilindrata
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
