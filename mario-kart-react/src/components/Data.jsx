@@ -40,6 +40,9 @@ import PeachBeachR from '../Bot/Waypoints/PeachBeach/PeachBeachR.json';
 import BowserCastle from '../Bot/Waypoints/BowserCastle/BowserCastle.json';
 import BowserCastleL from '../Bot/Waypoints/BowserCastle/BowserCastleL.json';
 import BowserCastleR from '../Bot/Waypoints/BowserCastle/BowserCastleR.json';
+import GhostValley from '../Bot/Waypoints/GhostValley/GhostValley.json';
+import GhostValleyL from '../Bot/Waypoints/GhostValley/GhostValleyL.json';
+import GhostValleyR from '../Bot/Waypoints/GhostValley/GhostValleyR.json';
 
 
 const SMALL_VEHICLES = [
@@ -255,7 +258,7 @@ export const Tracks = {
 		itemBoxes: './Tracks/GhostValley/SNESGhostValley_itembox.glb',
 		gridpos: './Tracks/GhostValley/SNESGhostValley_startpos.glb',
 		road: './Tracks/GhostValley/SNESGhostValley_road.glb',
-		Waypoints: [ PeachBeach, PeachBeachL, PeachBeachR  ]
+		Waypoints: [ GhostValley, GhostValleyL, GhostValleyR  ]
 	},
 }
 
