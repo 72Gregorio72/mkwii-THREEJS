@@ -842,7 +842,7 @@ export function GameScene({
                     stopMusic();
                     if (racer.position === 1) {
                         changeTrack('FINISH_FIRST', 0, false, 1.0);
-                        if (!isTimeTrial && !roomCode && !isGrandPrix) {
+                        if (!isTimeTrial && !roomCode && isGrandPrix) {
                             sendWinToServer(true);
                         } else if (!isTimeTrial && roomCode && !isGrandPrix) {
                             sendWinToServer(false);

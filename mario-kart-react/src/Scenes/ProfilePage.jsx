@@ -184,8 +184,8 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Stato per i ranking dei Grand Prix
-    const [gpRankings, setGpRankings] = useState({});
+    // Stato per i ranking dei Grand Prix divisi per CC
+    const [gpRankings, setGpRankings] = useState({ 50: {}, 100: {}, 150: {} });
 
     // Dati simulati statistiche base
     const [userStats] = useState({
@@ -224,7 +224,7 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
         .catch((err) => console.error("Fetch error profile:", err));
     }, [userName, isLoggedIn]);
 
-    // 2. Fetch Grand Prix Rankings
+    // 2. Fetch Grand Prix Rankings diviso in 50cc, 100cc, 150cc
     useEffect(() => {
         if (!isLoggedIn || !userName || grandPrixList.length === 0) return;
         
@@ -233,17 +233,24 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
                 const res = await fetch(`/api/getGrandPrixRanking?userName=${userName}`);
                 if (res.ok) {
                     const data = await res.json();
-                    const bestRankings = {};
+                    const bestRankings = { 50: {}, 100: {}, 150: {} };
                     
                     data.forEach(gpRecord => {
                         const gpName = gpRecord.name || gpRecord.grandPrixName || gpRecord.cupName;
                         const gpRank = gpRecord.rank || gpRecord.ranking || gpRecord.position;
+                        const ccsValue = gpRecord.ccs;
+
                         
-                        if (gpName && gpRank) {
+                        let ccCategory = null;
+                        if (ccsValue == 30) ccCategory = 50;
+                        else if (ccsValue == 35) ccCategory = 100;
+                        else if (ccsValue == 40) ccCategory = 150;
+                        
+                        if (gpName && gpRank && ccCategory) {
                             const currentRank = parseInt(gpRank, 10);
                             
-                            if (!bestRankings[gpName] || currentRank < bestRankings[gpName]) {
-                                bestRankings[gpName] = currentRank;
+                            if (!bestRankings[ccCategory][gpName] || currentRank < bestRankings[ccCategory][gpName]) {
+                                bestRankings[ccCategory][gpName] = currentRank;
                             }
                         }
                     });
@@ -583,40 +590,60 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
                                 <div className="flex-1 bg-[#222] border-4 border-[#ffff] shadow-inner p-4 grid grid-cols-2 gap-4 relative overflow-hidden">
                                     <div className="absolute inset-0 opacity-5 pointer-events-none bg-[repeating-linear-gradient(0deg,white_0px,white_1px,transparent_1px,transparent_3px)]"></div>
                                     
-                                    {/* GRAND PRIX RANKINGS CON QUADRATI AFFIANCATI */}
-                                    <div className="col-span-2 bg-[#333] border border-[#ffff] p-3 flex flex-col justify-center relative shadow-inner">
-                                        <span className="text-[#aaa] text-xs uppercase font-bold mb-3 text-center tracking-widest">
-                                            Grand Prix Records
-                                        </span>
-                                        <div className="flex justify-evenly items-center w-full">
-                                            {grandPrixList.map((gp, idx) => {
-                                                const rank = gpRankings[gp.name];
-                                                let squareClass = "bg-[#444] border-[#222]"; // Default (non piazzato)
-                                                
-                                                if (rank === 1) { 
-                                                    squareClass = "bg-[#FFD700] border-[#B8860B] shadow-[0_0_8px_#FFD700]"; 
-                                                } else if (rank === 2) { 
-                                                    squareClass = "bg-[#C0C0C0] border-[#808080] shadow-[0_0_8px_#C0C0C0]"; 
-                                                } else if (rank === 3) { 
-                                                    squareClass = "bg-[#CD7F32] border-[#8B4513] shadow-[0_0_8px_#CD7F32]"; 
-                                                }
+                                    {/* GRAND PRIX RANKINGS (MARIO KART WII STYLE GRID) */}
+                                    <div className="col-span-2 border-[4px] border-[#c0c0c0] bg-[#e0e0e0] rounded-sm p-[2px] shadow-[2px_2px_5px_rgba(0,0,0,0.5)] z-10 relative">
+                                        <div className="w-full border-[2px] border-[#555] flex flex-col font-sans"
+                                             style={{
+                                                 backgroundImage: "linear-gradient(45deg, #0000d0 25%, transparent 25%, transparent 75%, #0000d0 75%, #0000d0), linear-gradient(45deg, #0000d0 25%, transparent 25%, transparent 75%, #0000d0 75%, #0000d0)",
+                                                 backgroundSize: "8px 8px",
+                                                 backgroundPosition: "0 0, 4px 4px",
+                                                 backgroundColor: "#0000aa"
+                                             }}>
 
-                                                return (
-                                                    <div key={gp.id || idx} className="relative flex items-center gap-2 group" title={gp.name}>
-                                                        {/* Icona Grand Prix */}
-                                                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all">
-                                                            <span className={`text-lg md:text-2xl ${!rank || rank > 3 ? 'opacity-30 grayscale' : 'drop-shadow-md'}`}>
-                                                                {gp.icon}   
-                                                            </span>
+                                            {/* Intestazione Coppe (Icone) */}
+                                            <div className="flex w-full border-b-[3px] border-[#d3d3d3] bg-black/20">
+                                                <div className="w-[60px] md:w-[80px] shrink-0 border-r-[3px] border-[#d3d3d3]"></div>
+                                                <div className="flex-1 flex">
+                                                    {grandPrixList.map((gp, idx) => (
+                                                        <div key={idx} className="flex-1 flex justify-center items-center py-1 border-r-[3px] border-[#c0c0c0] last:border-r-0" title={gp.name}>
+                                                            <span className="text-xs md:text-base drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">{gp.icon}</span>
                                                         </div>
-                                                        {/* Quadrato Ranking */}
-                                                        <div className={`w-4 h-4 rounded-sm border-2 ${squareClass}`}></div>
+                                                    ))}
+                                                    {grandPrixList.length === 0 && (
+                                                        <div className="flex-1 p-2 text-center text-white/50 text-xs italic">No Data</div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Righe Cilindrate */}
+                                            {grandPrixList.length > 0 && [50, 100, 150].map((cc) => (
+                                                <div key={cc} className="flex w-full border-b-[3px] border-[#d3d3d3] last:border-b-0">
+                                                    <div className="w-[60px] md:w-[80px] shrink-0 border-r-[3px] border-[#d3d3d3] flex items-center justify-center bg-black/20">
+                                                        <span className="text-white font-bold text-xs md:text-sm drop-shadow-[1px_1px_0_#000]">{cc}cc</span>
                                                     </div>
-                                                );
-                                            })}
-                                            {grandPrixList.length === 0 && (
-                                                <span className="text-gray-500 italic text-sm">No Grand Prix data available</span>
-                                            )}
+                                                    <div className="flex-1 flex">
+                                                        {grandPrixList.map((gp, idx) => {
+                                                            const rank = gpRankings[cc]?.[gp.name];
+                                                            let isRanked = rank >= 1 && rank <= 3;
+                                                            let squareClass = "bg-[#444] border-t-[#222] border-l-[#222] border-b-[#666] border-r-[#666]";
+
+                                                            if (rank === 1) {
+                                                                squareClass = "bg-gradient-to-br from-[#FFF59D] via-[#FBC02D] to-[#F57F17] border-t-[#FFFDE7] border-l-[#FFFDE7] border-b-[#E65100] border-r-[#E65100]";
+                                                            } else if (rank === 2) {
+                                                                squareClass = "bg-gradient-to-br from-[#E0E0E0] via-[#9E9E9E] to-[#616161] border-t-[#FAFAFA] border-l-[#FAFAFA] border-b-[#424242] border-r-[#424242]";
+                                                            } else if (rank === 3) {
+                                                                squareClass = "bg-gradient-to-br from-[#FFCC80] via-[#F57C00] to-[#E65100] border-t-[#FFE0B2] border-l-[#FFE0B2] border-b-[#BF360C] border-r-[#BF360C]";
+                                                            }
+
+                                                            return (
+                                                                <div key={idx} className="flex-1 flex justify-center items-center p-1 border-r-[3px] border-[#c0c0c0] last:border-r-0 bg-black/30 shadow-[inset_0_0_4px_rgba(0,0,0,0.5)]">
+                                                                    <div className={`w-3.5 h-3.5 md:w-5 md:h-5 rounded-sm border-[1.5px] ${squareClass} ${isRanked ? 'shadow-[0_0_3px_rgba(0,0,0,0.8)]' : 'opacity-40'}`}></div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
 
@@ -624,21 +651,21 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
                                     <div className="col-span-2 bg-[#001133] border border-[#004488] p-2 flex flex-col justify-center px-4 relative mt-2">
                                         <div className="flex justify-between text-xs font-bold uppercase mb-1 z-10">
                                             <span className="text-[#00aeff]">Online Wins</span>
-                                            <span className="text-white">{data?.onlineWins ?? userStats.onlineWins}%</span>
+                                            <span className="text-white">{data?.onlineWins ?? userStats.onlineWins}</span>
                                         </div>
-                                        <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#004488] z-10">
+                                        {/* <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#004488] z-10">
                                             <div className="h-full bg-gradient-to-r from-[#004488] to-[#00aeff]" style={{width: `${data?.onlineWins ?? userStats.onlineWins}%`}}></div>
-                                        </div>
+                                        </div> */}
                                     </div>
                                     
                                     <div className="col-span-2 bg-[#332200] border border-[#886600] p-2 flex flex-col justify-center px-4 relative">
                                         <div className="flex justify-between text-xs font-bold uppercase mb-1 z-10">
                                             <span className="text-[#ffcc00]">Offline Wins</span>
-                                            <span className="text-white">{data?.offlineWins ?? userStats.offlineWins}%</span>
+                                            <span className="text-white">{data?.offlineWins ?? userStats.offlineWins}</span>
                                         </div>
-                                        <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#886600] z-10">
+                                        {/* <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#886600] z-10">
                                             <div className="h-full bg-gradient-to-r from-[#886600] to-[#ffcc00]" style={{width: `${data?.offlineWins ?? userStats.offlineWins}%`}}></div>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </div>
                             </div>

@@ -73,8 +73,8 @@ export class UsersController {
     }
 
     @Post('updateRankingGrandPrix')
-    async updateRankingGrandPrix(@Query('userName') userName: string, @Body() body: { grandPrixName: string, ranking: number }) {
-        return await this.userService.updateRankingGrandPrix(userName, body.grandPrixName, body.ranking);
+    async updateRankingGrandPrix(@Query('userName') userName: string, @Body() body: { grandPrixName: string, ranking: number, ccs: number }) {
+        return await this.userService.updateRankingGrandPrix(userName, body.grandPrixName, body.ranking, body.ccs);
     }
 
 }
