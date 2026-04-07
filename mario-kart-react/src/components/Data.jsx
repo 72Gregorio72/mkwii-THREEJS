@@ -227,9 +227,9 @@ export const Tracks = {
 		Waypoints: [ DryDryRuins_1, DryDryRuins_2, DryDryRuins_3 ]
     },
 
-	'Peach Beach': {
+	'GCN Peach Beach': {
 		file: './Tracks/PeachBeach/peachBeach.glb',
-		preview: '/Previews/Peach Beach.png',
+		preview: '/Previews/GCN Peach Beach.png',
 		startPos: [0, 0, 50],
 		checkpoints: './Tracks/PeachBeach/peachBeach_checkpoints.glb',
 		maxCheckpoints: 2,
