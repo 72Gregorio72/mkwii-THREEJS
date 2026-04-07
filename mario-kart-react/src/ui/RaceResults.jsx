@@ -459,7 +459,7 @@ export const RaceResults = ({ finishers, onPlayAgain, racersData, userName, trac
             )}
 
             {/* 4. Bottone QUIT */}
-            {!isMultiplayerRace && (
+            {!isMultiplayerRace && isTimeTrial && (
                 <button 
                     onClick={handleQuit}
                     className="pointer-events-auto flex items-center gap-3 bg-white px-8 py-2.5 rounded-full border-[3px] border-[#cccccc] shadow-[0_4px_0_#999999] active:shadow-none active:translate-y-[4px] hover:bg-[#f0f0f0] transition-all cursor-pointer group w-84 justify-between"
