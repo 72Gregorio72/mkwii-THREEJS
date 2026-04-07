@@ -249,7 +249,7 @@ export const grandPrixList = [
 			id: 'mushroom',
 			name: 'Mushroom Cup',
 			trophy: '/Trophies/MushroomCup.glb', // Sostituibile con lo sprite del trofeo del Mushroom Cup
-			icon: <img src="/itemSprites/Mushroom.png" alt="Mushroom Cup" className="w-30 h-30" />, // Sostituibile con <img src="/sprites/mushroom_cup.png" /> se hai lo sprite
+			icon: <img src="/itemSprites/Mushroom.png" alt="Mushroom Cup" className="w-15 h-15" />, // Sostituibile con <img src="/sprites/mushroom_cup.png" /> se hai lo sprite
 			bgColor: 'from-[#ff4444] to-[#aa0000]',
 			ringColor: 'ring-[#ff8888]',
 			tracks: [
@@ -263,7 +263,7 @@ export const grandPrixList = [
 			id: 'shell',
 			name: 'Shell Cup',
 			trophy: '/Trophies/ShellCup.glb', // Sostituibile con lo sprite del trofeo della Shell Cup
-			icon: <img src="/itemSprites/GreenShell.png" alt="Shell Cup" className="w-30 h-30" />, // Sostituibile con lo sprite del guscio verde
+			icon: <img src="/itemSprites/GreenShell.png" alt="Shell Cup" className="w-15 h-15" />, // Sostituibile con lo sprite del guscio verde
 			bgColor: 'from-[#44cc44] to-[#008800]',
 			ringColor: 'ring-[#88ff88]',
 			tracks: [
@@ -277,9 +277,24 @@ export const grandPrixList = [
 			id: 'banana',
 			name: 'Banana Cup',
 			trophy: '/Trophies/BananaCup.glb', // Sostituibile con lo sprite del trofeo del Banana Cup
-			icon: <img src="/itemSprites/Banana.png" alt="Banana Cup" className="w-30 h-30" />, // Sostituibile con lo sprite della banana
+			icon: <img src="/itemSprites/Banana.png" alt="Banana Cup" className="w-15 h-15" />, // Sostituibile con lo sprite della banana
 			bgColor: 'from-[#ffcc00] to-[#ff9900]',
 			ringColor: 'ring-[#ffff00]',
+			tracks: [
+				"DS Desert Hills",
+				"N64 Mario Raceway",
+				"Mario Circuit",
+				"Dry Dry Ruins",
+			]
+		},
+
+		{
+			id: 'star',
+			name: 'Star Cup',
+			trophy: '/Trophies/StarCup.glb', // Sostituibile con lo sprite del trofeo del Star Cup
+			icon: <img src="/itemSprites/Star.png" alt="Star Cup" className="w-15 h-15" />, // Sostituibile con lo sprite della stella
+			bgColor: 'from-[#ffff00] to-[#ffcc00]',
+			ringColor: 'ring-[#ffffff]',
 			tracks: [
 				"DS Desert Hills",
 				"N64 Mario Raceway",

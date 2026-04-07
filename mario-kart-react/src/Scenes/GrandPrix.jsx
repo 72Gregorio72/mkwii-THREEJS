@@ -146,7 +146,7 @@ export const GrandPrix = () => {
                 {/* AREA CENTRALE: SELEZIONE GRAN PREMI */}
                 <div className="flex-1 min-h-0 flex items-center justify-center pt-[22vh] pb-2 px-8 w-full z-20">
                     
-                    <div className="w-full max-w-5xl flex flex-col md:flex-row gap-6 justify-center items-stretch h-full max-h-[70vh]">
+                    <div className="w-full max-w-7xl flex flex-col md:flex-row gap-6 justify-center items-stretch h-full max-h-[70vh]">
                         
                         {grandPrixList.map((cup) => (
                             <div 
