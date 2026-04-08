@@ -254,7 +254,7 @@ export const Tracks = {
 		startPos: [0, 0, 50],
 		checkpoints: './Tracks/GhostValley/SNESGhostValley_checkpos.glb',
 		maxCheckpoints: 2,
-		soundtrack: 'RACE_PEACH_BEACH',
+		soundtrack: 'RACE_GHOST_VALLEY',
 		itemBoxes: './Tracks/GhostValley/SNESGhostValley_itembox.glb',
 		gridpos: './Tracks/GhostValley/SNESGhostValley_startpos.glb',
 		road: './Tracks/GhostValley/SNESGhostValley_road.glb',
@@ -314,8 +314,8 @@ export const grandPrixList = [
 			bgColor: 'from-[#ffff00] to-[#ffcc00]',
 			ringColor: 'ring-[#ffffff]',
 			tracks: [
-				"DS Desert Hills",
-				"N64 Mario Raceway",
+				"GCN Peach Beach",
+				"SNES Ghost Valley 2",
 				"Mario Circuit",
 				"Dry Dry Ruins",
 			]
@@ -1109,6 +1109,8 @@ export const AUDIO_TRACKS = {
 	RACE_BOWSER_CASTLE: '/soundTracks/BOWSER_CASTLE_ST.mp3',
 	RACE_PEACH_GARDENS: '/soundTracks/PEACH_GARDENS_ST.mp3',
 	RACE_DRY_DRY_RUINS: '/soundTracks/DRY_DRY_RUINS_ST.mp3',
+	RACE_PEACH_BEACH: '/soundTracks/GCN_PEACH_BEACH_ST.mp3',
+	RACE_GHOST_VALLEY: '/soundTracks/SNES_GHOST_VALLEY_2_ST.mp3',
 	FINISH_FIRST: '/soundTracks/FINISH_1ST.mp3',
 	FINISH_SECOND_FOURTH: '/soundTracks/FINISH_2ND-4TH.mp3',
 	FINISH_FIFTH_TWELFTH: '/soundTracks/FINISH_5TH-12TH.mp3',
