@@ -13,6 +13,7 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
     const meshRef = useRef();
     const homingAudioRef = useRef();
     const [isActive, setIsActive] = useState(true);
+    const isDestroyedRef = useRef(false); // Previeni double-destruction
     const velocityVec = useMemo(() => new THREE.Vector3(...initVelocity), [initVelocity]);
 
     useEffect(() => {
@@ -28,10 +29,6 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
         
         const timer = setTimeout(() => {
             setIsActive(false);
-            // Aspetta che React smonta il componente prima di notificare la distruzione
-            setTimeout(() => {
-                if (onDestroy) onDestroy();
-            }, 100);
         }, 15000);
         
         // Cleanup
@@ -39,6 +36,22 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
             clearTimeout(timer);
         };
     }, []);
+
+    useEffect(() => {
+        // Cleanup aggiuntivo quando il componente viene smontato (isActive diventa false)
+        if (!isActive) {
+            return () => {
+                if (!isDestroyedRef.current) {
+                    isDestroyedRef.current = true;
+                    try {
+                        if (onDestroy) onDestroy();
+                    } catch (e) {
+                        console.warn('Error during GreenShell cleanup:', e);
+                    }
+                }
+            };
+        }
+    }, [isActive, onDestroy]);
 
     useFrame((_state, delta) => {
         if (!isActive || !rb.current) return;
@@ -57,7 +70,7 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
     });
 
     const handleImpact = (payload) => {
-        if (!isActive) return;
+        if (!isActive || isDestroyedRef.current) return;
         
         const targetObj = payload.other.rigidBodyObject;
         if (!targetObj) return;
@@ -70,15 +83,17 @@ export const GreenShell = memo(function GreenShell({ position, initVelocity, onD
         
         if (isRacer) {
             setIsActive(false);
+            isDestroyedRef.current = true; // Marca come distrutto subito
             
             window.dispatchEvent(new CustomEvent('banana-hit', { 
                 detail: { victimId: userData?.id || targetName } 
             }));
             
-            // Aspetta che React smonta il componente prima di notificare la distruzione
-            setTimeout(() => {
+            try {
                 if (onDestroy) onDestroy();
-            }, 100);
+            } catch (e) {
+                console.warn('Error during GreenShell destruction:', e);
+            }
         }
     };
 

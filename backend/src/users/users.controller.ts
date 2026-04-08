@@ -77,4 +77,9 @@ export class UsersController {
         return await this.userService.updateRankingGrandPrix(userName, body.grandPrixName, body.ranking, body.ccs);
     }
 
+    @Get('searchUsers')
+    async searchUsers(@Query('query') query: string) {
+        return await this.userService.searchUsers(query);
+    }
+
 }

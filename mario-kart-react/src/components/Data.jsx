@@ -316,8 +316,8 @@ export const grandPrixList = [
 			tracks: [
 				"GCN Peach Beach",
 				"SNES Ghost Valley 2",
-				"Mario Circuit",
-				"Dry Dry Ruins",
+				"Bowser Castle",
+				"Luigi Circuit",
 			]
 		},
 ];
@@ -1109,6 +1109,8 @@ export const AUDIO_TRACKS = {
 	RACE_BOWSER_CASTLE: '/soundTracks/BOWSER_CASTLE_ST.mp3',
 	RACE_PEACH_GARDENS: '/soundTracks/PEACH_GARDENS_ST.mp3',
 	RACE_DRY_DRY_RUINS: '/soundTracks/DRY_DRY_RUINS_ST.mp3',
+	RACE_PEACH_BEACH: '/soundTracks/GCN_PEACH_BEACH_ST.mp3',
+	RACE_GHOST_VALLEY: '/soundTracks/SNES_GHOST_VALLEY_2_ST.mp3',
 	RACE_PEACH_BEACH: '/soundTracks/GCN_PEACH_BEACH_ST.mp3',
 	RACE_GHOST_VALLEY: '/soundTracks/SNES_GHOST_VALLEY_2_ST.mp3',
 	FINISH_FIRST: '/soundTracks/FINISH_1ST.mp3',

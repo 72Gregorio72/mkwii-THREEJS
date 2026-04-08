@@ -228,4 +228,26 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
       throw new ConflictException('Impossibile aggiornare il ranking del Gran Prix. Utente non trovato?');
     }
   }
+
+  async searchUsers(query: string): Promise<{ username: string; icon: string; isLoggedIn: boolean }[]> {
+    try {
+      const users = await this.prisma.user.findMany({
+        where: {
+          username: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+        select: {
+          username: true,
+          icon: true,
+          isLoggedIn: true,
+        },
+      });
+      return users;
+    } catch (error) {
+      console.error('Error searching users:', error);
+      return [];
+    }
+  }
 }
