@@ -953,13 +953,13 @@ export function GameScene({
     }, [activeMaxCheckpoints, playSfx, setMusicPitch, stopMusic, changeTrack, socket, roomCode, botRefs, sendWinToServer, isTimeTrial]);
 
     // 4. GESTIONE USCITA AGGIORNATA
-    const handleExitRace = useCallback(() => {
+    const handleExitRace = useCallback((destination = '/menu') => {
         setRaceExited(true);
         setGameState('LOADING');
         setIsTransitioning(true);
         setTimeout(() => { 
             setIsTransitioning(false);
-            navigate('/menu');
+            navigate(destination);
         }, 1000);
     }, [navigate]);
     
@@ -1119,7 +1119,7 @@ export function GameScene({
                     }
 
                     gameStore.setIsGrandPrix(false);
-                    handleExitRace();
+                    handleExitRace('/endGrandPrix');
                 }
             }
         };
@@ -1276,12 +1276,12 @@ export function GameScene({
             >
 
 
-                <WaypointRecorder
+                {/* <WaypointRecorder
                     kartRef={playerRef}
                     isRecording={true}
                 >
 
-                </WaypointRecorder>
+                </WaypointRecorder> */}
 
 
                 <AudioListenerComponent />
