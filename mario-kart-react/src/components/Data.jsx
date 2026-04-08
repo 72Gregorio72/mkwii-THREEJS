@@ -95,7 +95,7 @@ export const Tracks = {
 		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
 		maxCheckpoints: 2,
 		soundtrack: 'RACE_BOWSER_CASTLE',
-		itemBoxes: './Tracks/BowserCastle/BowserCastle_itemboxes.glb',
+		itemBoxes: './Tracks/CoconutMall/CoconutMall_itemboxes.glb',
 		gridpos: './Tracks/CoconutMall/CoconutMall_startpos.glb',
 		road: './Tracks/CoconutMall/CoconutMall_hitboxes.glb',
 		Waypoints: [ BowserCastle, BowserCastleL, BowserCastleR ]
