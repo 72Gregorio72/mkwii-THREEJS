@@ -316,7 +316,7 @@ export const grandPrixList = [
 			tracks: [
 				"GCN Peach Beach",
 				"SNES Ghost Valley 2",
-				"Mario Circuit",
+				"Bowser Castle",
 				"Luigi Circuit",
 			]
 		},

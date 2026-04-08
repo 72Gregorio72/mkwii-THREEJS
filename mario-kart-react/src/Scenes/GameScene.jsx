@@ -956,7 +956,20 @@ export function GameScene({
     const handleExitRace = useCallback((destination = '/menu') => {
         setRaceExited(true);
         setGameState('LOADING');
-        setIsTransitioning(true);
+        setIsTransitioning(true); 
+        if (roomCode && socket) {
+            socket.emit('leave_room', { roomCode });
+            socket.once('room_closed', () => {
+                if (!isHost) {
+                    gameStore.setHostLeft(true);
+                }
+                resetRoomState();
+                setTimeout(() => { 
+                    setIsTransitioning(false);
+                    navigate(destination);
+                }, 1000);
+            });
+        }
         setTimeout(() => { 
             setIsTransitioning(false);
             navigate(destination);
@@ -1160,8 +1173,7 @@ export function GameScene({
                 totalLaps={TOTAL_LAPS} 
                 rank={playerRank} 
                 gameState={gameState} 
-                finished={finished} 
-                onExit={handleExitRace}
+                finished={finished}
             />
 
             {/* PAUSE MENU */}
@@ -1194,7 +1206,7 @@ export function GameScene({
                             </button>
                         )}
                         <button
-                            onClick={handleExitRace}
+                            onClick={() => handleExitRace('/menu')}
                             className="group relative w-full h-14 md:h-16 bg-black/60 border-y-2 border-x-4 border-[#aa8800] rounded-sm shadow-[0_5px_15px_rgba(0,0,0,0.6)] flex items-center justify-center px-6 overflow-hidden transition-all duration-200 hover:scale-105 hover:border-[#ffeebb] hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:bg-black/70 active:scale-95"
                         >
                             <div className="absolute inset-0 z-[1] bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
