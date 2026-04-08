@@ -1263,10 +1263,6 @@ export function GameScene({
                 </div>
             )}
 
-            {/* <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[0]} />
-            <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[1]}/>
-            <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[2]}/> */}
-
             <Canvas
                 gl={{
                     powerPreference: "high-performance",
@@ -1287,9 +1283,17 @@ export function GameScene({
                 }}
             >
 
+                {/* {activeTrackConfig?.Waypoints?.[0] && (
+                    <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[0]} lineColor="#00e5ff" />
+                )}
+                {activeTrackConfig?.Waypoints?.[1] && (
+                    <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[1]} lineColor="#ffd400" />
+                )}
+                {activeTrackConfig?.Waypoints?.[2] && (
+                    <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[2]} lineColor="#ff5a7a" />
+                )} */}
 
 
-                {/* <WaypointRecorder
                 {/* <WaypointRecorder
                     kartRef={playerRef}
                     isRecording={true}
