@@ -10,9 +10,9 @@ import YoshiFalls_3 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_3';
 import SNESMario1 from '../Bot/Waypoints/SNESMarioCircuit/SNESMario1.json';
 import SNESMarioR from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioR.json';
 import SNESMarioL from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioL.json';
-import PeachGardens_1 from '../Bot/Waypoints/PeachGardens/PeachGardens_1.json';
-import PeachGardens_2 from '../Bot/Waypoints/PeachGardens/PeachGardens_2.json';
-import PeachGardens_3 from '../Bot/Waypoints/PeachGardens/PeachGardens_3.json';
+import PeachGardens from '../Bot/Waypoints/PeachGardens/PeachGardens.json';
+import PeachGardens_L from '../Bot/Waypoints/PeachGardens/PeachGardens_L.json';
+import PeachGardens_R from '../Bot/Waypoints/PeachGardens/PeachGardens_R.json';
 import LuigiCircuit from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit.json';
 import LuigiCircuit_L from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_L.json';
 import LuigiCircuit_R from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_R.json';
@@ -155,7 +155,7 @@ export const Tracks = {
         itemBoxes: './Tracks/PeachGardens/PeachGardens_itembox.glb',
         gridpos: './Tracks/PeachGardens/PeachGardens_startpos.glb',
         road: './Tracks/PeachGardens/PeachGardens_road.glb',
-		Waypoints: [ PeachGardens_1, PeachGardens_2, PeachGardens_3 ]
+		Waypoints: [ PeachGardens, PeachGardens_L, PeachGardens_R ]
     },
 
     'SNES Mario Circuit': {
