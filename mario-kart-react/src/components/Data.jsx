@@ -317,7 +317,7 @@ export const grandPrixList = [
 				"GCN Peach Beach",
 				"SNES Ghost Valley 2",
 				"Mario Circuit",
-				"Dry Dry Ruins",
+				"Luigi Circuit",
 			]
 		},
 ];
