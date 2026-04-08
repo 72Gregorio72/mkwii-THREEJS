@@ -13,9 +13,9 @@ import SNESMarioL from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioL.json';
 import PeachGardens_1 from '../Bot/Waypoints/PeachGardens/PeachGardens_1.json';
 import PeachGardens_2 from '../Bot/Waypoints/PeachGardens/PeachGardens_2.json';
 import PeachGardens_3 from '../Bot/Waypoints/PeachGardens/PeachGardens_3.json';
-import LuigiCircuit_1 from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_1.json';
-import LuigiCircuit_2 from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_2.json';
-import LuigiCircuit_3 from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_3.json';
+import LuigiCircuit from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit.json';
+import LuigiCircuit_L from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_L.json';
+import LuigiCircuit_R from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_R.json';
 import DS_DesertHills_1 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_1.json';
 import DS_DesertHills_2 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_2.json';
 import DS_DesertHills_3 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_3.json';
@@ -74,7 +74,7 @@ export const Tracks = {
 		gridpos: './Tracks/LuigiCircuit/LuigiCircuit_startpos.glb',
 		maxCheckpoints: 4,
         soundtrack: 'RACE_LUIGI_CIRCUIT',
-		Waypoints: [ LuigiCircuit_1, LuigiCircuit_2, LuigiCircuit_3 ]
+		Waypoints: [ LuigiCircuit, LuigiCircuit_L, LuigiCircuit_R ]
 	},
 	'Daisy Circuit': { 
 		file: './Tracks/DaisyCircuit/DaisyCircuit.glb',

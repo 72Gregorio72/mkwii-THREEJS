@@ -1,37 +1,90 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { Html, Line, Sphere } from '@react-three/drei'
-import { extend } from '@react-three/fiber'
 import * as THREE from 'three'
 
-// Register MeshBasicMaterial with React Three Fiber
-extend({ MeshBasicMaterial: THREE.MeshBasicMaterial })
+function normalizeWaypoints(input) {
+    if (!input) return []
+    if (Array.isArray(input)) return input
 
-export function WaypointVisualizer({ waypointsFile }) {
+    if (typeof input === 'object') {
+        if (Array.isArray(input.waypoints)) return input.waypoints
+        if (Array.isArray(input.points)) return input.points
+        if (Array.isArray(input.data)) return input.data
+    }
+
+    return []
+}
+
+export function WaypointVisualizer({ waypointsFile, lineColor = 'cyan' }) {
     const [waypoints, setWaypoints] = useState([])
     const [isVisible, setIsVisible] = useState(true)
 
     // Carica waypoints dal file JSON o da un percorso
     useEffect(() => {
-        if (waypointsFile) {
-            if (waypointsFile instanceof Blob || waypointsFile instanceof File) {
-                // Se è un File/Blob, usa FileReader
-                const reader = new FileReader()
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result)
-                        setWaypoints(data)
-                    } catch (error) {
-                        console.error("Errore nel parsing del JSON:", error)
-                    }
-                }
-                reader.readAsText(waypointsFile)
-            } else {
-                // Se è una stringa (percorso), usa fetch
-                fetch(waypointsFile)
-                    .then(res => res.json())
-                    .then(data => setWaypoints(data))
-                    .catch(error => console.error("Errore nel caricamento waypoints:", error))
+        let isCancelled = false
+
+        if (!waypointsFile) {
+            setWaypoints([])
+            return () => {
+                isCancelled = true
             }
+        }
+
+        const inlineWaypoints = normalizeWaypoints(waypointsFile)
+        if (inlineWaypoints.length > 0) {
+            setWaypoints(inlineWaypoints)
+            return () => {
+                isCancelled = true
+            }
+        }
+
+        if (waypointsFile instanceof Blob || waypointsFile instanceof File) {
+            // Se è un File/Blob, usa FileReader
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                if (isCancelled) return
+
+                try {
+                    const data = JSON.parse(e.target.result)
+                    setWaypoints(normalizeWaypoints(data))
+                } catch (error) {
+                    console.error('Errore nel parsing del JSON:', error)
+                    setWaypoints([])
+                }
+            }
+            reader.readAsText(waypointsFile)
+            return () => {
+                isCancelled = true
+            }
+        }
+
+        if (typeof waypointsFile === 'string') {
+            fetch(waypointsFile)
+                .then(res => res.json())
+                .then(data => {
+                    if (isCancelled) return
+
+                    try {
+                        setWaypoints(normalizeWaypoints(data))
+                    } catch (error) {
+                        console.error('Errore nel caricamento waypoints:', error)
+                        setWaypoints([])
+                    }
+                })
+                .catch(error => {
+                    if (isCancelled) return
+                    console.error('Errore nel caricamento waypoints:', error)
+                    setWaypoints([])
+                })
+
+            return () => {
+                isCancelled = true
+            }
+        }
+
+        setWaypoints([])
+        return () => {
+            isCancelled = true
         }
     }, [waypointsFile])
 
@@ -40,7 +93,22 @@ export function WaypointVisualizer({ waypointsFile }) {
         return waypoints.map(p => new THREE.Vector3(p.x, p.y + 0.5, p.z))
     }, [waypoints])
 
-    if (!isVisible || waypoints.length === 0) return null
+    const waypointColors = useMemo(() => {
+        if (waypoints.length === 0) return []
+        if (waypoints.length === 1) return ['#00ffff']
+
+        return waypoints.map((_, idx) => {
+            if (idx === 0) return '#00ff66'
+            if (idx === waypoints.length - 1) return '#ff3355'
+
+            const t = idx / (waypoints.length - 1)
+            const color = new THREE.Color()
+            color.setHSL(t, 0.95, 0.55)
+            return `#${color.getHexString()}`
+        })
+    }, [waypoints])
+
+    if (waypoints.length === 0) return null
 
     return (
         <group>
@@ -54,26 +122,26 @@ export function WaypointVisualizer({ waypointsFile }) {
                     fontFamily: 'monospace',
                     whiteSpace: 'nowrap',
                     cursor: 'pointer'
-                }} onClick={() => setIsVisible(!isVisible)}>
-                    👁️ TRACK: {waypoints.length} waypoints<br/>
-                    (Click to toggle)
+                }} onClick={() => setIsVisible(prev => !prev)}>
+                    TRACK: {waypoints.length} waypoints<br/>
+                    (Click to {isVisible ? 'hide' : 'show'})
                 </div>
             </Html>
 
             {/* LINEA DEL PERCORSO */}
-            {linePoints.length > 1 && (
+            {isVisible && linePoints.length > 1 && (
                 <Line
                     points={linePoints}
-                    color="cyan"
-                    lineWidth={2}
+                    color={lineColor}
+                    lineWidth={10}
                     dashed={false}
                 />
             )}
 
             {/* SFERE AI WAYPOINT */}
-            {waypoints.map((wp, idx) => (
+            {isVisible && waypoints.map((wp, idx) => (
                 <Sphere key={idx} position={[wp.x, wp.y + 0.3, wp.z]} args={[0.2, 8, 8]}>
-                    <MeshBasicMaterial color={idx === 0 ? "lime" : idx === waypoints.length - 1 ? "red" : "cyan"} />
+                    <meshBasicMaterial color={waypointColors[idx]} />
                 </Sphere>
             ))}
         </group>
