@@ -25,6 +25,7 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
     const [targetId, setTargetId] = useState(null); 
     const currentWpIndex = useRef(0);
     const isInitialized = useRef(false);
+    const isDestroyedRef = useRef(false); // Previeni double-destruction
 
     const v = useMemo(() => ({
         pos: new THREE.Vector3(),
@@ -64,17 +65,29 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         
         const timer = setTimeout(() => {
             setIsActive(false);
-            // Aspetta che React smonta il componente
-            setTimeout(() => {
-                if (onDestroy) onDestroy();
-            }, 100);
         }, 20000);
         
         // Cleanup
         return () => {
             clearTimeout(timer);
         };
-    }, [waypoints]);
+    }, [waypoints, position, initVelocity]);
+
+    useEffect(() => {
+        // Cleanup aggiuntivo quando il componente viene smontato (isActive diventa false)
+        if (!isActive) {
+            return () => {
+                if (!isDestroyedRef.current) {
+                    isDestroyedRef.current = true;
+                    try {
+                        if (onDestroy) onDestroy();
+                    } catch (e) {
+                        console.warn('Error during RedShell cleanup:', e);
+                    }
+                }
+            };
+        }
+    }, [isActive, onDestroy]);
 
     useFrame((state, delta) => {
         if (!isActive || !rb.current) return;
@@ -190,7 +203,7 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
     });
 
     const handleImpact = (payload) => {
-        if (!isActive) return;
+        if (!isActive || isDestroyedRef.current) return;
         
         const targetObj = payload.other.rigidBodyObject;
         if (!targetObj) return;
@@ -203,13 +216,15 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         
         if (victimId && victimId !== ownerId && isRacer) {
             setIsActive(false);
+            isDestroyedRef.current = true; // Marca come distrutto subito
             
             window.dispatchEvent(new CustomEvent('banana-hit', { detail: { victimId } }));
             
-            // Delay destruction to prevent physics errors
-            setTimeout(() => {
+            try {
                 if (onDestroy) onDestroy();
-            }, 100);
+            } catch (e) {
+                console.warn('Error during RedShell destruction:', e);
+            }
         }
     };
 

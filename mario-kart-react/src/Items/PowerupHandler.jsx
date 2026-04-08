@@ -144,7 +144,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    setCurrentItem(ITEMS.BULLET_BILL);
+    //setCurrentItem(ITEMS.GREEN_SHELL);
   };
 
 useEffect(() => {
@@ -282,15 +282,14 @@ useEffect(() => {
     if (position && position.current && onSpawnBanana) {
         const currentPos = position.current;
         const currentRot = rotation.current; 
-        const offsetDistance = 2.0; 
+        const offsetDistance = 4.5; // Aumentato da 2.0 per evitare autodistruzione
         const spawnX = currentPos.x + Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z + Math.cos(currentRot) * offsetDistance;
         const spawnY = currentPos.y + 1;
         const throwForce = 0;
 
-		setTimeout(() => {
-        	onSpawnBanana([spawnX, spawnY, spawnZ], [Math.sin(currentRot) * throwForce, 0, Math.cos(currentRot) * throwForce]);
-		}, 0);
+        // ISTANTANEO - no setTimeout per reattività
+        onSpawnBanana([spawnX, spawnY, spawnZ], [Math.sin(currentRot) * throwForce, 0, Math.cos(currentRot) * throwForce]);
         // console.log("Banana lanciata!");
     }
     setCurrentItem(ITEMS.NONE);
@@ -301,11 +300,11 @@ useEffect(() => {
         // ... (calcoli posizione esistenti) ...
         const currentPos = position.current;
         const currentRot = rotation.current;
-        const offsetDistance = 8.0; // Aumentato da 3.0 a 8.0 per evitare autodistruzione
+        const offsetDistance = 14.0; // Aumentato da 8.0 per massima protezione
         const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
         const spawnY = currentPos.y + 0.5;
-        const speed = 80; // Aumentato da 60 a 80 per partire più velocemente
+        const speed = 90; // Aumentato da 80 per partenza più veloce
         
         onSpawnGreenShell([spawnX, spawnY, spawnZ], [-Math.sin(currentRot) * speed, 0, -Math.cos(currentRot) * speed]);
     }
@@ -317,11 +316,11 @@ useEffect(() => {
         // ... (calcoli esistenti) ...
         const currentPos = position.current;
         const currentRot = rotation.current;
-        const offsetDistance = 10; // Aumentato da 6 a 10 per evitare autodistruzione
+        const offsetDistance = 16; // Aumentato da 10 per massima protezione
         const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
         const spawnY = currentPos.y + 0.8;
-        const initSpeed = 50; // Aumentato da 20 a 50 per partire più velocemente
+        const initSpeed = 65; // Aumentato da 50 per partenza più veloce
 
         onSpawnRedShell([spawnX, spawnY, spawnZ], [-Math.sin(currentRot) * initSpeed, 0, -Math.cos(currentRot) * initSpeed]);
     }
@@ -366,12 +365,12 @@ useEffect(() => {
     if (onSpawnBomb) {
         const currentPos = position.current;
         const currentRot = rotation.current; 
-        const offsetDistance = 3.0; 
+        const offsetDistance = 7.0; // Aumentato da 3.0 per evitare autodistruzione
         const spawnX = currentPos.x - Math.sin(currentRot) * offsetDistance;
         const spawnZ = currentPos.z - Math.cos(currentRot) * offsetDistance;
         const spawnY = currentPos.y + 1.5; 
-        const throwForce = 30; 
-        const upForce = 8;
+        const throwForce = 40; // Aumentato da 30 per partenza più veloce
+        const upForce = 12; // Aumentato da 8
 
         onSpawnBomb([spawnX, spawnY, spawnZ], [-Math.sin(currentRot) * throwForce, upForce, -Math.cos(currentRot) * throwForce]);
     }
