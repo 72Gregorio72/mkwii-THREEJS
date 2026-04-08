@@ -959,14 +959,14 @@ export function GameScene({
         setIsTransitioning(true); 
         if (roomCode && socket) {
             socket.emit('leave_room', { roomCode });
+            resetRoomState();
             socket.once('room_closed', () => {
                 if (!isHost) {
                     gameStore.setHostLeft(true);
                 }
-                resetRoomState();
                 setTimeout(() => { 
                     setIsTransitioning(false);
-                    navigate(destination);
+                    navigate('/menu', { replace: true });
                 }, 1000);
             });
         }
