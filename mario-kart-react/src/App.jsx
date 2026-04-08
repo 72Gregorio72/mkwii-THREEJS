@@ -248,6 +248,7 @@ export default function App() {
     const handleJoinRoom = (code, username) => {
         roomDataStore.setRoomCode(code);
         gameStore.setIsHost(false);
+        roomDataStore.setRoomCreated(true);
         socket.emit('join_room', { roomCode: code, username: username });
     };
 

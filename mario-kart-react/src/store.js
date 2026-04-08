@@ -33,10 +33,12 @@ export const useGameDataStore = create((set) => ({
 }))
 
 export const useRoomDataStore = create((set) => ({
+    roomCreated: false,
     roomId: null,
     roomCode: null,
     setRoomId: (newId) => set({roomdId: newId}),
-    setRoomCode: (newCode) => set({roomCode: newCode})
+    setRoomCode: (newCode) => set({roomCode: newCode}),
+    setRoomCreated: (value) => set({roomCreated: value}),
 }))
 
 export const useNotificationsStore = create((set) => ({

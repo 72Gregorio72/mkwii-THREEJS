@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAudio, AUDIO_SFX } from '../audio/AudioManager.jsx';
-import { useNotificationsStore, useUserStore } from '../store.js';
+import { useNotificationsStore, useRoomDataStore, useUserStore } from '../store.js';
 import { socket } from '../multiplayer/socket.js';
 
 // Componente Pulsante Menu (Stile MKWii Options riutilizzato)
@@ -64,15 +64,14 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
     }
   }, [changeTrack, enableSmoothLoop]);
 
-  // Listen for room_state
-  useEffect(() => {
+    useEffect(() => {
     if (socket) {
       const handleRoomState = (data) => {
-          setFadeToBlack(true);
-          fadeOutMusic(700);
-          setTimeout(() => {
-              navigate('/character');
-          }, 700);
+            setFadeToBlack(true);
+            fadeOutMusic(700);
+            setTimeout(() => {
+                navigate('/character');
+            }, 700);
       };
       
       socket.on('room_state', handleRoomState);
@@ -131,37 +130,41 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
       }
   };
 
-  // Funzioni per gli inviti
-  const handleAcceptInvite = (code, notificationId) => {
-      playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
-      fetch(`/api/deleteNotification?notificationId=${notificationId}`, { method: 'DELETE' })
-          .then(res => {
-              if (!res.ok) throw new Error("Failed to delete notification");
-            setShowDropdown(false);
-                        setNotifications(prev => {
-                                const next = prev.filter(notif => notif.id !== notificationId);
-                                setPendingRoomInvites(next.length);
-                                return next;
-                        });
-            onJoinRoom(code.trim(), username);
-          })
-          .catch(err => console.error("Error deleting notification:", err));
-  };
+    const handleAcceptInvite = (code, notificationId) => {
+        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+        fetch(`/api/deleteNotification?notificationId=${notificationId}`, { method: 'DELETE' })
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to delete notification");
+                setShowDropdown(false);
+                
+                // 1. Calculate the new state outside of the updater function
+                const updatedNotifications = notifications.filter(notif => notif.id !== notificationId);
+                
+                // 2. Call both setters sequentially
+                setNotifications(updatedNotifications);
+                setPendingRoomInvites(updatedNotifications.length);
+                
+                onJoinRoom(code.trim(), username);
+            })
+            .catch(err => console.error("Error deleting notification:", err));
+    };
 
-  const handleRejectInvite = (id) => {
-      playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
+    const handleRejectInvite = (id) => {
+        playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
         console.log(`Rejecting invite with notification ID: ${id}`);
         fetch(`/api/deleteNotification?notificationId=${id}`, { method: 'DELETE' })
-          .then(res => {
-              if (!res.ok) throw new Error("Failed to delete notification");
-                setNotifications(prev => {
-                    const next = prev.filter(notif => notif.id !== id);
-                    setPendingRoomInvites(next.length);
-                    return next;
-                });
-          })
-  };
-
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to delete notification");
+                
+                // 1. Calculate the new state outside of the updater function
+                const updatedNotifications = notifications.filter(notif => notif.id !== id);
+                
+                // 2. Call both setters sequentially
+                setNotifications(updatedNotifications);
+                setPendingRoomInvites(updatedNotifications.length);
+            })
+            .catch(err => console.error("Error deleting notification:", err));
+    };
   const toggleNotifications = () => {
       playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
       setShowDropdown(!showDropdown);
@@ -295,7 +298,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
                         />
                         <MenuButton 
                             title="Join Room" 
-                            onClick={handleJoinClick}
+                            onClick={() => handleJoinClick()}
                             bgImage="/buttonsImg/chara_6_koopa_00.png"
                             showNotificationDot={pendingRoomInvites > 0}
                         />
@@ -382,7 +385,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
                             />
 
                             <button 
-                                onClick={handleConfirmJoin}
+                                onClick={() => handleConfirmJoin()}
                                 disabled={!roomCode.trim()}
                                 className={`
                                     group relative w-full h-20 mt-4 border-2 border-[#aa8800] rounded-full shadow-lg overflow-hidden transition-all
