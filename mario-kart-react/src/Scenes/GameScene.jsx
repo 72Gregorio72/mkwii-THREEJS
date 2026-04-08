@@ -1284,6 +1284,7 @@ export function GameScene({
             >
 
                 {/* {activeTrackConfig?.Waypoints?.[0] && (
+                {/* {activeTrackConfig?.Waypoints?.[0] && (
                     <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[0]} lineColor="#00e5ff" />
                 )}
                 {activeTrackConfig?.Waypoints?.[1] && (
