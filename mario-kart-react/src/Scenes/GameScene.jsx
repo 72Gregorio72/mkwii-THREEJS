@@ -1280,7 +1280,6 @@ export function GameScene({
                     kartRef={playerRef}
                     isRecording={true}
                 >
-
                 </WaypointRecorder> */}
 
 
