@@ -358,7 +358,7 @@ export const Friends = () => {
                                 </div>
                             ) : (
                                 friends.map((friend, index) => (
-                                    <div key={index} className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white cursor-pointer flex-shrink-0">
+                                    <div key={index} className="group relative w-full bg-gradient-to-b from-[#333] to-[#111] border-[3px] border-[#aaaaaa] rounded-full flex items-center p-2 px-4 shadow-[0_5px_10px_rgba(0,0,0,0.5)] transition-all duration-200 hover:border-white cursor-pointer flex-shrink-0" onClick={() => handleViewFriendProfile(friend)}>
                                         <div className="absolute top-0 left-4 right-4 h-[35%] bg-white/10 rounded-b-full pointer-events-none"></div>
                                         
                                         {/* Icona */}
@@ -389,7 +389,7 @@ export const Friends = () => {
                                                 e.stopPropagation(); // Evita che il click si propaghi se l'ovale ha altre azioni in futuro
                                                 handleDeleteFriend(friend.username);
                                             }}
-                                            className="w-10 h-10 bg-[#cc0000] border-2 border-white rounded-full shadow-md flex items-center justify-center z-20 mr-1"
+                                            className="cursor-pointer w-10 h-10 bg-[#cc0000] border-2 border-white rounded-full shadow-md flex items-center justify-center z-20 mr-1"
                                             title="Remove Friend"
                                         >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="w-5 h-5 text-white drop-shadow-sm">

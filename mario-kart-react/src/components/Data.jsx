@@ -88,14 +88,18 @@ export const Tracks = {
         soundtrack: 'RACE_DAISY_CIRCUIT',
 		Waypoints: [ DaisyCircuit, DaisyCircuit_left, DaisyCircuit_right ]
 	},
-	// 'Coconut Mall': {
-	// 	file: './Tracks/CoconutMall/CoconutMall.glb',
-	// 	preview: '/Previews/Coconut Mall.png',
-	// 	startPos: [-15, 5, -50],
-	// 	checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
-	// 	maxCheckpoints: 5,
-    //     soundtrack: 'RACE_COCONUT_MALL'
-	// },
+	'Coconut Mall': {
+		file: './Tracks/CoconutMall/CoconutMall.glb',
+		preview: '/Previews/Coconut Mall.png',
+		startPos: [0, 0, 100],
+		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
+		maxCheckpoints: 2,
+		soundtrack: 'RACE_BOWSER_CASTLE',
+		itemBoxes: './Tracks/CoconutMall/CoconutMall_itemboxes.glb',
+		gridpos: './Tracks/CoconutMall/CoconutMall_startpos.glb',
+		road: './Tracks/CoconutMall/CoconutMall_hitboxes.glb',
+		Waypoints: [ BowserCastle, BowserCastleL, BowserCastleR ]
+	},
 	'Bowser Castle': {
 		file: './Tracks/BowserCastle/BowserCastle.glb',
 		preview: '/Previews/Bowser Castle.png',
@@ -301,8 +305,8 @@ export const grandPrixList = [
 			tracks: [
 				"DS Desert Hills",
 				"N64 Mario Raceway",
-				"Mario Circuit",
-				"Dry Dry Ruins",
+				"Bowser Castle",
+				"Coconut Mall",
 			]
 		},
 
