@@ -43,6 +43,9 @@ import BowserCastleR from '../Bot/Waypoints/BowserCastle/BowserCastleR.json';
 import GhostValley from '../Bot/Waypoints/GhostValley/GhostValley.json';
 import GhostValleyL from '../Bot/Waypoints/GhostValley/GhostValleyL.json';
 import GhostValleyR from '../Bot/Waypoints/GhostValley/GhostValleyR.json';
+import CoconutMall from '../Bot/Waypoints/CoconutMall/CoconutMall.json';
+import CoconutMall_R from '../Bot/Waypoints/CoconutMall/CoconutMall_R.json';
+import CoconutMall_L from '../Bot/Waypoints/CoconutMall/CoconutMall_L.json';
 
 
 const SMALL_VEHICLES = [
@@ -94,11 +97,11 @@ export const Tracks = {
 		startPos: [0, 0, 100],
 		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
 		maxCheckpoints: 2,
-		soundtrack: 'RACE_BOWSER_CASTLE',
+		soundtrack: 'RACE_COCONUT_MALL',
 		itemBoxes: './Tracks/CoconutMall/CoconutMall_itemboxes.glb',
 		gridpos: './Tracks/CoconutMall/CoconutMall_startpos.glb',
 		road: './Tracks/CoconutMall/CoconutMall_hitboxes.glb',
-		Waypoints: [ BowserCastle, BowserCastleL, BowserCastleR ]
+		Waypoints: [ CoconutMall, CoconutMall_L, CoconutMall_R ]
 	},
 	'Bowser Castle': {
 		file: './Tracks/BowserCastle/BowserCastle.glb',
