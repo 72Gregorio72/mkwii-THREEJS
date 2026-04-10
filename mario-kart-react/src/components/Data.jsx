@@ -4,9 +4,9 @@ import DaisyCircuit_right from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right
 import DelfinoSquare0 from '../Bot/Waypoints/DelfinoSquare/DelfinoSquare';
 import DelfinoSquareL from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareL';
 import DelfinoSquareR from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareR';
-import YoshiFalls_1 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_1';
-import YoshiFalls_2 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_2';
-import YoshiFalls_3 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_3';
+import YoshiFalls from '../Bot/Waypoints/YoshiFalls/YoshiFalls';
+import YoshiFalls_L from '../Bot/Waypoints/YoshiFalls/YoshiFalls_L';
+import YoshiFalls_R from '../Bot/Waypoints/YoshiFalls/YoshiFalls_R';
 import SNESMario1 from '../Bot/Waypoints/SNESMarioCircuit/SNESMario1.json';
 import SNESMarioR from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioR.json';
 import SNESMarioL from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioL.json';
@@ -130,7 +130,7 @@ export const Tracks = {
         itemBoxes: './Tracks/YoshiFalls/YoshiFalls_itembox.glb',
         gridpos: './Tracks/YoshiFalls/YoshiFalls_startpos.glb',
         road: './Tracks/YoshiFalls/YoshiFalls_road.glb',
-		Waypoints: [ YoshiFalls_1, YoshiFalls_2, YoshiFalls_3 ]
+		Waypoints: [ YoshiFalls, YoshiFalls_L, YoshiFalls_R ]
     },
     'Moo Moo Meadows': {
         file: './Tracks/MooMooMeadows/MooMooMeadows.glb',
@@ -181,7 +181,7 @@ export const Tracks = {
         itemBoxes: './Tracks/N64MarioRaceway/N64_Mario_Raceway_itembox.glb',
         gridpos: './Tracks/N64MarioRaceway/N64_Mario_Raceway_startpos.glb',
         road: './Tracks/N64MarioRaceway/N64_Mario_Raceway_road.glb',
-		Waypoints: [ N64MarioRaceway_1, N64MarioRaceway_2, N64MarioRaceway_3 ]
+		Waypoints: [ N64MarioRaceway_3, N64MarioRaceway_2, N64MarioRaceway_1 ]
     },
 
 	'GCN Mario Circuit': {
