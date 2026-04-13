@@ -4,9 +4,9 @@ import DaisyCircuit_right from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right
 import DelfinoSquare0 from '../Bot/Waypoints/DelfinoSquare/DelfinoSquare';
 import DelfinoSquareL from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareL';
 import DelfinoSquareR from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareR';
-import YoshiFalls_1 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_1';
-import YoshiFalls_2 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_2';
-import YoshiFalls_3 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_3';
+import YoshiFalls from '../Bot/Waypoints/YoshiFalls/YoshiFalls';
+import YoshiFalls_L from '../Bot/Waypoints/YoshiFalls/YoshiFalls_L';
+import YoshiFalls_R from '../Bot/Waypoints/YoshiFalls/YoshiFalls_R';
 import SNESMario1 from '../Bot/Waypoints/SNESMarioCircuit/SNESMario1.json';
 import SNESMarioR from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioR.json';
 import SNESMarioL from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioL.json';
@@ -43,6 +43,9 @@ import BowserCastleR from '../Bot/Waypoints/BowserCastle/BowserCastleR.json';
 import GhostValley from '../Bot/Waypoints/GhostValley/GhostValley.json';
 import GhostValleyL from '../Bot/Waypoints/GhostValley/GhostValleyL.json';
 import GhostValleyR from '../Bot/Waypoints/GhostValley/GhostValleyR.json';
+import CoconutMall from '../Bot/Waypoints/CoconutMall/CoconutMall.json';
+import CoconutMall_R from '../Bot/Waypoints/CoconutMall/CoconutMall_R.json';
+import CoconutMall_L from '../Bot/Waypoints/CoconutMall/CoconutMall_L.json';
 
 
 const SMALL_VEHICLES = [
@@ -94,11 +97,11 @@ export const Tracks = {
 		startPos: [0, 0, 100],
 		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
 		maxCheckpoints: 2,
-		soundtrack: 'RACE_BOWSER_CASTLE',
+		soundtrack: 'RACE_COCONUT_MALL',
 		itemBoxes: './Tracks/CoconutMall/CoconutMall_itemboxes.glb',
 		gridpos: './Tracks/CoconutMall/CoconutMall_startpos.glb',
 		road: './Tracks/CoconutMall/CoconutMall_hitboxes.glb',
-		Waypoints: [ BowserCastle, BowserCastleL, BowserCastleR ]
+		Waypoints: [ CoconutMall, CoconutMall_L, CoconutMall_R ]
 	},
 	'Bowser Castle': {
 		file: './Tracks/BowserCastle/BowserCastle.glb',
@@ -134,7 +137,7 @@ export const Tracks = {
         itemBoxes: './Tracks/YoshiFalls/YoshiFalls_itembox.glb',
         gridpos: './Tracks/YoshiFalls/YoshiFalls_startpos.glb',
         road: './Tracks/YoshiFalls/YoshiFalls_road.glb',
-		Waypoints: [ YoshiFalls_1, YoshiFalls_2, YoshiFalls_3 ]
+		Waypoints: [ YoshiFalls, YoshiFalls_L, YoshiFalls_R ]
     },
     'Moo Moo Meadows': {
         file: './Tracks/MooMooMeadows/MooMooMeadows.glb',
@@ -185,7 +188,7 @@ export const Tracks = {
         itemBoxes: './Tracks/N64MarioRaceway/N64_Mario_Raceway_itembox.glb',
         gridpos: './Tracks/N64MarioRaceway/N64_Mario_Raceway_startpos.glb',
         road: './Tracks/N64MarioRaceway/N64_Mario_Raceway_road.glb',
-		Waypoints: [ N64MarioRaceway_1, N64MarioRaceway_2, N64MarioRaceway_3 ]
+		Waypoints: [ N64MarioRaceway_3, N64MarioRaceway_2, N64MarioRaceway_1 ]
     },
 
 	'GCN Mario Circuit': {

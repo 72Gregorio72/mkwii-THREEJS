@@ -1284,7 +1284,6 @@ export function GameScene({
             >
 
                 {/* {activeTrackConfig?.Waypoints?.[0] && (
-                {/* {activeTrackConfig?.Waypoints?.[0] && (
                     <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[0]} lineColor="#00e5ff" />
                 )}
                 {activeTrackConfig?.Waypoints?.[1] && (
@@ -1294,8 +1293,8 @@ export function GameScene({
                     <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[2]} lineColor="#ff5a7a" />
                 )} */}
 
-
-                {/* <WaypointRecorder
+{/* 
+                <WaypointRecorder
                     kartRef={playerRef}
                     isRecording={true}
                 >
