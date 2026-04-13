@@ -279,7 +279,6 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
   const megaMushroomShrinkAudioRef = useRef();
   const megaMushroomUseAudioRef = useRef();
 
-
   const activateMega = () => {
       isMegaActive.current = true;
       if (megaMushroomUseAudioRef.current && megaMushroomStateAudioRef.current) {
@@ -438,7 +437,8 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
       waypoints: waypoints, 
       currentRank: rank || 8,
       onEnd: () => {
-         if(rb.current) rb.current.setLinvel({x:0, y:0, z:0}, true);
+         // FIX: Break Rapier reference
+         if(rb.current) rb.current.setLinvel({x: 0, y: 0, z: 0}, true);
       },
       duckMusicVolume: isBot ? null : duckMusicVolume,
       restoreMusicVolume: isBot ? null : restoreMusicVolume,
@@ -468,8 +468,8 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
     getFirstPlaceRef: () => {
       const firstPlacePos = props.positions?.find(p => p.position === 1);
       if (!firstPlacePos) return null;
-      if (firstPlacePos.id === socket?.id) return rb; // Se è il player
-      return props.botRefs?.current?.[firstPlacePos.id]; // Altrimenti è un bot
+      if (firstPlacePos.id === socket?.id) return rb; 
+      return props.botRefs?.current?.[firstPlacePos.id]; 
     }
   });
 
@@ -488,7 +488,7 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
   const [audioGroupMounted, setAudioGroupMounted] = useState(false);
 
   const { updateAudio: updateEngineAudio, startIdleAudio, stopAllAudio } = usePositionalKartAudio({
-    isBike: true, // Audio specifico per moto se implementato
+    isBike: true, 
     isActive: isRaceActive,
     kartObject: audioGroupMounted ? audioGroupRef.current : null,
     spatialConfig: {
@@ -505,10 +505,20 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
       rayDir: new Vector3()
   }), [])
 
+  // FIX: Destructure all objects returned to parent to prevent unsafe aliasing crashes
   useImperativeHandle(ref, () => ({
-    translation: () => rb.current?.translation() || { x: 0, y: 0, z: 0 },
-    rotation: () => rb.current?.rotation() || { x: 0, y: 0, z: 0, w: 1 },
-    linvel: () => rb.current?.linvel() || { x: 0, y: 0, z: 0 },
+    translation: () => {
+        const t = rb.current?.translation();
+        return t ? { x: t.x, y: t.y, z: t.z } : { x: 0, y: 0, z: 0 };
+    },
+    rotation: () => {
+        const r = rb.current?.rotation();
+        return r ? { x: r.x, y: r.y, z: r.z, w: r.w } : { x: 0, y: 0, z: 0, w: 1 };
+    },
+    linvel: () => {
+        const l = rb.current?.linvel();
+        return l ? { x: l.x, y: l.y, z: l.z } : { x: 0, y: 0, z: 0 };
+    },
     triggerBulletBill: () => activateBulletBill(),
     triggerItemRoulette: (currentRank) => triggerItemRoulette(currentRank),
     resetPosition: (pos, rot) => {
@@ -517,8 +527,9 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
             rb.current.setLinvel({x: 0, y: 0, z: 0}, true);
             rb.current.setAngvel({x: 0, y: 0, z: 0}, true);
             if(rot) {
+                // FIX: Break reference before passing to setRotation
                 const q = new Quaternion().setFromEuler(new Euler(...rot));
-                rb.current.setRotation(q, true);
+                rb.current.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
             }
         }
     },
@@ -663,7 +674,8 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         if (otherData && (otherData.type === 'racer' || otherData.type === 'opponent')) {
             const vel = rb.current.linvel();
             if (Math.abs(vel.y) > 0.5) {
-                rb.current.setLinvel({ x: vel.x, y: vel.y * 0.3, z: vel.z }, true);
+                // FIX: Wrap extracted rapier properties with Number() to break memory binding
+                rb.current.setLinvel({ x: Number(vel.x), y: Number(vel.y) * 0.3, z: Number(vel.z) }, true);
             }
             lastCollisionTime.current = currentTime;
         }
@@ -674,12 +686,14 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
     if (!rb.current) return;
 
     if (!rb.current || gameState !== 'RACING' || isPaused) {
-        // Se è in pausa, congela il movimento orizzontale ma mantieni la gravità
         if (isPaused && gameState === 'RACING') {
             const vel = rb.current.linvel();
-            rb.current.setLinvel({x: 0, y: vel.y, z: 0}, true);
+            // FIX: Wrap with Number()
+            rb.current.setLinvel({x: 0, y: Number(vel.y), z: 0}, true);
         } else if(gameState === 'COUNTDOWN') {
-            rb.current.setLinvel({x:0, y: rb.current.linvel().y, z:0}, true);
+            const vel = rb.current.linvel();
+            // FIX: Wrap with Number()
+            rb.current.setLinvel({x:0, y: Number(vel.y), z:0}, true);
             speed.current = 0;
         }
         return; 
@@ -748,7 +762,9 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
             const targetQ = new Quaternion().setFromEuler(new Euler(0, moveAngle, 0));
             const currentQ = new Quaternion().copy(rb.current.rotation());
             currentQ.slerp(targetQ, 10 * delta);
-            rb.current.setRotation(currentQ, true);
+            
+            // FIX: Destructure Quaternion properties
+            rb.current.setRotation({ x: currentQ.x, y: currentQ.y, z: currentQ.z, w: currentQ.w }, true);
         }
 
         smoothedY.current = rbPos.y;
@@ -777,7 +793,8 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         if (drift && !driftHopLocked.current && !isJumping.current) {
             driftHopLocked.current = true; driftEngageWindow.current = true; 
             performHop();
-            rb.current.setLinvel({ x: rbVel.x, y: SETTINGS.jumpForce, z: rbVel.z }, true);
+            // FIX: Wrap primitives to prevent unsafe aliasing
+            rb.current.setLinvel({ x: Number(rbVel.x), y: SETTINGS.jumpForce, z: Number(rbVel.z) }, true);
         }
         if (drift) {
             if (driftDirection.current === 0 && driftEngageWindow.current) {
@@ -787,7 +804,6 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
             }
             if (driftDirection.current !== 0) {
                 driftTime.current += delta;
-                // MODIFICA: La moto si ferma al livello 1 (azzurro)
                 if (driftTime.current > SETTINGS.driftLevel1Time) driftLevel.current = 1;
                 else driftLevel.current = 0;
             }
@@ -803,14 +819,12 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         if (isBoosting) boostTime.current -= 1
         const isDrifting = driftDirection.current !== 0
 
-        // WHEELIE LOGIC
-        // Si può impennare solo se Shift è premuto, non si sta driftando
         const isWheelieActive = isShiftPressed.current && !isDrifting;
 
         let currentSpeedLimit = maxSpeed
         if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
         else if (isDrifting) currentSpeedLimit += 5 
-        else if (isWheelieActive) currentSpeedLimit += 15; // Aumentato per renderla più veloce del kart in impenna!
+        else if (isWheelieActive) currentSpeedLimit += 15; 
 
         if (isStarActive.current) {
             currentSpeedLimit *= STAR_SPEED_BOOST; 
@@ -825,17 +839,15 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         if (backward) targetSpeed = -currentSpeedLimit * 0.5
         
         if (!isStarActive.current) {
-            // Semplificata la logica di overspeeding per usare il limite corrente corretto
             const isOverspeeding = speed.current > currentSpeedLimit;
             
             if (forward && !isBoosting && isOverspeeding) {
-                // Se per qualche motivo sei troppo veloce (es. fine turbo), rallenta verso il limite attuale
                 speed.current = MathUtils.damp(speed.current, currentSpeedLimit, SETTINGS.deceleration, delta)
             } else {
                 let currentAccel = SETTINGS.acceleration
                 if (isBoosting) currentAccel *= 2.5
                 if (isStarActive.current || isMegaActive.current) currentAccel *= 2;
-                else if (isWheelieActive) currentAccel *= 1.2; // Leggero boost all'accelerazione per raggiungere prima la top speed
+                else if (isWheelieActive) currentAccel *= 1.2; 
                 else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
                 
                 speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)
@@ -846,7 +858,6 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
             speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta);
         }
         
-        // Sterzo e Rotazione
         let turnFactor = 0
         if (isDrifting) {
             const isLeftDrift = driftDirection.current === 1
@@ -858,7 +869,6 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
                 if (left) turnFactor = SETTINGS.turnSpeed * reverseFactor
                 if (right) turnFactor = -SETTINGS.turnSpeed * reverseFactor
                 
-                // Riduci sterzata durante l'impennata
                 if (isWheelieActive) turnFactor *= 0.3; 
             }
         }
@@ -896,10 +906,12 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
             newY = 0 
         }
         
-        rb.current.setLinvel({ x: finalVelocity.x, y: newY, z: finalVelocity.z }, true)
+        // FIX: Wrap extracted Three.js vector properties to prevent unsafe aliasing
+        rb.current.setLinvel({ x: Number(finalVelocity.x), y: Number(newY), z: Number(finalVelocity.z) }, true)
         const q = new Quaternion()
         q.setFromEuler(new Euler(0, rotation.current, 0))
-        rb.current.setRotation(q, true)
+        // FIX: Break reference
+        rb.current.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true)
         rb.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
 
         const yDiff = Math.abs(rbPos.y - smoothedY.current);
@@ -919,7 +931,6 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
 
         if (visualGroupRef.current) {
             const driftTilt = isDrifting ? (driftDirection.current * 0.15) : 0;
-            // Calcolo rotazione X per l'impennata (circa 22 gradi all'indietro)
             const wheeliePitch = isWheelieActive ? 0.4 : 0;
 
             if (isSpinning.current) {
@@ -931,7 +942,6 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
             visualGroupRef.current.position.y = visualLocalY;
             visualGroupRef.current.rotation.z = MathUtils.lerp(visualGroupRef.current.rotation.z, driftTilt, 0.1);
             
-            // Applica l'impennata
             visualGroupRef.current.rotation.x = MathUtils.lerp(visualGroupRef.current.rotation.x, wheeliePitch, 10 * delta);
         }
     }
@@ -972,7 +982,8 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
     const currentY = rb.current.translation().y;
     if (currentY < -5) { 
         console.warn(`${racerId} fell through world, resetting!`);
-        rb.current.setTranslation({ x: rbPos.x, y: START_POS[1] + 2, z: rbPos.z }, true);
+        // FIX: Destructure rbPos properties into primitives
+        rb.current.setTranslation({ x: Number(rbPos.x), y: START_POS[1] + 2, z: Number(rbPos.z) }, true);
         rb.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
   })

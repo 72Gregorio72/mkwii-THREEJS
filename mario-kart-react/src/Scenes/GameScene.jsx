@@ -956,7 +956,10 @@ export function GameScene({
     const handleExitRace = useCallback((destination = '/menu') => {
         setRaceExited(true);
         setGameState('LOADING');
-        setIsTransitioning(true); 
+        setIsTransitioning(true);
+        if (isGrandPrix) {
+            gameStore.setIsGrandPrix(false);
+        }
         if (roomCode && socket) {
             socket.emit('leave_room', { roomCode });
             resetRoomState();

@@ -212,8 +212,8 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
         });
       }
 
-      // 3. Se esiste, controlla se il ranking passato è maggiore di quello salvato
-      if (ranking > existingGrandPrix.ranking) {
+      // 3. Se esiste, controlla se il ranking passato è minore di quello salvato (1 è meglio di 2 che e' migliore di 3)
+      if (ranking < existingGrandPrix.ranking) {
         return await this.prisma.grandPrix.update({
           where: { userName_grandPrixName: { userName: username, grandPrixName } },
           data: { ranking, ccs }, // Aggiorna sia il ranking che i ccs correlati

@@ -559,10 +559,19 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   // Passiamo 'rb' (il ref fisico vero) al bot
 
   // Esposizione Metodi: Usiamo 'ref' esterno, ma chiamiamo metodi su 'rb' interno
-  useImperativeHandle(ref, () => ({
-    translation: () => rb.current?.translation() || { x: 0, y: 0, z: 0 },
-    rotation: () => rb.current?.rotation() || { x: 0, y: 0, z: 0, w: 1 },
-    linvel: () => rb.current?.linvel() || { x: 0, y: 0, z: 0 },
+    useImperativeHandle(ref, () => ({
+        translation: () => {
+            const t = rb.current?.translation();
+            return t ? { x: t.x, y: t.y, z: t.z } : { x: 0, y: 0, z: 0 };
+        },
+        rotation: () => {
+            const r = rb.current?.rotation();
+            return r ? { x: r.x, y: r.y, z: r.z, w: r.w } : { x: 0, y: 0, z: 0, w: 1 };
+        },
+        linvel: () => {
+            const l = rb.current?.linvel();
+            return l ? { x: l.x, y: l.y, z: l.z } : { x: 0, y: 0, z: 0 };
+        },
     triggerBulletBill: () => activateBulletBill(),
 	triggerItemRoulette: (currentRank) => triggerItemRoulette(currentRank),
     resetPosition: (pos, rot) => {
@@ -869,7 +878,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
             const currentQ = new Quaternion().copy(rb.current.rotation());
             currentQ.slerp(targetQ, 10 * delta);
             
-            rb.current.setRotation(currentQ, true);
+            rb.current.setRotation({ x: currentQ.x, y: currentQ.y, z: currentQ.z, w: currentQ.w }, true);
         }
 
         smoothedY.current = rbPos.y;
@@ -1010,7 +1019,11 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         }
         
         // Applica Fisica Standard
-        rb.current.setLinvel({ x: finalVelocity.x, y: newY, z: finalVelocity.z }, true)
+        rb.current.setLinvel({ 
+            x: Number(finalVelocity.x), 
+            y: Number(newY), 
+            z: Number(finalVelocity.z) 
+        }, true)
         const q = new Quaternion()
         q.setFromEuler(new Euler(0, rotation.current, 0))
         rb.current.setRotation(q, true)
