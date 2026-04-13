@@ -121,6 +121,8 @@ const TitleScreen = () => {
 // --- APP PRINCIPALE ---
 export default function App() {
     
+    const navigate = useNavigate();
+
     // States for Game from stores
     const userStore = useUserStore();
     const gameStore = useGameStore();
@@ -137,38 +139,79 @@ export default function App() {
     // Data source
     const [availableCharacters] = useState(Characters)
 
+    // Romm Error Listener
     useEffect(() => {
-        const fetchLoginStatus = async () => {
-            if (!socket || !socket.id) return;
+        if (!socket) return;
+
+        const handleRoomError = (data) => {
+            gameStore.setHostLeft(true);
             
-            try {
-                const response = await fetch(`/api/getIsLoggedIn?socketId=${socket.id}`);
-                const text = await response.text();
-
-                const user = text ? JSON.parse(text) : null;
-
-                // console.log({user});
-                if (user && user.isLoggedIn) {
-                    userStore.handleLogin(user.username);
-                } else {
-                    userStore.handleLogout();
-                }
-            } catch (error) {
-                console.error('Errore nel recupero dello stato di login:', error);
-            }
+            roomDataStore.setRoomCode('');
+            roomDataStore.setRoomId('');
+            roomDataStore.setRoomCreated(false);
+            gameStore.setIsHost(false);
+            navigate('/menu');
         };
 
+        // Mettiti in ascolto dell'errore
+        socket.on('room_error', handleRoomError);
+
+        // Pulizia
+        return () => {
+            socket.off('room_error', handleRoomError);
+        };
+    }, []);
+
+    // Socket Authentication Listener
+    useEffect(() => {
+        if (!socket) return;
+
+        // Quando il server ci conferma l'autenticazione
+        const handleAuthSuccess = (data) => {
+            console.log("Socket autenticato con successo:", data.username);
+            userStore.handleLogin(data.username);
+        };
+
+        // Quando il token è scaduto o non valido (es. account cancellato)
+        const handleAuthError = (error) => {
+            console.warn("Autenticazione socket fallita:", error.message);
+            userStore.handleLogout();
+            sessionStorage.removeItem('accessToken');
+        };
+
+        socket.on('auth_success', handleAuthSuccess);
+        socket.on('unauthorized', handleAuthError);
+
+        // Se al caricamento c'è già un token, assicuriamoci che il socket si connetta con esso
+        const token = sessionStorage.getItem('accessToken');
+        if (token) {
+            socket.auth = { token: token };
+            if (!socket.connected) socket.connect();
+        }
+
+        return () => {
+            socket.off('auth_success', handleAuthSuccess);
+            socket.off('unauthorized', handleAuthError);
+        };
+    }, []);
+
+    const handleLoginSuccess = (username) => {
+        // 1. Aggiorna lo stato di React (Zustand)
+        userStore.handleLogin(username);
+
+        // 2. Forza il Socket a riconnettersi usando il nuovo token
         if (socket) {
+            // Prende il token appena salvato dalla pagina di Login
+            const token = sessionStorage.getItem('accessToken'); 
+            
+            if (token) {
+                socket.auth = { token: token }; 
+            }
+            
             socket.disconnect();
             socket.connect();
         }
-
-        socket.on('connect', () => {fetchLoginStatus()});
-
-        return () => {
-            socket.off('connect', fetchLoginStatus);
-        };
-    }, []);
+    };
 
     const handleLogout = async () => {
         try {
@@ -183,6 +226,7 @@ export default function App() {
             sessionStorage.removeItem('accessToken');
             
             if (socket) {
+                socket.auth = {}; // Rimuove il token dalle autenticazioni del socket
                 socket.disconnect();
                 socket.connect();
             }
@@ -265,104 +309,102 @@ export default function App() {
 
     return (
         <AudioProvider>
-            <BrowserRouter>
-                {/* Il container principale */}
-                <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
+            {/* Il container principale */}
+            <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
+                
+                <Routes>
+                    <Route path="/" element={<TitleScreen />} />
+
+                    <Route path="/menu" element={<MainMenu />} />
+
+                    <Route path="/room" element={
+                        <RoomSelection 
+                            onCreateRoom={handleCreateRoom}
+                            onJoinRoom={handleJoinRoom}
+                        />
+                    } />
                     
-                    <Routes>
-                        <Route path="/" element={<TitleScreen />} />
+                    <Route path="/info" element={
+                        <InfoAndTos />
+                    } />
 
-                        <Route path="/menu" element={<MainMenu />} />
+                    <Route path="/register" element={
+                        <Register logIn={(username) => {handleLoginSuccess(username)}}/>
+                    } />
 
-                        <Route path="/room" element={
-                            <RoomSelection 
-                                onCreateRoom={handleCreateRoom}
-                                onJoinRoom={handleJoinRoom}
-                            />
-                        } />
-                        
-                        <Route path="/info" element={
-                            <InfoAndTos />
-                        } />
+                    <Route path="/login" element={
+                        <Login onLoginSuccess={(username) => {handleLoginSuccess(username)}} />
+                    } />
 
-                        <Route path="/register" element={
-                            <Register logIn={(username) => {userStore.handleLogin(username)}}/>
-                        } />
+                    <Route path="/profile" element={
+                        <Profile 
+                            setLoggedIn={handleLogout}
+                            setUsername={(username) => {handleLoginSuccess(username)}}/>
+                    } />
 
-                        <Route path="/login" element={
-                            <Login onLoginSuccess={(username) => {userStore.handleLogin(username)}} />
-                        } />
+                    <Route path="/friends" element={
+                        <Friends/>
+                    }/>
 
-                        <Route path="/profile" element={
-                            <Profile 
-                                setLoggedIn={handleLogout}
-                                setUsername={(username) => {userStore.handleLogin(username)}}/>
-                        } />
+                    <Route path="/character" element={
+                        <CharacterSelection 
+                            onNext={() => {}} 
+                            availableCharacters={availableCharacters}
+                            resetRoomState={resetRoomState}
+                        />
+                    } />
 
-                        <Route path="/friends" element={
-                            <Friends/>
-                        }/>
+                    <Route path="/single_player" element={
+                        <SinglePlayer />
+                    } />
 
-                        <Route path="/character" element={
-                            <CharacterSelection 
-                                onNext={() => {}} 
-                                availableCharacters={availableCharacters}
-                                resetRoomState={resetRoomState}
-                            />
-                        } />
+                    <Route path="/grandprix" element={
+                        <GrandPrix />
+                    } />
 
-                        <Route path="/single_player" element={
-                            <SinglePlayer />
-                        } />
+                    <Route path="/vehicle" element={
+                        <VehicleSelection resetRoomState={resetRoomState}/>
+                    } />
 
-						<Route path="/grandprix" element={
-							<GrandPrix />
-						} />
+                    <Route path="/track" element={
+                        <TrackSelection />
+                    } />
 
-                        <Route path="/vehicle" element={
-                            <VehicleSelection resetRoomState={resetRoomState}/>
-                        } />
+                    <Route path="/waiting" element={
+                        <WaitingRoom
+                            resetRoomState={resetRoomState}
+                        />
+                    } />
 
-                        <Route path="/track" element={
-                            <TrackSelection />
-                        } />
+                    <Route path="/endGrandPrix" element={
+                        <WinScene 
+                            selectedCup={selectedGrandPrix}
+                            raceResults={raceResults}
+                            setRaceResults={setRaceResults}
+                        />
+                    } />
 
-                        <Route path="/waiting" element={
-                            <WaitingRoom
-                                resetRoomState={resetRoomState}
-                            />
-                        } />
+                    {['/game', '/debug'].map((path) => (
+                        <Route 
+                            key={path}
+                            path={path} 
+                            element={
+                                <GameScene
+                                    mapPath={SelectedTrack.file} 
+                                    checkpointPath={SelectedTrack.checkpoints}
+                                    maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
+                                    start_pos={SelectedTrack.startPos}
+                                    selectedTrack={SelectedTrack}
+                                    selectedGrandPrix={selectedGrandPrix.name}
+                                    setRaceResults={setRaceResults}
+                                    resetRoomState={resetRoomState}
+                                />  
+                            } 
+                        />
+                    ))}
+                </Routes>
 
-                        <Route path="/endGrandPrix" element={
-                            <WinScene 
-                                selectedCup={selectedGrandPrix}
-                                raceResults={raceResults}
-                                setRaceResults={setRaceResults}
-                            />
-                        } />
-
-                        {['/game', '/debug'].map((path) => (
-                            <Route 
-                                key={path}
-                                path={path} 
-                                element={
-                                    <GameScene
-                                        mapPath={SelectedTrack.file} 
-                                        checkpointPath={SelectedTrack.checkpoints}
-                                        maxCheckpoints={SelectedTrack.maxCheckpoints || 1}
-                                        start_pos={SelectedTrack.startPos}
-                                        selectedTrack={SelectedTrack}
-                                        selectedGrandPrix={selectedGrandPrix.name}
-                                        setRaceResults={setRaceResults}
-                                        resetRoomState={resetRoomState}
-                                    />  
-                                } 
-                            />
-                        ))}
-                    </Routes>
-
-                </div>
-            </BrowserRouter>
+            </div>
         </AudioProvider>
     )
 }

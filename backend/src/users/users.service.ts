@@ -250,4 +250,15 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
       return [];
     }
   }
+
+  async setAllUsersOffline() {
+    try {
+      await this.prisma.user.updateMany({
+        data: { isLoggedIn: false },
+        where: { isLoggedIn: true },
+      });
+    } catch (error) {
+      console.error('Error setting all users offline:', error);
+    }
+  }
 }

@@ -85,11 +85,19 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         
         const username = payload.username;
 
+        const user = await this.usersService.findOne(username);
+        
+        if (!user) {
+          // Se l'account è stato cancellato, il token non deve più funzionare
+          throw new Error('User not found in database');
+        }
+
         await this.usersService.updateSocketAndLoginStatus(username, client.id, true);
         
         client.data.username = username;
         
         // console.log(`Utente autenticato: ${username} con socket ${client.id}`);
+        client.emit('auth_success', { username: username, isLoggedIn: true }); // eventuale conferma al client
       } catch (error) {
         console.error(`Token non valido per ${client.id}:`, error);
         client.emit('unauthorized', { message: 'Token scaduto o non valido' });
@@ -301,6 +309,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const roomCode = payload?.roomCode;
     if (!roomCode || !this.roomData.has(roomCode)) {
       console.log(`Room ${roomCode} not found for ${client.id}`);
+      client.emit('room_error', { message: 'La stanza non esiste più o è stata chiusa.' });
       return;
     }
     

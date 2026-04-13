@@ -144,6 +144,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
                 setNotifications(updatedNotifications);
                 setPendingRoomInvites(updatedNotifications.length);
                 
+                console.log(`Joining room with code: ${code.trim()}`);
                 onJoinRoom(code.trim(), username);
             })
             .catch(err => console.error("Error deleting notification:", err));
@@ -151,7 +152,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
 
     const handleRejectInvite = (id) => {
         playSfx(AUDIO_SFX.BACK_IN_MENU, 10);
-        console.log(`Rejecting invite with notification ID: ${id}`);
+        // console.log(`Rejecting invite with notification ID: ${id}`);
         fetch(`/api/deleteNotification?notificationId=${id}`, { method: 'DELETE' })
             .then(res => {
                 if (!res.ok) throw new Error("Failed to delete notification");
@@ -165,6 +166,7 @@ export const RoomSelection = ({ onCreateRoom, onJoinRoom }) => {
             })
             .catch(err => console.error("Error deleting notification:", err));
     };
+
   const toggleNotifications = () => {
       playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
       setShowDropdown(!showDropdown);

@@ -82,4 +82,10 @@ export class UsersController {
         return await this.userService.searchUsers(query);
     }
 
+    /*@Post('setAllUsersOffline')
+    async setAllUsersOffline() {
+        console.log('Setting all users offline...');
+        return await this.userService.setAllUsersOffline(); 
+    }*/
+
 }
