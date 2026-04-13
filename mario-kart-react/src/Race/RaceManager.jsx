@@ -82,7 +82,7 @@ export function RaceManager({
 	const lastSentPositionsRef = useRef([]);
 
 	useFrame((_, delta) => {
-		if (finished || !trackData || !racersData.current) return;
+		if (!trackData || !racersData.current) return;
 
 		updateTimer.current += delta;
 		if (updateTimer.current < UPDATE_INTERVAL) return;
