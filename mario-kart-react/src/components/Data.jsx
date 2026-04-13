@@ -16,15 +16,15 @@ import PeachGardens_R from '../Bot/Waypoints/PeachGardens/PeachGardens_R.json';
 import LuigiCircuit from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit.json';
 import LuigiCircuit_L from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_L.json';
 import LuigiCircuit_R from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_R.json';
-import DS_DesertHills_1 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_1.json';
-import DS_DesertHills_2 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_2.json';
-import DS_DesertHills_3 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_3.json';
+import DS_DesertHills from '../Bot/Waypoints/DSDesertHills/DS_DesertHills.json';
+import DS_DesertHills_L from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_L.json';
+import DS_DesertHills_R from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_R.json';
 import DryDryRuins_1 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_1.json';
 import DryDryRuins_2 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_2.json';
 import DryDryRuins_3 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_3.json';
-import MooMooMeadows_1 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_1.json';
-import MooMooMeadows_2 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_2.json';
-import MooMooMeadows_3 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_3.json';
+import MooMooMeadows from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows.json';
+import MooMooMeadows_L from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_L.json';
+import MooMooMeadows_R from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_R.json';
 import N64MarioRaceway_1 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_1.json';
 import N64MarioRaceway_2 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_2.json';
 import N64MarioRaceway_3 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_3.json';
@@ -149,7 +149,7 @@ export const Tracks = {
         itemBoxes: './Tracks/MooMooMeadows/MooMooMeadows_itembox.glb',
         gridpos: './Tracks/MooMooMeadows/MooMooMeadows_startpos.glb',
         road: './Tracks/MooMooMeadows/MooMooMeadows_road.glb',
-		Waypoints: [ MooMooMeadows_1, MooMooMeadows_2, MooMooMeadows_3 ]
+		Waypoints: [ MooMooMeadows, MooMooMeadows_L, MooMooMeadows_R ]
     },
 	
 	'Peach Gardens': {
@@ -227,7 +227,7 @@ export const Tracks = {
 		itemBoxes: './Tracks/DSDesertHills/DSDesertHills_itembox.glb',
         gridpos: './Tracks/DSDesertHills/DSDesertHills_startpos.glb',
         road: './Tracks/DSDesertHills/DSDesertHills_road.glb',
-		Waypoints: [ DS_DesertHills_1, DS_DesertHills_2, DS_DesertHills_3 ]
+		Waypoints: [ DS_DesertHills, DS_DesertHills_L, DS_DesertHills_R ]
     },
 
 	'Dry Dry Ruins': {
