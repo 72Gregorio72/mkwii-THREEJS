@@ -19,9 +19,9 @@ import LuigiCircuit_R from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_R.json';
 import DS_DesertHills from '../Bot/Waypoints/DSDesertHills/DS_DesertHills.json';
 import DS_DesertHills_L from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_L.json';
 import DS_DesertHills_R from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_R.json';
-import DryDryRuins_1 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_1.json';
-import DryDryRuins_2 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_2.json';
-import DryDryRuins_3 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_3.json';
+import DryDryRuins from '../Bot/Waypoints/DryDryRuins/DryDryRuins.json';
+import DryDryRuins_L from '../Bot/Waypoints/DryDryRuins/DryDryRuins_L.json';
+import DryDryRuins_R from '../Bot/Waypoints/DryDryRuins/DryDryRuins_R.json';
 import MooMooMeadows from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows.json';
 import MooMooMeadows_L from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_L.json';
 import MooMooMeadows_R from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_R.json';
@@ -240,7 +240,7 @@ export const Tracks = {
 		itemBoxes: './Tracks/DryDryRuins/DryDryRuins_itembox.glb',
         gridpos: './Tracks/DryDryRuins/DryDryRuins_startpos.glb',
         road: './Tracks/DryDryRuins/DryDryRuins_road.glb',
-		Waypoints: [ DryDryRuins_1, DryDryRuins_2, DryDryRuins_3 ]
+		Waypoints: [ DryDryRuins, DryDryRuins_L, DryDryRuins_R ]
     },
 
 	'GCN Peach Beach': {

@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Characters } from '../components/Data.jsx';
 import { socket } from '../multiplayer/socket.js';
 
-const CANVAS_WIDTH = 280;
-const CANVAS_HEIGHT = 280;
+const CANVAS_WIDTH = 310;
+const CANVAS_HEIGHT = 310;
 const TRACK_PADDING = 8;
 
 const normalizeAngle = (angle) => {
@@ -120,7 +120,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
         return () => {
             cancelled = true;
         };
-    }, [botRefs, opponents]);
+    }, [botRefs, opponents, playerCharacter]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -222,6 +222,20 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
             ctx.restore();
         };
 
+        const drawPlayerDirectionCone = (p, heading, radius = 46, halfAngle = 0.42) => {
+            const start = heading - halfAngle;
+            const end = heading + halfAngle;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.arc(p.x, p.y, radius, start, end);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 224, 80, 0.5)';
+            ctx.fill();
+            ctx.restore();
+        };
+
         const drawFrame = () => {
             if (!isActive) return;
 
@@ -252,9 +266,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                     try {
                         const pos = oppRef.current.translation();
                         drawIconMarker(toCanvas(pos.x, pos.z), opp.id, 'rgba(107, 193, 255, 0.98)', 18);
-                    } catch (e) {
-                        // stale ref frame
-                    }
+                    } catch (e) { }
                 });
             }
 
@@ -270,6 +282,8 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                         lastHeadingRef.current = lerpAngle(lastHeadingRef.current, targetHeading, 0.25);
                     }
                     lastPlayerCanvasPosRef.current = canvasPos;
+
+                    drawPlayerDirectionCone(canvasPos, normalizeAngle(lastHeadingRef.current + Math.PI), 46, 0.4);
 
                     drawIconMarker(canvasPos, socket.id, 'rgba(255, 185, 40, 0.98)', 24);
                 } catch (e) {
@@ -295,7 +309,7 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
             style={{
                 position: 'absolute',
                 right: '24px',
-                bottom: 'clamp(135px, 18vh, 250px)',
+                bottom: 'clamp(170px, 22vh, 300px)',
                 width: `${CANVAS_WIDTH}px`,
                 height: `${CANVAS_HEIGHT}px`,
                 pointerEvents: 'none',
@@ -309,7 +323,8 @@ export const Minimap = ({ trackPath, playerRef, playerCharacter, botRefs, remote
                 style={{
                     width: '100%',
                     height: '100%',
-                    background: 'transparent',
+                                        background: 'rgba(52, 56, 62, 0.58)',
+                    borderRadius: '10px',
                     display: 'block',
                 }}
             />
