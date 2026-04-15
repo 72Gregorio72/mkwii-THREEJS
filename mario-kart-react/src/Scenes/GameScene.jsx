@@ -1300,7 +1300,7 @@ export function GameScene({
                 )}
 
 
-                <WaypointRecorder
+                {/* <WaypointRecorder
                     kartRef={playerRef}
                     isRecording={true}
                 >

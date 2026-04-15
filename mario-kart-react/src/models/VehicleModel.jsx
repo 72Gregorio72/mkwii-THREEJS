@@ -1,8 +1,9 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo, useEffect, useRef } from 'react'
 import { useGraph, useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import { SkeletonUtils } from 'three-stdlib'
 import { MathUtils, DoubleSide } from 'three'
+import { disposeObject3D } from '../utils/ThreeJSCleanup'
 
 export function VehicleModel({ vehicleConfig, steer, speed = 10, drift, isBike, debug, isRemote, ...props }) {
   const { scene } = useGLTF(vehicleConfig.file)
@@ -95,6 +96,13 @@ export function VehicleModel({ vehicleConfig, steer, speed = 10, drift, isBike, 
 
   // Fallback se non trova mesh
   if (allVehicleMeshes.length === 0) return null;
+
+  // Cleanup al dismount
+  useEffect(() => {
+    return () => {
+      disposeObject3D(clone);
+    };
+  }, [clone]);
 
   // Troviamo il nodo radice per posizionare il tutto (spesso è il genitore del body o il body stesso)
   // Se non c'è un body specifico trovato, usiamo il primo osso disponibile come root visiva
