@@ -4,6 +4,7 @@ import { Vector3, Quaternion, MathUtils, Color } from 'three';
 import { useGLTF } from '@react-three/drei';
 import { RigidBody, BallCollider } from '@react-three/rapier';
 import { SkeletonUtils } from 'three-stdlib'; 
+import { disposeObject3D, disposeAudioResources } from '../utils/ThreeJSCleanup';
 
 // Import Models
 import { RacerModel } from '../models/RacerModel.jsx'; 
@@ -74,6 +75,14 @@ export const RemoteOpponent = forwardRef(({ playerId, opponentsDataRef, characte
         });
         return clone;
     }, [billScene]);
+    
+    // Cleanup al dismount
+    useEffect(() => {
+        return () => {
+            disposeObject3D(billClone);
+            stopAllAudio();
+        };
+    }, [billClone, stopAllAudio]);
 
     // --- LOGICA MOVIMENTO E EFFETTI (60 FPS) ---
     useFrame((state, delta) => {

@@ -1,8 +1,10 @@
-import React, { useRef, useState, useMemo } from 'react'
+import React, { useRef, useState, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RigidBody, useRevoluteJoint } from '@react-three/rapier'
 import { Vector3, Quaternion, Euler } from 'three'
 import { useGLTF } from '@react-three/drei'
+import { SkeletonUtils } from 'three-stdlib'
+import { disposeObject3D } from '../utils/ThreeJSCleanup'
 
 // Configurazione fisica base (simile al tuo kart giocatore)
 const BOT_CONFIG = {
@@ -13,10 +15,20 @@ const BOT_CONFIG = {
 
 export function BotKart({ startPos, waypoints, botId, modelPath }) {
     const chassisRef = useRef();
-    const { scene } = useGLTF(modelPath || '/models/kart_standard.glb'); // Usa un modello default o passalo
+    const { scene } = useGLTF(modelPath || '/models/kart_standard.glb');
+    
+    // Memoizza il clone per evitare ricreazioni
+    const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
     
     // Stato del bot
-    const [currentWpIndex, setCurrentWpIndex] = useState(0); // Quale checkpoint sta puntando?
+    const [currentWpIndex, setCurrentWpIndex] = useState(0);
+    
+    // Cleanup al dismount
+    useEffect(() => {
+        return () => {
+            disposeObject3D(clone);
+        };
+    }, [clone]);
 
     useFrame((state, delta) => {
         if (!chassisRef.current || !waypoints || waypoints.length === 0) return;
@@ -87,15 +99,13 @@ export function BotKart({ startPos, waypoints, botId, modelPath }) {
             <RigidBody
                 ref={chassisRef}
                 position={startPos}
-                name={`bot_${botId}`} // Importante per i sensori
-                colliders="cuboid" // O "hull"
+                name={`bot_${botId}`}
+                colliders="cuboid"
                 mass={150}
-                linearDamping={0.5} // Attrito aria
-                angularDamping={5.0} // Impedisce di ruotare all'infinito come una trottola
+                linearDamping={0.5}
+                angularDamping={5.0}
             >
-                {/* Qui metti il modello visivo del bot. 
-                    Nota: ruoto di 180 (Math.PI) se il modello guarda in Z negativo di base */}
-                <primitive object={scene.clone()} scale={1} rotation={[0, Math.PI, 0]} />
+                <primitive object={clone} scale={1} rotation={[0, Math.PI, 0]} />
             </RigidBody>
         </group>
     );

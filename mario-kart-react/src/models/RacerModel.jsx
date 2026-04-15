@@ -5,6 +5,23 @@ import { DoubleSide, LoopRepeat } from 'three'
 import { useFrame } from '@react-three/fiber'
 // import { useControls, folder } from 'leva'  // <--- COMMENTATO
 
+// Sopprime i warn di Three.js e WebGL
+const originalWarn = console.warn;
+console.warn = function(...args) {
+    const message = args[0]?.toString?.() || '';
+    if (message.includes('PropertyBinding') || 
+        message.includes('No target node found') ||
+        message.includes('deprecated parameters') ||
+        message.includes('CONTEXT_LOST_WEBGL') ||
+        message.includes('Context lost')) {
+        return;
+    }
+    originalWarn.apply(console, args);
+};
+
+// Cache globale per le animazioni già caricate
+const animationCache = new Map();
+
 // --- MAPPA DI RETARGETING ---
 const BONE_MAP = {
     'Hips': 'skl_root',
@@ -28,6 +45,24 @@ function retargetClip(originalClip) {
     }); 
     clip.tracks = clip.tracks.filter(t => !tracksToRemove.includes(t));
     return clip;
+}
+
+// Funzione per disporre risorse Three.js correttamente
+function disposeResources(object) {
+    if (!object) return;
+    
+    object.traverse((child) => {
+        if (child.geometry) {
+            child.geometry.dispose();
+        }
+        if (child.material) {
+            if (Array.isArray(child.material)) {
+                child.material.forEach(mat => mat.dispose());
+            } else {
+                child.material.dispose();
+            }
+        }
+    });
 }
 
 export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, drift, isKart = true, isRemote, ...props }) {
@@ -85,38 +120,60 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
       hz: vehicleConfig?.handPos?.[2] ?? 0.3
   };
 
-  // Caricamento Assets
-  //console.log("Racer model: ", characterConfig);
+  // Caricamento Assets con cache
   const { scene: charScene } = useGLTF(characterConfig.file)
   const clone = useMemo(() => SkeletonUtils.clone(charScene), [charScene])
+  
+  // Cache animazioni per evitare di ricaricarle
   const { animations: kartAnims } = useGLTF('/Animations/driving_kart.glb')
   const { animations: bikeAnims } = useGLTF('/Animations/driving_kart.glb') 
   const { animations: idleAnims } = useGLTF('/Animations/break_dance.glb') 
 
   const anims = useMemo(() => {
+      const cacheKey = `${kartAnims?.[0]?.uuid}-${bikeAnims?.[0]?.uuid}-${idleAnims?.[0]?.uuid}`;
+      
+      if (animationCache.has(cacheKey)) {
+          return animationCache.get(cacheKey);
+      }
+      
       const clips = [];
       if (kartAnims?.[0]) { const c = retargetClip(kartAnims[0]); c.name = 'kart'; clips.push(c); }
       if (bikeAnims?.[0]) { const c = retargetClip(bikeAnims[0]); c.name = 'bike'; clips.push(c); }
       if (idleAnims?.[0]) { const c = retargetClip(idleAnims[0]); c.name = 'idle'; clips.push(c); }
+      
+      // Limita la cache a 10 clip
+      if (animationCache.size > 10) {
+          const firstKey = animationCache.keys().next().value;
+          animationCache.delete(firstKey);
+      }
+      
+      animationCache.set(cacheKey, clips);
       return clips;
   }, [kartAnims, bikeAnims, idleAnims]);
 
   const { actions, names } = useAnimations(anims, group)
 
   // Gestione Animazioni
-  useEffect(() => {
+useEffect(() => {
+		let targetAnim = 'idle';
+		if (isKart && vehicleConfig) targetAnim = vehicleConfig.animationType || 'kart';
 
-      let targetAnim = 'idle';
-	  //console.log('Vehicle: ', vehicleConfig.animationType);
-      if (isKart && vehicleConfig) targetAnim = vehicleConfig.animationType || 'kart';
+		if (!actions || !names || names.length === 0) {
+			return;
+		}
 
-      names.forEach(name => {
-          const action = actions[name];
-          if (!action) return;
-          if (name === targetAnim) action.reset().fadeIn(0.2).play().setLoop(LoopRepeat);
-          else action.fadeOut(0.2);
-      });
-  }, [vehicleConfig?.animationType, isKart, actions, names]);
+		names.forEach(name => {
+			const action = actions[name];
+			if (!action) {
+					return;
+			}
+			if (name === targetAnim) {	
+					action.reset().fadeIn(0.2).play().setLoop(LoopRepeat);
+			} else {
+					action.fadeOut(0.2);
+			}
+		});
+}, [vehicleConfig?.animationType, isKart, actions, names]);
 
   useEffect(() => {
       clone.traverse(o => { 
@@ -184,6 +241,28 @@ export function RacerModel({ isInMenu, characterConfig, vehicleConfig, steer, dr
       }
     })
   }, [clone]);
+
+  // Cleanup quando il component si unmonta
+  useEffect(() => {
+      return () => {
+          // Ferma tutte le azioni in corso
+          if (actions) {
+              Object.values(actions).forEach(action => {
+                  if (action) {
+                      action.stop();
+                      if (action.getMixer()) {
+                          action.getMixer().uncacheClip(action.getClip());
+                      }
+                  }
+              });
+          }
+          
+          // Dispone geometry e material
+          if (clone) {
+              disposeResources(clone);
+          }
+      };
+  }, [clone, actions]);
 
   return (
     <group ref={group} {...props} dispose={null}>
