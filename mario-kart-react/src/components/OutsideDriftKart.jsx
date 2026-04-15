@@ -39,7 +39,7 @@ const cOrange = new THREE.Color(0xF24807); // Arancione/giallo per drift potente
 
 const DEFAULT_SETTINGS = {
     maxSpeed: 40,
-  maxTurboLimit: 50,        
+  maxTurboLimit: 55,        
   acceleration: 0.25,        
   deceleration: 2.0,        
   turnSpeed: 0.9,
@@ -991,7 +991,7 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 				speed.current = MathUtils.damp(speed.current, maxSpeed, SETTINGS.deceleration, delta)
 			} else {
 				let currentAccel = SETTINGS.acceleration
-				if (isBoosting) currentAccel *= 2.5
+				if (isBoosting) currentAccel *= 3.0;
 				if (isStarActive.current || isMegaActive.current) currentAccel *= 2;
 				else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
 				speed.current = MathUtils.damp(speed.current, targetSpeed, currentAccel, delta)

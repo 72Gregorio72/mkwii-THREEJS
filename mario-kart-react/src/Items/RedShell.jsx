@@ -8,7 +8,7 @@ import { AUDIO_SFX } from '../components/Data';
 
 const SHELL_SPEED = 70; // Velocità aumentata per superare attriti
 const DETECTION_RADIUS = 50; 
-const WAYPOINT_REACHED_DIST = 12;
+const WAYPOINT_REACHED_DIST = 6;
 
 export const RedShell = memo(function RedShell({ id, position, initVelocity, waypoints = [], targets = [], ownerId, onDestroy, socket }) {
     const { scene } = useGLTF('/items/RedShell.glb'); 
@@ -130,23 +130,12 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         } 
         // Altrimenti segue i waypoint
         if (!destination && waypoints.length > 0) {
-            const currentWp = waypoints[currentWpIndex.current];
-            const nextWp = waypoints[(currentWpIndex.current + 1) % waypoints.length];
-            const nextNextWp = waypoints[(currentWpIndex.current + 2) % waypoints.length];
-            
-            v.nextWp.set(currentWp.x, rbTrans.y, currentWp.z);
-            
-            // Check if we've reached the current waypoint
+            const wp = waypoints[currentWpIndex.current];
+            v.nextWp.set(wp.x, rbTrans.y, wp.z);
+
             if (v.pos.distanceTo(v.nextWp) < WAYPOINT_REACHED_DIST) {
                 currentWpIndex.current = (currentWpIndex.current + 1) % waypoints.length;
             }
-            
-            // For smoother path following, aim towards a point ahead on the path
-            // This prevents oscillation by looking further ahead
-            const lookAheadIndex = (currentWpIndex.current + 2) % waypoints.length;
-            const lookAheadWp = waypoints[lookAheadIndex];
-            v.nextWp.set(lookAheadWp.x, rbTrans.y, lookAheadWp.z);
-            
             destination = v.nextWp;
         }
 
@@ -166,34 +155,12 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
             } catch (e) {
                 // Ignora errori se il RigidBody non è pronto
             }
-        } else {
-            // Fallback: se non c'è destinazione, mantieni velocità in avanti basata sulla direzione attuale
-            try {
-                const currentVel = rb.current.linvel();
-                const speed = Math.sqrt(currentVel.x * currentVel.x + currentVel.z * currentVel.z);
-                
-                // Se la velocità è troppo bassa, dai un impulso in avanti
-                if (speed < 10) {
-                    const forwardDir = new THREE.Vector3(0, 0, 1).applyQuaternion(rb.current.rotation());
-                    rb.current.setLinvel({
-                        x: forwardDir.x * SHELL_SPEED * 0.5,
-                        y: -8.0,
-                        z: forwardDir.z * SHELL_SPEED * 0.5
-                    }, true);
-                }
-                
-                rb.current.wakeUp();
-            } catch (e) {
-                // Ignora errori
-            }
         }
 
-        // Ricerca target se non ce l'ha - SOLO DAVANTI, ma con fallback
+        // Ricerca target se non ce l'ha - SOLO DAVANTI
         if (!targetId && targets.length > 0) {
             let closestTarget = null;
             let closestDist = DETECTION_RADIUS;
-            let closestTargetBehind = null;
-            let closestDistBehind = DETECTION_RADIUS * 0.7; // Ridotto per dietro
             
             targets.forEach(t => {
                 if (t.id === ownerId || !t.ref.current) return;
@@ -213,17 +180,15 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
                         // Prodotto scalare: > 0 = davanti, < 0 = dietro
                         const dotProduct = shellDirection.dot(toTarget);
                         
-                        const dist = v.pos.distanceTo(v.targetPos.set(tTrans.x, rbTrans.y, tTrans.z));
-                        
-                        // Prima priorità: target davanti
-                        if (dotProduct > 0 && dist < closestDist) {
-                            closestDist = dist;
-                            closestTarget = t.id;
-                        }
-                        // Seconda priorità: target dietro (ma più vicini)
-                        else if (dotProduct <= 0 && dist < closestDistBehind) {
-                            closestDistBehind = dist;
-                            closestTargetBehind = t.id;
+                        // Solo target davanti (angolo < 90 gradi)
+                        if (dotProduct > 0) {
+                            const dist = v.pos.distanceTo(v.targetPos.set(tTrans.x, rbTrans.y, tTrans.z));
+                            
+                            // Trova il target più vicino davanti
+                            if (dist < closestDist) {
+                                closestDist = dist;
+                                closestTarget = t.id;
+                            }
                         }
                     }
                 } catch (e) {
@@ -231,11 +196,8 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
                 }
             });
             
-            // Preferisci target davanti, ma usa dietro se non ce ne sono
             if (closestTarget) {
                 setTargetId(closestTarget);
-            } else if (closestTargetBehind) {
-                setTargetId(closestTargetBehind);
             }
         }
     });

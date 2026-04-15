@@ -104,7 +104,7 @@ model GrandPrix {
 
   user User @relation(fields: [userName], references: [username], onUpdate: Cascade) // relazione con User, ogni record times è associato a un utente
   
-  @@unique([userName, grandPrixName]) // un utente può avere un solo record time per ogni circuito
+  @@unique([userName, grandPrixName, ccs]) // un utente può avere un solo record time per ogni circuito
 }
 
 
