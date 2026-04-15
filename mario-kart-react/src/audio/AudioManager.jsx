@@ -83,6 +83,10 @@ export const AudioProvider = ({ children }) => {
     if (!audioElement) return;
 
     try {
+      // Se l'audio è ancora in riproduzione, fermarlo prima di riavviare
+      if (!audioElement.paused) {
+        audioElement.pause();
+      }
       audioElement.volume = Math.min(sfxVolume * volumeMultiplier, 1.0);
       audioElement.currentTime = 0;
       audioElement.play().catch(e => {

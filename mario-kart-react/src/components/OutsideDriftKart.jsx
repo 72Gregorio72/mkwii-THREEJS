@@ -325,18 +325,28 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 
 
   const activateLightning = () => {
-      isSmall.current = true;
-      
-      // THUNDER_SMALL_STATE: quando diventi piccolo
-      if (thunderSmallAudioRef.current) {
-          thunderSmallAudioRef.current.currentTime = 0;
-          thunderSmallAudioRef.current.play();
+      if (isSmall.current) {
+          // Se è già piccolo, resettiamo solo il timer invece di far ripartire l'audio
+          if (smallTimer.current) clearTimeout(smallTimer.current);
+          smallTimer.current = setTimeout(() => {
+              deactivateLightning();
+          }, SMALL_DURATION);
+          return;
       }
-      // THUNDER_LOOP: loop mentre sei piccolo
+      
+      isSmall.current = true;
+      if (thunderSmallAudioRef.current) {
+          if (thunderSmallAudioRef.current.isPlaying) thunderSmallAudioRef.current.stop();
+          try {
+              thunderSmallAudioRef.current.play();
+          } catch (e) {}
+      }
       if (thunderLoopAudioRef.current) {
-          thunderLoopAudioRef.current.currentTime = 0;
-          thunderLoopAudioRef.current.setVolume(0.5);
-          thunderLoopAudioRef.current.play();
+          if (thunderLoopAudioRef.current.isPlaying) thunderLoopAudioRef.current.stop();
+          thunderLoopAudioRef.current.setVolume?.(0.5);
+          try {
+              thunderLoopAudioRef.current.play();
+          } catch (e) {}
       }
 
       if (smallTimer.current) clearTimeout(smallTimer.current);
@@ -348,13 +358,14 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const deactivateLightning = () => {
       isSmall.current = false;
       
-      if (thunderLoopAudioRef.current) {
-          thunderLoopAudioRef.current.pause();
-          thunderLoopAudioRef.current.currentTime = 0;
+      if (thunderLoopAudioRef.current && thunderLoopAudioRef.current.isPlaying) {
+          thunderLoopAudioRef.current.stop();
       }
       if (thunderBigAudioRef.current) {
-          thunderBigAudioRef.current.currentTime = 0;
-          thunderBigAudioRef.current.play();
+          if (thunderBigAudioRef.current.isPlaying) thunderBigAudioRef.current.stop();
+          try {
+              thunderBigAudioRef.current.play();
+          } catch (e) {}
       }
   };
 
@@ -649,8 +660,11 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
 					driftDirection.current = 0;
 
 					if (BananaHitAudioRef.current) {
+                        if (BananaHitAudioRef.current.isPlaying) BananaHitAudioRef.current.stop();
                         BananaHitAudioRef.current.setVolume(2.0);
-						BananaHitAudioRef.current.play();
+                        try {
+						    BananaHitAudioRef.current.play();
+                        } catch (e) {}
 					}
 				}
 			}
@@ -1160,8 +1174,11 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
                 spinTimer.current = 0.8;
                 speed.current = 0;
                 if (BananaHitAudioRef.current) {
+                    if (BananaHitAudioRef.current.isPlaying) BananaHitAudioRef.current.stop();
                     BananaHitAudioRef.current.setVolume(2.0);
-                    BananaHitAudioRef.current.play();
+                    try {
+                        BananaHitAudioRef.current.play();
+                    } catch (e) {}
                 }
             }
         };
