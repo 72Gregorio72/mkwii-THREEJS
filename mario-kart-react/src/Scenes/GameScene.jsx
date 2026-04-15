@@ -1365,7 +1365,7 @@ export function GameScene({
                                 case 'green_shell': 
                                     return <GreenShell key={item.id} {...commonProps} />;
                                 case 'red_shell': 
-                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={activeTrackConfig.Waypoints[0]} />;
+                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={activeTrackConfig.Waypoints[0]} roomCode={roomCode} />;
                                 case 'blue_shell': 
                                     return <BlueShell key={item.id} position={pos} waypoints={activeTrackConfig.Waypoints[0]} targets={blueShellTargets} onDestroy={commonProps.onDestroy} />;
                                 case 'bomb': 

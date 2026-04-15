@@ -38,7 +38,7 @@ const cOrange = new THREE.Color(0xF24807);
 
 const DEFAULT_SETTINGS = {
     maxSpeed: 10,
-  maxTurboLimit: 50,        
+  maxTurboLimit: 55,        
   acceleration: 0.25,        
   deceleration: 2.0,        
   turnSpeed: 0.9,
@@ -864,8 +864,8 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
 
         let currentSpeedLimit = maxSpeed
         if (isBoosting) currentSpeedLimit = SETTINGS.maxTurboLimit
-        else if (isDrifting) currentSpeedLimit += 5 
-        else if (isWheelieActive) currentSpeedLimit += 15; 
+        else if (isDrifting) currentSpeedLimit += 15
+        else if (isWheelieActive) currentSpeedLimit += 5; 
 
         if (isStarActive.current) {
             currentSpeedLimit *= STAR_SPEED_BOOST; 
@@ -886,7 +886,7 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
                 speed.current = MathUtils.damp(speed.current, currentSpeedLimit, SETTINGS.deceleration, delta)
             } else {
                 let currentAccel = SETTINGS.acceleration
-                if (isBoosting) currentAccel *= 2.5
+                if (isBoosting) currentAccel *= 3.0
                 if (isStarActive.current || isMegaActive.current) currentAccel *= 2;
                 else if (isWheelieActive) currentAccel *= 1.2; 
                 else if (!forward && !backward) currentAccel = SETTINGS.deceleration 
