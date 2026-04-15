@@ -1519,33 +1519,59 @@ export function GameScene({
                         const botPos = gridPositions[gridIndex] || getGridPosition(activeStartPos, i);
                         const botRot = gridRotations[gridIndex] || [0, Math.PI / 2, 0];
 
-                        return (
-                            <group key={botId} position={[0, 0, 0]}> 
-                                <OutsideDriftKart 
-                                    ref={botRefs.current[botId]}
-                                    userData={{ type: 'racer', id: botId }}
-                                    characterConfig={botConfig.character.modelConfig} 
-                                    gameState={gameState}
-                                    isPaused={isPaused}
-                                    vehicleConfig={botConfig.vehicle} 
-                                    START_POS={botPos}
-                                    START_ROT={botRot}
-                                    positions={positions}
-                                    onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
-                                    onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
-                                    onSpawnRedShell={(p, v) => handleRequestSpawn('red_shell', p, v)}
-                                    onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
-                                    onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
-                                    trackRef={trackRef} 
-                                    trackConfig={activeTrackConfig} 
-                                    isBot={true}
-                                    paths={activeTrackConfig.Waypoints}
-                                    roomCode={roomCode}
-                                    maxSpeed={ccs}
-                                    isTimeTrial={false}
-                                /> 
-                            </group>
-                        );
+						return (
+							<group key={botId} position={[0, 0, 0]}> 
+								{botConfig.vehicle.isBike ? (
+									<OutsideDriftBike
+										ref={botRefs.current[botId]}
+										userData={{ type: 'racer', id: botId }}
+										characterConfig={botConfig.character.modelConfig} 
+										gameState={gameState}
+										isPaused={isPaused}
+										vehicleConfig={botConfig.vehicle} 
+										START_POS={botPos}
+										START_ROT={botRot}
+										positions={positions}
+										onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
+										onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
+										onSpawnRedShell={(p, v) => handleRequestSpawn('red_shell', p, v)}
+										onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
+										onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
+										trackRef={trackRef} 
+										trackConfig={activeTrackConfig} 
+										isBot={true}
+										paths={activeTrackConfig.Waypoints}
+										roomCode={roomCode}
+										maxSpeed={ccs - 10}
+										isTimeTrial={false}
+									/>
+								) : (
+									<OutsideDriftKart 
+										ref={botRefs.current[botId]}
+										userData={{ type: 'racer', id: botId }}
+										characterConfig={botConfig.character.modelConfig} 
+										gameState={gameState}
+										isPaused={isPaused}
+										vehicleConfig={botConfig.vehicle} 
+										START_POS={botPos}
+										START_ROT={botRot}
+										positions={positions}
+										onSpawnBanana={(p, v) => handleRequestSpawn('banana', p, v)}
+										onSpawnGreenShell={(p, v) => handleRequestSpawn('green_shell', p, v)}
+										onSpawnRedShell={(p, v) => handleRequestSpawn('red_shell', p, v)}
+										onSpawnBlueShell={(p, v) => handleRequestSpawn('blue_shell', p, v)}
+										onSpawnBomb={(p, v) => handleRequestSpawn('bomb', p, v)}
+										trackRef={trackRef} 
+										trackConfig={activeTrackConfig} 
+										isBot={true}
+										paths={activeTrackConfig.Waypoints}
+										roomCode={roomCode}
+										maxSpeed={ccs}
+										isTimeTrial={false}
+									/> 
+								)}
+							</group>
+						);
                     })}
                 </Physics>
             </Canvas>

@@ -785,23 +785,25 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   };
 
   useFrame((state, delta) => {
-    if (!rb.current) return;
+    try {
+      if (!rb.current) return;
 
-	if (!rb.current || gameState !== 'RACING' || isPaused) {
-        // Se è in pausa, congela il movimento orizzontale ma mantieni la gravità
-        if (isPaused && gameState === 'RACING') {
-            const vel = rb.current.linvel();
-            rb.current.setLinvel({x: 0, y: vel.y, z: 0}, true);
-        } else if (gameState === 'COUNTDOWN') {
-            rb.current.setLinvel({x:0, y: rb.current.linvel().y, z:0}, true);
-            speed.current = 0;
-        }
-        return; 
-    }
+      if (!rb.current || gameState !== 'RACING' || isPaused) {
+          // Se è in pausa, congela il movimento orizzontale ma mantieni la gravità
+          if (isPaused && gameState === 'RACING' && rb.current) {
+              const vel = rb.current.linvel();
+              rb.current.setLinvel({x: 0, y: vel.y, z: 0}, true);
+          } else if (gameState === 'COUNTDOWN' && rb.current) {
+              const countdownVel = rb.current.linvel();
+              rb.current.setLinvel({x:0, y: countdownVel.y, z:0}, true);
+              speed.current = 0;
+          }
+          return; 
+      }
 
-    // Aggiorna posizione corrente per la camera e logica
-    const rbPos = rb.current.translation();
-    const rbVel = rb.current.linvel();
+      // Aggiorna posizione corrente per la camera e logica
+      const rbPos = rb.current.translation();
+      const rbVel = rb.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
     
     // Aggiorna UI solo ogni 3 frame per ridurre overhead DOM
@@ -1024,7 +1026,11 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         const gravity = 25 * delta;
         if (!isGrounded.current && !isJumping.current) {
             newY -= gravity
-            rb.current.applyImpulse({ x: 0, y: -2000000.0 * delta, z: 0 }, true) 
+            if (rb.current) try {
+                rb.current.applyImpulse({ x: 0, y: -2000000.0 * delta, z: 0 }, true) 
+            } catch (e) {
+                console.warn('Rapier physics error:', e);
+            }
         } 
         else if (isJumping.current) {
             newY -= 15 * delta 
@@ -1035,15 +1041,20 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         }
         
         // Applica Fisica Standard
-        rb.current.setLinvel({ 
-            x: Number(finalVelocity.x), 
-            y: Number(newY), 
-            z: Number(finalVelocity.z) 
-        }, true)
-        const q = new Quaternion()
-        q.setFromEuler(new Euler(0, rotation.current, 0))
-        rb.current.setRotation(q, true)
-        rb.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
+        if (rb.current) try {
+            rb.current.setLinvel({ 
+                x: Number(finalVelocity.x), 
+                y: Number(newY), 
+                z: Number(finalVelocity.z) 
+            }, true)
+            const q = new Quaternion()
+            q.setFromEuler(new Euler(0, rotation.current, 0))
+            rb.current.setRotation(q, true)
+            rb.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
+        } catch (e) {
+            console.warn('Rapier physics error:', e);
+            return; // Esci dal frame se la fisica fallisce
+        }
 
         // Visual Smoothing (Ottimizzato per evitare jitter)
         const yDiff = Math.abs(rbPos.y - smoothedY.current);
@@ -1124,6 +1135,10 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
         // Riporta il kart in alto nel punto in cui si trova
         rb.current.setTranslation({ x: rbPos.x, y: START_POS[1] + 2, z: rbPos.z }, true);
         rb.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    }
+    } catch (error) {
+      console.error('OutsideDriftKart - Physics frame error:', error);
+      // Continua il gioco anche se la fisica ha errori
     }
   })
 
