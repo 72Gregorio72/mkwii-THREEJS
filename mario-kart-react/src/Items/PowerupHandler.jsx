@@ -82,26 +82,17 @@ export const usePowerupHandler = ({
   getFirstPlaceRef
 }) => {
   
+  const { playSfx } = useAudio();
+
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
 	const [isRoulette, setIsRoulette] = useState(false);
-  const rouletteAudioRef = useRef(null);
-  const decideAudioRef = useRef(null);
-
-  useEffect(() => {
-    if (!isLocalPlayer) return;
-    // console.log("PowerupHandler: inizializzando audio per roulette oggetti.");
-    rouletteAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_DECIDE);
-    rouletteAudioRef.current.volume = 0.7;
-    decideAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_ROLL);
-    decideAudioRef.current.volume = 0.8;
-  }, [isLocalPlayer]);
 
 	const triggerItemRoulette = (rank = 6) => {
 		if (currentItem !== ITEMS.NONE || isRoulette) return;
 
 		setIsRoulette(true);
-		if (rouletteAudioRef.current) {
-      rouletteAudioRef.current.play();
+		if (isLocalPlayer) {
+      playSfx(AUDIO_SFX.ITEM_BOX_DECIDE, 0.7);
     }
 		// Lista di tutti gli item possibili per l'animazione visiva
 		const allItems = Object.keys(ITEMS).filter(item => item !== 'NONE');
@@ -118,8 +109,8 @@ export const usePowerupHandler = ({
 			clearInterval(rouletteInterval); // Ferma lo scrolling
 			const selectedItem = getItemBasedOnRank(rank);
 			
-      if (decideAudioRef.current) {
-        decideAudioRef.current.play();
+      if (isLocalPlayer) {
+        playSfx(AUDIO_SFX.ITEM_BOX_ROLL, 0.8);
       }
 			setIsRoulette(false);
 			setCurrentItem(selectedItem);
@@ -136,15 +127,13 @@ export const usePowerupHandler = ({
 	};
   const isItemKeyPressed = useRef(false);
 
-  const { playSfx } = useAudio()
-
   const [tripleCount, setTripleCount] = useState(3);
   const [isGoldenActive, setIsGoldenActive] = useState(false);
   const goldenTimerRef = useRef(null);
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    //setCurrentItem(ITEMS.BULLET_BILL);
+    // setCurrentItem(ITEMS.LIGHTNING);
   };
 
 useEffect(() => {
