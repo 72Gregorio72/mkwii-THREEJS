@@ -15,6 +15,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { FriendsModule } from './friends/friends.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { NotificationsService } from './notifications/notifications.service';
+import { AppInitService } from './appinit.service';
 
 @Module({
   imports: [GameModule, AuthModule, FriendsModule, UsersModule, NotificationsModule,
@@ -34,6 +35,6 @@ import { NotificationsService } from './notifications/notifications.service';
     }),
   ],
   controllers: [AppController, InfoController, AuthController],
-  providers: [AppService, InfoService, AuthService, UsersService, HashService, NotificationsService],
+  providers: [AppService, InfoService, AuthService, UsersService, HashService, NotificationsService, AppInitService],
 })
 export class AppModule {}

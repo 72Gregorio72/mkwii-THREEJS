@@ -391,35 +391,31 @@ export const Profile = ({ setLoggedIn, setUsername }) => {
     };
 
     const confirmDeleteAccount = async () => {
-        playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
-        setIsDeleting(true);
+            playSfx(AUDIO_SFX.SELECT_IN_MENU, 10);
+            setIsDeleting(true);
 
-        try {
-            const response = await fetch(`/api/deleteUser?userName=${userName}`, {
-                method: 'DELETE',
-            });
+            try {
+                const response = await fetch(`/api/deleteUser?userName=${userName}`, {
+                    method: 'DELETE',
+                });
 
-            if (!response.ok) {
-                throw new Error("Errore durante l'eliminazione dell'account");
+                if (!response.ok) {
+                    throw new Error("Errore durante l'eliminazione dell'account");
+                }
+
+                if (setLoggedIn) {
+                    setLoggedIn(); 
+                }
+                
+                navigate('/');
+
+            } catch (error) {
+                console.error("Errore eliminazione account:", error);
+                alert("Impossibile eliminare l'account. Riprova più tardi.");
+                setIsDeleting(false);
+                setShowDeleteConfirm(false);
             }
-
-            sessionStorage.removeItem('accessToken');
-
-            if (socket) {
-                socket.disconnect();
-            }
-            setUsername('');
-            if (setLoggedIn) setLoggedIn(false);
-            
-            navigate('/');
-
-        } catch (error) {
-            console.error("Errore eliminazione account:", error);
-            alert("Impossibile eliminare l'account. Riprova più tardi.");
-            setIsDeleting(false);
-            setShowDeleteConfirm(false);
-        }
-    };
+        };
 
     return (
         <div className="w-screen h-screen relative overflow-hidden font-sans select-none text-white">

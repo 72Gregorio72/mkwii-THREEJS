@@ -619,9 +619,9 @@ export const Friends = () => {
                                                 <span className="text-[#00aeff]">Online Wins</span>
                                                 <span className="text-white">{friendProfileData.onlineWins || 0}</span>
                                             </div>
-                                            <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#004488]">
+                                            {/*<div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#004488]">
                                                 <div className="h-full bg-gradient-to-r from-[#004488] to-[#00aeff]" style={{width: `${Math.min(friendProfileData.onlineWins || 0, 100)}%`}}></div>
-                                            </div>
+                                            </div>*/}
                                         </div>
 
                                         {/* Offline Wins Progress Bar */}
@@ -630,9 +630,9 @@ export const Friends = () => {
                                                 <span className="text-[#ffcc00]">Offline Wins</span>
                                                 <span className="text-white">{friendProfileData.offlineWins || 0}</span>
                                             </div>
-                                            <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#886600]">
+                                            {/* <div className="w-full h-3 bg-black rounded-full overflow-hidden border border-[#886600]">
                                                 <div className="h-full bg-gradient-to-r from-[#886600] to-[#ffcc00]" style={{width: `${Math.min(friendProfileData.offlineWins || 0, 100)}%`}}></div>
-                                            </div>
+                                            </div> */}
                                         </div>
                                     </div>
                                 </div>

@@ -4,9 +4,9 @@ import DaisyCircuit_right from '../Bot/Waypoints/DaisyCircuit/DaisyCircuit_right
 import DelfinoSquare0 from '../Bot/Waypoints/DelfinoSquare/DelfinoSquare';
 import DelfinoSquareL from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareL';
 import DelfinoSquareR from '../Bot/Waypoints/DelfinoSquare/DelfinoSquareR';
-import YoshiFalls_1 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_1';
-import YoshiFalls_2 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_2';
-import YoshiFalls_3 from '../Bot/Waypoints/YoshiFalls/YoshiFalls_3';
+import YoshiFalls from '../Bot/Waypoints/YoshiFalls/YoshiFalls';
+import YoshiFalls_L from '../Bot/Waypoints/YoshiFalls/YoshiFalls_L';
+import YoshiFalls_R from '../Bot/Waypoints/YoshiFalls/YoshiFalls_R';
 import SNESMario1 from '../Bot/Waypoints/SNESMarioCircuit/SNESMario1.json';
 import SNESMarioR from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioR.json';
 import SNESMarioL from '../Bot/Waypoints/SNESMarioCircuit/SNESMarioL.json';
@@ -16,15 +16,15 @@ import PeachGardens_R from '../Bot/Waypoints/PeachGardens/PeachGardens_R.json';
 import LuigiCircuit from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit.json';
 import LuigiCircuit_L from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_L.json';
 import LuigiCircuit_R from '../Bot/Waypoints/LuigiCircuit/LuigiCircuit_R.json';
-import DS_DesertHills_1 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_1.json';
-import DS_DesertHills_2 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_2.json';
-import DS_DesertHills_3 from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_3.json';
-import DryDryRuins_1 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_1.json';
-import DryDryRuins_2 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_2.json';
-import DryDryRuins_3 from '../Bot/Waypoints/DryDryRuins/DryDryRuins_3.json';
-import MooMooMeadows_1 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_1.json';
-import MooMooMeadows_2 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_2.json';
-import MooMooMeadows_3 from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_3.json';
+import DS_DesertHills from '../Bot/Waypoints/DSDesertHills/DS_DesertHills.json';
+import DS_DesertHills_L from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_L.json';
+import DS_DesertHills_R from '../Bot/Waypoints/DSDesertHills/DS_DesertHills_R.json';
+import DryDryRuins from '../Bot/Waypoints/DryDryRuins/DryDryRuins.json';
+import DryDryRuins_L from '../Bot/Waypoints/DryDryRuins/DryDryRuins_L.json';
+import DryDryRuins_R from '../Bot/Waypoints/DryDryRuins/DryDryRuins_R.json';
+import MooMooMeadows from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows.json';
+import MooMooMeadows_L from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_L.json';
+import MooMooMeadows_R from '../Bot/Waypoints/MooMooMeadows/MooMooMeadows_R.json';
 import N64MarioRaceway_1 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_1.json';
 import N64MarioRaceway_2 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_2.json';
 import N64MarioRaceway_3 from '../Bot/Waypoints/N64MarioRaceway/N64MarioRaceway_3.json';
@@ -43,6 +43,9 @@ import BowserCastleR from '../Bot/Waypoints/BowserCastle/BowserCastleR.json';
 import GhostValley from '../Bot/Waypoints/GhostValley/GhostValley.json';
 import GhostValleyL from '../Bot/Waypoints/GhostValley/GhostValleyL.json';
 import GhostValleyR from '../Bot/Waypoints/GhostValley/GhostValleyR.json';
+import CoconutMall from '../Bot/Waypoints/CoconutMall/CoconutMall.json';
+import CoconutMall_R from '../Bot/Waypoints/CoconutMall/CoconutMall_R.json';
+import CoconutMall_L from '../Bot/Waypoints/CoconutMall/CoconutMall_L.json';
 
 
 const SMALL_VEHICLES = [
@@ -94,11 +97,11 @@ export const Tracks = {
 		startPos: [0, 0, 100],
 		checkpoints: './Tracks/CoconutMall/CoconutMall_checkpoints.glb',
 		maxCheckpoints: 2,
-		soundtrack: 'RACE_BOWSER_CASTLE',
+		soundtrack: 'RACE_COCONUT_MALL',
 		itemBoxes: './Tracks/CoconutMall/CoconutMall_itemboxes.glb',
 		gridpos: './Tracks/CoconutMall/CoconutMall_startpos.glb',
 		road: './Tracks/CoconutMall/CoconutMall_hitboxes.glb',
-		Waypoints: [ BowserCastle, BowserCastleL, BowserCastleR ]
+		Waypoints: [ CoconutMall, CoconutMall_L, CoconutMall_R ]
 	},
 	'Bowser Castle': {
 		file: './Tracks/BowserCastle/BowserCastle.glb',
@@ -134,7 +137,7 @@ export const Tracks = {
         itemBoxes: './Tracks/YoshiFalls/YoshiFalls_itembox.glb',
         gridpos: './Tracks/YoshiFalls/YoshiFalls_startpos.glb',
         road: './Tracks/YoshiFalls/YoshiFalls_road.glb',
-		Waypoints: [ YoshiFalls_1, YoshiFalls_2, YoshiFalls_3 ]
+		Waypoints: [ YoshiFalls, YoshiFalls_L, YoshiFalls_R ]
     },
     'Moo Moo Meadows': {
         file: './Tracks/MooMooMeadows/MooMooMeadows.glb',
@@ -146,7 +149,7 @@ export const Tracks = {
         itemBoxes: './Tracks/MooMooMeadows/MooMooMeadows_itembox.glb',
         gridpos: './Tracks/MooMooMeadows/MooMooMeadows_startpos.glb',
         road: './Tracks/MooMooMeadows/MooMooMeadows_road.glb',
-		Waypoints: [ MooMooMeadows_1, MooMooMeadows_2, MooMooMeadows_3 ]
+		Waypoints: [ MooMooMeadows, MooMooMeadows_L, MooMooMeadows_R ]
     },
 	
 	'Peach Gardens': {
@@ -185,7 +188,7 @@ export const Tracks = {
         itemBoxes: './Tracks/N64MarioRaceway/N64_Mario_Raceway_itembox.glb',
         gridpos: './Tracks/N64MarioRaceway/N64_Mario_Raceway_startpos.glb',
         road: './Tracks/N64MarioRaceway/N64_Mario_Raceway_road.glb',
-		Waypoints: [ N64MarioRaceway_1, N64MarioRaceway_2, N64MarioRaceway_3 ]
+		Waypoints: [ N64MarioRaceway_3, N64MarioRaceway_2, N64MarioRaceway_1 ]
     },
 
 	'GCN Mario Circuit': {
@@ -224,7 +227,7 @@ export const Tracks = {
 		itemBoxes: './Tracks/DSDesertHills/DSDesertHills_itembox.glb',
         gridpos: './Tracks/DSDesertHills/DSDesertHills_startpos.glb',
         road: './Tracks/DSDesertHills/DSDesertHills_road.glb',
-		Waypoints: [ DS_DesertHills_1, DS_DesertHills_2, DS_DesertHills_3 ]
+		Waypoints: [ DS_DesertHills, DS_DesertHills_L, DS_DesertHills_R ]
     },
 
 	'Dry Dry Ruins': {
@@ -237,7 +240,7 @@ export const Tracks = {
 		itemBoxes: './Tracks/DryDryRuins/DryDryRuins_itembox.glb',
         gridpos: './Tracks/DryDryRuins/DryDryRuins_startpos.glb',
         road: './Tracks/DryDryRuins/DryDryRuins_road.glb',
-		Waypoints: [ DryDryRuins_1, DryDryRuins_2, DryDryRuins_3 ]
+		Waypoints: [ DryDryRuins, DryDryRuins_L, DryDryRuins_R ]
     },
 
 	'GCN Peach Beach': {
@@ -321,7 +324,7 @@ export const grandPrixList = [
 				"GCN Peach Beach",
 				"SNES Ghost Valley 2",
 				"Bowser Castle",
-				"Luigi Circuit",
+				"Coconut Mall",
 			]
 		},
 ];

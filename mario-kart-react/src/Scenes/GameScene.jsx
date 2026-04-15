@@ -865,7 +865,7 @@ export function GameScene({
         if (!racerId || !racersData.current[racerId]) return;
         const racer = racersData.current[racerId];
         if (racer.hasFinished) return;
-        console.log(`[Checkpoint] Racer ${racerId} hit checkpoint ${hitIndex}, expected ${racer.nextCP}`);
+        // console.log(`[Checkpoint] Racer ${racerId} hit checkpoint ${hitIndex}, expected ${racer.nextCP}`);
         
         if (hitIndex === racer.nextCP && hitIndex !== 0) {
             racer.nextCP += 1;
@@ -873,7 +873,7 @@ export function GameScene({
         } 
         else if (hitIndex === 0 && racer.nextCP > activeMaxCheckpoints) {
             racer.lap += 1;
-            console.log(`[Checkpoint] Racer ${racerId} completed lap ${racer.lap - 1}, now on lap ${racer.lap}`);
+            // console.log(`[Checkpoint] Racer ${racerId} completed lap ${racer.lap - 1}, now on lap ${racer.lap}`);
             
             // Aggiorna UI se è il player
             if (racerId === socket.id) {
@@ -956,7 +956,13 @@ export function GameScene({
     const handleExitRace = useCallback((destination = '/menu') => {
         setRaceExited(true);
         setGameState('LOADING');
-        setIsTransitioning(true); 
+        setIsTransitioning(true);
+        if (isGrandPrix) {
+            gameStore.setIsGrandPrix(false);
+        }
+        if (isTimeTrial) {
+            gameStore.setIsTimeTrial(false);
+        }
         if (roomCode && socket) {
             socket.emit('leave_room', { roomCode });
             resetRoomState();
@@ -1283,7 +1289,7 @@ export function GameScene({
                 }}
             >
 
-                {/* {activeTrackConfig?.Waypoints?.[0] && (
+                {/*{activeTrackConfig?.Waypoints?.[0] && (
                     <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[0]} lineColor="#00e5ff" />
                 )}
                 {activeTrackConfig?.Waypoints?.[1] && (
@@ -1291,14 +1297,15 @@ export function GameScene({
                 )}
                 {activeTrackConfig?.Waypoints?.[2] && (
                     <WaypointVisualizer waypointsFile={activeTrackConfig.Waypoints[2]} lineColor="#ff5a7a" />
-                )} */}
+                )}
 
 
                 {/* <WaypointRecorder
                     kartRef={playerRef}
                     isRecording={true}
                 >
-                </WaypointRecorder> */}
+
+                </WaypointRecorder>*/}
 
 
                 <AudioListenerComponent />
