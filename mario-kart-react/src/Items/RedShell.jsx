@@ -7,7 +7,7 @@ import { SkeletonUtils } from 'three-stdlib';
 import { AUDIO_SFX } from '../components/Data';
 import { useCallback } from 'react';
 
-const SHELL_SPEED = 70; // Velocità aumentata per superare attriti
+const SHELL_SPEED = 70; 
 const DETECTION_RADIUS = 50; 
 const WAYPOINT_REACHED_DIST = 6;
 
@@ -25,9 +25,9 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
     const debugSphereRef = useRef();
     const [isActive, setIsActive] = useState(true);
     const [targetId, setTargetId] = useState(null);
-    const initialDirection = useRef(new THREE.Vector3());
-    const isDestroyedRef = useRef(false); // Previeni double-destruction
-    const searchTargetCounter = useRef(0); // Debounce per ricerca target
+    const initialDirection = useRef(new THREE.Vector3(0, 0, 1));
+    const isDestroyedRef = useRef(false); 
+    const searchTargetCounter = useRef(0); 
 
     const v = useMemo(() => ({
         pos: new THREE.Vector3(),
@@ -37,41 +37,35 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
         nextWp: new THREE.Vector3()
     }), []);
 
-    // 1. INIZIALIZZAZIONE FISICA (FORZA IL MOVIMENTO)
+    // 1. CALCOLO VELOCITÀ SICURO (Anti-NaN)
+    const velocityVec = useMemo(() => {
+        if (!initVelocity) return new THREE.Vector3(0, 0, 1);
+        if (Array.isArray(initVelocity) && initVelocity.length >= 3) {
+            return new THREE.Vector3(initVelocity[0] || 0, initVelocity[1] || 0, initVelocity[2] || 0);
+        }
+        if (initVelocity.x !== undefined) {
+            return new THREE.Vector3(initVelocity.x || 0, initVelocity.y || 0, initVelocity.z || 0);
+        }
+        return new THREE.Vector3(0, 0, 1); // Fallback
+    }, [initVelocity]);
+
+    // Inizializza la direzione base
+    useEffect(() => {
+        initialDirection.current.copy(velocityVec).normalize();
+    }, [velocityVec]);
+
+    // 2. GESTIONE TIMER E CLEANUP
     useEffect(() => {
         console.log(`[RedShell ${id}] INIT - targets ricevuti: ${targets.length}`, targets);
-        
-        // Memorizza la direzione iniziale
-        if (initVelocity) {
-            initialDirection.current.set(...initVelocity).normalize();
-        } else {
-            initialDirection.current.set(0, 0, 1); // Direzione di default
-        }
-        
-        // Inizializzazione immediata della fisica
-        if (rb.current) {
-            try {
-                rb.current.wakeUp(); // Fondamentale: sveglia il corpo rigido
-                if (initVelocity) {
-                    rb.current.setLinvel(new THREE.Vector3(...initVelocity), true);
-                }
-            } catch (e) {
-                console.warn('Failed to initialize RedShell physics:', e);
-            }
-        }
         
         const timer = setTimeout(() => {
             setIsActive(false);
         }, 20000);
         
-        // Cleanup
-        return () => {
-            clearTimeout(timer);
-        };
-    }, [position, initVelocity, id]);
+        return () => clearTimeout(timer);
+    }, [id, targets]);
 
     useEffect(() => {
-        // Cleanup aggiuntivo quando il componente viene smontato (isActive diventa false)
         if (!isActive) {
             return () => {
                 if (!isDestroyedRef.current) {
@@ -91,16 +85,13 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
         console.log(`[RedShell ${id}] Targets CHANGED: ${targets.length} targets disponibili`, targets.map(t => ({ id: t.id, hasRef: !!t.ref?.current })));
     }, [targets, id]);
 
-    // Raccoglie tutti i target disponibili dai ref passati direttamente
     const getAllAvailableTargets = useCallback(() => {
         const allTargets = [];
         
-        // Aggiungi player
         if (playerRef?.current) {
             allTargets.push({ id: socket?.id || 'player', ref: playerRef });
         }
         
-        // Aggiungi bot locali - CORRETTO: botRefs.current
         if (botRefs?.current && Object.keys(botRefs.current).length > 0) {
             Object.entries(botRefs.current).forEach(([botId, botRef]) => {
                 if (botRef?.current) {
@@ -109,7 +100,6 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
             });
         }
         
-        // Aggiungi opponents remoti (solo in multiplayer)
         if (roomCode && remoteRefMap?.current && Object.keys(remoteRefMap.current).length > 0) {
             Object.entries(remoteRefMap.current).forEach(([oppId, oppRef]) => {
                 if (oppRef?.current) {
@@ -126,16 +116,15 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
 
         let rbTrans;
         try {
+            
             rbTrans = rb.current.translation();
-            if (!rbTrans) return;
+            if (!rbTrans || typeof rbTrans.x !== 'number') return;
             v.pos.set(rbTrans.x, rbTrans.y, rbTrans.z);
         } catch (e) {
-            // RigidBody non ancora pronto
-            return;
+            return; // RigidBody non ancora pronto, skippa
         }
 
-        // --- INVIO POSIZIONE AL SERVER ---
-        if (socket?.connected && roomCode && state.clock.elapsedTime % 0.1 < 0.02) { // Throttle per non intasare il socket
+        if (socket?.connected && roomCode && state.clock.elapsedTime % 0.1 < 0.02) { 
             socket.emit('update_item', {
                 id,
                 position: { x: rbTrans.x, y: rbTrans.y, z: rbTrans.z },
@@ -145,22 +134,18 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
 
         if (meshRef.current) meshRef.current.rotation.y += 20 * delta;
         
-        // Aggiorna posizione sfera debug
         if (debugSphereRef.current) {
             debugSphereRef.current.position.copy(v.pos);
         }
 
-        // --- LOGICA TARGETING / MOVIMENTO LINEARE ---
         let direction = initialDirection.current.clone();
 
-        // Se ha un target, lo segue - usa getAllAvailableTargets per validare il target
         if (targetId) {
             const availableTargets = getAllAvailableTargets();
             const targetObj = availableTargets.find(t => t.id === targetId);
             
             if (targetObj?.ref?.current) {
                 try {
-                    // Double-check che il ref sia valido
                     if (typeof targetObj.ref.current.translation === 'function') {
                         const tPos = targetObj.ref.current.translation();
                         if (tPos && typeof tPos.x === 'number' && typeof tPos.z === 'number') {
@@ -168,30 +153,25 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
                         }
                     }
                 } catch (e) {
-                    // Target non disponibile, continua dritto
                     console.log(`[RedShell ${id}] Errore durante il targeting:`, e.message);
                 }
             } else {
-                // Target non più disponibile, resetta
                 setTargetId(null);
             }
         }
 
-        // --- APPLICAZIONE VELOCITÀ ---
         try {
-            // Applichiamo setLinvel OGNI frame per assicurarci che non si fermi mai
             rb.current.setLinvel({ 
                 x: direction.x * SHELL_SPEED, 
-                y: -8.0, // Forza verso il basso per incollarlo alla pista
+                y: -8.0, 
                 z: direction.z * SHELL_SPEED 
             }, true);
             
-            rb.current.wakeUp(); // Continua a svegliare il corpo
+            // rb.current.wakeUp(); <-- rimosso, wakeUp continuo non è raccomandato. 
+            // setLinvel(..., true) "sveglia" già automaticamente il corpo (il parametro 'true' fa proprio questo).
         } catch (e) {
-            // Ignora errori se il RigidBody non è pronto
         }
 
-        // Ricerca target se non ce l'ha - DEBOUNCED (ogni 5 frame)
         searchTargetCounter.current++;
         if (!targetId && searchTargetCounter.current % 5 === 0) {
             const availableTargets = getAllAvailableTargets();
@@ -201,33 +181,20 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
                 let closestDist = DETECTION_RADIUS;
                 
                 availableTargets.forEach(t => {
-                    if (t.id === ownerId || !t.ref?.current) {
-                        return;
-                    }
-                    
-                    // Verifica che sia un RigidBody valido PRIMA di accedervi
-                    if (typeof t.ref.current.translation !== 'function') {
-                        return;
-                    }
+                    if (t.id === ownerId || !t.ref?.current) return;
+                    if (typeof t.ref.current.translation !== 'function') return;
                     
                     try {
                         const tTrans = t.ref.current.translation();
-                        
-                        // Verifica che la translation sia valida
-                        if (!tTrans || typeof tTrans.x !== 'number' || typeof tTrans.z !== 'number') {
-                            return;
-                        }
+                        if (!tTrans || typeof tTrans.x !== 'number' || typeof tTrans.z !== 'number') return;
                         
                         const dist = v.pos.distanceTo(v.targetPos.set(tTrans.x, rbTrans.y, tTrans.z));
                         
-                        // Trova il target più vicino nel raggio di rilevamento
                         if (dist < closestDist) {
                             closestDist = dist;
                             closestTarget = t.id;
                         }
-                    } catch (e) {
-                        // Ignora errori da RigidBody corrotti
-                    }
+                    } catch (e) {}
                 });
                 
                 if (closestTarget) {
@@ -247,12 +214,11 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
         const userData = targetObj?.userData;
         const victimId = userData?.id || targetObj?.name;
 
-        // Verifica se è un racer e non è il proprietario
         const isRacer = userData?.type === 'racer' || userData?.type === 'opponent';
         
         if (victimId && victimId !== ownerId && isRacer) {
             setIsActive(false);
-            isDestroyedRef.current = true; // Marca come distrutto subito
+            isDestroyedRef.current = true;
             
             window.dispatchEvent(new CustomEvent('banana-hit', { detail: { victimId } }));
             
@@ -268,14 +234,10 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, tar
 
     return (
         <>
-            {/* Sfera debug per visualizzare il raggio di rilevamento */}
-            {/* <Sphere ref={debugSphereRef} args={[DETECTION_RADIUS, 8, 8]} transparent opacity={0.15} wireframe>
-                <meshBasicMaterial color="#ff0000" />
-            </Sphere> */}
-            
             <RigidBody 
                 ref={rb}
                 position={position}
+                linearVelocity={[velocityVec.x, velocityVec.y, velocityVec.z]}
                 type="dynamic" 
                 colliders={false}
                 lockRotations={true}
