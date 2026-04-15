@@ -484,7 +484,7 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
       const firstPlacePos = props.positions?.find(p => p.position === 1);
       if (!firstPlacePos) return null;
       if (firstPlacePos.id === socket?.id) return rb; 
-      return props.botRefs?.current?.[firstPlacePos.id]; 
+	  return props.botRefs?.current?.[firstPlacePos.id];
     }
   });
 
@@ -698,24 +698,33 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
   };
 
   useFrame((state, delta) => {
-    if (!rb.current) return;
+    try {
+      if (!rb.current) return;
 
-    if (!rb.current || gameState !== 'RACING' || isPaused) {
-        if (isPaused && gameState === 'RACING') {
-            const vel = rb.current.linvel();
-            // FIX: Wrap with Number()
-            rb.current.setLinvel({x: 0, y: Number(vel.y), z: 0}, true);
-        } else if(gameState === 'COUNTDOWN') {
-            const vel = rb.current.linvel();
-            // FIX: Wrap with Number()
-            rb.current.setLinvel({x:0, y: Number(vel.y), z:0}, true);
-            speed.current = 0;
-        }
-        return; 
-    }
+      if (!rb.current || gameState !== 'RACING' || isPaused) {
+          if (isPaused && gameState === 'RACING' && rb.current) {
+              try {
+                  const vel = rb.current.linvel();
+                  rb.current.setLinvel({x: 0, y: Number(vel.y), z: 0}, true);
+              } catch (e) {
+                  console.warn('Rapier physics error during pause:', e);
+              }
+          } else if(gameState === 'COUNTDOWN' && rb.current) {
+              try {
+                  const vel = rb.current.linvel();
+                  rb.current.setLinvel({x:0, y: Number(vel.y), z:0}, true);
+                  speed.current = 0;
+              } catch (e) {
+                  console.warn('Rapier physics error during countdown:', e);
+              }
+          }
+          return; 
+      }
 
-    const rbPos = rb.current.translation();
-    const rbVel = rb.current.linvel();
+      if (!rb.current) return;
+      
+      const rbPos = rb.current.translation();
+      const rbVel = rb.current.linvel();
     currentPosition.current.set(rbPos.x, rbPos.y, rbPos.z);
     
     const shouldUpdateUI = !isBot && (frameCounter.current % 3 === 0);
@@ -911,7 +920,11 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         const gravity = 25 * delta;
         if (!isGrounded.current && !isJumping.current) {
             newY -= gravity
-            rb.current.applyImpulse({ x: 0, y: -2000000.0 * delta, z: 0 }, true) 
+            if (rb.current) try {
+                rb.current.applyImpulse({ x: 0, y: -2000000.0 * delta, z: 0 }, true) 
+            } catch (e) {
+                console.warn('Rapier physics error:', e);
+            }
         } 
         else if (isJumping.current) {
             newY -= 15 * delta 
@@ -922,12 +935,17 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         }
         
         // FIX: Wrap extracted Three.js vector properties to prevent unsafe aliasing
-        rb.current.setLinvel({ x: Number(finalVelocity.x), y: Number(newY), z: Number(finalVelocity.z) }, true)
-        const q = new Quaternion()
-        q.setFromEuler(new Euler(0, rotation.current, 0))
-        // FIX: Break reference
-        rb.current.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true)
-        rb.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
+        if (rb.current) try {
+            rb.current.setLinvel({ x: Number(finalVelocity.x), y: Number(newY), z: Number(finalVelocity.z) }, true)
+            const q = new Quaternion()
+            q.setFromEuler(new Euler(0, rotation.current, 0))
+            // FIX: Break reference
+            rb.current.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true)
+            rb.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
+        } catch (e) {
+            console.warn('Rapier physics error:', e);
+            return; // Esci dal frame se la fisica fallisce
+        }
 
         const yDiff = Math.abs(rbPos.y - smoothedY.current);
         let smoothFactor;
@@ -994,12 +1012,18 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
         state.camera.updateProjectionMatrix()
     }
 
-    const currentY = rb.current.translation().y;
-    if (currentY < -5) { 
-        console.warn(`${racerId} fell through world, resetting!`);
-        // FIX: Destructure rbPos properties into primitives
-        rb.current.setTranslation({ x: Number(rbPos.x), y: START_POS[1] + 2, z: Number(rbPos.z) }, true);
-        rb.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      if (rb.current) {
+        const currentY = rb.current.translation().y;
+        if (currentY < -5) { 
+            console.warn(`${racerId} fell through world, resetting!`);
+            // FIX: Destructure rbPos properties into primitives
+            rb.current.setTranslation({ x: Number(rbPos.x), y: START_POS[1] + 2, z: Number(rbPos.z) }, true);
+            rb.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        }
+      }
+    } catch (error) {
+      console.error('OutsideDriftBike - Physics frame error:', error);
+      // Continua il gioco anche se la fisica ha errori
     }
   })
 
