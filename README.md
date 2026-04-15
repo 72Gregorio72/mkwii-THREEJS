@@ -168,12 +168,8 @@ The project was developed to cover the required ft_transcendence areas and to ke
 ## Individual Contributions
 **gpicchio (PO/Developer):** Main contribution areas included gameplay design, 3D race logic, item and power-up behavior, and the overall playability of the racing loop. Also contributed to the product vision and prioritization of gameplay features.
 
-Challenges overcome: balancing gameplay systems so physics, camera behavior, and item interactions remained stable during active races.
+**vcastald (PM/Developer):** Main contribution areas included user-facing application flows, social features, project coordination, and the parts of the frontend/backend that support login, profiles, friends, and notifications,  Nginx reverse-proxy handling.
 
-**vcastald (PM/Developer):** Main contribution areas included user-facing application flows, social features, project coordination, and the parts of the frontend/backend that support login, profiles, friends, and notifications.
+**ftersill (TL/Developer):** Main contribution areas included architecture, websocket infrastructure, SFX and soundtracks management and the technical work needed to make the stack reliable in development.
 
-Challenges overcome: keeping the user-management flows consistent across frontend state, backend validation, and multiplayer session updates.
-
-**ftersill (TL/Developer):** Main contribution areas included architecture, websocket infrastructure, Docker integration, Nginx reverse-proxy handling, and the technical work needed to make the stack reliable in development.
-
-Challenges overcome: successfully debugging and resolving the self-signed certificate websocket issue on Firefox by configuring Nginx and the secure request flow.
+Overall everybody worked on almost everything in the project
