@@ -46,7 +46,7 @@ export function useHitboxHandler({ speed, boostTime, SETTINGS, onCheckpoint, max
              if (checkIndex === nextCheckpoint.current) {
                  if (now - lastCheckTime.current < CHECKPOINT_COOLDOWN) return { type: 'checkpoint_cooldown' };
                  
-                 console.log(`✅ Checkpoint ${checkIndex} PRESO!`);
+                //  console.log(`✅ Checkpoint ${checkIndex} PRESO!`);
                  lastCheckTime.current = now; 
 
                  if (checkIndex === 0) {

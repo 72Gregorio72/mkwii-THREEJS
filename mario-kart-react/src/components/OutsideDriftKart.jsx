@@ -266,6 +266,22 @@ export const OutsideDriftKart = React.memo(forwardRef((props, ref) => {
   const megaMushroomShrinkAudioRef = useRef();
   const megaMushroomUseAudioRef = useRef();
 
+    // --- TIMERS CLEANUP ---
+    useEffect(() => {
+        return () => {
+        // Clear timers to prevent interacting with destroyed Rapier objects
+        if (megaTimer.current) clearTimeout(megaTimer.current);
+        if (starTimer.current) clearTimeout(starTimer.current);
+        if (smallTimer.current) clearTimeout(smallTimer.current);
+        
+        // Optional: Reset mass immediately if unmounting while mega is active 
+        // (Though usually unnecessary since the body is being destroyed anyway)
+        isMegaActive.current = false;
+        isStarActive.current = false;
+        isSmall.current = false;
+        };
+    }, []);
+
 
   const activateMega = () => {
       isMegaActive.current = true;
