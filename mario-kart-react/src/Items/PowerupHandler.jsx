@@ -84,6 +84,7 @@ export const usePowerupHandler = ({
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
 	const [isRoulette, setIsRoulette] = useState(false);
+    const { playSfx } = useAudio();
 
 	const triggerItemRoulette = (rank = 6) => {
 		if (currentItem !== ITEMS.NONE || isRoulette) return;
