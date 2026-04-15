@@ -27,13 +27,13 @@ const ITEM_WEIGHTS = {
     3:  { [ITEMS.BANANA]: 10, [ITEMS.GREEN_SHELL]: 20, [ITEMS.RED_SHELL]: 30, [ITEMS.MUSHROOM]: 30, [ITEMS.BOB_OMB]: 10 },
     4:  { [ITEMS.MUSHROOM]: 40, [ITEMS.RED_SHELL]: 20, [ITEMS.TRIPLE_MUSHROOM]: 10, [ITEMS.BOB_OMB]: 15, [ITEMS.GREEN_SHELL]: 15 },
     5:  { [ITEMS.MUSHROOM]: 30, [ITEMS.RED_SHELL]: 15, [ITEMS.TRIPLE_MUSHROOM]: 20, [ITEMS.BOB_OMB]: 15, [ITEMS.STAR]: 10, [ITEMS.MEGA_MUSHROOM]: 10 },
-    6:  { [ITEMS.TRIPLE_MUSHROOM]: 25, [ITEMS.STAR]: 15, [ITEMS.MEGA_MUSHROOM]: 15, [ITEMS.GOLDEN_MUSHROOM]: 10, [ITEMS.RED_SHELL]: 15, [ITEMS.BOB_OMB]: 10, [ITEMS.BLUE_SHELL]: 10 },
-    7:  { [ITEMS.TRIPLE_MUSHROOM]: 30, [ITEMS.STAR]: 20, [ITEMS.GOLDEN_MUSHROOM]: 20, [ITEMS.MEGA_MUSHROOM]: 15, [ITEMS.LIGHTNING]: 5, [ITEMS.BLUE_SHELL]: 10 },
-    8:  { [ITEMS.STAR]: 20, [ITEMS.GOLDEN_MUSHROOM]: 25, [ITEMS.MEGA_MUSHROOM]: 15, [ITEMS.TRIPLE_MUSHROOM]: 20, [ITEMS.LIGHTNING]: 10, [ITEMS.BULLET_BILL]: 5, [ITEMS.BLUE_SHELL]: 5 },
-    9:  { [ITEMS.STAR]: 20, [ITEMS.GOLDEN_MUSHROOM]: 30, [ITEMS.BULLET_BILL]: 15, [ITEMS.LIGHTNING]: 15, [ITEMS.MEGA_MUSHROOM]: 10, [ITEMS.BLUE_SHELL]: 10 },
+    6:  { [ITEMS.TRIPLE_MUSHROOM]: 25, [ITEMS.STAR]: 15, [ITEMS.MEGA_MUSHROOM]: 15, [ITEMS.GOLDEN_MUSHROOM]: 10, [ITEMS.RED_SHELL]: 15, [ITEMS.BOB_OMB]: 10, [ITEMS.BLUE_SHELL]: 0 },
+    7:  { [ITEMS.TRIPLE_MUSHROOM]: 30, [ITEMS.STAR]: 20, [ITEMS.GOLDEN_MUSHROOM]: 20, [ITEMS.MEGA_MUSHROOM]: 15, [ITEMS.LIGHTNING]: 5, [ITEMS.BLUE_SHELL]: 0 },
+    8:  { [ITEMS.STAR]: 20, [ITEMS.GOLDEN_MUSHROOM]: 25, [ITEMS.MEGA_MUSHROOM]: 15, [ITEMS.TRIPLE_MUSHROOM]: 20, [ITEMS.LIGHTNING]: 10, [ITEMS.BULLET_BILL]: 5, [ITEMS.BLUE_SHELL]: 0 },
+    9:  { [ITEMS.STAR]: 20, [ITEMS.GOLDEN_MUSHROOM]: 30, [ITEMS.BULLET_BILL]: 15, [ITEMS.LIGHTNING]: 15, [ITEMS.MEGA_MUSHROOM]: 10, [ITEMS.BLUE_SHELL]: 0 },
     10: { [ITEMS.GOLDEN_MUSHROOM]: 35, [ITEMS.BULLET_BILL]: 20, [ITEMS.STAR]: 20, [ITEMS.LIGHTNING]: 15, [ITEMS.MEGA_MUSHROOM]: 10 },
-    11: { [ITEMS.GOLDEN_MUSHROOM]: 30, [ITEMS.BULLET_BILL]: 30, [ITEMS.STAR]: 20, [ITEMS.LIGHTNING]: 15, [ITEMS.BLUE_SHELL]: 5 },
-    12: { [ITEMS.BULLET_BILL]: 40, [ITEMS.GOLDEN_MUSHROOM]: 20, [ITEMS.STAR]: 15, [ITEMS.LIGHTNING]: 15, [ITEMS.BLUE_SHELL]: 10 }
+    11: { [ITEMS.GOLDEN_MUSHROOM]: 30, [ITEMS.BULLET_BILL]: 30, [ITEMS.STAR]: 20, [ITEMS.LIGHTNING]: 15, [ITEMS.BLUE_SHELL]: 0 },
+    12: { [ITEMS.BULLET_BILL]: 40, [ITEMS.GOLDEN_MUSHROOM]: 20, [ITEMS.STAR]: 15, [ITEMS.LIGHTNING]: 15, [ITEMS.BLUE_SHELL]: 0 }
 };
 
 const getItemBasedOnRank = (currentRank) => {
@@ -84,24 +84,13 @@ export const usePowerupHandler = ({
   
   const [currentItem, setCurrentItem] = useState(ITEMS.NONE);
 	const [isRoulette, setIsRoulette] = useState(false);
-  const rouletteAudioRef = useRef(null);
-  const decideAudioRef = useRef(null);
-
-  useEffect(() => {
-    if (!isLocalPlayer) return;
-    // console.log("PowerupHandler: inizializzando audio per roulette oggetti.");
-    rouletteAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_DECIDE);
-    rouletteAudioRef.current.volume = 0.7;
-    decideAudioRef.current = new Audio(AUDIO_SFX.ITEM_BOX_ROLL);
-    decideAudioRef.current.volume = 0.8;
-  }, [isLocalPlayer]);
 
 	const triggerItemRoulette = (rank = 6) => {
 		if (currentItem !== ITEMS.NONE || isRoulette) return;
 
 		setIsRoulette(true);
-		if (rouletteAudioRef.current) {
-      rouletteAudioRef.current.play();
+		if (isLocalPlayer) {
+      playSfx(AUDIO_SFX.ITEM_BOX_DECIDE, 0.7);
     }
 		// Lista di tutti gli item possibili per l'animazione visiva
 		const allItems = Object.keys(ITEMS).filter(item => item !== 'NONE');
@@ -118,8 +107,8 @@ export const usePowerupHandler = ({
 			clearInterval(rouletteInterval); // Ferma lo scrolling
 			const selectedItem = getItemBasedOnRank(rank);
 			
-      if (decideAudioRef.current) {
-        decideAudioRef.current.play();
+      if (isLocalPlayer) {
+        playSfx(AUDIO_SFX.ITEM_BOX_ROLL, 0.8);
       }
 			setIsRoulette(false);
 			setCurrentItem(selectedItem);
@@ -135,8 +124,6 @@ export const usePowerupHandler = ({
 		}, 2135); 
 	};
   const isItemKeyPressed = useRef(false);
-
-  const { playSfx } = useAudio()
 
   const [tripleCount, setTripleCount] = useState(3);
   const [isGoldenActive, setIsGoldenActive] = useState(false);
