@@ -1355,6 +1355,7 @@ export function GameScene({
                             const commonProps = {
                                 position: pos,
                                 initVelocity: vel,
+                                ownerId: item.ownerId,
                                 onDestroy: () => handleRequestRemove(item.id)
                             };
 

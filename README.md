@@ -122,48 +122,48 @@ erDiagram
 * **Notification**: room invitations and other user-facing alerts
 
 ## Features List
-**User System:** registration, login, profile data, avatar selection, social relationships, and notifications.
+**User System:** registration, login, profile data, avatar selection, social relationships, and notifications. Developed by: ftersill, vcastald.
 
-**3D Racing Engine:** 3D track rendering, kart and vehicle models, collision handling, drifting, and camera-driven gameplay.
+**3D Racing Engine:** 3D track rendering, kart and vehicle models, collision handling, drifting, and camera-driven gameplay. Developed by: gpicchio.
 
-**Multiplayer Syncing:** live synchronization of player positions, race state, and room presence through websockets.
+**Multiplayer Syncing:** live synchronization of player positions, race state, and room presence through websockets. Developed by: ftersill, vcastald, gpicchio.
 
-**AI Bots:** computer-controlled opponents that can navigate tracks and participate in races.
+**AI Bots:** computer-controlled opponents that can navigate tracks and participate in races. Developed by: gpicchio.
 
-**Tournaments:** bracket-style race organization and progression tracking.
+**Tournaments:** bracket-style race organization and progression tracking. Developed by: vcastald, ftersill.
 
-**Power-ups:** item boxes and race items that create offensive and defensive gameplay situations.
+**Power-ups:** item boxes and race items that create offensive and defensive gameplay situations. Developed by: gpicchio.
 
-**Game Flow:** character selection, vehicle selection, track selection, room selection, and race transitions.
+**Game Flow:** character selection, vehicle selection, track selection, room selection, and race transitions. Developed by: gpicchio.
 
-**Audio and Visual Polish:** scene audio, UI assets, animated effects, and themed Mario Kart environments.
+**Audio and Visual Polish:** scene audio, UI assets, animated effects, and themed Mario Kart environments. Developed by: vcastlad, ftersill.
 
 ## Modules
 The project was developed to cover the required ft_transcendence areas and to keep the game functional as a complete browser-based racing platform. The implemented modules and platform areas include:
 
-**Use a Framework:** React on the frontend and NestJS on the backend.
+**Use a Framework (Major - 2 points):** React on the frontend and NestJS on the backend.
 
-**Real-time Features:** websocket-based live gameplay and room synchronization.
+**Real-time Features (Major - 2 points):** websocket-based live gameplay and room synchronization.
 
-**Standard User Management:** registration, authentication, profiles, friends, requests, and notifications.
+**Standard User Management (Major - 2 points):** registration, authentication, profiles, friends, requests, and notifications.
 
-**Web-based Game:** the main Mario Kart-inspired racing experience.
+**Web-based Game (Major - 2 points):** the main Mario Kart-inspired racing experience.
 
-**Multiplayer:** networked races between multiple players.
+**Multiplayer (Major - 2 points):** networked races between multiple players.
 
-**Remote Players:** support for multiplayer sessions beyond a single local client.
+**Remote Players (Major - 2 points):** support for multiplayer sessions beyond two players.
 
-**Advanced 3D Graphics:** the game world, characters, vehicles, and tracks are rendered in 3D.
+**Advanced 3D Graphics (Major - 2 points):** the game world, characters, vehicles, and tracks are rendered in 3D using Three.js.
 
-**Artificial Intelligence:** AI opponents for single-player and mixed-race modes.
+**Artificial Intelligence (Major - 2 points):** AI opponents for single-player and mixed-race modes.
 
-**Tournament System:** race organization and bracket progression.
+**Game Customization (Minor - 1 point):** power-ups, items, vehicle choices, and character selection.
 
-**Game Customization:** power-ups, items, vehicle choices, and character selection.
+**Use an ORM (Minor - 1 point):** Prisma manages the database layer and schema migrations.
 
-**Use an ORM:** Prisma manages the database layer and schema migrations.
+**Support for additional browsers (Minor - 1 point):** Supported by Firefox and Brave.
 
-**HTTPS / Reverse Proxy:** Nginx handles secure local access and websocket proxying.
+**Total points from modules: 19**
 
 ## Individual Contributions
 **gpicchio (PO/Developer):** Main contribution areas included gameplay design, 3D race logic, item and power-up behavior, and the overall playability of the racing loop. Also contributed to the product vision and prioritization of gameplay features.
