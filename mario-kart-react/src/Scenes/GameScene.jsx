@@ -1353,10 +1353,16 @@ export function GameScene({
                             const vel = new THREE.Vector3().fromArray(item.velocity);
 
                             const commonProps = {
+                                id: item.id,
                                 position: pos,
                                 initVelocity: vel,
                                 ownerId: item.ownerId,
-                                onDestroy: () => handleRequestRemove(item.id)
+                                onDestroy: () => handleRequestRemove(item.id),
+                                socket: socket,
+                                playerRef: playerRef,
+                                botRefs: botRefs,
+                                remoteRefMap: remoteRefMap,
+                                roomCode: roomCode
                             };
 
                             switch (item.type) {
@@ -1365,7 +1371,7 @@ export function GameScene({
                                 case 'green_shell': 
                                     return <GreenShell key={item.id} {...commonProps} />;
                                 case 'red_shell': 
-                                    return <RedShell key={item.id} {...commonProps} targets={targets} waypoints={activeTrackConfig.Waypoints[0]} roomCode={roomCode} />;
+                                    return <RedShell key={item.id} {...commonProps} targets={targets} />;
                                 case 'blue_shell': 
                                     return <BlueShell key={item.id} position={pos} waypoints={activeTrackConfig.Waypoints[0]} targets={blueShellTargets} onDestroy={commonProps.onDestroy} />;
                                 case 'bomb': 
