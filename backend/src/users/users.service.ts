@@ -198,33 +198,47 @@ export class UsersService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async updateRankingGrandPrix(username: string, grandPrixName: string, ranking: number, ccs: number): Promise<GrandPrix> {
+async updateRankingGrandPrix(username: string, grandPrixName: string, ranking: number, ccs: number): Promise<GrandPrix> {
     try {
-      // 1. Cerca se il record esiste già
+      // 1. Cerca se il record esiste già per QUELLA specifica cilindrata (ccs)
       const existingGrandPrix = await this.prisma.grandPrix.findUnique({
-        where: { userName_grandPrixName: { userName: username, grandPrixName } },
+        where: { 
+          // Prisma crea in automatico questo nome basato sul @@unique
+          userName_grandPrixName_ccs: { 
+            userName: username, 
+            grandPrixName: grandPrixName,
+            ccs: ccs 
+          } 
+        },
       });
 
-      // 2. Se non esiste, lo crea (equivale al 'create' dell'upsert)
+      // 2. Se non esiste, lo crea
       if (!existingGrandPrix) {
         return await this.prisma.grandPrix.create({
           data: { userName: username, grandPrixName, ranking, ccs },
         });
       }
 
-      // 3. Se esiste, controlla se il ranking passato è minore di quello salvato (1 è meglio di 2 che e' migliore di 3)
+      // 3. Se esiste (per questa specifica coppa e cilindrata), aggiorna SOLO se il ranking è migliore (es. 1 è meglio di 3)
       if (ranking < existingGrandPrix.ranking) {
         return await this.prisma.grandPrix.update({
-          where: { userName_grandPrixName: { userName: username, grandPrixName } },
-          data: { ranking, ccs }, // Aggiorna sia il ranking che i ccs correlati
+          where: { 
+            userName_grandPrixName_ccs: { 
+              userName: username, 
+              grandPrixName: grandPrixName,
+              ccs: ccs
+            } 
+          },
+          // Aggiorniamo solo il ranking. Non serve aggiornare i ccs perché sono già uguali (li abbiamo usati nel where)
+          data: { ranking }, 
         });
       }
 
-      // 4. Se il ranking passato è minore o uguale, restituisce semplicemente il record esistente senza fare nulla
+      // 4. Se il nuovo ranking è peggiore o uguale, non fare nulla e restituisci il record esistente
       return existingGrandPrix;
 
     } catch (error) {
-      console.error('Error updating Grand Prix ranking:', error); // LOG: vedi il vero errore
+      console.error('Error updating Grand Prix ranking:', error); 
       throw new ConflictException('Impossibile aggiornare il ranking del Gran Prix. Utente non trovato?');
     }
   }

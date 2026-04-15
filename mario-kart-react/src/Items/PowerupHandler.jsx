@@ -144,7 +144,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-	//setCurrentItem(ITEMS.BLUE_SHELL);
+	  // setCurrentItem(ITEMS.BULLET_BILL);
   };
 
 useEffect(() => {
