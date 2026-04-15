@@ -279,6 +279,21 @@ export const OutsideDriftBike = React.memo(forwardRef((props, ref) => {
   const megaMushroomShrinkAudioRef = useRef();
   const megaMushroomUseAudioRef = useRef();
 
+  // --- TIMERS CLEANUP ---
+  useEffect(() => {
+    return () => {
+      // Pulisce i timer quando il componente viene smontato per evitare
+      // di chiamare funzioni su un RigidBody (Rapier) già distrutto
+      if (megaTimer.current) clearTimeout(megaTimer.current);
+      if (starTimer.current) clearTimeout(starTimer.current);
+      if (smallTimer.current) clearTimeout(smallTimer.current);
+      
+      isMegaActive.current = false;
+      isStarActive.current = false;
+      isSmall.current = false;
+    };
+  }, []);
+
   const activateMega = () => {
       isMegaActive.current = true;
       if (megaMushroomUseAudioRef.current && megaMushroomStateAudioRef.current) {

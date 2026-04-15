@@ -144,7 +144,7 @@ export const usePowerupHandler = ({
   const lastMushroomAudioTime = useRef(0);
 
   const pickupItem = () => {
-    //setCurrentItem(ITEMS.GREEN_SHELL);
+    //setCurrentItem(ITEMS.BULLET_BILL);
   };
 
 useEffect(() => {
@@ -328,14 +328,14 @@ useEffect(() => {
   }
 
   const useBlueShell = () => {
-    console.log('[BlueShell] useBlueShell called');
+    // console.log('[BlueShell] useBlueShell called');
     
     if (onSpawnBlueShell && getFirstPlaceRef) {
         // Use callback to get first place ref from component level
         const targetRef = getFirstPlaceRef?.();
-        console.log('[BlueShell] TargetRef from callback:', targetRef);
-        console.log('[BlueShell] TargetRef.current:', targetRef?.current);
-        console.log('[BlueShell] TargetRef is null?', targetRef === null);
+        // console.log('[BlueShell] TargetRef from callback:', targetRef);
+        // console.log('[BlueShell] TargetRef.current:', targetRef?.current);
+        // console.log('[BlueShell] TargetRef is null?', targetRef === null);
         
         if (targetRef?.current) {
             try {
@@ -344,7 +344,7 @@ useEffect(() => {
                 const spawnY = leaderTrans.y; // 5 unità sopra il leader
                 const spawnZ = leaderTrans.z;
                 
-                console.log('[BlueShell] Spawning at:', { spawnX, spawnY, spawnZ });
+                // console.log('[BlueShell] Spawning at:', { spawnX, spawnY, spawnZ });
                 onSpawnBlueShell([spawnX, spawnY, spawnZ], [0, 0, 0]);
             } catch (e) {
                 console.error('[BlueShell] Errore nel calcolare la posizione:', e);

@@ -48,7 +48,7 @@ Per far funzionare il gioco, raccogliamo solo i dati essenziali:
 - Miglioramento tecnico del gioco basato su log di errore.
 
 3. COOKIE E STORAGE LOCALE
-Utilizziamo "Local Storage" o "Session Storage" nel tuo browser unicamente per mantenere attiva la tua sessione di gioco (JWT Token) ed evitare che tu debba fare il login ad ogni pagina. Non utilizziamo cookie di tracciamento pubblicitario.
+Utilizziamo "Local Storage" o "Session Storage" nel tuo browser unicamente per mantenere attiva la tua sessione di gioco (JWT Token). Non utilizziamo cookie di tracciamento pubblicitario.
 
 4. TERZE PARTI
 Questo è un progetto indipendente. I tuoi dati non vengono venduti, scambiati o ceduti a terze parti esterne.

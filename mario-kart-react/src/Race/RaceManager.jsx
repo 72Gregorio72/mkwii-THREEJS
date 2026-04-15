@@ -69,7 +69,7 @@ export function RaceManager({
 		
 		// Debug log (ogni 5 secondi circa)
 		if (Math.random() < 0.02) {
-			console.log(`[calculateScore] Racer ${racerId.substring(0, 8)}: pos(${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)}) -> waypoint ${closestIndex}/${totalWaypoints}, lap ${currentLap}, score ${finalScore}`);
+			// console.log(`[calculateScore] Racer ${racerId.substring(0, 8)}: pos(${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)}) -> waypoint ${closestIndex}/${totalWaypoints}, lap ${currentLap}, score ${finalScore}`);
 		}
 		
 		return finalScore;
@@ -110,7 +110,7 @@ export function RaceManager({
 					currentPos = new THREE.Vector3(t.x, t.y, t.z);
 					// Debug log del player locale
 					if (Math.random() < 0.02) {
-						console.log(`[RaceManager] PLAYER (${racerId.substring(0, 8)}): pos(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
+						// console.log(`[RaceManager] PLAYER (${racerId.substring(0, 8)}): pos(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
 					}
 				}
 			} else if (botRefs.current[racerId]) {
@@ -121,7 +121,7 @@ export function RaceManager({
 					currentPos = new THREE.Vector3(t.x, t.y, t.z);
 					// Debug log del bot
 					if (Math.random() < 0.02) {
-						console.log(`[RaceManager] BOT (${racerId.substring(0, 8)}): pos(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
+						// console.log(`[RaceManager] BOT (${racerId.substring(0, 8)}): pos(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
 					}
 				}
 			} else {
@@ -144,7 +144,7 @@ export function RaceManager({
 				
 				// Debug log del player online
 				if (currentPos && Math.random() < 0.02) {
-					console.log(`[RaceManager] REMOTE (${racerId.substring(0, 8)}): pos(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
+					// console.log(`[RaceManager] REMOTE (${racerId.substring(0, 8)}): pos(${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
 				}
 				
 				// Sincronizza lap da remoto per giocatori online
@@ -166,7 +166,7 @@ export function RaceManager({
 
 		// Debug log: mostri tutti i racer ordinati
 		if (Math.random() < 0.02) {
-			console.log('[RaceManager] CLASSIFICA ATTUALE:');
+			// console.log('[RaceManager] CLASSIFICA ATTUALE:');
 			sorted.forEach((racer, index) => {
 				console.log(`  ${index + 1}. ${racer.id.substring(0, 8)} - Score: ${racer.score} (Lap: ${racer.lap})`);
 			});
@@ -192,7 +192,7 @@ export function RaceManager({
 
 		if (changed) {
 			lastSentPositionsRef.current = newPositionsIds;
-			console.log('[RaceManager] POSIZIONI AGGIORNATE:', newPositionsIds.map(p => `${p.id.substring(0, 8)}(#${p.position})`).join(' -> '));
+			// console.log('[RaceManager] POSIZIONI AGGIORNATE:', newPositionsIds.map(p => `${p.id.substring(0, 8)}(#${p.position})`).join(' -> '));
 			setPositions(newPositionsIds);
 		}
 	});
