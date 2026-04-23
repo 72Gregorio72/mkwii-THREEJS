@@ -2,6 +2,12 @@
 
 # Mario Kart React - ft_transcendence
 
+
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/4d312732-3072-4c5c-a31d-f705b7b64f53" />
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/3072b7c6-460d-4138-a5e3-bbb416da5fa5" />
+
+https://github.com/user-attachments/assets/27afc768-2af9-47f2-bc88-ff9619e7c745
+
 ## Description
 **Mario Kart React** is a full-stack, real-time 3D multiplayer racing web application inspired by the classic Mario Kart series. The goal of the project is to deliver a polished multiplayer racing experience while satisfying the technical and architectural requirements of the 42 ft_transcendence subject.
 
