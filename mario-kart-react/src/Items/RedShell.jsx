@@ -26,6 +26,7 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
     const currentWpIndex = useRef(0);
     const isInitialized = useRef(false);
     const isDestroyedRef = useRef(false); // Previeni double-destruction
+    const ownerIds = useMemo(() => new Set([ownerId, socket?.id, 'local'].filter(Boolean).map(value => String(value))), [ownerId, socket?.id]);
 
     const v = useMemo(() => ({
         pos: new THREE.Vector3(),
@@ -34,6 +35,11 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         forward: new THREE.Vector3(),
         nextWp: new THREE.Vector3()
     }), []);
+
+    const isOwnerCandidate = (candidateId) => {
+        if (candidateId == null) return false;
+        return ownerIds.has(String(candidateId));
+    };
 
     // 1. INIZIALIZZAZIONE FISICA (FORZA IL MOVIMENTO)
     useEffect(() => {
@@ -116,7 +122,7 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
         // --- LOGICA TARGETING / WAYPOINT ---
         let destination = null;
 
-        // Se ha un target, lo segue
+        // Se ha un target, lo segue. Se il target non e' disponibile, non torna ai waypoint.
         const targetObj = targets.find(t => t.id === targetId);
         if (targetId && targetObj?.ref.current) {
             try {
@@ -125,11 +131,9 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
                     destination = v.targetPos.set(tPos.x, rbTrans.y, tPos.z);
                 }
             } catch (e) {
-                // Target non disponibile, usa waypoints
+                // Target non disponibile, mantieni la traiettoria corrente.
             }
-        } 
-        // Altrimenti segue i waypoint
-        if (!destination && waypoints.length > 0) {
+        } else if (!targetId && waypoints.length > 0) {
             const wp = waypoints[currentWpIndex.current];
             v.nextWp.set(wp.x, rbTrans.y, wp.z);
 
@@ -157,38 +161,22 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
             }
         }
 
-        // Ricerca target se non ce l'ha - SOLO DAVANTI
+        // Ricerca target se non ce l'ha - sfera di prossimita'
         if (!targetId && targets.length > 0) {
             let closestTarget = null;
             let closestDist = DETECTION_RADIUS;
             
             targets.forEach(t => {
-                if (t.id === ownerId || !t.ref.current) return;
+                if (isOwnerCandidate(t.id) || !t.ref.current) return;
                 try {
                     const tTrans = t.ref.current.translation();
                     if (tTrans) {
-                        // Calcola direzione verso il target
-                        const toTarget = new THREE.Vector3(
-                            tTrans.x - v.pos.x,
-                            0, // Ignora Y per il controllo direzionale
-                            tTrans.z - v.pos.z
-                        ).normalize();
-                        
-                        // Calcola la direzione di movimento del guscio (basata su velocità attuale)
-                        const shellDirection = v.dir.clone().normalize();
-                        
-                        // Prodotto scalare: > 0 = davanti, < 0 = dietro
-                        const dotProduct = shellDirection.dot(toTarget);
-                        
-                        // Solo target davanti (angolo < 90 gradi)
-                        if (dotProduct > 0) {
-                            const dist = v.pos.distanceTo(v.targetPos.set(tTrans.x, rbTrans.y, tTrans.z));
-                            
-                            // Trova il target più vicino davanti
-                            if (dist < closestDist) {
-                                closestDist = dist;
-                                closestTarget = t.id;
-                            }
+                        const dist = v.pos.distanceTo(v.targetPos.set(tTrans.x, tTrans.y, tTrans.z));
+
+                        // Trova il target piu' vicino dentro la sfera di rilevamento
+                        if (dist < closestDist) {
+                            closestDist = dist;
+                            closestTarget = t.id;
                         }
                     }
                 } catch (e) {
@@ -213,8 +201,9 @@ export const RedShell = memo(function RedShell({ id, position, initVelocity, way
 
         // Verifica se è un racer e non è il proprietario
         const isRacer = userData?.type === 'racer' || userData?.type === 'opponent';
+        const isOwnerVictim = isOwnerCandidate(victimId) || isOwnerCandidate(userData?.ownerId) || isOwnerCandidate(targetObj?.name);
         
-        if (victimId && victimId !== ownerId && isRacer) {
+        if (victimId && !isOwnerVictim && isRacer) {
             setIsActive(false);
             isDestroyedRef.current = true; // Marca come distrutto subito
             
